@@ -91,8 +91,8 @@ export default function POSCart() {
       </div>
 
       {/* Footer Area */}
-      <div className="flex items-center px-4 py-3 border-t border-gray-200 bg-white shrink-0">
-        <div className="flex items-center gap-2 text-gray-500 w-1/2">
+      <div className="flex flex-col px-4 py-3 border-t border-gray-200 bg-white shrink-0">
+        <div className="flex items-center gap-2 text-gray-500 w-full mb-3 pb-2 border-b border-gray-100">
           <Edit2 size={14} />
           <input 
             type="text" 
@@ -103,11 +103,38 @@ export default function POSCart() {
           />
         </div>
         
-        <div className="flex justify-end items-center w-1/2 gap-4">
-          <span className="text-[14px] text-gray-700">Tổng tiền hàng <span className="font-semibold text-gray-900 ml-1">{cart.reduce((s, i) => s + i.quantity, 0)}</span></span>
-          <span className="text-[16px] font-bold text-gray-900">
-            {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
-          </span>
+        <div className="w-full flex flex-col gap-2 pl-4">
+          <div className="flex justify-between items-center w-full">
+            <span className="text-[14px] text-gray-700">Tổng tiền hàng <span className="font-semibold text-gray-900 ml-1">{cart.reduce((s, i) => s + i.quantity, 0)}</span></span>
+            <span className="text-[14px] font-medium text-gray-900">
+              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.price * i.quantity, 0))}
+            </span>
+          </div>
+
+          {saleMode === 'delivery' && (
+            <>
+              <div className="flex justify-between items-center w-full border-b border-gray-200 pb-2">
+                <span className="text-[14px] text-gray-700">Giảm giá</span>
+                <span className="text-[14px] font-medium text-gray-900">
+                  {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.discount * i.quantity, 0) + Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+                </span>
+              </div>
+              <div className="flex justify-between items-center w-full pt-1">
+                <span className="text-[14px] font-bold text-gray-800">Khách cần trả</span>
+                <span className="text-[16px] font-bold text-[#1a73e8]">
+                  {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0) - Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+                </span>
+              </div>
+            </>
+          )}
+
+          {saleMode !== 'delivery' && (
+            <div className="flex justify-end mt-1">
+              <span className="text-[16px] font-bold text-gray-900">
+                {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

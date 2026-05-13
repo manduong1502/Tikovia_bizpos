@@ -4,6 +4,7 @@ import POSHeader from './POSHeader';
 import POSCart from './POSCart';
 import POSProductGrid from './POSProductGrid';
 import POSPaymentPanel from './POSPaymentPanel';
+import POSDeliveryPanel from './POSDeliveryPanel';
 import { Zap, Clock, Truck, MessageCircleQuestion, HelpCircle, MessageSquare } from 'lucide-react';
 
 function POSBottomBar() {
@@ -61,13 +62,15 @@ function POSLayout() {
       
       <div className="flex flex-1 overflow-hidden p-2 gap-2">
         {/* Left column: Cart & Summary */}
-        <div className={`bg-white border border-gray-200 flex flex-col shadow-sm rounded-lg overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'flex-1' : 'w-[55%] min-w-[500px]'}`}>
+        <div className={`bg-white border border-gray-200 flex flex-col shadow-sm rounded-lg overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'flex-1' : saleMode === 'delivery' ? 'w-[40%] min-w-[400px]' : 'w-[55%] min-w-[500px]'}`}>
           <POSCart />
         </div>
         
         {/* Right column: Products Grid or Payment Panel */}
-        <div className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg relative overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'w-[400px] shrink-0' : 'flex-1'}`}>
-          {saleMode === 'fast' ? (
+        <div className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg relative overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'w-[400px] shrink-0' : saleMode === 'delivery' ? 'flex-[2]' : 'flex-1'}`}>
+          {saleMode === 'delivery' ? (
+            <POSDeliveryPanel />
+          ) : saleMode === 'fast' ? (
             <POSPaymentPanel forceShow={true} />
           ) : (
             <>
