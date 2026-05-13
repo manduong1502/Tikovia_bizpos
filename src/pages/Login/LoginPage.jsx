@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Monitor, ShoppingCart } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import api from '../../services/api';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('admin');
@@ -23,15 +23,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post('/api/auth/login', { username, password });
+      const res = await api.post('/auth/login', { username, password });
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
         navigate('/products');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Đăng nhập thất bại');
+      setError(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }
