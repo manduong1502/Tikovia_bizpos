@@ -90,9 +90,9 @@ export default function POSCart() {
         )}
       </div>
 
-      {/* Note Area */}
-      <div className="p-3 border-t border-gray-200 bg-white shrink-0">
-        <div className="flex items-center gap-2 text-gray-500 border-b border-gray-200 pb-2 mb-3">
+      {/* Footer Area */}
+      <div className="flex items-center px-4 py-3 border-t border-gray-200 bg-white shrink-0">
+        <div className="flex items-center gap-2 text-gray-500 w-1/2">
           <Edit2 size={14} />
           <input 
             type="text" 
@@ -103,25 +103,12 @@ export default function POSCart() {
           />
         </div>
         
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-[14px] font-semibold text-gray-700">Tổng tiền ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
-          <span className="text-[16px] font-bold text-[#1a73e8]">
+        <div className="flex justify-end items-center w-1/2 gap-4">
+          <span className="text-[14px] text-gray-700">Tổng tiền hàng <span className="font-semibold text-gray-900 ml-1">{cart.reduce((s, i) => s + i.quantity, 0)}</span></span>
+          <span className="text-[16px] font-bold text-gray-900">
             {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
           </span>
         </div>
-        
-        <button 
-          onClick={() => {
-            if (cart.length === 0) {
-              toast.error('Chưa có sản phẩm trong đơn hàng');
-              return;
-            }
-            updateCurrentInvoice({ isPaymentMode: true });
-          }}
-          className="w-full bg-[#4caf50] hover:bg-[#43a047] text-white py-3 rounded-lg font-bold text-[16px] shadow-sm transition-colors"
-        >
-          THANH TOÁN
-        </button>
       </div>
     </div>
   );

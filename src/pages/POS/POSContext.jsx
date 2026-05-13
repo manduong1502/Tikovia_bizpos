@@ -20,6 +20,7 @@ export function POSProvider({ children }) {
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const [nextTabId, setNextTabId] = useState(2);
+  const [saleMode, setSaleMode] = useState('normal'); // 'fast', 'normal', 'delivery'
 
   const currentInvoice = invoices.find(inv => inv.id === activeTabId);
 
@@ -173,7 +174,9 @@ export function POSProvider({ children }) {
       setCustomer,
       updateCurrentInvoice,
       clearCurrentInvoice,
-      togglePaymentMode
+      togglePaymentMode,
+      saleMode,
+      setSaleMode
     }}>
       {children}
     </POSContext.Provider>

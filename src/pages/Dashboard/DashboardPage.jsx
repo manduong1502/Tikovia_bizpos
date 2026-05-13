@@ -52,15 +52,15 @@ export default function DashboardPage() {
           <div className="flex gap-10">
             <div>
               <div className="text-sm text-gray-500 mb-1">Doanh thu</div>
-              <div className="text-2xl font-bold text-primary">{fmt(d.today_revenue)}</div>
+              <div className="text-2xl font-bold text-primary">{fmt(d.todayStats?.revenue || 0)}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500 mb-1">Đơn hàng</div>
-              <div className="text-2xl font-bold text-gray-800">{d.today_orders || 0}</div>
+              <div className="text-2xl font-bold text-gray-800">{d.todayStats?.orders || 0}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500 mb-1">Trả hàng</div>
-              <div className="text-2xl font-bold text-warning">{d.today_returns || 0}</div>
+              <div className="text-2xl font-bold text-warning">{d.todayStats?.returns || 0}</div>
             </div>
           </div>
         </div>
@@ -219,23 +219,23 @@ export default function DashboardPage() {
         <div className="bg-white border border-border rounded-lg p-5 flex-1">
           <h3 className="text-base font-bold text-gray-800 mb-4">Hoạt động gần đây</h3>
           <div className="space-y-3 max-h-[calc(100vh-380px)] overflow-y-auto">
-            {(d.recent_orders || []).map((o, i) => (
+            {(d.recentOrders || []).map((o, i) => (
               <div key={i} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  o.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-500'
+                  o.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-500'
                 }`}>
-                  {o.status === 'completed' ? <ShoppingCart size={14} /> : <RotateCcw size={14} />}
+                  {o.status === 'COMPLETED' ? <ShoppingCart size={14} /> : <RotateCcw size={14} />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-700 truncate">{o.order_code}</div>
+                  <div className="text-sm font-medium text-gray-700 truncate">{o.orderCode}</div>
                   <div className="text-xs text-gray-400">
-                    {o.customer_name || 'Khách lẻ'} • {o.user_name || 'Admin'}
+                    {o.customer?.name || 'Khách lẻ'} • {o.user?.fullName || 'Admin'}
                   </div>
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-sm font-medium text-gray-800">{fmt(o.total)}</div>
                   <div className="text-[10px] text-gray-400">
-                    {o.created_at ? new Date(o.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    {o.createdAt ? new Date(o.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                 </div>
               </div>

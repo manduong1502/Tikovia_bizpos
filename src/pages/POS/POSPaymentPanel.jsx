@@ -4,17 +4,17 @@ import { Search, User, X, CheckCircle, ChevronLeft } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function POSPaymentPanel() {
-  const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice } = usePOS();
+export default function POSPaymentPanel({ forceShow = false }) {
+  const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice, saleMode } = usePOS();
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [paidAmountStr, setPaidAmountStr] = useState('');
   
-  if (!currentInvoice?.isPaymentMode) return null;
+  if (!currentInvoice?.isPaymentMode && !forceShow) return null;
 
-  const cart = currentInvoice.cart || [];
-  const customer = currentInvoice.customer;
+  const cart = currentInvoice?.cart || [];
+  const customer = currentInvoice?.customer;
   const subtotal = cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0);
   const discountAmount = Math.round(subtotal * (currentInvoice.discount || 0) / 100);
   const total = subtotal - discountAmount;
@@ -88,15 +88,17 @@ export default function POSPaymentPanel() {
   };
 
   return (
-    <div className="absolute inset-0 bg-white z-20 flex flex-col animate-in slide-in-from-right-8 duration-200">
+    <div className={`absolute inset-0 bg-white z-20 flex flex-col ${!forceShow ? 'animate-in slide-in-from-right-8 duration-200' : ''}`}>
       {/* Header */}
       <div className="h-[50px] border-b border-gray-200 flex items-center px-4 shrink-0 bg-gray-50">
-        <button 
-          onClick={() => togglePaymentMode(false)}
-          className="flex items-center text-gray-600 hover:text-gray-900 font-medium"
-        >
-          <ChevronLeft size={20} className="mr-1" /> Quay lại
-        </button>
+        {!forceShow && (
+          <button 
+            onClick={() => togglePaymentMode(false)}
+            className="flex items-center text-gray-600 hover:text-gray-900 font-medium"
+          >
+            <ChevronLeft size={20} className="mr-1" /> Quay lại
+          </button>
+        )}
         <div className="ml-auto font-bold text-[16px] text-gray-800">Thanh toán</div>
       </div>
 

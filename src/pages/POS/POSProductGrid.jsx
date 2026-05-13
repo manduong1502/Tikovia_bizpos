@@ -3,7 +3,7 @@ import { usePOS } from './POSContext';
 import { Image as ImageIcon } from 'lucide-react';
 
 export default function POSProductGrid() {
-  const { products, categories, addToCart } = usePOS();
+  const { products, categories, addToCart, currentInvoice, updateCurrentInvoice } = usePOS();
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   // Filter products by category
@@ -88,6 +88,24 @@ export default function POSProductGrid() {
             <p>Không tìm thấy sản phẩm</p>
           </div>
         )}
+      </div>
+
+      {/* Thanh Toan Button for Normal Mode */}
+      <div className="shrink-0 pt-2 pb-1 px-1">
+        <button 
+          onClick={() => {
+            if (currentInvoice?.cart?.length === 0) {
+              // We need to import toast if we want to show error here, or just toggle and let payment panel handle empty cart.
+              // Actually, payment panel handles empty cart. Let's toggle it.
+              updateCurrentInvoice({ isPaymentMode: true });
+            } else {
+              updateCurrentInvoice({ isPaymentMode: true });
+            }
+          }}
+          className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded font-bold text-[15px] shadow-sm transition-colors"
+        >
+          THANH TOÁN
+        </button>
       </div>
     </div>
   );
