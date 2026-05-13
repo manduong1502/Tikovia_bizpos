@@ -3,14 +3,14 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
   
-  --color-primary: #1a73e8;
-  --color-primary-hover: #1557b0;
-  --color-sidebar: #2c5fb8;
-  --color-success: #34a853;
-  --color-danger: #d93025;
-  --color-warning: #f29900;
-  --color-border: #e0e0e0;
-  --color-bg-light: #f5f6f8;
+  --color-primary: #2563EB; /* Premium Deep Blue */
+  --color-primary-hover: #1D4ED8;
+  --color-sidebar: #1E3A8A; /* Darker blue for sidebar */
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-border: #E2E8F0; /* Slate 200 */
+  --color-bg-light: #F8FAFC; /* Slate 50 */
 }
 
 body {

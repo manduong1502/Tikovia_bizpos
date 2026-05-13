@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePOS } from './POSContext';
-import { Search, User, X, CheckCircle, ChevronLeft } from 'lucide-react';
+import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -87,139 +87,165 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
   };
 
-  return (
-    <div className={`absolute inset-0 bg-white z-20 flex flex-col ${!forceShow ? 'animate-in slide-in-from-right-8 duration-200' : ''}`}>
-      {/* Header */}
-      <div className="h-[50px] border-b border-gray-200 flex items-center px-4 shrink-0 bg-gray-50">
-        {!forceShow && (
-          <button 
-            onClick={() => togglePaymentMode(false)}
-            className="flex items-center text-gray-600 hover:text-gray-900 font-medium"
-          >
-            <ChevronLeft size={20} className="mr-1" /> Quay lại
-          </button>
-        )}
-        <div className="ml-auto font-bold text-[16px] text-gray-800">Thanh toán</div>
-      </div>
+  const user = useAppStore?.(s => s.user) || null;
 
-      <div className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full">
-        {/* Customer Section */}
-        <div className="mb-6">
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">Khách hàng</label>
-          
-          {customer ? (
-            <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg p-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
-                  {customer.name.charAt(0).toUpperCase()}
+  return (
+    <div className="pos-payment-panel">
+      <div className="pos-seller-info">
+        <span className="pos-seller-name">{user ? user.fullName : 'Nhân viên'}</span>
+        <div className="pos-seller-icons">
+          <button title="Ghim"><Pin size={16} /></button>
+          <button><ChevronDown size={16} /></button>
+        </div>
+        <span className="pos-seller-date">{new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      
+      {customer ? (
+        <div style={{ display: 'flex', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--pos-border-light)' }}>
+          <span style={{ color: 'var(--pos-text-muted)', marginRight: '12px' }}><User size={20} /></span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--pos-primary)' }}>{customer.name}</div>
+            {(customer.totalDebt || 0) > 0 && <div style={{ fontSize: '12px', color: 'var(--pos-danger)', marginTop: '4px', fontWeight: '500' }}>Nợ: {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}</div>}
+          </div>
+          <button onClick={() => updateCurrentInvoice({ customer: null })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--pos-text-muted)', transition: 'color 0.2s' }} onMouseOver={e=>e.currentTarget.style.color='var(--pos-danger)'} onMouseOut={e=>e.currentTarget.style.color='var(--pos-text-muted)'}><X size={18} /></button>
+        </div>
+      ) : (
+        <div className="pos-customer-search">
+          <div className="pos-customer-search-input-wrapper">
+            <Search size={16} color="var(--pos-text-muted)" />
+            <input
+              type="text"
+              id="pos-cust-input"
+              placeholder="Tìm khách hàng (F4)"
+              value={customerSearch}
+              onChange={handleCustomerSearch}
+              onFocus={(e) => e.target.select()}
+            />
+          </div>
+          <button className="pos-add-customer-btn" title="Thêm khách hàng"><Plus size={18} /></button>
+          {customerSuggestions.length > 0 && (
+            <div id="pos-cust-suggest" className="pos-customer-suggestions" style={{ position: 'absolute', top: '100%', left: '16px', right: '16px', background: 'var(--pos-surface)', zIndex: 50, border: '1px solid var(--pos-border)', borderRadius: 'var(--pos-radius-md)', boxShadow: 'var(--pos-shadow-md)', marginTop: '4px' }}>
+              {customerSuggestions.map(c => (
+                <div key={c.id} className="pos-customer-suggestion" onClick={() => handleSelectCustomer(c)} style={{ padding: '12px 16px', cursor: 'pointer', fontSize: '14px', transition: 'background 0.2s', borderBottom: '1px solid var(--pos-border-light)' }}>
+                  <div style={{ fontWeight: '500', color: 'var(--pos-text-main)' }}>{c.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--pos-text-muted)' }}>{c.phone}</div>
                 </div>
-                <div>
-                  <div className="font-semibold text-gray-800 text-[14px]">{customer.name}</div>
-                  <div className="text-[12px] text-gray-500">{customer.phone || 'Chưa có số ĐT'}</div>
-                  {(customer.totalDebt || 0) > 0 && (
-                    <div className="text-[12px] text-red-500 font-medium mt-0.5">Nợ hiện tại: {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}</div>
-                  )}
-                </div>
-              </div>
-              <button 
-                onClick={() => updateCurrentInvoice({ customer: null })}
-                className="text-gray-400 hover:text-red-500 p-2"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          ) : (
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm khách hàng (Tên, SĐT)..."
-                className="w-full h-10 pl-10 pr-3 rounded border border-gray-300 text-[13px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                value={customerSearch}
-                onChange={handleCustomerSearch}
-              />
-              
-              {customerSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white rounded shadow-lg border border-gray-200 z-50 max-h-[200px] overflow-y-auto">
-                  {customerSuggestions.map(c => (
-                    <div 
-                      key={c.id}
-                      onClick={() => handleSelectCustomer(c)}
-                      className="p-3 border-b border-gray-100 hover:bg-blue-50 cursor-pointer flex justify-between items-center"
-                    >
-                      <div>
-                        <div className="text-[13px] font-medium text-gray-800">{c.name}</div>
-                        <div className="text-[11px] text-gray-500">{c.phone}</div>
-                      </div>
-                      {(c.totalDebt || 0) > 0 && (
-                        <div className="text-[11px] text-red-500 font-medium">Nợ: {new Intl.NumberFormat('vi-VN').format(c.totalDebt)}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
-
-        {/* Summary Section */}
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-6">
-          <div className="flex justify-between items-center mb-3 text-[14px]">
-            <span className="text-gray-600">Tổng tiền hàng ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
-            <span className="font-semibold text-gray-800">{new Intl.NumberFormat('vi-VN').format(subtotal)}</span>
-          </div>
-          
-          <div className="flex justify-between items-center mb-3 text-[14px]">
-            <span className="text-gray-600">Giảm giá (%)</span>
+      )}
+      
+      <div className="pos-payment-rows">
+        <div className="pos-payment-row">
+          <span className="label">Tổng tiền hàng</span>
+          <span className="value" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            <span id="pos-item-count2" style={{ color: '#666', minWidth: '30px', textAlign: 'center' }}>
+              {cart.reduce((s,i)=>s+i.quantity,0)}
+            </span>
+            <span id="pay-subtotal">{new Intl.NumberFormat('vi-VN').format(subtotal)}</span>
+          </span>
+        </div>
+        <div className="pos-payment-row">
+          <span className="label">Giảm giá</span>
+          <span className="value">
             <input 
-              type="number"
-              min="0"
-              max="100"
-              value={currentInvoice.discount}
-              onChange={(e) => updateCurrentInvoice({ discount: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) })}
-              className="w-20 text-right border-b border-gray-300 bg-transparent outline-none focus:border-blue-500 text-gray-800 font-semibold"
-            />
-          </div>
-
-          <div className="h-px bg-gray-200 my-4"></div>
-
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-[16px] font-bold text-gray-800">Khách cần trả</span>
-            <span className="text-[20px] font-bold text-[#1a73e8]">{new Intl.NumberFormat('vi-VN').format(total)}</span>
-          </div>
-
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-[14px] font-medium text-gray-700">Khách thanh toán</span>
-            <input 
-              type="text"
-              value={paidAmountStr === '' ? new Intl.NumberFormat('vi-VN').format(total) : paidAmountStr}
+              type="text" 
+              value={discountAmount} 
+              style={{ width: '80px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', padding: '2px 0' }}
               onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, '');
-                setPaidAmountStr(raw ? new Intl.NumberFormat('vi-VN').format(raw) : '0');
+                const val = parseInt(e.target.value) || 0;
+                updateCurrentInvoice({ discount: (val / subtotal) * 100 });
               }}
-              onFocus={() => {
-                if (paidAmountStr === '') {
-                  setPaidAmountStr(total.toString());
-                }
-              }}
-              className="w-32 text-right border-b border-blue-400 bg-transparent outline-none focus:border-blue-600 text-[16px] font-bold text-gray-800 pb-1"
             />
-          </div>
-
-          <div className="flex justify-between items-center mt-4">
-            <span className="text-[14px] font-medium text-gray-700">{isDebt ? 'Tính vào công nợ' : 'Tiền thừa trả khách'}</span>
-            <span className={`text-[16px] font-bold ${isDebt ? 'text-red-500' : 'text-gray-800'}`}>
-              {new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))}
+          </span>
+        </div>
+        {customer && (customer.totalDebt || 0) > 0 && (
+          <div className="pos-payment-row">
+            <span className="label" style={{ color: '#e53935' }}>Nợ cũ</span>
+            <span className="value" style={{ color: '#e53935', fontWeight: '600' }}>
+              {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}
             </span>
           </div>
+        )}
+        <div className="pos-payment-row total">
+          <span className="label" style={{ fontWeight: '700' }}>Khách cần trả <span style={{ cursor: 'pointer', color: '#999' }} title="Chi tiết">ⓘ</span></span>
+          <span className="value" id="pay-total" style={{ fontWeight: '700', fontSize: '18px', color: '#1a73e8' }}>
+            {new Intl.NumberFormat('vi-VN').format(total)}
+          </span>
         </div>
+        
+        {total > 0 && (
+          <>
+            <div className="pos-payment-row">
+              <span className="label" style={{ fontWeight: '600' }}>Khách thanh toán</span>
+              <span className="value">
+                <input 
+                  type="text" 
+                  value={paidAmountStr === '' ? new Intl.NumberFormat('vi-VN').format(total) : paidAmountStr}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setPaidAmountStr(raw ? new Intl.NumberFormat('vi-VN').format(raw) : '0');
+                  }}
+                  onFocus={() => {
+                    if (paidAmountStr === '') setPaidAmountStr(total.toString());
+                  }}
+                  style={{ width: '100px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', fontWeight: '600', padding: '2px 0' }}
+                />
+              </span>
+            </div>
+            <div style={{ padding: '8px 0', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}><input type="radio" name="pay-method" value="cash" defaultChecked /> Tiền mặt</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}><input type="radio" name="pay-method" value="transfer" /> Chuyển khoản</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}><input type="radio" name="pay-method" value="card" /> Thẻ</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}><input type="radio" name="pay-method" value="wallet" /> Ví</label>
+              <button style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px' }}>⋮</button>
+            </div>
+            
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 0' }}>
+              {[total, Math.ceil(total/1000)*1000+1000, 20000, 50000, 100000, 200000, 500000].filter(a => a > 0).filter((v, i, a) => a.indexOf(v) === i).slice(0, 7).map(a => (
+                <button 
+                  key={a}
+                  onClick={() => setPaidAmountStr(a.toString())}
+                  style={{ padding: '6px 12px', border: '1px solid #e0e0e0', background: '#fff', borderRadius: '16px', fontSize: '12px', cursor: 'pointer', color: '#333', whiteSpace: 'nowrap' }}
+                >
+                  {new Intl.NumberFormat('vi-VN').format(a)}
+                </button>
+              ))}
+            </div>
 
-        {/* Submit */}
+            <div style={{ padding: '4px 0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
+                <input type="radio" name="pay-change-mode" value="change" defaultChecked />
+                <span>Tiền thừa trả khách</span>
+                <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
+                  {changeAmount >= 0 ? new Intl.NumberFormat('vi-VN').format(changeAmount) : 0}
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
+                <input type="radio" name="pay-change-mode" value="debt" />
+                <span>Tính vào công nợ</span>
+                <span style={{ marginLeft: 'auto', fontWeight: '600', color: '#e53935' }}>
+                  {changeAmount < 0 ? new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount)) : 0}
+                </span>
+              </label>
+            </div>
+          </>
+        )}
+      </div>
+      
+      <div className="pos-bank-section">
+        <div>Bạn chưa có tài khoản ngân hàng</div>
+        <a onClick={() => toast.info('Tính năng đang phát triển')}>+ Thêm tài khoản</a>
+      </div>
+      
+      <div style={{ padding: '0 16px 16px' }}>
         <button 
+          className="pos-pay-button-right" 
           onClick={handleSubmitOrder}
-          className="w-full bg-[#1a73e8] hover:bg-blue-600 text-white py-4 rounded-xl font-bold text-[16px] flex justify-center items-center gap-2 shadow-md transition-all active:scale-[0.98]"
+          style={{ width: '100%', padding: '14px', background: '#3b5fe4', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}
         >
-          <CheckCircle size={20} /> HOÀN THÀNH (F9)
+          THANH TOÁN
         </button>
       </div>
     </div>

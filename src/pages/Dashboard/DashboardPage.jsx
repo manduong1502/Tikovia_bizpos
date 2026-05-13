@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Users, QrCode, PlusCircle, Monitor, ChevronRight, TrendingUp, TrendingDown, ShoppingCart, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Users, QrCode, PlusCircle, Monitor, ChevronRight, TrendingUp, TrendingDown, ShoppingCart, RotateCcw, AlertTriangle, Package } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -66,7 +66,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Revenue Chart */}
-        <div className="bg-white border border-border rounded-lg p-5">
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
           <div className="flex items-baseline justify-between mb-5">
             <div className="flex items-baseline gap-3">
               <h3 className="text-lg font-bold text-gray-800 m-0">Doanh thu thuần</h3>
@@ -76,7 +76,7 @@ export default function DashboardPage() {
                 {pct}%
               </span>
             </div>
-            <select className="border border-gray-200 rounded px-3 py-1.5 text-sm text-gray-600">
+            <select className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 outline-none">
               <option>Tháng này</option>
               <option>Tháng trước</option>
             </select>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
 
           {/* Tab control */}
           <div className="flex justify-center mb-5">
-            <div className="inline-flex bg-gray-100 rounded-lg p-0.5">
+            <div className="inline-flex bg-gray-50 border border-gray-100 rounded-lg p-1">
               {[
                 { key: 'daily', label: 'Theo ngày' },
                 { key: 'hourly', label: 'Theo giờ' },
@@ -93,7 +93,7 @@ export default function DashboardPage() {
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
                     tab === t.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -106,13 +106,13 @@ export default function DashboardPage() {
           {/* Simple CSS bar chart */}
           <div className="flex items-end gap-[3px] h-[180px] px-2">
             {revenues.map((r, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
                 <div
-                  className="w-full bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]"
+                  className="w-full bg-blue-100 group-hover:bg-primary rounded-t transition-colors min-h-[2px]"
                   style={{ height: `${Math.max((r.revenue / maxRev) * 160, 2)}px` }}
                   title={`Ngày ${r.day}: ${fmt(r.revenue)}`}
                 />
-                <span className="text-[10px] text-gray-400">{String(r.day).padStart(2, '0')}</span>
+                <span className="text-[10px] text-gray-400 group-hover:text-primary transition-colors">{String(r.day).padStart(2, '0')}</span>
               </div>
             ))}
           </div>
@@ -121,66 +121,72 @@ export default function DashboardPage() {
         {/* Bottom panels */}
         <div className="grid grid-cols-2 gap-5">
           {/* Top Products */}
-          <div className="bg-white border border-border rounded-lg p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top hàng bán chạy</h3>
-              <select className="border border-gray-200 rounded px-2 py-1 text-xs text-gray-500">
+              <select className="border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-500 outline-none">
                 <option>Tháng này</option>
               </select>
             </div>
             <div className="space-y-3">
               {(d.top_products || []).slice(0, 5).map((p, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                <div key={i} className="flex items-center gap-3 group cursor-pointer">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 ${
                     i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-100 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-gray-50 text-gray-400'
                   }`}>{i + 1}</span>
-                  <span className="flex-1 text-sm text-gray-700 truncate">{p.name}</span>
+                  <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{p.name}</span>
                   <span className="text-xs text-gray-500">{p.total_sold} sp</span>
                   <span className="text-xs font-medium text-primary">{fmt(p.total_revenue)}</span>
                 </div>
               ))}
               {(!d.top_products || d.top_products.length === 0) && (
-                <div className="text-center py-4 text-gray-300 text-sm">Chưa có dữ liệu</div>
+                <div className="text-center py-6">
+                  <Package size={24} className="mx-auto text-gray-300 mb-2" />
+                  <div className="text-gray-400 text-sm">Chưa có dữ liệu</div>
+                </div>
               )}
             </div>
           </div>
 
           {/* Top Customers */}
-          <div className="bg-white border border-border rounded-lg p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top khách chi tiêu</h3>
-              <select className="border border-gray-200 rounded px-2 py-1 text-xs text-gray-500">
+              <select className="border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-500 outline-none">
                 <option>Tháng này</option>
               </select>
             </div>
             <div className="space-y-3">
               {(d.top_customers || []).slice(0, 5).map((c, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                <div key={i} className="flex items-center gap-3 group cursor-pointer">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 ${
                     i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-50 text-gray-400'
                   }`}>{i + 1}</span>
-                  <span className="flex-1 text-sm text-gray-700 truncate">{c.name}</span>
+                  <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{c.name}</span>
                   <span className="text-xs text-gray-500">{c.order_count} đơn</span>
                   <span className="text-xs font-medium text-primary">{fmt(c.total_spent)}</span>
                 </div>
               ))}
               {(!d.top_customers || d.top_customers.length === 0) && (
-                <div className="text-center py-4 text-gray-300 text-sm">Chưa có dữ liệu</div>
+                <div className="text-center py-6">
+                  <Users size={24} className="mx-auto text-gray-300 mb-2" />
+                  <div className="text-gray-400 text-sm">Chưa có dữ liệu</div>
+                </div>
               )}
             </div>
           </div>
         </div>
 
         {/* Staff CTA */}
-        <div className="bg-gray-900 rounded-xl p-6 flex items-center gap-4 text-white">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-            <Users size={24} className="text-gray-800" />
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6 flex items-center gap-4 text-white shadow-md">
+          <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/20">
+            <Users size={24} className="text-white" />
           </div>
           <div className="flex-1">
             <div className="font-bold text-lg mb-1">Khám phá tiềm năng đội ngũ</div>
-            <div className="text-sm text-gray-400">Quản lý hiệu suất và doanh thu của từng nhân viên để đưa ra chiến lược khen thưởng hợp lý.</div>
+            <div className="text-sm text-gray-300">Quản lý hiệu suất và doanh thu của từng nhân viên để đưa ra chiến lược khen thưởng hợp lý.</div>
           </div>
-          <button className="bg-white text-gray-900 px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors cursor-pointer border-none shrink-0">
+          <button className="bg-white text-gray-900 px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 hover:shadow transition-all cursor-pointer border-none shrink-0 transform hover:-translate-y-0.5">
             Thêm nhân viên mới
           </button>
         </div>
@@ -189,59 +195,62 @@ export default function DashboardPage() {
       {/* Right Panel */}
       <div className="flex flex-col gap-4">
         {/* Quick cards */}
-        <div className="bg-white border border-border rounded-lg p-4 flex items-center gap-3 cursor-pointer hover:shadow-sm transition-shadow">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-primary"><QrCode size={20} /></div>
+        <div className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all group">
+          <div className="w-12 h-12 bg-blue-50 group-hover:bg-primary rounded-xl flex items-center justify-center text-primary group-hover:text-white transition-colors"><QrCode size={22} /></div>
           <div className="flex-1">
-            <div className="text-sm font-semibold text-gray-800">Thanh toán</div>
-            <div className="text-xs text-gray-500">Cài đặt QR ting ting miễn phí</div>
+            <div className="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">Thanh toán</div>
+            <div className="text-xs text-gray-500 mt-0.5">Cài đặt QR ting ting miễn phí</div>
           </div>
-          <ChevronRight size={16} className="text-gray-300" />
+          <ChevronRight size={18} className="text-gray-300 group-hover:text-primary transition-colors" />
         </div>
 
-        <div className="bg-white border border-border rounded-lg p-4 flex items-center gap-3 cursor-pointer hover:shadow-sm transition-shadow">
-          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600"><PlusCircle size={20} /></div>
+        <div className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-green-500/20 transition-all group">
+          <div className="w-12 h-12 bg-green-50 group-hover:bg-green-500 rounded-xl flex items-center justify-center text-green-600 group-hover:text-white transition-colors"><PlusCircle size={22} /></div>
           <div className="flex-1">
-            <div className="text-sm font-semibold text-gray-800">Vay vốn</div>
-            <div className="text-xs text-gray-500">Tăng tốc kinh doanh đón Tết 2026</div>
+            <div className="text-sm font-semibold text-gray-800 group-hover:text-green-600 transition-colors">Vay vốn</div>
+            <div className="text-xs text-gray-500 mt-0.5">Tăng tốc kinh doanh đón Tết 2026</div>
           </div>
-          <ChevronRight size={16} className="text-gray-300" />
+          <ChevronRight size={18} className="text-gray-300 group-hover:text-green-600 transition-colors" />
         </div>
 
         {/* Security alert */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-orange-500 shrink-0 mt-0.5" />
-          <div className="text-[13px] text-gray-700 flex-1">
+        <div className="bg-orange-50/80 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-orange-500 shrink-0 mt-0.5" />
+          <div className="text-[13px] text-gray-700 flex-1 leading-relaxed">
             Có <b>1</b> hoạt động đăng nhập <br /><b>khác thường</b> cần kiểm tra.
           </div>
         </div>
 
         {/* Recent Activities */}
-        <div className="bg-white border border-border rounded-lg p-5 flex-1">
-          <h3 className="text-base font-bold text-gray-800 mb-4">Hoạt động gần đây</h3>
-          <div className="space-y-3 max-h-[calc(100vh-380px)] overflow-y-auto">
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 flex-1 flex flex-col">
+          <h3 className="text-base font-bold text-gray-800 mb-5">Hoạt động gần đây</h3>
+          <div className="space-y-4 max-h-[calc(100vh-380px)] overflow-y-auto pr-2 custom-scrollbar flex-1">
             {(d.recentOrders || []).map((o, i) => (
-              <div key={i} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              <div key={i} className="flex items-start gap-3 group cursor-pointer">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
                   o.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-500'
                 }`}>
-                  {o.status === 'COMPLETED' ? <ShoppingCart size={14} /> : <RotateCcw size={14} />}
+                  {o.status === 'COMPLETED' ? <ShoppingCart size={16} /> : <RotateCcw size={16} />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-700 truncate">{o.orderCode}</div>
-                  <div className="text-xs text-gray-400">
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <div className="text-sm font-semibold text-gray-700 truncate group-hover:text-primary transition-colors">{o.orderCode}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">
                     {o.customer?.name || 'Khách lẻ'} • {o.user?.fullName || 'Admin'}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-medium text-gray-800">{fmt(o.total)}</div>
-                  <div className="text-[10px] text-gray-400">
+                <div className="text-right shrink-0 pt-0.5">
+                  <div className="text-sm font-bold text-gray-800">{fmt(o.total)}</div>
+                  <div className="text-[10px] text-gray-400 mt-1">
                     {o.createdAt ? new Date(o.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                 </div>
               </div>
             ))}
             {(!d.recent_orders || d.recent_orders.length === 0) && (
-              <div className="text-center py-6 text-gray-300 text-sm">Chưa có hoạt động</div>
+              <div className="text-center py-10">
+                <ShoppingCart size={32} className="mx-auto text-gray-200 mb-3" />
+                <div className="text-gray-400 text-sm">Chưa có hoạt động nào gần đây</div>
+              </div>
             )}
           </div>
         </div>

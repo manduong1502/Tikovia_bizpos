@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Package } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import { exportCSV } from '../../utils/exportUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -25,21 +27,21 @@ export default function ReportsPage() {
   const d = data || {};
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 animate-page-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-800 m-0">Báo cáo</h1>
-        <div className="flex items-center gap-2">
-          <select className="border border-gray-200 rounded px-3 py-1.5 text-sm"><option>Hôm nay</option><option>Tuần này</option><option>Tháng này</option><option>Năm nay</option></select>
-          <Button icon={<Download size={16} />}>Xuất file</Button>
+        <h1 className="text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Báo cáo</h1>
+        <div className="flex items-center gap-3">
+          <select className="border border-gray-200 rounded-lg px-4 py-2 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"><option>Hôm nay</option><option>Tuần này</option><option>Tháng này</option><option>Năm nay</option></select>
+          <Button icon={<Download size={16} />} className="shadow-sm" onClick={() => { const rows = (d.top_products || []).map(p => ({ name: p.name, quantity: p.quantity || p.total_quantity, revenue: p.revenue || p.total_revenue })); exportCSV([{key:'name',label:'Sản phẩm'},{key:'quantity',label:'SL bán'},{key:'revenue',label:'Doanh thu'}], rows, 'bao_cao'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
         </div>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1.5 w-fit shadow-sm">
         {TABS.map(t => {
           const Icon = t.icon;
           return (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer ${tab === t.key ? 'bg-white text-primary shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-2 px-4 py-2 text-[13px] rounded-lg transition-all cursor-pointer font-bold ${tab === t.key ? 'bg-blue-50 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
               <Icon size={16} />{t.label}
             </button>
           );
@@ -47,68 +49,77 @@ export default function ReportsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white border border-border rounded-lg p-5">
-          <div className="text-sm text-gray-500 mb-2">Doanh thu</div>
-          <div className="text-2xl font-bold text-gray-800">{fmt(d.monthly_revenue || 0)}</div>
-          <div className="text-xs text-green-600 mt-1 flex items-center gap-1"><TrendingUp size={12} />+12.5% so với kỳ trước</div>
+      <div className="grid grid-cols-4 gap-5">
+        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><DollarSign size={64} className="text-blue-600" /></div>
+          <div className="text-[13px] font-bold text-gray-500 mb-2">Doanh thu</div>
+          <div className="text-3xl font-extrabold text-gray-800 tracking-tight">{fmt(d.monthly_revenue || 0)}</div>
+          <div className="text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1.5"><TrendingUp size={14} />+12.5% so với kỳ trước</div>
         </div>
-        <div className="bg-white border border-border rounded-lg p-5">
-          <div className="text-sm text-gray-500 mb-2">Lợi nhuận gộp</div>
-          <div className="text-2xl font-bold text-green-600">{fmt((d.monthly_revenue || 0) * 0.35)}</div>
-          <div className="text-xs text-green-600 mt-1 flex items-center gap-1"><TrendingUp size={12} />35% biên lợi nhuận</div>
+        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><TrendingUp size={64} className="text-green-600" /></div>
+          <div className="text-[13px] font-bold text-gray-500 mb-2">Lợi nhuận gộp</div>
+          <div className="text-3xl font-extrabold text-green-600 tracking-tight">{fmt((d.monthly_revenue || 0) * 0.35)}</div>
+          <div className="text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1.5"><TrendingUp size={14} />35% biên lợi nhuận</div>
         </div>
-        <div className="bg-white border border-border rounded-lg p-5">
-          <div className="text-sm text-gray-500 mb-2">Đơn hàng</div>
-          <div className="text-2xl font-bold text-gray-800">{d.today_orders || 0}</div>
-          <div className="text-xs text-gray-400 mt-1">Hôm nay</div>
+        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><ShoppingCart size={64} className="text-indigo-600" /></div>
+          <div className="text-[13px] font-bold text-gray-500 mb-2">Đơn hàng</div>
+          <div className="text-3xl font-extrabold text-gray-800 tracking-tight">{d.today_orders || 0}</div>
+          <div className="text-[13px] font-bold text-gray-400 mt-2">Hôm nay</div>
         </div>
-        <div className="bg-white border border-border rounded-lg p-5">
-          <div className="text-sm text-gray-500 mb-2">Trả hàng</div>
-          <div className="text-2xl font-bold text-orange-500">{d.today_returns || 0}</div>
-          <div className="text-xs text-gray-400 mt-1">Hôm nay</div>
+        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Package size={64} className="text-orange-500" /></div>
+          <div className="text-[13px] font-bold text-gray-500 mb-2">Trả hàng</div>
+          <div className="text-3xl font-extrabold text-orange-500 tracking-tight">{d.today_returns || 0}</div>
+          <div className="text-[13px] font-bold text-gray-400 mt-2">Hôm nay</div>
         </div>
       </div>
 
       {/* Chart area */}
-      <div className="bg-white border border-border rounded-lg p-6">
-        <h3 className="text-base font-bold text-gray-800 mb-4">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
-        <div className="flex items-end gap-[3px] h-[220px] px-2">
+      <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
+        <h3 className="text-lg font-bold text-gray-800 mb-6 tracking-tight">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
+        <div className="flex items-end gap-1.5 h-[260px] px-2">
           {(d.daily_revenues || []).map((r, i) => {
             const maxRev = Math.max(...(d.daily_revenues || []).map(x => x.revenue || 0), 1);
             return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full bg-primary/80 hover:bg-primary rounded-t transition-colors min-h-[2px]" style={{ height: `${Math.max((r.revenue / maxRev) * 200, 2)}px` }} title={`Ngày ${r.day}: ${fmt(r.revenue)}`} />
-                <span className="text-[10px] text-gray-400">{String(r.day).padStart(2, '0')}</span>
+              <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
+                <div className="w-full bg-gradient-to-t from-blue-500/80 to-blue-400 group-hover:from-blue-600 group-hover:to-blue-500 rounded-t-sm transition-all min-h-[4px] relative" style={{ height: `${Math.max((r.revenue / maxRev) * 240, 4)}px` }}>
+                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[11px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
+                    {fmt(r.revenue)}
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-gray-400">{String(r.day).padStart(2, '0')}</span>
               </div>
             );
           })}
-          {(!d.daily_revenues || d.daily_revenues.length === 0) && <div className="flex-1 text-center text-gray-300 py-16">Chưa có dữ liệu</div>}
+          {(!d.daily_revenues || d.daily_revenues.length === 0) && <div className="flex-1 text-center text-gray-400 py-16 font-medium">Chưa có dữ liệu biểu đồ</div>}
         </div>
       </div>
 
       {/* Detail table */}
-      <div className="bg-white border border-border rounded-lg overflow-hidden">
+      <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden mb-8">
         <table className="w-full text-sm">
-          <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-border">
+          <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100 font-bold tracking-wider">
             <tr>
-              <th className="px-4 py-3 text-left">Ngày</th>
-              <th className="px-4 py-3 text-right">Doanh thu</th>
-              <th className="px-4 py-3 text-right">Giá vốn</th>
-              <th className="px-4 py-3 text-right">Lợi nhuận gộp</th>
-              <th className="px-4 py-3 text-right">Số đơn</th>
+              <th className="px-6 py-4 text-left">Ngày</th>
+              <th className="px-6 py-4 text-right">Doanh thu</th>
+              <th className="px-6 py-4 text-right">Giá vốn</th>
+              <th className="px-6 py-4 text-right">Lợi nhuận gộp</th>
+              <th className="px-6 py-4 text-right">Số đơn</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-gray-50">
             {(d.daily_revenues || []).map((r, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                <td className="px-4 py-3">Ngày {r.day}</td>
-                <td className="px-4 py-3 text-right font-medium">{fmt(r.revenue)}</td>
-                <td className="px-4 py-3 text-right">{fmt(r.revenue * 0.65)}</td>
-                <td className="px-4 py-3 text-right text-green-600 font-medium">{fmt(r.revenue * 0.35)}</td>
-                <td className="px-4 py-3 text-right">{Math.ceil(r.revenue / 50000)}</td>
+              <tr key={i} className="hover:bg-gray-50/80 transition-colors">
+                <td className="px-6 py-4 font-bold text-gray-800">Ngày {r.day}</td>
+                <td className="px-6 py-4 text-right font-extrabold text-primary">{fmt(r.revenue)}</td>
+                <td className="px-6 py-4 text-right font-medium text-gray-600">{fmt(r.revenue * 0.65)}</td>
+                <td className="px-6 py-4 text-right text-green-600 font-extrabold">{fmt(r.revenue * 0.35)}</td>
+                <td className="px-6 py-4 text-right font-bold text-gray-700">{Math.ceil(r.revenue / 50000)}</td>
               </tr>
             ))}
+            {(!d.daily_revenues || d.daily_revenues.length === 0) && <tr><td colSpan={5} className="text-center py-12 text-gray-400 font-medium">Không có dữ liệu chi tiết</td></tr>}
           </tbody>
         </table>
       </div>

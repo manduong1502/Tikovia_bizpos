@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePOS } from './POSContext';
-import { Search, User, X, MapPin, Package, Edit2, Truck, ChevronDown } from 'lucide-react';
+import { Search, User, X, MapPin, Package, Edit2, Truck, ChevronDown, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -52,149 +52,84 @@ export default function POSDeliveryPanel() {
   };
 
   return (
-    <div className="flex h-full w-full bg-white divide-x divide-gray-200">
-      {/* Middle Column: Customer & Delivery Info */}
-      <div className="w-1/2 flex flex-col p-4 overflow-y-auto">
-        {/* Customer Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <span className="font-semibold text-gray-800">{customer?.name || 'Khách lẻ'}</span>
-            <div className="flex items-center text-gray-500 cursor-pointer hover:text-blue-600">
-              <User size={16} className="mr-1" />
-              <ChevronDown size={14} />
+    <div className="pos-delivery-panel">
+      <div className="pos-delivery-tabs">
+        <button className="pos-del-tab active">Giao hàng <span>1</span></button>
+        <button className="pos-del-tab">Nhận tại cửa hàng</button>
+        <button className="pos-del-tab">Giao sau</button>
+      </div>
+      
+      <div className="pos-delivery-form">
+        {customer ? (
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px', padding: '12px', background: 'var(--pos-surface-muted)', borderRadius: 'var(--pos-radius-md)' }}>
+            <span style={{ color: 'var(--pos-text-muted)', marginRight: '12px' }}><User size={20} /></span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--pos-primary)' }}>{customer.name}</div>
+              <div style={{ fontSize: '12px', color: 'var(--pos-text-muted)', marginTop: '2px' }}>{customer.phone || ''}</div>
             </div>
+            <button onClick={() => updateCurrentInvoice({ customer: null })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--pos-text-muted)', transition: 'color 0.2s' }} onMouseOver={e=>e.currentTarget.style.color='var(--pos-danger)'} onMouseOut={e=>e.currentTarget.style.color='var(--pos-text-muted)'}><X size={18} /></button>
           </div>
-          <span className="text-[13px] text-gray-500">13/05/2026 13:59</span>
-        </div>
-
-        {/* Customer Search / Selected */}
-        <div className="mb-4 flex gap-2">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm khách hàng (F4)"
-              className="w-full h-8 pl-9 pr-3 rounded border border-gray-300 text-[13px] outline-none focus:border-blue-500"
+        ) : (
+          <div className="pos-customer-search-input-wrapper" style={{ marginBottom: '16px' }}>
+            <Search size={16} color="var(--pos-text-muted)" />
+            <input 
+              type="text" 
+              id="pos-cust-input" 
+              placeholder="Tìm khách hàng (F4)" 
               value={customerSearch}
               onChange={(e) => setCustomerSearch(e.target.value)}
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: '14px', color: 'var(--pos-text-main)', background: 'transparent' }}
             />
+            <button className="pos-add-customer-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pos-text-muted)' }}><Plus size={18} /></button>
           </div>
-          <button className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-50">
-            +
-          </button>
-          <div className="h-8 flex items-center px-3 border border-gray-300 rounded text-[13px] bg-gray-50 cursor-pointer">
-            Bảng giá chung <ChevronDown size={14} className="ml-2" />
+        )}
+        
+        <input type="text" className="pos-input" placeholder="Người nhận" defaultValue={customer?.name || ''} />
+        <input type="text" className="pos-input" placeholder="Số điện thoại" defaultValue={customer?.phone || ''} />
+        <input type="text" className="pos-input" placeholder="Địa chỉ chi tiết" />
+        <select className="pos-select"><option>Tỉnh/Thành phố</option></select>
+        <select className="pos-select"><option>Quận/Huyện</option></select>
+        <select className="pos-select"><option>Phường/Xã</option></select>
+
+        <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '16px' }}>
+          <div style={{ fontWeight: '600', marginBottom: '12px', fontSize: '13px' }}>Đối tác giao hàng</div>
+          <select className="pos-select"><option>Chọn đối tác giao hàng</option></select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+            <input type="text" className="pos-input" placeholder="Phí giao hàng" style={{ flex: 1, marginBottom: 0 }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} /> Thu hộ tiền (COD)
+            </label>
           </div>
         </div>
 
-        {/* Delivery Form */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex items-center gap-2 mb-2 text-blue-600 font-medium text-[14px]">
-            <div className="w-4 h-4 rounded-full border-2 border-blue-600 flex items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-blue-600"></div>
-            </div>
-            {customer?.phone || '+84935693861'}
-            <ChevronDown size={14} className="ml-auto text-gray-400" />
+        <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '16px' }}>
+          <div className="pos-payment-row">
+            <span className="label">Khách thanh toán</span>
+            <span className="value">
+              <input type="text" value={new Intl.NumberFormat('vi-VN').format(total)} readOnly style={{ width: '100px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', fontWeight: '600', padding: '2px 0' }} />
+            </span>
           </div>
-          <div className="text-red-500 text-[12px] ml-6 mb-4">Vui lòng thêm địa chỉ lấy hàng mới</div>
-
-          <div className="flex items-start gap-2 mb-4">
-            <MapPin size={16} className="text-green-500 mt-2 shrink-0" />
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <input type="text" placeholder="Tên người nhận" className="border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px]" />
-              <input type="text" placeholder="Số điện thoại" className="border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px]" />
-              <input type="text" placeholder="Địa chỉ chi tiết (Số nhà, ngõ, đường)" className="col-span-2 border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px] mt-2" />
-              <input type="text" placeholder="Khu vực" className="col-span-2 border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px] mt-2" />
-              <input type="text" placeholder="Phường/Xã" className="col-span-2 border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px] mt-2" />
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2 mb-4">
-            <Package size={16} className="text-gray-500 mt-2 shrink-0" />
-            <div className="flex-1 flex flex-col gap-3">
-              <div className="text-[13px] font-medium mt-1">1 kiện</div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center border-b border-gray-300 pb-1">
-                  <input type="text" defaultValue="500" className="w-10 outline-none text-[13px] font-medium" />
-                  <span className="text-[13px] text-gray-500 flex items-center">gram <ChevronDown size={14} className="ml-1"/></span>
-                </div>
-                <div className="flex items-center gap-2 border-b border-gray-300 pb-1 text-[13px] text-gray-500">
-                  <input type="text" defaultValue="10" className="w-6 text-center outline-none text-black font-medium" /> ×
-                  <input type="text" defaultValue="10" className="w-6 text-center outline-none text-black font-medium" /> ×
-                  <input type="text" defaultValue="10" className="w-6 text-center outline-none text-black font-medium" />
-                  <span className="flex items-center ml-1">cm <ChevronDown size={14} className="ml-1"/></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2 mb-4">
-            <Edit2 size={16} className="text-gray-500 mt-1 shrink-0" />
-            <input type="text" placeholder="Ghi chú cho bưu tá" className="flex-1 border-b border-gray-300 pb-1 outline-none focus:border-blue-500 text-[13px]" />
-          </div>
-
-          <div className="mt-auto flex justify-between items-center pt-4 font-medium text-[14px]">
-            <div className="flex items-center gap-2 text-gray-700">
-              Thu hộ tiền (COD)
-              <div 
-                className={`w-8 h-4 rounded-full flex items-center px-0.5 cursor-pointer transition-colors ${codEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}
-                onClick={() => setCodEnabled(!codEnabled)}
-              >
-                <div className={`w-3 h-3 rounded-full bg-white transition-transform ${codEnabled ? 'translate-x-4' : ''}`}></div>
-              </div>
-            </div>
-            <span className="font-bold text-[16px] text-gray-900">{new Intl.NumberFormat('vi-VN').format(codEnabled ? total : 0)}</span>
+          <div style={{ padding: '8px 0', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
+              <input type="radio" name="pay-method-del" value="cash" defaultChecked /> Tiền mặt
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
+              <input type="radio" name="pay-method-del" value="transfer" /> Chuyển khoản
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
+              <input type="radio" name="pay-method-del" value="card" /> Thẻ
+            </label>
           </div>
         </div>
       </div>
-
-      {/* Right Column: Shipping Partner & Payment */}
-      <div className="w-1/2 flex flex-col bg-gray-50/50">
-        <div className="flex border-b border-gray-200">
-          <div 
-            onClick={() => setActiveTab('kiotviet')}
-            className={`flex-1 py-3 text-center text-[13px] font-medium cursor-pointer flex justify-center items-center gap-2 ${activeTab === 'kiotviet' ? 'bg-white border-t-2 border-t-blue-600 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <Truck size={16} /> Cổng KiotViet
-          </div>
-          <div 
-            onClick={() => setActiveTab('self')}
-            className={`flex-1 py-3 text-center text-[13px] font-medium cursor-pointer flex justify-center items-center gap-2 ${activeTab === 'self' ? 'bg-white border-t-2 border-t-blue-600 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-            <User size={16} /> Tự giao hàng
-          </div>
-        </div>
-
-        <div className="flex-1 p-4 overflow-y-auto bg-white">
-          {activeTab === 'self' ? (
-            <div className="flex items-center gap-4 text-[13px]">
-              <span className="text-gray-700 whitespace-nowrap">Đối tác giao hàng</span>
-              <div className="flex-1 relative">
-                <input 
-                  type="text" 
-                  placeholder="Chọn đối tác" 
-                  className="w-full border-b border-gray-300 pb-1 outline-none focus:border-blue-500 pr-6" 
-                />
-                <ChevronDown size={14} className="absolute right-0 top-1 text-gray-400" />
-              </div>
-              <button className="text-gray-400 hover:text-blue-600">+</button>
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 text-[13px] mt-10">
-              Tính năng kết nối Cổng vận chuyển KiotViet đang phát triển.
-            </div>
-          )}
-        </div>
-
-        <div className="p-4 bg-white mt-auto">
-          <button 
-            onClick={handleSubmit}
-            className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded font-bold text-[15px] shadow-sm transition-colors"
-          >
-            THANH TOÁN
-          </button>
-        </div>
-      </div>
+      
+      <button 
+        className="pos-pay-button" 
+        onClick={handleSubmit}
+        style={{ width: 'calc(100% - 32px)', margin: '16px', padding: '14px', background: '#3b5fe4', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}
+      >
+        GIAO HÀNG
+      </button>
     </div>
   );
 }

@@ -5,16 +5,16 @@ export default function Navbar() {
   const location = useLocation();
   const page = location.pathname;
 
-  const navItemBase = "relative h-full flex items-center px-4 text-white/85 text-[13px] cursor-pointer transition-colors no-underline hover:bg-white/10 hover:text-white group";
-  const navItemActive = "bg-[#154ba3] text-white font-medium after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-[#f29900]";
+  const navItemBase = "relative h-full flex items-center px-4 text-white/85 text-[13px] font-medium cursor-pointer transition-all no-underline hover:bg-white/10 hover:text-white group";
+  const navItemActive = "bg-white/15 text-white font-semibold after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-1/2 after:h-[3px] after:bg-[#F59E0B] after:rounded-t-full";
 
-  const dropdownBase = "absolute top-full left-0 bg-white min-w-[200px] border border-gray-200 rounded-b shadow-lg opacity-0 invisible translate-y-2 transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 z-50 text-gray-800 flex";
-  const dropdownItem = "block px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-100 hover:text-primary transition-colors no-underline";
-  const dropdownHeading = "px-4 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100";
+  const dropdownBase = "absolute top-[calc(100%-2px)] left-0 bg-white min-w-[200px] border border-gray-100 rounded-xl shadow-xl opacity-0 invisible translate-y-2 transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 z-50 text-gray-800 flex overflow-hidden";
+  const dropdownItem = "block px-4 py-2.5 text-[13px] text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors no-underline font-medium";
+  const dropdownHeading = "px-4 py-2.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100";
 
   return (
-    <nav className="h-[42px] bg-sidebar flex items-center px-5 sticky top-12 z-50">
-      <div className="flex items-center h-full flex-1">
+    <nav className="h-[46px] bg-[#1E3A8A] flex items-center px-6 sticky top-14 z-40 shadow-sm border-t border-white/10">
+      <div className="flex items-center h-full flex-1 gap-1">
         <Link className={`${navItemBase} ${page === '/dashboard' ? navItemActive : ''}`} to="/dashboard">Tổng quan</Link>
 
         <div className={`${navItemBase} ${['/products', '/pricebook', '/categories'].includes(page) ? navItemActive : ''}`}>
@@ -50,7 +50,7 @@ export default function Navbar() {
 
         <div className={`${navItemBase} ${['/orders', '/returns'].includes(page) ? navItemActive : ''}`}>
           Đơn hàng
-          <div className={`${dropdownBase} flex-col`}>
+          <div className={`${dropdownBase} flex-col !min-w-[160px]`}>
             <Link className={dropdownItem} to="/orders">Hóa đơn</Link>
             <Link className={dropdownItem} to="/returns">Trả hàng</Link>
           </div>
@@ -79,8 +79,8 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      <Link to="/pos" target="_blank" className="bg-success hover:bg-green-600 text-white border-none rounded px-3 py-1.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer transition-colors no-underline">
-        <ShoppingCart size={16} /> Bán hàng
+      <Link to="/pos" target="_blank" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-none rounded-lg px-4 py-2 flex items-center gap-2 text-[13px] font-bold cursor-pointer transition-all no-underline shadow-sm hover:shadow-md transform hover:-translate-y-0.5 ml-4">
+        <ShoppingCart size={16} /> BÁN HÀNG
       </Link>
     </nav>
   );

@@ -15,126 +15,111 @@ export default function POSCart() {
   };
 
   return (
-    <div className="flex flex-col h-full relative">
-      {/* Table Header */}
-      <div className="flex items-center px-4 py-2 border-b border-gray-200 bg-gray-50 text-[12px] font-semibold text-gray-600 shrink-0">
-        <div className="w-8 text-center">STT</div>
-        <div className="flex-1 px-2">Tên hàng hóa</div>
-        <div className="w-20 text-center">Số lượng</div>
-        <div className="w-24 text-right">Đơn giá</div>
-        <div className="w-24 text-right pr-4">Thành tiền</div>
-      </div>
-
-      {/* Cart Items */}
-      <div className="flex-1 overflow-y-auto">
+    <div className="pos-cart-panel">
+      <div className="pos-cart-list" id="pos-cart-list">
         {cart.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-400 text-[13px] flex-col gap-2">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-            <p>Chưa có sản phẩm trong đơn hàng</p>
-          </div>
+          <div className="pos-cart-empty">Chưa có sản phẩm trong đơn hàng</div>
         ) : (
-          <div className="pb-4">
-            {cart.map((item, index) => {
-              const product = item.product;
-              const lineTotal = item.quantity * (item.price - item.discount);
-              
-              return (
-                <div key={product.id} className="group flex items-center px-4 py-3 border-b border-gray-100 hover:bg-blue-50/50 transition-colors">
-                  <div className="w-8 text-center text-[13px] text-gray-500 font-medium">
-                    {index + 1}
-                  </div>
+          cart.map((item, idx) => {
+            const finalPrice = item.price - item.discount;
+            const total = finalPrice * item.quantity;
+            
+            return (
+              <div key={item.product.id} className="pos-cart-item">
+                <div className="pos-cart-item-top">
+                  <span className="pos-cart-item-stt">{idx + 1}</span>
                   
-                  <div className="flex-1 px-2 min-w-0">
-                    <div className="text-[13px] font-medium text-gray-800 truncate" title={product.name}>
-                      {product.name}
-                    </div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
-                      {product.sku}
-                    </div>
-                  </div>
-                  
-                  <div className="w-20 text-center">
-                    <input 
-                      type="number" 
-                      value={item.quantity}
-                      onChange={(e) => handleQtyChange(product.id, e)}
-                      className="w-16 h-7 text-center border border-gray-300 rounded text-[13px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
-                      min="0.1"
-                      step="1"
-                    />
-                  </div>
-                  
-                  <div className="w-24 text-right text-[13px] text-gray-700">
-                    {new Intl.NumberFormat('vi-VN').format(item.price)}
-                  </div>
-                  
-                  <div className="w-24 text-right pr-2 text-[13px] font-bold text-[#1a73e8]">
-                    {new Intl.NumberFormat('vi-VN').format(lineTotal)}
-                  </div>
-
                   <button 
-                    onClick={() => removeFromCart(product.id)}
-                    className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 rounded hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all absolute right-2"
+                    className="pos-cart-item-delete"
+                    onClick={(e) => { e.stopPropagation(); removeFromCart(item.product.id); }}
                     title="Xóa"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </button>
+                  
+                  <span className="pos-cart-item-sku">{item.product.sku || ''}</span>
+                  
+                  <span className="pos-cart-item-name">
+                    {item.product.name}
+                  </span>
+                  
+                  <div className="pos-cart-item-actions">
+                    <div className="pos-qty-control">
+                      <button 
+                        className="pos-qty-btn"
+                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, -1); }}
+                      >
+                        −
+                      </button>
+                      <input 
+                        type="text" 
+                        className="pos-cart-item-qty"
+                        value={item.quantity}
+                        onClick={(e) => { e.stopPropagation(); e.target.select(); }}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) {
+                            const diff = val - item.quantity;
+                            updateCartItemQuantity(item.product.id, diff);
+                          }
+                        }}
+                      />
+                      <button 
+                        className="pos-qty-btn"
+                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, 1); }}
+                      >
+                        +
+                      </button>
+                    </div>
+                    
+                    <span className="pos-cart-item-price">
+                      {new Intl.NumberFormat('vi-VN').format(finalPrice)}
+                    </span>
+                    
+                    <span className="pos-cart-item-total">
+                      {new Intl.NumberFormat('vi-VN').format(total)}
+                    </span>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* Footer Area */}
-      <div className="flex flex-col px-4 py-3 border-t border-gray-200 bg-white shrink-0">
-        <div className="flex items-center gap-2 text-gray-500 w-full mb-3 pb-2 border-b border-gray-100">
-          <Edit2 size={14} />
+      {saleMode === 'delivery' && (
+        <div style={{ background: '#fff', padding: '0 16px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '13px', color: '#666' }}>Giảm giá</span>
+            <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>
+              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.discount * i.quantity, 0) + Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: '#333' }}>Khách cần trả</span>
+            <span style={{ fontSize: '18px', fontWeight: '700', color: '#1a73e8' }}>
+              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0) - Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="pos-cart-footer">
+        <div className="pos-note-input">
+          <span>✏️</span>
           <input 
             type="text" 
             placeholder="Ghi chú đơn hàng" 
             value={currentInvoice?.note || ''}
             onChange={(e) => updateCurrentInvoice({ note: e.target.value })}
-            className="flex-1 border-none outline-none text-[13px] text-gray-700 placeholder-gray-400"
           />
         </div>
-        
-        <div className="w-full flex flex-col gap-2 pl-4">
-          <div className="flex justify-between items-center w-full">
-            <span className="text-[14px] text-gray-700">Tổng tiền hàng <span className="font-semibold text-gray-900 ml-1">{cart.reduce((s, i) => s + i.quantity, 0)}</span></span>
-            <span className="text-[14px] font-medium text-gray-900">
-              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.price * i.quantity, 0))}
-            </span>
-          </div>
-
-          {saleMode === 'delivery' && (
-            <>
-              <div className="flex justify-between items-center w-full border-b border-gray-200 pb-2">
-                <span className="text-[14px] text-gray-700">Giảm giá</span>
-                <span className="text-[14px] font-medium text-gray-900">
-                  {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.discount * i.quantity, 0) + Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
-                </span>
-              </div>
-              <div className="flex justify-between items-center w-full pt-1">
-                <span className="text-[14px] font-bold text-gray-800">Khách cần trả</span>
-                <span className="text-[16px] font-bold text-[#1a73e8]">
-                  {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0) - Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
-                </span>
-              </div>
-            </>
-          )}
-
-          {saleMode !== 'delivery' && (
-            <div className="flex justify-end mt-1">
-              <span className="text-[16px] font-bold text-gray-900">
-                {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
-              </span>
-            </div>
-          )}
+        <div className="pos-total-summary">
+          <span>Tổng tiền hàng</span>
+          <span id="pos-item-count">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+          <span className="pos-total-amount" id="pos-total-display">
+            {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
+          </span>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { usePOS } from './POSContext';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, Search, Plus, LayoutGrid, Filter, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function POSProductGrid() {
   const { products, categories, addToCart, currentInvoice, updateCurrentInvoice } = usePOS();
@@ -12,97 +12,65 @@ export default function POSProductGrid() {
     : products;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#f0f2f5] p-2 overflow-hidden">
-      {/* Category Filter Bar */}
-      <div className="flex gap-2 overflow-x-auto pb-2 shrink-0 scrollbar-hide">
-        <button
-          onClick={() => setSelectedCategory(null)}
-          className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors border ${
-            selectedCategory === null
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
-          }`}
-        >
-          Tất cả
-        </button>
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-[13px] font-medium transition-colors border ${
-              selectedCategory === cat.id
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
+    <div className="pos-product-panel">
+      <div className="pos-product-toolbar">
+        <div className="pos-customer-box" style={{ position: 'relative' }}>
+          <Search size={16} color="#94A3B8" />
+          <input 
+            type="text" 
+            id="pos-cust-input" 
+            placeholder="Tìm khách hàng (F4)"
+            disabled
+          />
+          <button className="add-btn" onClick={() => {}}><Plus size={16} /></button>
+        </div>
+        <div className="pos-view-btns">
+          <button className="pos-view-btn active" title="Dạng lưới"><LayoutGrid size={16} /></button>
+          <button className="pos-view-btn" title="Lọc"><Filter size={16} /></button>
+          <button className="pos-view-btn" title="Hình ảnh"><ImageIcon size={16} /></button>
+        </div>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto pr-1 pb-4">
-        <div className="grid grid-cols-2 min-[400px]:grid-cols-3 min-[500px]:grid-cols-4 gap-2">
-          {filteredProducts.map(product => {
+      <div className="pos-product-grid" id="pos-prod-grid">
+        {filteredProducts.length === 0 ? (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94A3B8' }}>Không tìm thấy sản phẩm</div>
+        ) : (
+          filteredProducts.map(product => {
             const isOutOfStock = product.stock <= 0;
             return (
               <div 
                 key={product.id}
                 onClick={() => !isOutOfStock && addToCart(product)}
-                className={`bg-white rounded-lg border border-gray-200 overflow-hidden flex flex-col transition-all ${
-                  isOutOfStock ? 'opacity-60 cursor-not-allowed grayscale-[50%]' : 'cursor-pointer hover:border-blue-400 hover:shadow-md'
-                }`}
+                className={`pos-product-cell ${isOutOfStock ? 'out-of-stock' : ''}`}
               >
-                <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center relative">
+                <div className="prod-img">
                   {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.image} alt={product.name} />
                   ) : (
-                    <ImageIcon className="text-gray-300 w-8 h-8" />
+                    <Package size={24} color="#94A3B8" />
                   )}
-                  {/* Price Tag */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <div className="text-white font-bold text-[13px]">
-                      {new Intl.NumberFormat('vi-VN').format(product.sellPrice)}
-                    </div>
-                  </div>
                 </div>
-                
-                <div className="p-2 flex flex-col h-full justify-between">
-                  <div className="text-[12px] font-medium text-gray-800 line-clamp-2 leading-snug mb-1" title={product.name}>
-                    {product.name}
-                  </div>
-                  <div className="flex justify-between items-center mt-auto">
-                    <span className="text-[11px] text-gray-500 truncate mr-1" title={product.sku}>{product.sku}</span>
-                    <span className={`text-[11px] font-bold ${isOutOfStock ? 'text-red-500' : 'text-green-600'}`}>
-                      Tồn: {product.stock}
-                    </span>
-                  </div>
+                <div className="prod-info">
+                  <div className="prod-name">{product.name}</div>
+                  <div className="prod-price">{new Intl.NumberFormat('vi-VN').format(product.sellPrice)}</div>
                 </div>
               </div>
             );
-          })}
-        </div>
-        
-        {filteredProducts.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <p>Không tìm thấy sản phẩm</p>
-          </div>
+          })
         )}
       </div>
 
-      {/* Thanh Toan Button for Normal Mode */}
-      <div className="shrink-0 pt-2 pb-1 px-1">
+      <div className="pos-product-pagination">
+        <div className="pos-product-pagination-controls">
+          <button disabled><ChevronLeft size={18} /></button>
+          <span className="page-info">1/1</span>
+          <button disabled><ChevronRight size={18} /></button>
+        </div>
         <button 
+          className="pos-product-checkout-btn"
           onClick={() => {
-            if (currentInvoice?.cart?.length === 0) {
-              // We need to import toast if we want to show error here, or just toggle and let payment panel handle empty cart.
-              // Actually, payment panel handles empty cart. Let's toggle it.
-              updateCurrentInvoice({ isPaymentMode: true });
-            } else {
-              updateCurrentInvoice({ isPaymentMode: true });
-            }
+            updateCurrentInvoice({ isPaymentMode: true });
           }}
-          className="w-full bg-[#1a73e8] hover:bg-[#1557b0] text-white py-3.5 rounded font-bold text-[15px] shadow-sm transition-colors"
         >
           THANH TOÁN
         </button>
