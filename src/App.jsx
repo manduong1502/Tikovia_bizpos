@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
-import axios from 'axios';
 import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { DashboardSkeleton } from './components/ui/Skeleton';
@@ -32,6 +31,24 @@ function PageLoader() {
   );
 }
 
+// ─── Bảo vệ route: chưa đăng nhập → về trang Login ───
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
+// ─── Đã đăng nhập rồi thì không cần vào lại trang Login ───
+function GuestRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (token) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,23 +58,6 @@ function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    const interceptor = axios.interceptors.response.use(
-      r => r,
-      error => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          if (location.pathname !== '/login') navigate('/login');
-        }
-        return Promise.reject(error);
-      }
-    );
-    return () => axios.interceptors.response.eject(interceptor);
-  }, [navigate, location]);
 
   return (
     <ErrorBoundary>
@@ -72,9 +72,22 @@ function App() {
       />
 
       <Routes>
+        {/* Trang chủ → chuyển về Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={<Suspense fallback={<PageLoader />}><LoginPage /></Suspense>} />
-        <Route element={<AppLayout />}>
+
+        {/* Trang đăng nhập: chỉ cho phép nếu chưa login */}
+        <Route path="/login" element={
+          <GuestRoute>
+            <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>
+          </GuestRoute>
+        } />
+
+        {/* Tất cả các trang quản lý: yêu cầu đăng nhập */}
+        <Route element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }>
           <Route path="/dashboard" element={<Suspense fallback={<DashboardSkeleton />}><DashboardPage /></Suspense>} />
           <Route path="/products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
           <Route path="/categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
@@ -91,6 +104,9 @@ function App() {
           <Route path="/reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
         </Route>
+
+        {/* Route không tồn tại → về Dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </ErrorBoundary>
   );

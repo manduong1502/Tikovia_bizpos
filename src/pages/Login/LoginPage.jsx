@@ -27,7 +27,7 @@ export default function LoginPage() {
       if (res.data.token) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-        navigate('/products');
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
