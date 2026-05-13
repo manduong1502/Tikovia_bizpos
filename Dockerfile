@@ -3,14 +3,17 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Khai báo biến môi trường cho quá trình build (để kết nối đúng với Backend)
+# Nhận biến API URL từ docker-compose
 ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
 
 COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# Tạo file .env cho Vite đọc lúc build (vì .env không được commit vào git)
+RUN echo "VITE_API_URL=${VITE_API_URL}" > .env
+
 RUN npm run build
 
 # Stage 2: Serve với Nginx

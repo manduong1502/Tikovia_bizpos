@@ -1,20 +1,10 @@
-version: '3.8'
-
 services:
   bizpos-web:
     build:
       context: .
       args:
-        # Đường dẫn API khi build trên Production
         - VITE_API_URL=https://api.tikovia.vn/api
     container_name: tiko-bizpos-web
     restart: always
     ports:
       - "4000:80"
-    # Kết nối chung mạng với Cloudflare Tunnel để đưa ra Internet
-    networks:
-      - coolify
-
-networks:
-  coolify:
-    external: true
