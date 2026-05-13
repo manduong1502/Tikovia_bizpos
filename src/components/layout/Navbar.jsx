@@ -79,9 +79,9 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      <button className="bg-success hover:bg-green-600 text-white border-none rounded px-3 py-1.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer transition-colors">
+      <Link to="/pos" target="_blank" className="bg-success hover:bg-green-600 text-white border-none rounded px-3 py-1.5 flex items-center gap-1.5 text-[13px] font-medium cursor-pointer transition-colors no-underline">
         <ShoppingCart size={16} /> Bán hàng
-      </button>
+      </Link>
     </nav>
   );
 }

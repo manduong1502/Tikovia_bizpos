@@ -21,6 +21,7 @@ const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrders/PurchaseOrd
 const CategoriesPage = lazy(() => import('./pages/Categories/CategoriesPage'));
 const InventoryCheckPage = lazy(() => import('./pages/InventoryCheck/InventoryCheckPage'));
 const ReturnsPage = lazy(() => import('./pages/Returns/ReturnsPage'));
+const POSPage = lazy(() => import('./pages/POS/POSPage'));
 const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage'));
 
 function PageLoader() {
@@ -80,6 +81,13 @@ function App() {
           <GuestRoute>
             <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>
           </GuestRoute>
+        } />
+
+        {/* Màn hình bán hàng (POS): Full screen, yêu cầu đăng nhập */}
+        <Route path="/pos" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}><POSPage /></Suspense>
+          </ProtectedRoute>
         } />
 
         {/* Tất cả các trang quản lý: yêu cầu đăng nhập */}
