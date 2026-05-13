@@ -3,7 +3,7 @@ import { Trash2, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function POSCart() {
-  const { currentInvoice, updateCartItemQuantity, removeFromCart, updateCurrentInvoice } = usePOS();
+  const { currentInvoice, updateCartItemQuantity, removeFromCart, updateCurrentInvoice, saleMode } = usePOS();
   
   const cart = currentInvoice?.cart || [];
 

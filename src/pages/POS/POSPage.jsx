@@ -62,12 +62,12 @@ function POSLayout() {
       
       <div className="flex flex-1 overflow-hidden p-2 gap-2">
         {/* Left column: Cart & Summary */}
-        <div className={`bg-white border border-gray-200 flex flex-col shadow-sm rounded-lg overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'flex-1' : saleMode === 'delivery' ? 'w-[40%] min-w-[400px]' : 'w-[55%] min-w-[500px]'}`}>
+        <div className={`bg-white border border-gray-200 flex flex-col shadow-sm rounded-lg overflow-hidden transition-all duration-300 ${saleMode === 'delivery' ? 'w-[32%] min-w-[320px]' : 'flex-1 min-w-[500px]'}`}>
           <POSCart />
         </div>
         
         {/* Right column: Products Grid or Payment Panel */}
-        <div className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg relative overflow-hidden transition-all duration-300 ${saleMode === 'fast' ? 'w-[400px] shrink-0' : saleMode === 'delivery' ? 'flex-[2]' : 'flex-1'}`}>
+        <div className={`flex flex-col bg-white border border-gray-200 shadow-sm rounded-lg relative overflow-hidden transition-all duration-300 ${saleMode === 'delivery' ? 'flex-1' : 'w-[40%] max-w-[500px] min-w-[400px]'}`}>
           {saleMode === 'delivery' ? (
             <POSDeliveryPanel />
           ) : saleMode === 'fast' ? (
