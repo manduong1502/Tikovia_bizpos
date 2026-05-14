@@ -306,8 +306,8 @@
   box-shadow: -4px 0 20px rgba(0,0,0,0.03);
   z-index: 20;
 }
-.pos-right-panel.narrow { width: 360px; }
-.pos-right-panel.wide { width: 480px; }
+.pos-right-panel.narrow { width: 30vw; min-width: 360px; }
+.pos-right-panel.wide { width: 35vw; min-width: 420px; }
 .pos-right-panel.delivery { width: 60%; }
 
 /* ─── Payment Form (Bán nhanh) ─── */

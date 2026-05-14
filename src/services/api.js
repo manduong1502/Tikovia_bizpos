@@ -57,9 +57,49 @@ export const categoryAPI = {
 };
 
 // ─── Orders ───
+// Normalize Prisma camelCase → snake_case keys that OrdersPage uses
+function normalizeOrder(o) {
+  if (!o) return o;
+  return {
+    ...o,
+    order_code: o.order_code || o.code,
+    created_at: o.created_at || o.createdAt,
+    customer_name: o.customer_name || o.customer?.name || null,
+    customer_code: o.customer_code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
+    user_name: o.user_name || o.user?.fullName || null,
+    discount_amount: o.discount_amount ?? o.discount ?? 0,
+    paid_amount: o.paid_amount ?? o.paid ?? 0,
+    payment_method: o.payment_method || (o.paymentMethod || '').toLowerCase(),
+    payment_status: o.payment_status || (o.status === 'COMPLETED' ? 'completed' : o.status?.toLowerCase()),
+    status: o.status?.toLowerCase?.() || o.status,
+  };
+}
+
+function normalizeOrderDetail(o) {
+  if (!o) return o;
+  const base = normalizeOrder(o);
+  if (o.items) {
+    base.items = o.items.map(it => ({
+      ...it,
+      product_sku: it.product_sku || it.product?.sku || '',
+      product_name: it.product_name || it.product?.name || '',
+      unit_price: it.unit_price ?? it.price ?? 0,
+      total: it.total ?? ((it.price || 0) * (it.quantity || 0) - (it.discount || 0)),
+    }));
+  }
+  return base;
+}
+
 export const orderAPI = {
-  getAll: (params) => api.get('/orders', { params }).then(r => r.data),
-  getById: (id) => api.get(`/orders/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/orders', { params }).then(r => {
+    const raw = r.data;
+    if (raw && Array.isArray(raw.data)) {
+      return { ...raw, data: raw.data.map(normalizeOrder) };
+    }
+    if (Array.isArray(raw)) return raw.map(normalizeOrder);
+    return raw;
+  }),
+  getById: (id) => api.get(`/orders/${id}`).then(r => normalizeOrderDetail(r.data)),
   create: (data) => api.post('/orders', data).then(r => r.data),
   update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),

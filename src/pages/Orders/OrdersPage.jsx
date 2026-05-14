@@ -75,7 +75,7 @@ export default function OrdersPage() {
   const loadDetail = async (id) => {
     try {
       const r = await orderAPI.getById(id);
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, _items: r.items, subtotal: r.subtotal, note: r.note } : o));
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, _items: r.items || [], subtotal: r.subtotal, note: r.note } : o));
     } catch {}
   };
 

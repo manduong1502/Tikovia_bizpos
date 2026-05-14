@@ -1,15 +1,34 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePOS } from './POSContext';
-import { Image as ImageIcon, Search, Plus, LayoutGrid, Filter, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, LayoutGrid, Filter, Package, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 
 export default function POSProductGrid() {
   const { products, categories, addToCart, currentInvoice, updateCurrentInvoice } = usePOS();
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // name, price-asc, price-desc
 
-  // Filter products by category
-  const filteredProducts = selectedCategory
-    ? products.filter(p => p.categoryId === selectedCategory)
-    : products;
+  // Filter products by category and search
+  const filteredProducts = useMemo(() => {
+    let list = selectedCategory
+      ? products.filter(p => p.categoryId === selectedCategory)
+      : products;
+    
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      list = list.filter(p => 
+        p.name?.toLowerCase().includes(q) || 
+        p.sku?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    if (sortBy === 'price-asc') list = [...list].sort((a, b) => a.sellPrice - b.sellPrice);
+    else if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.sellPrice - a.sellPrice);
+    else list = [...list].sort((a, b) => a.name.localeCompare(b.name));
+
+    return list;
+  }, [products, selectedCategory, searchText, sortBy]);
 
   return (
     <div className="pos-product-panel">
@@ -18,16 +37,26 @@ export default function POSProductGrid() {
           <Search size={16} color="#94A3B8" />
           <input 
             type="text" 
-            id="pos-cust-input" 
-            placeholder="Tìm khách hàng (F4)"
-            disabled
+            id="pos-product-search" 
+            placeholder="Tìm sản phẩm (tên, mã SKU)..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
           />
-          <button className="add-btn" onClick={() => {}}><Plus size={16} /></button>
         </div>
         <div className="pos-view-btns">
           <button className="pos-view-btn active" title="Dạng lưới"><LayoutGrid size={16} /></button>
-          <button className="pos-view-btn" title="Lọc"><Filter size={16} /></button>
-          <button className="pos-view-btn" title="Hình ảnh"><ImageIcon size={16} /></button>
+          <button 
+            className="pos-view-btn" 
+            title="Sắp xếp"
+            onClick={() => {
+              if (sortBy === 'name') setSortBy('price-asc');
+              else if (sortBy === 'price-asc') setSortBy('price-desc');
+              else setSortBy('name');
+            }}
+            style={sortBy !== 'name' ? { color: 'var(--pos-primary)', background: 'var(--pos-primary-light)' } : {}}
+          >
+            <ArrowUpDown size={16} />
+          </button>
         </div>
       </div>
 
