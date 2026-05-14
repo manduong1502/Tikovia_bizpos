@@ -67,10 +67,10 @@ export default function ProductsPage() {
     if (filters.selectedCategories.size > 0) {
       list = list.filter(p => filters.selectedCategories.has(p.category_id));
     }
-    if (filters.filterStock === 'in') list = list.filter(p => p.stock_quantity > 0);
-    else if (filters.filterStock === 'out') list = list.filter(p => !p.stock_quantity);
-    else if (filters.filterStock === 'under') list = list.filter(p => p.stock_quantity > 0 && p.stock_quantity < 10);
-    else if (filters.filterStock === 'over') list = list.filter(p => p.stock_quantity > 100);
+    if (filters.filterStock === 'in') list = list.filter(p => p.stock > 0);
+    else if (filters.filterStock === 'out') list = list.filter(p => !p.stock);
+    else if (filters.filterStock === 'under') list = list.filter(p => p.stock > 0 && p.stock < 10);
+    else if (filters.filterStock === 'over') list = list.filter(p => p.stock > 100);
 
     if (sortCol) {
       list.sort((a, b) => {
@@ -83,7 +83,7 @@ export default function ProductsPage() {
 
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
-  const totalStock = filtered.reduce((a, p) => a + (p.stock_quantity || 0), 0);
+  const totalStock = filtered.reduce((a, p) => a + (p.stock || 0), 0);
 
   const handleSort = (col) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -165,11 +165,11 @@ export default function ProductsPage() {
             {detailTab === 'info' && (
               <div className="flex gap-6 pb-4">
                 <div className="w-[140px] h-[140px] bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm">
-                  {p.image_url ? <img src={p.image_url} alt="" className="w-full h-full object-cover rounded-xl" /> : <Package size={48} />}
+                  {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover rounded-xl" /> : <Package size={48} />}
                 </div>
                 <div className="flex-1">
                   <div className="text-lg font-bold text-gray-800 mb-1">{p.name}</div>
-                  <div className="text-xs text-gray-500 mb-3">Nhóm hàng: <span className="text-primary font-medium">{catName(p.category_id)}</span></div>
+                  <div className="text-xs text-gray-500 mb-3">Nhóm hàng: <span className="text-primary font-medium">{catName(p.categoryId)}</span></div>
                   <div className="flex gap-2 mb-4 flex-wrap">
                     <span className="px-2.5 py-1 bg-blue-50 text-primary rounded-md text-[11px] font-medium">Hàng hóa thường</span>
                     <span className="px-2.5 py-1 bg-blue-50 text-primary rounded-md text-[11px] font-medium">Bán trực tiếp</span>
@@ -179,10 +179,10 @@ export default function ProductsPage() {
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
-                      ['Tồn kho', p.stock_quantity || 0],
+                      ['Tồn kho', p.stock || 0],
                       ['Định mức tồn', '0 - 10'],
-                      ['Giá vốn', fmt(p.cost_price || 0)],
-                      ['Giá bán', fmt(p.sell_price)],
+                      ['Giá vốn', fmt(p.costPrice || 0)],
+                      ['Giá bán', fmt(p.sellPrice)],
                       ['Thương hiệu', p.brand || 'Chưa có'],
                       ['Vị trí', p.location || 'Chưa có'],
                     ].map(([label, val]) => (
@@ -216,8 +216,8 @@ export default function ProductsPage() {
                   <th className="py-2.5 text-left font-semibold">Trạng thái</th>
                 </tr></thead>
                 <tbody>
-                  <tr className="bg-gray-50 font-bold text-gray-800 border-b border-gray-100"><td className="py-2.5 pl-2">Tổng cộng</td><td className="text-right py-2.5">{p.stock_quantity || 0}</td><td className="text-right py-2.5">0</td><td></td><td></td></tr>
-                  <tr className="hover:bg-gray-50 transition-colors"><td className="py-3 pl-2">Chi nhánh trung tâm</td><td className="text-right py-3 font-medium">{p.stock_quantity || 0}</td><td className="text-right py-3 text-gray-400">0</td><td className="py-3 pl-4 text-gray-400">---</td><td className="py-3 text-green-600 font-medium">Đang kinh doanh</td></tr>
+                  <tr className="bg-gray-50 font-bold text-gray-800 border-b border-gray-100"><td className="py-2.5 pl-2">Tổng cộng</td><td className="text-right py-2.5">{p.stock || 0}</td><td className="text-right py-2.5">0</td><td></td><td></td></tr>
+                  <tr className="hover:bg-gray-50 transition-colors"><td className="py-3 pl-2">Chi nhánh trung tâm</td><td className="text-right py-3 font-medium">{p.stock || 0}</td><td className="text-right py-3 text-gray-400">0</td><td className="py-3 pl-4 text-gray-400">---</td><td className="py-3 text-green-600 font-medium">Đang kinh doanh</td></tr>
                 </tbody>
               </table>
             )}
@@ -225,10 +225,10 @@ export default function ProductsPage() {
             {/* Action bar */}
             <div className="flex items-center py-4 mt-2 border-t border-gray-100 gap-3" onClick={e => e.stopPropagation()}>
               <Button variant="default" size="sm" icon={<Trash2 size={14} />} onClick={() => deleteProduct(p.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50">Xóa</Button>
-              <Button variant="default" size="sm" icon={<Copy size={14} />} onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sell_price||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }}>Sao chép</Button>
+              <Button variant="default" size="sm" icon={<Copy size={14} />} onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }}>Sao chép</Button>
               <div className="flex-1" />
               <Button variant="primary" size="sm" icon={<Edit size={14} />} onClick={() => { setEditProduct(p); setModalOpen(true); }} className="shadow-sm">Chỉnh sửa</Button>
-              <Button variant="default" size="sm" icon={<Tag size={14} />} onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sell_price||0)} đ</p></div>`, `Tem ${p.sku}`)}>In tem mã</Button>
+              <Button variant="default" size="sm" icon={<Tag size={14} />} onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)}>In tem mã</Button>
             </div>
           </div>
         </td>
@@ -248,7 +248,7 @@ export default function ProductsPage() {
               <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-red-500 cursor-pointer bg-transparent border-none p-1 transition-colors"><X size={18} /></button>
               <div className="flex-1" />
               <Button icon={<Download size={16} />} onClick={() => exportProducts(filtered)} className="shadow-sm">Xuất file</Button>
-              <Button icon={<Tag size={16} />} className="shadow-sm" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sell_price||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }}>In tem mã</Button>
+              <Button icon={<Tag size={16} />} className="shadow-sm" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }}>In tem mã</Button>
             </>
           ) : (
             <>
@@ -298,9 +298,9 @@ export default function ProductsPage() {
                   <th className="px-3 py-3.5 w-14"></th>
                   <th className="px-4 py-3.5 cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('sku')}>Mã hàng <SortArrow col="sku" /></th>
                   <th className="px-4 py-3.5 cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('name')}>Tên hàng <SortArrow col="name" /></th>
-                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('sell_price')}>Giá bán <SortArrow col="sell_price" /></th>
-                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('cost_price')}>Giá vốn <SortArrow col="cost_price" /></th>
-                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('stock_quantity')}>Tồn kho <SortArrow col="stock_quantity" /></th>
+                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('sellPrice')}>Giá bán <SortArrow col="sellPrice" /></th>
+                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('costPrice')}>Giá vốn <SortArrow col="costPrice" /></th>
+                  <th className="px-4 py-3.5 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort('stock')}>Tồn kho <SortArrow col="stock" /></th>
                   <th className="px-4 py-3.5 text-right">Khách đặt</th>
                   <th className="px-4 py-3.5">Thời gian tạo</th>
                   <th className="px-4 py-3.5">Dự kiến hết hàng</th>
@@ -335,17 +335,17 @@ export default function ProductsPage() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="w-10 h-10 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center text-gray-400 shadow-sm">
-                            {p.image_url ? <img src={p.image_url} alt="" className="w-full h-full object-cover rounded-lg" /> : <Package size={20} />}
+                            {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover rounded-lg" /> : <Package size={20} />}
                           </div>
                         </td>
                         <td className="px-4 py-3 font-semibold text-primary">{p.sku || ''}</td>
                         <td className="px-4 py-3 font-medium text-gray-800">{p.name}</td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-800">{fmt(p.sell_price)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{fmt(p.cost_price || 0)}</td>
-                        <td className="px-4 py-3 text-right font-medium text-gray-700">{p.stock_quantity || 0}</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-800">{fmt(p.sellPrice)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{fmt(p.costPrice || 0)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-gray-700">{p.stock || 0}</td>
                         <td className="px-4 py-3 text-right text-gray-500">0</td>
                         <td className="px-4 py-3 text-[12px] text-gray-500">
-                          {p.created_at ? new Date(p.created_at).toLocaleDateString('vi-VN') + ' ' + new Date(p.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          {p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') + ' ' + new Date(p.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
                         </td>
                         <td className="px-4 py-3 text-[12px] text-gray-400">---</td>
                       </tr>
