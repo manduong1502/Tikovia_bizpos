@@ -1,51 +1,103 @@
 import { useState, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
-import { productAPI, categoryAPI } from '../../services/api';
+import { productAPI, categoryAPI, brandAPI } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Save, X, ImagePlus } from 'lucide-react';
+import { Save, X, ImagePlus, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+
+const Accordion = ({ title, description, children, defaultOpen = true }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-gray-200 rounded-lg mb-4 bg-white overflow-hidden">
+      <div 
+        className="px-4 py-3 flex justify-between items-center cursor-pointer bg-white hover:bg-gray-50 transition-colors"
+        onClick={() => setOpen(!open)}
+      >
+        <div>
+          <h3 className="font-bold text-gray-800 text-[15px]">{title}</h3>
+          {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+        </div>
+        {open ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
+      </div>
+      {open && <div className="p-4 border-t border-gray-100 bg-white">{children}</div>}
+    </div>
+  );
+};
 
 export default function ProductModal({ open, onClose, product = null, onSaved }) {
   const isEdit = !!product;
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('info'); // info | desc
+  
   const [form, setForm] = useState({
-    name: '', sku: '', barcode: '', category_id: '', sell_price: '', cost_price: '',
-    stock_quantity: '', description: '', brand: '', location: '', image_url: '',
+    name: '', sku: '', categoryId: '', brandId: '',
+    sellPrice: '', costPrice: '',
+    stock: '', minStock: '0', maxStock: '999999999',
+    location: '', weight: '', weightUnit: 'g',
+    description: '', note: '', image: '', directSale: true,
   });
 
   useEffect(() => {
-    categoryAPI.getAll().then(c => setCategories(Array.isArray(c) ? c : [])).catch(() => {});
-  }, []);
+    if (open) {
+      categoryAPI.getAll().then(c => setCategories(Array.isArray(c) ? c : [])).catch(() => {});
+      brandAPI.getAll().then(b => setBrands(Array.isArray(b) ? b : [])).catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (product) {
       setForm({
         name: product.name || '',
         sku: product.sku || '',
-        barcode: product.barcode || '',
-        category_id: product.category_id || '',
-        sell_price: product.sell_price || '',
-        cost_price: product.cost_price || '',
-        stock_quantity: product.stock_quantity || '',
-        description: product.description || '',
-        brand: product.brand || '',
+        categoryId: product.categoryId || '',
+        brandId: product.brandId || '',
+        sellPrice: product.sellPrice || '',
+        costPrice: product.costPrice || '',
+        stock: product.stock || '',
+        minStock: product.minStock || '0',
+        maxStock: product.maxStock || '999999999',
         location: product.location || '',
-        image_url: product.image_url || '',
+        weight: product.weight || '',
+        weightUnit: product.weightUnit || 'g',
+        description: product.description || '',
+        note: product.note || '',
+        image: product.image || '',
+        directSale: product.directSale !== false,
       });
+      setActiveTab('info');
     } else {
-      setForm({ name: '', sku: '', barcode: '', category_id: '', sell_price: '', cost_price: '', stock_quantity: '', description: '', brand: '', location: '', image_url: '' });
+      setForm({ 
+        name: '', sku: '', categoryId: '', brandId: '', 
+        sellPrice: '', costPrice: '', stock: '', minStock: '0', maxStock: '999999999', 
+        location: '', weight: '', weightUnit: 'g', description: '', note: '', image: '', directSale: true 
+      });
+      setActiveTab('info');
     }
   }, [product, open]);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
-  const handleSave = async () => {
+  const handleSave = async (createAnother = false) => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên hàng'); return; }
-    if (!form.sell_price) { toast.error('Vui lòng nhập giá bán'); return; }
+    
     setSaving(true);
     try {
-      const data = { ...form, sell_price: +form.sell_price, cost_price: +form.cost_price || 0, stock_quantity: +form.stock_quantity || 0 };
+      const data = { 
+        ...form, 
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
+        brandId: form.brandId ? Number(form.brandId) : null,
+        sellPrice: Number(form.sellPrice) || 0, 
+        costPrice: Number(form.costPrice) || 0, 
+        stock: Number(form.stock) || 0,
+        minStock: Number(form.minStock) || 0,
+        maxStock: Number(form.maxStock) || 999999999,
+        weight: form.weight ? Number(form.weight) : null,
+      };
+      
       if (isEdit) {
         await productAPI.update(product.id, data);
         toast.success('Cập nhật sản phẩm thành công');
@@ -54,7 +106,12 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         toast.success('Tạo sản phẩm thành công');
       }
       onSaved?.();
-      onClose();
+      
+      if (createAnother && !isEdit) {
+        setForm({ ...form, name: '', sku: '', image: '' }); // Reset some fields
+      } else {
+        onClose();
+      }
     } catch (e) {
       // Error handled by API interceptor
     } finally {
@@ -62,100 +119,248 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     }
   };
 
+  const handleCreateCategory = async () => {
+    const name = window.prompt('Nhập tên nhóm hàng mới:');
+    if (name && name.trim()) {
+      try {
+        const res = await categoryAPI.create({ name: name.trim() });
+        setCategories(prev => [...prev, res]);
+        update('categoryId', res.id);
+        toast.success('Đã tạo nhóm hàng mới');
+      } catch (e) { }
+    }
+  };
+
+  const handleCreateBrand = async () => {
+    const name = window.prompt('Nhập tên thương hiệu mới:');
+    if (name && name.trim()) {
+      try {
+        const res = await brandAPI.create({ name: name.trim() });
+        setBrands(prev => [...prev, res]);
+        update('brandId', res.id);
+        toast.success('Đã tạo thương hiệu mới');
+      } catch (e) { }
+    }
+  };
+
+  const modules = { toolbar: [ [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline'], [{'list': 'ordered'}, {'list': 'bullet'}], ['link', 'image'] ] };
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm mới'}
-      size="lg"
+      title={isEdit ? 'Chỉnh sửa hàng hóa' : 'Tạo hàng hóa'}
+      size="xl"
       footer={
-        <>
-          <Button variant="default" onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button>
-          <Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>
-            {saving ? 'Đang lưu...' : 'Lưu'}
-          </Button>
-        </>
-      }
-    >
-      <div className="grid grid-cols-[1fr_180px] gap-6">
-        <div className="space-y-4">
-          {/* Row 1 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Tên hàng <span className="text-red-500">*</span></label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors" value={form.name} onChange={e => update('name', e.target.value)} placeholder="Nhập tên hàng hóa" />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Mã hàng</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.sku} onChange={e => update('sku', e.target.value)} placeholder="Mã tự động" />
-            </div>
-          </div>
-          {/* Row 2 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Nhóm hàng</label>
-              <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary outline-none" value={form.category_id} onChange={e => update('category_id', e.target.value)}>
-                <option value="">Chọn nhóm hàng</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Mã vạch</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.barcode} onChange={e => update('barcode', e.target.value)} placeholder="Nhập mã vạch" />
-            </div>
-          </div>
-          {/* Row 3: Prices */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Giá bán <span className="text-red-500">*</span></label>
-              <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-semibold" value={form.sell_price} onChange={e => update('sell_price', e.target.value)} placeholder="0" />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Giá vốn</label>
-              <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.cost_price} onChange={e => update('cost_price', e.target.value)} placeholder="0" />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Tồn kho</label>
-              <input type="number" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.stock_quantity} onChange={e => update('stock_quantity', e.target.value)} placeholder="0" />
-            </div>
-          </div>
-          {/* Row 4 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Thương hiệu</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.brand} onChange={e => update('brand', e.target.value)} placeholder="Nhập thương hiệu" />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600 mb-1 block">Vị trí</label>
-              <input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" value={form.location} onChange={e => update('location', e.target.value)} placeholder="Kệ A1" />
-            </div>
-          </div>
-          {/* Description */}
-          <div>
-            <label className="text-sm text-gray-600 mb-1 block">Mô tả</label>
-            <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none resize-y min-h-[80px]" value={form.description} onChange={e => update('description', e.target.value)} placeholder="Mô tả sản phẩm..." rows={3} />
+        <div className="flex w-full items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" checked={form.directSale} onChange={e => update('directSale', e.target.checked)} />
+            <span className="text-[14px] text-gray-700 font-medium">Bán trực tiếp</span>
+            <Info size={14} className="text-gray-400" />
+          </label>
+          
+          <div className="flex gap-2">
+            <button className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded text-[14px] hover:bg-gray-50 font-medium" onClick={onClose}>
+              Bỏ qua
+            </button>
+            {!isEdit && (
+              <button 
+                className="px-4 py-1.5 border border-gray-300 text-gray-700 rounded text-[14px] hover:bg-gray-50 flex items-center gap-2 font-medium"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+              >
+                Lưu & Tạo thêm hàng <ChevronDown size={14} />
+              </button>
+            )}
+            <button 
+              className="px-6 py-1.5 bg-[#0065ff] text-white rounded text-[14px] hover:bg-blue-700 font-medium min-w-[80px]"
+              onClick={() => handleSave(false)}
+              disabled={saving}
+            >
+              {saving ? 'Đang lưu...' : 'Lưu'}
+            </button>
           </div>
         </div>
+      }
+    >
+      <div className="flex flex-col h-[calc(85vh-160px)] bg-gray-50 -mx-6 -mt-4 -mb-4">
+        
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 bg-white px-6">
+          <button 
+            className={`px-4 py-3 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('info')}
+          >
+            Thông tin
+          </button>
+          <button 
+            className={`px-4 py-3 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'desc' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('desc')}
+          >
+            Mô tả
+          </button>
+        </div>
 
-        {/* Image upload area */}
-        <div className="flex flex-col items-center gap-3">
-          <label className="text-sm text-gray-600">Ảnh sản phẩm</label>
-          <div className="w-[160px] h-[160px] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-blue-50/30 transition-colors group">
-            {form.image_url ? (
-              <img src={form.image_url} alt="" className="w-full h-full object-cover rounded-xl" />
-            ) : (
-              <>
-                <ImagePlus size={32} className="text-gray-300 group-hover:text-primary transition-colors mb-2" />
-                <span className="text-xs text-gray-400 group-hover:text-primary">Thêm ảnh</span>
-              </>
-            )}
-          </div>
-          {form.image_url && (
-            <button onClick={() => update('image_url', '')} className="text-xs text-red-500 hover:underline cursor-pointer">Xóa ảnh</button>
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {activeTab === 'info' ? (
+            <div className="flex gap-6">
+              {/* Left Column: Form */}
+              <div className="flex-1 space-y-4">
+                {/* Basic Info */}
+                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Mã hàng</label>
+                      <input className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" value={form.sku} onChange={e => update('sku', e.target.value)} placeholder="Tự động" />
+                    </div>
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Tên hàng <span className="text-red-500">*</span></label>
+                      <input className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" value={form.name} onChange={e => update('name', e.target.value)} placeholder="Bắt buộc" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <label className="text-[13px] text-gray-600">Nhóm hàng</label>
+                          <button onClick={handleCreateCategory} className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
+                        </div>
+                        <select className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none bg-white" value={form.categoryId} onChange={e => update('categoryId', e.target.value)}>
+                          <option value="">Chọn nhóm hàng</option>
+                          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <label className="text-[13px] text-gray-600">Thương hiệu</label>
+                          <button onClick={handleCreateBrand} className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
+                        </div>
+                        <select className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none bg-white" value={form.brandId} onChange={e => update('brandId', e.target.value)}>
+                          <option value="">Chọn thương hiệu</option>
+                          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Accordion title="Giá vốn, giá bán">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Giá vốn</label>
+                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right font-medium" value={form.costPrice} onChange={e => update('costPrice', e.target.value)} placeholder="0" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-[13px] text-gray-600">Giá bán</label>
+                        <button className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"><Info size={12}/> Thiết lập giá</button>
+                      </div>
+                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right font-medium" value={form.sellPrice} onChange={e => update('sellPrice', e.target.value)} placeholder="0" />
+                    </div>
+                  </div>
+                </Accordion>
+
+                <Accordion title="Tồn kho" description="Quản lý số lượng tồn kho và định mức tồn. Khi tồn kho chạm đến định mức, bạn sẽ nhận được cảnh báo từ KiotViet.">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Tồn kho</label>
+                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right" value={form.stock} onChange={e => update('stock', e.target.value)} placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Định mức tồn thấp nhất</label>
+                      <input type="number" className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.minStock} onChange={e => update('minStock', e.target.value)} placeholder="0" />
+                    </div>
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Định mức tồn cao nhất</label>
+                      <input type="number" className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.maxStock} onChange={e => update('maxStock', e.target.value)} placeholder="999,999,999" />
+                    </div>
+                  </div>
+                </Accordion>
+
+                <Accordion title="Vị trí, trọng lượng" description="Quản lý việc sắp xếp kho, vị trí bán hàng hoặc trọng lượng hàng hóa">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="flex justify-between mb-1">
+                        <label className="text-[13px] text-gray-600">Vị trí</label>
+                        <button className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
+                      </div>
+                      <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none" value={form.location} onChange={e => update('location', e.target.value)} placeholder="Chọn vị trí" />
+                    </div>
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Trọng lượng</label>
+                      <div className="flex">
+                        <input type="number" className="flex-1 border border-r-0 border-gray-300 rounded-l px-3 py-2 text-[14px] focus:border-blue-500 outline-none text-right" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="0" />
+                        <select className="border border-gray-300 rounded-r bg-gray-50 px-2 py-2 text-[14px] outline-none" value={form.weightUnit} onChange={e => update('weightUnit', e.target.value)}>
+                          <option value="g">g</option>
+                          <option value="kg">kg</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </Accordion>
+              </div>
+
+              {/* Right Column: Image */}
+              <div className="w-[200px] shrink-0">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 border-dashed">
+                  <div className="aspect-square bg-white border border-gray-200 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 mb-2 overflow-hidden relative group">
+                    {form.image ? (
+                      <>
+                        <img src={form.image} alt="Product" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button onClick={(e) => { e.stopPropagation(); update('image', ''); }} className="text-white text-xs bg-red-500 px-2 py-1 rounded">Xóa ảnh</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outline" className="text-[13px] py-1 px-3 bg-white mb-1"><ImagePlus size={14} className="mr-1 inline" />Thêm ảnh</Button>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 text-center mb-3">Mỗi ảnh không quá 2 MB</p>
+                  
+                  {/* Thumbnails mockup */}
+                  <div className="grid grid-cols-4 gap-1">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="aspect-square bg-white border border-gray-200 rounded flex items-center justify-center">
+                        <ImagePlus size={12} className="text-gray-300" />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <label className="text-[11px] text-gray-500 mb-1 block">URL Ảnh (Tuỳ chọn)</label>
+                    <input className="w-full border border-gray-300 rounded px-2 py-1 text-[12px] outline-none focus:border-blue-500" value={form.image} onChange={e => update('image', e.target.value)} placeholder="Nhập link ảnh..." />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-4">
+                  <span className="text-[13px] font-bold text-gray-700">Mô tả</span>
+                </div>
+                <div>
+                  <ReactQuill theme="snow" value={form.description} onChange={val => update('description', val)} modules={modules} className="min-h-[200px]" />
+                </div>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                  <span className="text-[13px] font-bold text-gray-700">Mẫu ghi chú (hóa đơn, đặt hàng)</span>
+                </div>
+                <textarea 
+                  className="w-full p-4 text-[14px] outline-none min-h-[100px] resize-y" 
+                  value={form.note} 
+                  onChange={e => update('note', e.target.value)} 
+                  placeholder="Nhập ghi chú..." 
+                />
+              </div>
+            </div>
           )}
-          <input className="w-full border border-gray-300 rounded px-2 py-1 text-xs" value={form.image_url} onChange={e => update('image_url', e.target.value)} placeholder="URL ảnh" />
         </div>
       </div>
     </Modal>
   );
 }
+
