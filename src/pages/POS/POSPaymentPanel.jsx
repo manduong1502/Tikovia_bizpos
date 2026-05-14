@@ -86,59 +86,85 @@ export default function POSPaymentPanel({ forceShow = false }) {
       const remainingDebt = Math.max(0, totalDebt - paidAmount);
 
       const invoiceHTML = `
-        <div style="width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; font-family: 'Inter', Arial, sans-serif; color: #000; line-height: 1.5;">
+        <style>
+          .inv-wrap { width: 100%; max-width: 800px; margin: 0 auto; font-family: 'Inter', Arial, sans-serif; color: #000; line-height: 1.5; padding: 20px; box-sizing: border-box; }
+          .inv-title { font-size: 32px; font-weight: bold; color: #000; margin: 0; letter-spacing: 2px; }
+          .inv-sub { font-size: 11px; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; display: inline-block; padding: 2px 25px; margin-top: 4px; }
+          .inv-company { font-size: 16px; margin: 8px 0; text-transform: uppercase; }
+          .inv-info { font-size: 13px; margin: 3px 0; }
+          .inv-header-text { font-size: 18px; font-weight: bold; text-decoration: underline; margin: 0; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+          .inv-table th, .inv-table td { padding: 8px 6px; border: 1px solid #000; }
+          .inv-totals { width: 320px; border-collapse: collapse; font-size: 13px; margin-left: auto; }
+          .inv-totals td { padding: 4px 0; text-align: right; }
+          .inv-totals td:first-child { padding-right: 10px; }
+          
+          /* Responsive for Thermal/A6 Narrow Paper */
+          @media print and (max-width: 140mm) {
+            .inv-wrap { padding: 0; }
+            .inv-title { font-size: 22px; }
+            .inv-company { font-size: 13px; }
+            .inv-info { font-size: 11px; }
+            .inv-header-text { font-size: 15px; }
+            .inv-table { font-size: 11px; }
+            .inv-table th, .inv-table td { padding: 4px 2px; }
+            .inv-totals { width: 100%; font-size: 11px; }
+            .hide-on-narrow { display: none !important; }
+          }
+        </style>
+        <div class="inv-wrap">
           
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 20px;">
             <div style="margin-bottom: 10px;">
-              <h1 style="color: #f39c12; margin: 0; font-size: 32px; font-weight: bold; letter-spacing: 2px;">TIKOVIA</h1>
-              <div style="font-size: 11px; color: #f39c12; border-top: 1px solid #f39c12; border-bottom: 1px solid #f39c12; display: inline-block; padding: 2px 25px; margin-top: 4px;">CÔNG TY TNHH TM&DV</div>
+              <h1 class="inv-title">TIKOVIA</h1>
+              <div class="inv-sub">CÔNG TY TNHH TM&DV</div>
             </div>
-            <h2 style="margin: 8px 0; font-size: 16px; text-transform: uppercase;">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
-            <p style="margin: 3px 0; font-size: 13px;">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, Phường Hòa Xuân, Thành phố Đà Nẵng, Việt Nam</p>
-            <p style="margin: 3px 0; font-size: 13px;">Điện Thoại : 0796.637.194</p>
-            <p style="margin: 3px 0; font-size: 13px;">Chủ TK : <strong style="font-weight: 600;">CÔNG TY TNHH TM VÀ DV TIKOVIA</strong></p>
-            <p style="margin: 3px 0; font-size: 13px;">Số TK : <strong style="font-weight: 600;">8282688686 ( MB BANK )</strong></p>
+            <h2 class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
+            <p class="inv-info">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, P.Hòa Xuân, TP.Đà Nẵng, Việt Nam</p>
+            <p class="inv-info">Điện Thoại : 0796.637.194</p>
+            <p class="inv-info">Chủ TK : <strong style="font-weight: 600;">CÔNG TY TNHH TM VÀ DV TIKOVIA</strong></p>
+            <p class="inv-info">Số TK : <strong style="font-weight: 600;">8282688686 ( MB BANK )</strong></p>
           </div>
 
           <!-- Invoice Title -->
           <div style="text-align: center; margin-bottom: 25px;">
-            <h3 style="margin: 0; font-size: 18px; font-weight: bold; text-decoration: underline;">HÓA ĐƠN BÁN HÀNG</h3>
-            <p style="margin: 4px 0; font-size: 13px; font-weight: 500;">${orderCode} - ${dateStr}</p>
+            <h3 class="inv-header-text">HÓA ĐƠN BÁN HÀNG</h3>
+            <p class="inv-info" style="font-weight: 500;">${orderCode} - ${dateStr}</p>
           </div>
 
           <!-- Customer Info -->
-          <div style="margin-bottom: 20px; font-size: 13px;">
-            <p style="margin: 5px 0;">Khách hàng: ${customer ? customer.name : 'Người mua không cung cấp thông tin'}</p>
-            <p style="margin: 5px 0;">SĐT: ${customer?.phone || ''}</p>
-            <p style="margin: 5px 0;">ĐC: ${customer?.address || ''}</p>
+          <div style="margin-bottom: 15px;">
+            <p class="inv-info">Khách hàng: ${customer ? customer.name : 'Người mua không cung cấp thông tin'}</p>
+            <p class="inv-info">SĐT: ${customer?.phone || ''}</p>
+            <p class="inv-info">ĐC: ${customer?.address || ''}</p>
           </div>
 
           <!-- Table -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 13px;">
+          <table class="inv-table">
             <thead>
               <tr>
-                <th style="padding: 10px 6px; text-align: left; font-weight: bold; border: 1px solid #000;">Mặt hàng</th>
-                <th style="padding: 10px 6px; text-align: center; font-weight: bold; border: 1px solid #000;">SL</th>
-                <th style="padding: 10px 6px; text-align: center; font-weight: bold; border: 1px solid #000;">ĐVT</th>
-                <th style="padding: 10px 6px; text-align: right; font-weight: bold; border: 1px solid #000;">Giá</th>
-                <th style="padding: 10px 6px; text-align: right; font-weight: bold; border: 1px solid #000;">Thành Tiền</th>
-                <th style="padding: 10px 6px; text-align: right; font-weight: bold; border: 1px solid #000;">Vat 5%</th>
+                <th style="text-align: left; font-weight: bold;">Mặt hàng</th>
+                <th style="text-align: center; font-weight: bold;">SL</th>
+                <th class="hide-on-narrow" style="text-align: center; font-weight: bold;">ĐVT</th>
+                <th style="text-align: right; font-weight: bold;">Giá</th>
+                <th style="text-align: right; font-weight: bold;">T.Tiền</th>
+                <th class="hide-on-narrow" style="text-align: right; font-weight: bold;">Vat 5%</th>
               </tr>
             </thead>
             <tbody>
               ${cart.map(i => {
                 const finalPrice = i.price - (i.discount || 0);
                 const itemTotal = finalPrice * i.quantity;
-                const vat = Math.round(itemTotal * 0.05); // Dummy VAT 5% for visual match
+                const vat = Math.round(itemTotal * 0.05);
                 return \`
                 <tr>
-                  <td style="padding: 8px 6px; border: 1px solid #000;">\${i.product.name}</td>
-                  <td style="padding: 8px 6px; text-align: center; border: 1px solid #000;">\${i.quantity}</td>
-                  <td style="padding: 8px 6px; text-align: center; border: 1px solid #000;">\${i.product.unit || 'Cái'}</td>
-                  <td style="padding: 8px 6px; text-align: right; border: 1px solid #000;">\${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
-                  <td style="padding: 8px 6px; text-align: right; border: 1px solid #000;">\${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
-                  <td style="padding: 8px 6px; text-align: right; border: 1px solid #000;">\${new Intl.NumberFormat('vi-VN').format(vat)}</td>
+                  <td>\${i.product.name}</td>
+                  <td style="text-align: center;">\${i.quantity}</td>
+                  <td class="hide-on-narrow" style="text-align: center;">\${i.product.unit || 'Cái'}</td>
+                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
+                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
+                  <td class="hide-on-narrow" style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(vat)}</td>
                 </tr>
                 \`;
               }).join('')}
@@ -146,43 +172,43 @@ export default function POSPaymentPanel({ forceShow = false }) {
           </table>
 
           <!-- Totals -->
-          <div style="display: flex; justify-content: flex-end; font-size: 13px; margin-bottom: 40px;">
-            <table style="width: 320px; border: none; border-collapse: collapse;">
+          <div style="margin-bottom: 30px;">
+            <table class="inv-totals">
               <tbody>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px;">Tổng đơn hàng:</td>
-                  <td style="text-align: right; padding: 4px 0;">\${new Intl.NumberFormat('vi-VN').format(total)}</td>
+                  <td>Tổng đơn hàng:</td>
+                  <td>\${new Intl.NumberFormat('vi-VN').format(total)}</td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px;">Nợ cũ:</td>
-                  <td style="text-align: right; padding: 4px 0;">\${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
+                  <td>Nợ cũ:</td>
+                  <td>\${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px;">Tổng Nợ:</td>
-                  <td style="text-align: right; padding: 4px 0;">\${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
+                  <td>Tổng Nợ:</td>
+                  <td>\${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px;">Khách đã trả:</td>
-                  <td style="text-align: right; padding: 4px 0;">\${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
+                  <td>Khách đã trả:</td>
+                  <td>\${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px;">Dư nợ sau khi trả:</td>
-                  <td style="text-align: right; padding: 4px 0;">\${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
+                  <td>Dư nợ sau khi trả:</td>
+                  <td>\${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 8px 10px 4px; font-weight: bold;">Chữ ký Khách Hàng :</td>
-                  <td style="text-align: right; padding: 8px 0 4px;"></td>
+                  <td style="padding-top: 10px; font-weight: bold;">Chữ ký Khách Hàng :</td>
+                  <td style="padding-top: 10px;"></td>
                 </tr>
                 <tr>
-                  <td style="text-align: right; padding: 4px 10px; font-weight: bold;">Ghi chú :</td>
-                  <td style="text-align: right; padding: 4px 0; font-style: italic; color: #444;">\${currentInvoice.note || ''}</td>
+                  <td style="font-weight: bold;">Ghi chú :</td>
+                  <td style="font-style: italic; color: #444;">\${currentInvoice.note || ''}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; margin-top: 50px; font-style: italic; font-size: 13px;">
+          <div style="text-align: center; margin-top: 30px; font-style: italic;" class="inv-info">
             <p>Cảm ơn và hẹn gặp lại!</p>
           </div>
 
