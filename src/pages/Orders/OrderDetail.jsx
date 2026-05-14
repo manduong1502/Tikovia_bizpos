@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI } from '../../services/api';
@@ -17,6 +18,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
   const o = order;
   const [tab, setTab] = useState('info');
   const items = o._items || [];
+  const navigate = useNavigate();
 
   const handleCancel = async () => {
     if (o.status === 'cancelled') return toast.error('Đã hủy rồi');
@@ -147,7 +149,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
         <button onClick={handleCopy} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border rounded hover:bg-gray-50 font-medium cursor-pointer"><Copy size={13} />Sao chép</button>
         <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border rounded hover:bg-gray-50 font-medium cursor-pointer"><Download size={13} />Xuất file</button>
         <div className="flex-1" />
-        <button className="flex items-center gap-1.5 px-4 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700 font-medium cursor-pointer"><Pencil size={13} />Chỉnh sửa</button>
+        <button onClick={() => navigate('/pos', { state: { editOrder: { id: o.id, code: o.order_code, items: items, customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, note: o.note } } })} className="flex items-center gap-1.5 px-4 py-1.5 text-xs text-white bg-blue-600 rounded hover:bg-blue-700 font-medium cursor-pointer"><Pencil size={13} />Chỉnh sửa</button>
         <button onClick={handleSaveNote} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border rounded hover:bg-gray-50 font-medium cursor-pointer"><Save size={13} />Lưu</button>
         {o.status !== 'cancelled' && <button onClick={handleReturn} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border rounded hover:bg-gray-50 font-medium cursor-pointer"><RotateCcw size={13} />Trả hàng</button>}
         <button onClick={handlePrint} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 border rounded hover:bg-gray-50 font-medium cursor-pointer"><Printer size={13} />In</button>

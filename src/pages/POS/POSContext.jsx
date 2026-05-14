@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -9,6 +10,7 @@ export function usePOS() {
 }
 
 export function POSProvider({ children }) {
+  const location = useLocation();
   // State for products and customers
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -42,6 +44,43 @@ export function POSProvider({ children }) {
     }
     loadData();
   }, []);
+
+  // Handle editOrder from navigation state
+  useEffect(() => {
+    const editOrder = location.state?.editOrder;
+    if (!editOrder || products.length === 0) return;
+    // Avoid re-creating if tab already exists
+    const existingTab = invoices.find(inv => inv.label === `Update_${editOrder.code}`);
+    if (existingTab) { setActiveTabId(existingTab.id); return; }
+
+    const editCart = (editOrder.items || []).map(it => {
+      const prod = products.find(p => p.id === it.productId || p.sku === it.product_sku);
+      return {
+        product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: Number(it.unit_price || it.price || 0), stock: 9999 },
+        quantity: Number(it.quantity),
+        price: Number(it.unit_price || it.price || 0),
+        discount: Number(it.discount || 0),
+      };
+    });
+
+    const editInvoice = {
+      id: nextTabId,
+      label: `Update_${editOrder.code}`,
+      cart: editCart,
+      customer: editOrder.customer || null,
+      note: editOrder.note || '',
+      discount: 0,
+      isPaymentMode: false,
+      _editOrderId: editOrder.id,
+      _editOrderCode: editOrder.code,
+    };
+    setInvoices(prev => [...prev, editInvoice]);
+    setActiveTabId(nextTabId);
+    setNextTabId(prev => prev + 1);
+    setSaleMode('normal');
+    // Clear the state so it doesn't re-trigger
+    window.history.replaceState({}, '');
+  }, [location.state, products]);
 
   // --- Tab Actions ---
   const addTab = () => {

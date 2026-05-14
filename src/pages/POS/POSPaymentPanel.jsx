@@ -6,12 +6,15 @@ import toast from 'react-hot-toast';
 import { printHTML } from '../../utils/exportUtils';
 
 export default function POSPaymentPanel({ forceShow = false }) {
-  const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice, saleMode } = usePOS();
+  const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice, saleMode, removeTab, activeTabId } = usePOS();
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [paidAmountStr, setPaidAmountStr] = useState('');
   const [salesChannel, setSalesChannel] = useState('Bán trực tiếp');
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  
+  const isEditMode = !!(currentInvoice?._editOrderId);
   
   if (!currentInvoice?.isPaymentMode && !forceShow && saleMode !== 'fast') return null;
 
@@ -54,12 +57,28 @@ export default function POSPaymentPanel({ forceShow = false }) {
       return;
     }
 
+    // If edit mode, show confirmation dialog first
+    if (isEditMode && !showUpdateModal) {
+      setShowUpdateModal(true);
+      return;
+    }
+
     if (isDebt && !customer) {
       toast.error('Vui lòng chọn khách hàng để ghi nợ');
       return;
     }
 
     try {
+      // If editing, cancel old order first
+      if (isEditMode) {
+        try {
+          const { orderAPI } = await import('../../services/api');
+          await orderAPI.cancel(currentInvoice._editOrderId);
+        } catch (e) {
+          console.warn('Could not cancel old order:', e);
+        }
+      }
+
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
         items: cart.map(i => ({
@@ -77,7 +96,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
       const res = await api.post('/orders', orderData);
       const newOrder = res.data?.data || res.data;
       
-      toast.success(`Tạo đơn hàng thành công! ${isDebt ? `(Ghi nợ: ${new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))})` : ''}`);
+      toast.success(isEditMode 
+        ? `Cập nhật hóa đơn thành công! (${currentInvoice._editOrderCode} → ${newOrder?.code || ''})` 
+        : `Tạo đơn hàng thành công! ${isDebt ? `(Ghi nợ: ${new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))})` : ''}`
+      );
       
       const dateStr = new Date().toLocaleString('vi-VN');
       const orderCode = newOrder?.code || newOrder?.order_code || 'HD' + Date.now().toString().slice(-6);
@@ -218,6 +240,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
       // Clear and return
       clearCurrentInvoice();
       togglePaymentMode(false);
+      if (isEditMode) {
+        removeTab(activeTabId);
+      }
+      setShowUpdateModal(false);
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
@@ -403,9 +429,29 @@ export default function POSPaymentPanel({ forceShow = false }) {
           onClick={handleSubmitOrder}
           style={{ width: '100%', padding: '14px', background: '#3b5fe4', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', letterSpacing: '1px' }}
         >
-          THANH TOÁN
+          {isEditMode ? 'CẬP NHẬT HÓA ĐƠN' : 'THANH TOÁN'}
         </button>
       </div>
+
+      {/* Update Confirmation Modal */}
+      {showUpdateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '28px 32px', maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ color: '#ef4444', fontSize: '18px', fontWeight: '700', margin: '0 0 16px' }}>Cập nhật hóa đơn</h3>
+            <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#333' }}>
+              <p style={{ margin: '0 0 8px' }}>Khi thay đổi thông tin trên hóa đơn, hệ thống sẽ:</p>
+              <p style={{ margin: '0 0 4px' }}>- Hủy hóa đơn cũ và tạo hóa đơn mới</p>
+              <p style={{ margin: '0 0 4px' }}>- Tất cả các phiếu thanh toán của hóa đơn cũ sẽ được gắn với hóa đơn mới</p>
+              <p style={{ margin: '0 0 12px' }}>- Nếu bạn thay đổi số lượng hàng hóa, cần đảm bảo tồn kho của cửa hàng vẫn đáp ứng đủ, hệ thống sẽ không kiểm tra lại.</p>
+              <p style={{ margin: '0', fontWeight: '500' }}>Bạn có muốn tiếp tục?</p>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '24px' }}>
+              <button onClick={() => { setShowUpdateModal(false); handleSubmitOrder(); }} style={{ padding: '10px 32px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Đồng ý</button>
+              <button onClick={() => setShowUpdateModal(false)} style={{ padding: '10px 32px', background: '#fff', color: '#333', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Bỏ qua</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
