@@ -157,16 +157,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
                 const finalPrice = i.price - (i.discount || 0);
                 const itemTotal = finalPrice * i.quantity;
                 const vat = Math.round(itemTotal * 0.05);
-                return \`
+                return `
                 <tr>
-                  <td>\${i.product.name}</td>
-                  <td style="text-align: center;">\${i.quantity}</td>
-                  <td class="hide-on-narrow" style="text-align: center;">\${i.product.unit || 'Cái'}</td>
-                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
-                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
-                  <td class="hide-on-narrow" style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(vat)}</td>
+                  <td>${i.product.name}</td>
+                  <td style="text-align: center;">${i.quantity}</td>
+                  <td class="hide-on-narrow" style="text-align: center;">${i.product.unit || 'Cái'}</td>
+                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
+                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
+                  <td class="hide-on-narrow" style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(vat)}</td>
                 </tr>
-                \`;
+                `;
               }).join('')}
             </tbody>
           </table>
@@ -177,23 +177,23 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <tbody>
                 <tr>
                   <td>Tổng đơn hàng:</td>
-                  <td>\${new Intl.NumberFormat('vi-VN').format(total)}</td>
+                  <td>${new Intl.NumberFormat('vi-VN').format(total)}</td>
                 </tr>
                 <tr>
                   <td>Nợ cũ:</td>
-                  <td>\${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
+                  <td>${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
                 </tr>
                 <tr>
                   <td>Tổng Nợ:</td>
-                  <td>\${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
+                  <td>${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
                 </tr>
                 <tr>
                   <td>Khách đã trả:</td>
-                  <td>\${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
+                  <td>${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
                 </tr>
                 <tr>
                   <td>Dư nợ sau khi trả:</td>
-                  <td>\${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
+                  <td>${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
                 </tr>
                 <tr>
                   <td style="padding-top: 10px; font-weight: bold;">Chữ ký Khách Hàng :</td>
@@ -201,7 +201,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
                 </tr>
                 <tr>
                   <td style="font-weight: bold;">Ghi chú :</td>
-                  <td style="font-style: italic; color: #444;">\${currentInvoice.note || ''}</td>
+                  <td style="font-style: italic; color: #444;">${currentInvoice.note || ''}</td>
                 </tr>
               </tbody>
             </table>
@@ -213,7 +213,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
           </div>
 
         </div>
-      \`;
+      `;
       printHTML(invoiceHTML, 'In Hóa Đơn');
       
       // Clear and return
