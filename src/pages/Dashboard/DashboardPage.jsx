@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { Users, QrCode, PlusCircle, Monitor, ChevronRight, TrendingUp, TrendingDown, ShoppingCart, RotateCcw, AlertTriangle, Package } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -12,7 +13,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get('/api/dashboard');
+        const res = await api.get('/dashboard');
         setData(res.data);
       } catch (e) {
         setData({ today_revenue: 0, today_orders: 0, today_returns: 0, monthly_revenue: 0, prev_month_revenue: 0, daily_revenues: [], top_products: [], top_customers: [], recent_orders: [] });
@@ -176,20 +177,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* Staff CTA */}
-        <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-xl p-6 flex items-center gap-4 text-white shadow-md">
-          <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center shrink-0 border border-white/20">
-            <Users size={24} className="text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="font-bold text-lg mb-1">Khám phá tiềm năng đội ngũ</div>
-            <div className="text-sm text-gray-300">Quản lý hiệu suất và doanh thu của từng nhân viên để đưa ra chiến lược khen thưởng hợp lý.</div>
-          </div>
-          <button className="bg-white text-gray-900 px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 hover:shadow transition-all cursor-pointer border-none shrink-0 transform hover:-translate-y-0.5">
-            Thêm nhân viên mới
-          </button>
-        </div>
       </div>
 
       {/* Right Panel */}
@@ -226,27 +213,27 @@ export default function DashboardPage() {
           <h3 className="text-base font-bold text-gray-800 mb-5">Hoạt động gần đây</h3>
           <div className="space-y-4 max-h-[calc(100vh-380px)] overflow-y-auto pr-2 custom-scrollbar flex-1">
             {(d.recentOrders || []).map((o, i) => (
-              <div key={i} className="flex items-start gap-3 group cursor-pointer">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
+              <div key={i} className="flex items-start gap-3 group">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                   o.status === 'COMPLETED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-500'
                 }`}>
                   {o.status === 'COMPLETED' ? <ShoppingCart size={16} /> : <RotateCcw size={16} />}
                 </div>
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="text-sm font-semibold text-gray-700 truncate group-hover:text-primary transition-colors">{o.orderCode}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {o.customer?.name || 'Khách lẻ'} • {o.user?.fullName || 'Admin'}
+                <div className="flex-1 min-w-0 pt-1">
+                  <div className="text-sm text-gray-700">
+                    <span className="font-semibold text-gray-800">{o.user?.fullName || 'Admin'}</span> vừa 
+                    <Link to="/orders" className="text-blue-600 hover:underline mx-1">
+                      {o.status === 'COMPLETED' ? 'bán đơn hàng' : 'trả đơn hàng'}
+                    </Link> 
+                    với giá trị <span className="font-semibold">{fmt(o.total)}</span>
                   </div>
-                </div>
-                <div className="text-right shrink-0 pt-0.5">
-                  <div className="text-sm font-bold text-gray-800">{fmt(o.total)}</div>
-                  <div className="text-[10px] text-gray-400 mt-1">
-                    {o.createdAt ? new Date(o.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  <div className="text-xs text-gray-400 mt-1">
+                    {o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : ''}
                   </div>
                 </div>
               </div>
             ))}
-            {(!d.recent_orders || d.recent_orders.length === 0) && (
+            {(!d.recentOrders || d.recentOrders.length === 0) && (
               <div className="text-center py-10">
                 <ShoppingCart size={32} className="mx-auto text-gray-200 mb-3" />
                 <div className="text-gray-400 text-sm">Chưa có hoạt động nào gần đây</div>
