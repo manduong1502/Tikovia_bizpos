@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Save, X, ImagePlus, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { useRef } from 'react';
 
 const Accordion = ({ title, description, children, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -28,6 +29,7 @@ const Accordion = ({ title, description, children, defaultOpen = true }) => {
 
 export default function ProductModal({ open, onClose, product = null, onSaved }) {
   const isEdit = !!product;
+  const fileInputRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -141,6 +143,20 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         toast.success('Đã tạo thương hiệu mới');
       } catch (e) { }
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ảnh không được vượt quá 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      update('image', event.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const modules = { toolbar: [ [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline'], [{'list': 'ordered'}, {'list': 'bullet'}], ['link', 'image'] ] };
@@ -302,12 +318,15 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
               {/* Right Column: Image */}
               <div className="w-[200px] shrink-0">
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 border-dashed">
-                  <div className="aspect-square bg-white border border-gray-200 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 mb-2 overflow-hidden relative group">
+                  <div 
+                    className="aspect-square bg-white border border-gray-200 rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 mb-2 overflow-hidden relative group"
+                    onClick={() => !form.image && fileInputRef.current?.click()}
+                  >
                     {form.image ? (
                       <>
                         <img src={form.image} alt="Product" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button onClick={(e) => { e.stopPropagation(); update('image', ''); }} className="text-white text-xs bg-red-500 px-2 py-1 rounded">Xóa ảnh</button>
+                          <button onClick={(e) => { e.stopPropagation(); update('image', ''); fileInputRef.current.value = ''; }} className="text-white text-xs bg-red-500 px-2 py-1 rounded">Xóa ảnh</button>
                         </div>
                       </>
                     ) : (
@@ -316,6 +335,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                       </>
                     )}
                   </div>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                   <p className="text-[11px] text-gray-500 text-center mb-3">Mỗi ảnh không quá 2 MB</p>
                   
                   {/* Thumbnails mockup */}
