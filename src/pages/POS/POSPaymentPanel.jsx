@@ -13,7 +13,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const [paidAmountStr, setPaidAmountStr] = useState('');
   const [salesChannel, setSalesChannel] = useState('Bán trực tiếp');
   
-  if (!currentInvoice?.isPaymentMode && !forceShow) return null;
+  if (!currentInvoice?.isPaymentMode && !forceShow && saleMode !== 'fast') return null;
 
   const cart = currentInvoice?.cart || [];
   const customer = currentInvoice?.customer;
@@ -228,6 +228,18 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
   return (
     <div className="pos-payment-panel">
+      {/* Back button for non-fast modes */}
+      {saleMode !== 'fast' && (
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--pos-border-light)', backgroundColor: '#fff' }}>
+          <button 
+            onClick={() => togglePaymentMode(false)}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', background: 'none', border: 'none', color: 'var(--pos-primary)', cursor: 'pointer', fontWeight: '500', fontSize: '14px', padding: 0 }}
+          >
+            <ChevronLeft size={18} /> Quay lại
+          </button>
+        </div>
+      )}
+      
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--pos-border-light)', backgroundColor: '#f8f9fa' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <User size={16} className="text-gray-500" />
