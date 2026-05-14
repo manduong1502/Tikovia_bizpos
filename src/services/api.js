@@ -55,6 +55,10 @@ export const categoryAPI = {
   getAll: () => api.get('/categories').then(r => r.data),
   create: (data) => api.post('/categories', data).then(r => r.data),
 };
+export const brandAPI = {
+  getAll: () => api.get('/brands').then(r => r.data),
+  create: (data) => api.post('/brands', data).then(r => r.data),
+};
 
 // ─── Orders ───
 // Normalize Prisma camelCase → snake_case keys that OrdersPage uses
