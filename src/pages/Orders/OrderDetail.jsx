@@ -44,8 +44,78 @@ export default function OrderDetail({ order, onReload, onClose }) {
   };
 
   const handlePrint = () => {
-    const rows = items.map(it => `<tr><td>${it.product_name}</td><td style="text-align:right">${it.quantity}</td><td style="text-align:right">${fmt(it.unit_price)}</td><td style="text-align:right">${fmt(it.total)}</td></tr>`).join('');
-    printHTML(`<h2>HÓA ĐƠN ${o.order_code}</h2><table><thead><tr><th>Tên hàng</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;font-weight:bold;margin-top:10px">Tổng: ${fmt(o.total)}</div>`, `Hóa đơn ${o.order_code}`);
+    const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+    const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
+    const customerName = o.customer_name || 'Người mua không cung cấp thông tin';
+
+    const invoiceHTML = `
+      <style>
+        .inv-wrap { width: 100%; max-width: 800px; margin: 0 auto; font-family: 'Inter', Arial, sans-serif; color: #000; line-height: 1.5; padding: 20px; box-sizing: border-box; }
+        .inv-company { font-size: 16px; margin: 8px 0; text-transform: uppercase; }
+        .inv-info { font-size: 13px; margin: 3px 0; }
+        .inv-header-text { font-size: 18px; font-weight: bold; text-decoration: underline; margin: 0; }
+        .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+        .inv-table th, .inv-table td { padding: 8px 6px; border: 1px solid #000; }
+        .inv-totals { width: 320px; border-collapse: collapse; font-size: 13px; margin-left: auto; }
+        .inv-totals td { padding: 4px 0; text-align: right; }
+        .inv-totals td:first-child { padding-right: 10px; }
+        @media print and (max-width: 140mm) {
+          .inv-wrap { padding: 0; }
+          .inv-company { font-size: 13px; }
+          .inv-info { font-size: 11px; }
+          .inv-header-text { font-size: 15px; }
+          .inv-table { font-size: 11px; }
+          .inv-table th, .inv-table td { padding: 4px 2px; }
+          .inv-totals { width: 100%; font-size: 11px; }
+          .hide-on-narrow { display: none !important; }
+        }
+      </style>
+      <div class="inv-wrap">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="margin-bottom: 10px;">
+            <img src="${window.location.origin}/logovuong.png" alt="TIKOVIA" style="height: 60px; object-fit: contain; margin-bottom: 5px;" />
+          </div>
+          <h2 class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
+          <p class="inv-info">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, P.Hòa Xuân, TP.Đà Nẵng, Việt Nam</p>
+          <p class="inv-info">Điện Thoại : 0796.637.194</p>
+          <p class="inv-info">Chủ TK : <strong>CÔNG TY TNHH TM VÀ DV TIKOVIA</strong></p>
+          <p class="inv-info">Số TK : <strong>8282688686 ( MB BANK )</strong></p>
+        </div>
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h3 class="inv-header-text">HÓA ĐƠN BÁN HÀNG</h3>
+          <p class="inv-info" style="font-weight: 500;">${o.order_code} - ${dateStr}</p>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <p class="inv-info">Khách hàng: ${customerName}</p>
+        </div>
+        <table class="inv-table">
+          <thead><tr>
+            <th style="text-align:left;font-weight:bold">Mặt hàng</th>
+            <th style="text-align:center;font-weight:bold">SL</th>
+            <th class="hide-on-narrow" style="text-align:center;font-weight:bold">ĐVT</th>
+            <th style="text-align:right;font-weight:bold">Giá</th>
+            <th style="text-align:right;font-weight:bold">T.Tiền</th>
+          </tr></thead>
+          <tbody>
+            ${items.map(it => {
+              const price = Number(it.unit_price || 0) - Number(it.discount || 0);
+              const total = Number(it.total || price * it.quantity);
+              return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:center">' + it.quantity + '</td><td class="hide-on-narrow" style="text-align:center">Cái</td><td style="text-align:right">' + f(price) + '</td><td style="text-align:right">' + f(total) + '</td></tr>';
+            }).join('')}
+          </tbody>
+        </table>
+        <div style="margin-bottom: 30px;">
+          <table class="inv-totals"><tbody>
+            <tr><td>Tổng đơn hàng:</td><td>${f(o.total)}</td></tr>
+            <tr><td>Khách đã trả:</td><td>${f(o.paid_amount)}</td></tr>
+            <tr><td style="padding-top:10px;font-weight:bold">Chữ ký Khách Hàng :</td><td></td></tr>
+            <tr><td style="font-weight:bold">Ghi chú :</td><td style="font-style:italic;color:#444">${o.note || ''}</td></tr>
+          </tbody></table>
+        </div>
+        <div style="text-align:center;margin-top:30px;font-style:italic" class="inv-info"><p>Cảm ơn và hẹn gặp lại!</p></div>
+      </div>
+    `;
+    printHTML(invoiceHTML, 'In Hóa Đơn');
   };
 
   return (
