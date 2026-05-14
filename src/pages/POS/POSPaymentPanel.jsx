@@ -61,16 +61,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
     try {
       const orderData = {
-        customerId: customer?.id || null,
+        customerId: customer?.id ? Number(customer.id) : null,
         items: cart.map(i => ({
-          productId: i.product.id,
-          quantity: i.quantity,
-          price: i.price,
-          discount: i.discount || 0
+          productId: Number(i.product.id),
+          quantity: Number(i.quantity),
+          price: Number(i.price),
+          discount: Number(i.discount || 0)
         })),
         paymentMethod: 'CASH',
-        discount: discountAmount || 0,
-        paid: isDebt ? paidAmount : total,
+        discount: Number(discountAmount || 0),
+        paid: Number(isDebt ? paidAmount : total),
         note: currentInvoice.note || null
       };
 
