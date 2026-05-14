@@ -117,8 +117,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 20px;">
             <div style="margin-bottom: 10px;">
-              <h1 class="inv-title">TIKOVIA</h1>
-              <div class="inv-sub">CÔNG TY TNHH TM&DV</div>
+              <img src="${window.location.origin}/logovuong.png" alt="TIKOVIA" style="height: 60px; object-fit: contain; margin-bottom: 5px;" />
             </div>
             <h2 class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
             <p class="inv-info">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, P.Hòa Xuân, TP.Đà Nẵng, Việt Nam</p>
