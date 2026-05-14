@@ -68,9 +68,9 @@ export default function OrdersPage() {
   const filtered = orders;
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
-  const sumTotal = filtered.reduce((s, o) => s + (o.total || 0), 0);
-  const sumDiscount = filtered.reduce((s, o) => s + (o.discount_amount || 0), 0);
-  const sumPaid = filtered.reduce((s, o) => s + (o.paid_amount || 0), 0);
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
 
   const loadDetail = async (id) => {
     try {

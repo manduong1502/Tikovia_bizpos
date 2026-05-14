@@ -67,8 +67,10 @@ function normalizeOrder(o) {
     customer_name: o.customer_name || o.customer?.name || null,
     customer_code: o.customer_code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
     user_name: o.user_name || o.user?.fullName || null,
-    discount_amount: o.discount_amount ?? o.discount ?? 0,
-    paid_amount: o.paid_amount ?? o.paid ?? 0,
+    total: Number(o.total || 0),
+    subtotal: Number(o.subtotal || o.total || 0),
+    discount_amount: Number(o.discount_amount ?? o.discount ?? 0),
+    paid_amount: Number(o.paid_amount ?? o.paid ?? 0),
     payment_method: o.payment_method || (o.paymentMethod || '').toLowerCase(),
     payment_status: o.payment_status || (o.status === 'COMPLETED' ? 'completed' : o.status?.toLowerCase()),
     status: o.status?.toLowerCase?.() || o.status,
@@ -83,8 +85,10 @@ function normalizeOrderDetail(o) {
       ...it,
       product_sku: it.product_sku || it.product?.sku || '',
       product_name: it.product_name || it.product?.name || '',
-      unit_price: it.unit_price ?? it.price ?? 0,
-      total: it.total ?? ((it.price || 0) * (it.quantity || 0) - (it.discount || 0)),
+      quantity: Number(it.quantity || 0),
+      unit_price: Number(it.unit_price ?? it.price ?? 0),
+      discount: Number(it.discount || 0),
+      total: Number(it.total ?? ((it.price || 0) * (it.quantity || 0) - (it.discount || 0))),
     }));
   }
   return base;
