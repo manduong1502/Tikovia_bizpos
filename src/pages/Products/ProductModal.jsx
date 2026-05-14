@@ -4,8 +4,8 @@ import Button from '../../components/ui/Button';
 import { productAPI, categoryAPI, brandAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Save, X, ImagePlus, ChevronDown, ChevronUp, Info } from 'lucide-react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { useRef } from 'react';
 
 const Accordion = ({ title, description, children, defaultOpen = true }) => {
