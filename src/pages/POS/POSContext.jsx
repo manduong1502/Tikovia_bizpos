@@ -22,7 +22,7 @@ export function POSProvider({ children }) {
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const [nextTabId, setNextTabId] = useState(2);
-  const [saleMode, setSaleMode] = useState('normal'); // 'fast', 'normal', 'delivery'
+  const [saleMode, setSaleMode] = useState('fast'); // 'fast', 'normal', 'delivery'
 
   const currentInvoice = invoices.find(inv => inv.id === activeTabId);
 
@@ -161,19 +161,17 @@ export function POSProvider({ children }) {
     const item = currentInvoice.cart.find(i => i.product.id === productId);
     if (!item) return;
 
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
+    let val = newQuantity;
+    const num = parseFloat(val);
 
-    if (newQuantity > item.product.stock) {
+    if (!isNaN(num) && num > item.product.stock) {
       toast.error('Vượt quá số lượng tồn kho!');
-      return;
+      val = item.product.stock;
     }
 
     updateCurrentInvoice({
       cart: currentInvoice.cart.map(i => 
-        i.product.id === productId ? { ...i, quantity: newQuantity } : i
+        i.product.id === productId ? { ...i, quantity: val } : i
       )
     });
   };

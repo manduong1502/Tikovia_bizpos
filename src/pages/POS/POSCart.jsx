@@ -8,10 +8,7 @@ export default function POSCart() {
   const cart = currentInvoice?.cart || [];
 
   const handleQtyChange = (productId, e) => {
-    const val = parseFloat(e.target.value);
-    if (!isNaN(val)) {
-      updateCartItemQuantity(productId, val);
-    }
+    // handled inline now
   };
 
   return (
@@ -21,8 +18,8 @@ export default function POSCart() {
           <div className="pos-cart-empty">Chưa có sản phẩm trong đơn hàng</div>
         ) : (
           cart.map((item, idx) => {
-            const finalPrice = item.price - item.discount;
-            const total = finalPrice * item.quantity;
+            const qty = parseFloat(item.quantity) || 0;
+            const total = finalPrice * qty;
             
             return (
               <div key={item.product.id} className="pos-cart-item">
@@ -41,13 +38,16 @@ export default function POSCart() {
                   
                   <span className="pos-cart-item-name">
                     {item.product.name}
+                    <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px', fontWeight: 'normal' }}>
+                      (Tồn: {item.product.stock || 0})
+                    </span>
                   </span>
                   
                   <div className="pos-cart-item-actions">
                     <div className="pos-qty-control">
                       <button 
                         className="pos-qty-btn"
-                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, -1); }}
+                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, (parseFloat(item.quantity) || 0) - 1); }}
                       >
                         −
                       </button>
@@ -57,16 +57,20 @@ export default function POSCart() {
                         value={item.quantity}
                         onClick={(e) => { e.stopPropagation(); e.target.select(); }}
                         onChange={(e) => {
+                          updateCartItemQuantity(item.product.id, e.target.value);
+                        }}
+                        onBlur={(e) => {
                           const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) {
-                            const diff = val - item.quantity;
-                            updateCartItemQuantity(item.product.id, diff);
+                          if (isNaN(val) || val <= 0) {
+                            updateCartItemQuantity(item.product.id, 1);
+                          } else {
+                            updateCartItemQuantity(item.product.id, val);
                           }
                         }}
                       />
                       <button 
                         className="pos-qty-btn"
-                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, 1); }}
+                        onClick={(e) => { e.stopPropagation(); updateCartItemQuantity(item.product.id, (parseFloat(item.quantity) || 0) + 1); }}
                       >
                         +
                       </button>
@@ -92,13 +96,13 @@ export default function POSCart() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px', marginBottom: '8px' }}>
             <span style={{ fontSize: '13px', color: '#666' }}>Giảm giá</span>
             <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>
-              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.discount * i.quantity, 0) + Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + i.discount * (parseFloat(i.quantity) || 0), 0) + Math.round(cart.reduce((s, i) => s + i.price * (parseFloat(i.quantity) || 0), 0) * (currentInvoice?.discount || 0) / 100))}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <span style={{ fontSize: '14px', fontWeight: '700', color: '#333' }}>Khách cần trả</span>
             <span style={{ fontSize: '18px', fontWeight: '700', color: '#1a73e8' }}>
-              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0) - Math.round(cart.reduce((s, i) => s + i.price * i.quantity, 0) * (currentInvoice?.discount || 0) / 100))}
+              {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * (parseFloat(i.quantity) || 0), 0) - Math.round(cart.reduce((s, i) => s + i.price * (parseFloat(i.quantity) || 0), 0) * (currentInvoice?.discount || 0) / 100))}
             </span>
           </div>
         </div>
@@ -116,9 +120,9 @@ export default function POSCart() {
         </div>
         <div className="pos-total-summary">
           <span>Tổng tiền hàng</span>
-          <span id="pos-item-count">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
+          <span id="pos-item-count">{cart.reduce((s, i) => s + (parseFloat(i.quantity) || 0), 0)}</span>
           <span className="pos-total-amount" id="pos-total-display">
-            {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0))}
+            {new Intl.NumberFormat('vi-VN').format(cart.reduce((s, i) => s + (i.price - i.discount) * (parseFloat(i.quantity) || 0), 0))}
           </span>
         </div>
       </div>
