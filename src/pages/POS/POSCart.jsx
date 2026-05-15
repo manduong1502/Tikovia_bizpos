@@ -18,6 +18,7 @@ export default function POSCart() {
           <div className="pos-cart-empty">Chưa có sản phẩm trong đơn hàng</div>
         ) : (
           cart.map((item, idx) => {
+            const finalPrice = item.price - item.discount;
             const qty = parseFloat(item.quantity) || 0;
             const total = finalPrice * qty;
             
