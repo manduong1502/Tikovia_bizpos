@@ -3,15 +3,46 @@ import { productAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import Dropdown from '../../components/ui/Dropdown';
+import { exportProducts } from '../../utils/exportCSV';
+import toast from 'react-hot-toast';
 import { Search, Plus, Download, Upload, X, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+
+const STOCK_OPTIONS = [
+  { value: '', label: 'Tất cả' },
+  { value: 'under', label: 'Dưới định mức tồn' },
+  { value: 'over', label: 'Vượt định mức tồn' },
+  { value: 'in', label: 'Còn hàng trong kho' },
+  { value: 'out', label: 'Hết hàng trong kho' },
+];
+
+const PRICE_COND_OPTIONS = [
+  { value: '', label: 'Chọn điều kiện' },
+  { value: '<', label: 'Nhỏ hơn' },
+  { value: '<=', label: 'Nhỏ hơn hoặc bằng' },
+  { value: '=', label: 'Bằng' },
+  { value: '>', label: 'Lớn hơn' },
+];
+
+const PRICE_COMPARE_OPTIONS = [
+  { value: '', label: 'Chọn giá so sánh' },
+  { value: 'costPrice', label: 'Giá vốn' },
+  { value: 'lastImport', label: 'Giá nhập cuối' },
+];
 
 export default function PriceBooksPage() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('info'); // info | scope
+  const [activeTab, setActiveTab] = useState('info');
   
-  // Modal collapsible sections
+  const [filters, setFilters] = useState({
+    category: '',
+    stock: '',
+    priceCond: '',
+    priceComp: ''
+  });
+
   const [expandedSections, setExpandedSections] = useState({
     date: true,
     formula: true,
@@ -24,9 +55,33 @@ export default function PriceBooksPage() {
     productAPI.getAll().then(res => setProducts(Array.isArray(res) ? res : [])).catch(() => {});
   }, []);
 
-  const filteredProducts = products.filter(p => 
-    !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.sku || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.sku || '').toLowerCase().includes(search.toLowerCase())) return false;
+    
+    if (filters.stock === 'in' && p.stock <= 0) return false;
+    if (filters.stock === 'out' && p.stock > 0) return false;
+    if (filters.stock === 'under' && p.stock >= 10) return false; // Giả sử định mức là 10
+    if (filters.stock === 'over' && p.stock <= 10) return false;
+
+    if (filters.priceCond && filters.priceComp) {
+      const sell = p.sellPrice || 0;
+      const comp = filters.priceComp === 'costPrice' ? (p.costPrice || 0) : 0; // lastImport mock is 0
+      if (filters.priceCond === '<' && !(sell < comp)) return false;
+      if (filters.priceCond === '<=' && !(sell <= comp)) return false;
+      if (filters.priceCond === '=' && !(sell === comp)) return false;
+      if (filters.priceCond === '>' && !(sell > comp)) return false;
+    }
+
+    return true;
+  });
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx';
+    input.onchange = () => toast.success(`Đã chọn file: ${input.files[0]?.name}. Tính năng import đang phát triển.`);
+    input.click();
+  };
 
   return (
     <div className="flex flex-col gap-4 animate-page-in h-full">
@@ -43,55 +98,51 @@ export default function PriceBooksPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">Bảng giá</Button>
-          <Button icon={<Upload size={16} />} className="bg-white border-gray-300">Import</Button>
-          <Button icon={<Download size={16} />} className="bg-white border-gray-300">Xuất file</Button>
+          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 shadow-sm">Bảng giá</Button>
+          <Button icon={<Upload size={16} />} onClick={handleImport} className="bg-white border-gray-300 shadow-sm">Import</Button>
+          <Button icon={<Download size={16} />} onClick={() => exportProducts(filteredProducts)} className="bg-white border-gray-300 shadow-sm">Xuất file</Button>
           <div className="h-8 w-px bg-gray-200 mx-1"></div>
           <button className="p-2 border border-gray-300 rounded hover:bg-gray-50 text-gray-600 bg-white"><HelpCircle size={16} /></button>
         </div>
       </div>
 
       <div className="flex gap-5 items-start">
-        {/* Sidebar */}
-        <div className="w-[240px] shrink-0 flex flex-col gap-5">
-          {/* Bảng giá */}
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-[13px] text-gray-800">Bảng giá</span>
-              <button onClick={() => setModalOpen(true)} className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded text-[13px] cursor-pointer">
-                Bảng giá chung
-                <button className="hover:bg-blue-700 p-0.5 rounded transition-colors"><X size={12} /></button>
-              </div>
-            </div>
-          </div>
-
+        {/* Sidebar Filter */}
+        <div className="w-[240px] shrink-0 flex flex-col gap-4">
           {/* Nhóm hàng */}
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="font-semibold text-[13px] text-gray-800 mb-3">Nhóm hàng</div>
-            <input type="text" placeholder="Chọn nhóm hàng" className="w-full border border-gray-300 rounded px-3 py-2 text-[13px] outline-none focus:border-blue-500" />
+          <div>
+            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Nhóm hàng</span>
+            <input 
+              type="text" 
+              placeholder="Chọn nhóm hàng" 
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" 
+            />
           </div>
 
           {/* Tồn kho */}
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="font-semibold text-[13px] text-gray-800 mb-3">Tồn kho</div>
-            <select className="w-full border border-gray-300 rounded px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-white">
-              <option>Tất cả</option>
-            </select>
+          <div>
+            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Tồn kho</span>
+            <Dropdown
+              value={filters.stock}
+              options={STOCK_OPTIONS}
+              onChange={(v) => setFilters(prev => ({ ...prev, stock: v }))}
+            />
           </div>
 
           {/* Giá bán */}
-          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-            <div className="font-semibold text-[13px] text-gray-800 mb-3">Giá bán</div>
+          <div>
+            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Giá bán</span>
             <div className="flex flex-col gap-2">
-              <select className="w-full border border-gray-300 rounded px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-white">
-                <option>Chọn điều kiện</option>
-              </select>
-              <select className="w-full border border-gray-300 rounded px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-white">
-                <option>Chọn giá so sánh</option>
-              </select>
+              <Dropdown
+                value={filters.priceCond}
+                options={PRICE_COND_OPTIONS}
+                onChange={(v) => setFilters(prev => ({ ...prev, priceCond: v }))}
+              />
+              <Dropdown
+                value={filters.priceComp}
+                options={PRICE_COMPARE_OPTIONS}
+                onChange={(v) => setFilters(prev => ({ ...prev, priceComp: v }))}
+              />
             </div>
           </div>
         </div>
@@ -108,8 +159,8 @@ export default function PriceBooksPage() {
                 <th className="py-3 px-4 font-semibold text-gray-700 text-right w-[140px]">Bảng giá chung</th>
               </tr>
               <tr className="bg-white border-b border-gray-200">
-                <th className="py-2 px-4"><input type="text" placeholder="Tìm mã hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" /></th>
-                <th className="py-2 px-4"><input type="text" placeholder="Tìm tên hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" /></th>
+                <th className="py-2 px-4"><input type="text" placeholder="Tìm mã hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" value={search} onChange={e => setSearch(e.target.value)} /></th>
+                <th className="py-2 px-4"><input type="text" placeholder="Tìm tên hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" value={search} onChange={e => setSearch(e.target.value)} /></th>
                 <th className="py-2 px-4"></th>
                 <th className="py-2 px-4"></th>
                 <th className="py-2 px-4 text-right"></th>
