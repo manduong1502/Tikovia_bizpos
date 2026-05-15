@@ -54,6 +54,8 @@ export const productAPI = {
 export const categoryAPI = {
   getAll: () => api.get('/categories').then(r => r.data),
   create: (data) => api.post('/categories', data).then(r => r.data),
+  update: (id, data) => api.put(`/categories/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/categories/${id}`).then(r => r.data),
 };
 export const brandAPI = {
   getAll: () => api.get('/brands').then(r => r.data),
