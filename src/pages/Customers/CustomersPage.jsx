@@ -32,8 +32,8 @@ export default function CustomersPage() {
 
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
-  const totalDebt = filtered.reduce((s, c) => s + (c.debt || 0), 0);
-  const totalSales = filtered.reduce((s, c) => s + (c.total_spent || 0), 0);
+  const totalDebt = filtered.reduce((s, c) => s + Number(c.totalDebt || 0), 0);
+  const totalSales = filtered.reduce((s, c) => s + Number(c.totalSpent || 0), 0);
 
   const loadDetail = async (id) => {
     try {
@@ -58,7 +58,7 @@ export default function CustomersPage() {
         <h1 className="text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Khách hàng</h1>
         <div className="flex items-center gap-3">
           <Button variant="primary" icon={<Plus size={16} />} onClick={() => { setEditCustomer(null); setModalOpen(true); }} className="shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-blue-600 border-none">Khách hàng</Button>
-          <Button icon={<Download size={16} />} className="shadow-sm" onClick={() => { exportCSV([{key:'code',label:'Mã KH'},{key:'name',label:'Tên'},{key:'phone',label:'ĐT'},{key:'email',label:'Email'},{key:'address',label:'Địa chỉ'},{key:'debt',label:'Nợ'},{key:'total_spent',label:'Tổng mua'}], filtered, 'khach_hang'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
+          <Button icon={<Download size={16} />} className="shadow-sm" onClick={() => { exportCSV([{key:'code',label:'Mã KH'},{key:'name',label:'Tên'},{key:'phone',label:'ĐT'},{key:'email',label:'Email'},{key:'address',label:'Địa chỉ'},{key:'totalDebt',label:'Nợ'},{key:'totalSpent',label:'Tổng mua'}], filtered, 'khach_hang'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
         </div>
       </div>
 
@@ -149,9 +149,9 @@ export default function CustomersPage() {
                         <td className="px-4 py-3.5 font-bold text-primary">{code}</td>
                         <td className="px-4 py-3.5 font-medium text-gray-800">{c.name}</td>
                         <td className="px-4 py-3.5 text-gray-600 font-medium">{c.phone || ''}</td>
-                        <td className="px-4 py-3.5 text-right font-medium text-gray-700">{fmt(c.debt || 0)}</td>
-                        <td className="px-4 py-3.5 text-right font-bold text-gray-800">{fmt(c.total_spent || 0)}</td>
-                        <td className="px-4 py-3.5 text-right font-medium text-gray-700">{fmt(c.total_spent || 0)}</td>
+                        <td className="px-4 py-3.5 text-right font-medium text-gray-700">{fmt(c.totalDebt || 0)}</td>
+                        <td className="px-4 py-3.5 text-right font-bold text-gray-800">{fmt(c.totalSpent || 0)}</td>
+                        <td className="px-4 py-3.5 text-right font-medium text-gray-700">{fmt(c.totalSpent || 0)}</td>
                       </tr>
                       {isExp && (
                         <tr><td colSpan={7} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-inner" onClick={e => e.stopPropagation()}>
@@ -209,7 +209,7 @@ export default function CustomersPage() {
                             <div className="p-8">
                               <div className="text-center py-10 bg-gray-50/50 rounded-xl border border-gray-100">
                                 <div className="text-[15px] font-medium text-gray-600 mb-2">Nợ hiện tại</div>
-                                <div className={`text-3xl font-bold tracking-tight ${c.debt > 0 ? 'text-red-600' : 'text-gray-400'}`}>{c.debt > 0 ? fmt(c.debt) : 'Không có nợ'}</div>
+                                <div className={`text-3xl font-bold tracking-tight ${c.totalDebt > 0 ? 'text-red-600' : 'text-gray-400'}`}>{c.totalDebt > 0 ? fmt(c.totalDebt) : 'Không có nợ'}</div>
                               </div>
                             </div>
                           )}

@@ -400,14 +400,26 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
             <div style={{ padding: '4px 0' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
-                <input type="radio" name="pay-change-mode" value="change" defaultChecked />
+                <input 
+                  type="radio" 
+                  name="pay-change-mode" 
+                  value="change" 
+                  checked={paidAmount >= total}
+                  onChange={() => setPaidAmountStr(total.toString())} 
+                />
                 <span>Tiền thừa trả khách</span>
                 <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
                   {changeAmount >= 0 ? new Intl.NumberFormat('vi-VN').format(changeAmount) : 0}
                 </span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
-                <input type="radio" name="pay-change-mode" value="debt" />
+                <input 
+                  type="radio" 
+                  name="pay-change-mode" 
+                  value="debt" 
+                  checked={paidAmount < total}
+                  onChange={() => setPaidAmountStr('0')} 
+                />
                 <span>Tính vào công nợ</span>
                 <span style={{ marginLeft: 'auto', fontWeight: '600', color: '#e53935' }}>
                   {changeAmount < 0 ? new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount)) : 0}
