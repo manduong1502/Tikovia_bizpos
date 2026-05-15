@@ -83,6 +83,21 @@ export default function PriceBooksPage() {
     input.click();
   };
 
+  const handlePriceChange = async (id, newPriceStr) => {
+    const num = Number(newPriceStr.replace(/[^0-9.-]+/g, ""));
+    if (isNaN(num)) return;
+    
+    try {
+      if (productAPI.update) {
+        await productAPI.update(id, { sell_price: num });
+      }
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, sellPrice: num, sell_price: num } : p));
+      toast.success('Cập nhật giá thành công');
+    } catch (e) {
+      toast.error('Lỗi khi cập nhật giá');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 animate-page-in h-full">
       {/* Header */}
@@ -177,7 +192,13 @@ export default function PriceBooksPage() {
                     <input 
                       type="text" 
                       className="w-[100px] border border-gray-300 rounded px-2 py-1.5 text-right text-[13px] focus:border-blue-500 outline-none float-right"
-                      defaultValue={new Intl.NumberFormat('vi-VN').format(p.sellPrice || 0)} 
+                      defaultValue={new Intl.NumberFormat('vi-VN').format(p.sellPrice || p.sell_price || 0)} 
+                      onBlur={(e) => {
+                        const newVal = e.target.value;
+                        if (newVal !== new Intl.NumberFormat('vi-VN').format(p.sellPrice || p.sell_price || 0)) {
+                          handlePriceChange(p.id, newVal);
+                        }
+                      }}
                     />
                   </td>
                 </tr>

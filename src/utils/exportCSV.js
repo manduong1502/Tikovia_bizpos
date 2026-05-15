@@ -1,35 +1,23 @@
+import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 
 /**
- * Export data to CSV and download
+ * Export data to XLSX and download
  * @param {string} filename - Filename without extension
  * @param {string[]} headers - Column headers
  * @param {any[][]} rows - Row data arrays
  */
 export function exportCSV(filename, headers, rows) {
-  const BOM = '\uFEFF'; // UTF-8 BOM for Excel compatibility
-  const csv = BOM + [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => {
-      const val = String(cell ?? '');
-      return val.includes(',') || val.includes('"') || val.includes('\n')
-        ? `"${val.replace(/"/g, '""')}"` : val;
-    }).join(','))
-  ].join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filename}_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.csv`;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  // Delay cleanup so browser can finish the download
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 200);
+  // Create a worksheet from the data array (prepend headers)
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  
+  // Create a new workbook and append the worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  
+  // Generate XLSX file and trigger download
+  XLSX.writeFile(workbook, `${filename}_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}.xlsx`);
+  
   toast.success('Xuất file thành công');
 }
 
@@ -37,7 +25,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export function exportProducts(products) {
   exportCSV('hang_hoa', ['Mã hàng', 'Tên hàng', 'Nhóm hàng', 'Giá bán', 'Giá vốn', 'Tồn kho', 'Thương hiệu'],
-    products.map(p => [p.sku || '', p.name, p.category_name || '', p.sell_price || 0, p.cost_price || 0, p.stock_quantity || 0, p.brand || ''])
+    products.map(p => [p.sku || '', p.name, p.category_name || '', p.sellPrice || p.sell_price || 0, p.costPrice || p.cost_price || 0, p.stock || p.stock_quantity || 0, p.brand || ''])
   );
 }
 
