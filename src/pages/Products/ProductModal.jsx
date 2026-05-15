@@ -45,7 +45,25 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
 
   useEffect(() => {
     if (open) {
-      categoryAPI.getAll().then(c => setCategories(Array.isArray(c) ? c : [])).catch(() => {});
+      categoryAPI.getAll().then(res => {
+        let cats = [];
+        if (res && res.roots) {
+          const flatten = (list, prefix = '') => {
+            let res = [];
+            for (let c of list) {
+              res.push({ ...c, name: prefix + c.name });
+              if (c.children && c.children.length > 0) {
+                res = res.concat(flatten(c.children, prefix + '— '));
+              }
+            }
+            return res;
+          };
+          cats = flatten(res.roots);
+        } else if (Array.isArray(res)) {
+          cats = res;
+        }
+        setCategories(cats);
+      }).catch(() => {});
       brandAPI.getAll().then(b => setBrands(Array.isArray(b) ? b : [])).catch(() => {});
     }
   }, [open]);

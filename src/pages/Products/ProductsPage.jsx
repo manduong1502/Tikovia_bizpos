@@ -50,7 +50,25 @@ export default function ProductsPage() {
         supplierAPI.getAll().catch(() => []),
       ]);
       setProducts(Array.isArray(p) ? p : []);
-      setCategories(Array.isArray(c) ? c : []);
+      
+      let cats = [];
+      if (c && c.roots) {
+        const flatten = (list, prefix = '') => {
+          let res = [];
+          for (let item of list) {
+            res.push({ ...item, name: prefix + item.name });
+            if (item.children && item.children.length > 0) {
+              res = res.concat(flatten(item.children, prefix + '— '));
+            }
+          }
+          return res;
+        };
+        cats = flatten(c.roots);
+      } else if (Array.isArray(c)) {
+        cats = c;
+      }
+      setCategories(cats);
+      
       setSuppliers(Array.isArray(s) ? s : []);
     } catch (e) { console.error(e); }
   }, []);
@@ -197,7 +215,11 @@ export default function ProductsPage() {
             )}
             {detailTab === 'desc' && (
               <div className="py-4 text-sm text-gray-600 leading-relaxed">
-                {p.description || <em className="text-gray-400">Chưa có mô tả</em>}
+                {p.description ? (
+                  <div dangerouslySetInnerHTML={{ __html: p.description }} />
+                ) : (
+                  <em className="text-gray-400">Chưa có mô tả</em>
+                )}
               </div>
             )}
             {detailTab === 'stock_card' && (

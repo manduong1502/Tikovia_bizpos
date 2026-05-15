@@ -20,6 +20,7 @@ const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrders/PurchaseOrd
 const CategoriesPage = lazy(() => import('./pages/Categories/CategoriesPage'));
 const POSPage = lazy(() => import('./pages/POS/POSPage'));
 const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage'));
+const PriceBooksPage = lazy(() => import('./pages/PriceBooks/PriceBooksPage'));
 
 function PageLoader() {
   return (
@@ -96,7 +97,7 @@ function App() {
           <Route path="/dashboard" element={<Suspense fallback={<DashboardSkeleton />}><DashboardPage /></Suspense>} />
           <Route path="/products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
           <Route path="/categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
-          <Route path="/pricebook" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Thiết lập giá" icon="💰" /></Suspense>} />
+          <Route path="/pricebook" element={<Suspense fallback={<PageLoader />}><PriceBooksPage /></Suspense>} />
           
           <Route path="/suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
           <Route path="/purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
