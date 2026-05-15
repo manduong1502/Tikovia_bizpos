@@ -19,62 +19,41 @@ export default function Navbar() {
 
         <div className={`${navItemBase} ${['/products', '/pricebook', '/categories'].includes(page) ? navItemActive : ''}`}>
           Hàng hóa
-          <div className={`${dropdownBase}`}>
-            <div className="w-[180px] border-r border-gray-100">
-              <div className={dropdownHeading}>Hàng hóa</div>
-              <Link className={dropdownItem} to="/products">Danh sách hàng hóa</Link>
-              <Link className={dropdownItem} to="/pricebook">Thiết lập giá</Link>
-            </div>
-            <div className="w-[180px]">
-              <div className={dropdownHeading}>Kho hàng</div>
-              <Link className={dropdownItem} to="/categories">Nhóm hàng</Link>
-              <Link className={dropdownItem} to="/inventory-check">Kiểm kho</Link>
-              <Link className={dropdownItem} to="/stock-transfer">Chuyển kho</Link>
-            </div>
+          <div className={`${dropdownBase} flex-col !min-w-[160px] py-1`}>
+            <Link className={dropdownItem} to="/products">Danh sách hàng hóa</Link>
+            <Link className={dropdownItem} to="/pricebook">Thiết lập giá</Link>
+            <Link className={dropdownItem} to="/categories">Nhóm hàng</Link>
           </div>
         </div>
 
-        <div className={`${navItemBase} ${['/suppliers', '/purchase-orders'].includes(page) ? navItemActive : ''}`}>
+        <div className={`${navItemBase} ${['/suppliers', '/purchase-orders', '/purchase-returns'].includes(page) ? navItemActive : ''}`}>
           Mua hàng
-          <div className={`${dropdownBase}`}>
-            <div className="w-[180px] border-r border-gray-100">
-              <div className={dropdownHeading}>Nhà cung cấp</div>
-              <Link className={dropdownItem} to="/suppliers">Nhà cung cấp</Link>
-            </div>
-            <div className="w-[180px]">
-              <div className={dropdownHeading}>Mua hàng</div>
-              <Link className={dropdownItem} to="/purchase-orders">Nhập hàng</Link>
-            </div>
+          <div className={`${dropdownBase} flex-col !min-w-[160px] py-1`}>
+            <Link className={dropdownItem} to="/purchase-orders">Nhập hàng</Link>
+            <Link className={dropdownItem} to="/purchase-returns">Trả hàng nhập</Link>
+            <Link className={dropdownItem} to="/suppliers">Nhà cung cấp</Link>
           </div>
         </div>
 
-        <div className={`${navItemBase} ${['/orders', '/returns'].includes(page) ? navItemActive : ''}`}>
-          Đơn hàng
-          <div className={`${dropdownBase} flex-col !min-w-[160px]`}>
-            <Link className={dropdownItem} to="/orders">Hóa đơn</Link>
-            <Link className={dropdownItem} to="/returns">Trả hàng</Link>
-          </div>
-        </div>
+        <Link className={`${navItemBase} ${page === '/invoices' ? navItemActive : ''}`} to="/invoices">Hóa đơn</Link>
 
         <Link className={`${navItemBase} ${page === '/customers' ? navItemActive : ''}`} to="/customers">Khách hàng</Link>
-        <Link className={`${navItemBase} ${page === '/employees' ? navItemActive : ''}`} to="/employees">Nhân viên</Link>
         <Link className={`${navItemBase} ${page === '/cashbook' ? navItemActive : ''}`} to="/cashbook">Sổ quỹ</Link>
 
-        <div className={`${navItemBase} ${page === '/reports' ? navItemActive : ''}`}>
+        <div className={`${navItemBase} ${page.startsWith('/reports') ? navItemActive : ''}`}>
           Báo cáo
           <div className={`${dropdownBase}`}>
-            <div className="w-[180px] border-r border-gray-100">
-              <div className={dropdownHeading}>Báo cáo</div>
-              <Link className={dropdownItem} to="/reports">Cuối ngày</Link>
-              <Link className={dropdownItem} to="/reports">Bán hàng</Link>
-              <Link className={dropdownItem} to="/reports">Hàng hóa</Link>
-              <Link className={dropdownItem} to="/reports">Khách hàng</Link>
+            <div className="w-[180px] border-r border-gray-100 py-1">
+              <div className={dropdownHeading}>BÁO CÁO</div>
+              <Link className={dropdownItem} to="/reports/end-of-day">Cuối ngày</Link>
+              <Link className={dropdownItem} to="/reports/sales">Bán hàng</Link>
+              <Link className={dropdownItem} to="/reports/products">Hàng hóa</Link>
+              <Link className={dropdownItem} to="/reports/customers">Khách hàng</Link>
             </div>
-            <div className="w-[180px]">
+            <div className="w-[180px] py-1">
               <div className={dropdownHeading}>&nbsp;</div>
-              <Link className={dropdownItem} to="/reports">Nhà cung cấp</Link>
-              <Link className={dropdownItem} to="/reports">Nhân viên</Link>
-              <Link className={dropdownItem} to="/reports">Tài chính</Link>
+              <Link className={dropdownItem} to="/reports/suppliers">Nhà cung cấp</Link>
+              <Link className={dropdownItem} to="/reports/finance">Tài chính</Link>
             </div>
           </div>
         </div>

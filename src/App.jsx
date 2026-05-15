@@ -12,15 +12,12 @@ const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
 const ProductsPage = lazy(() => import('./pages/Products/ProductsPage'));
 const OrdersPage = lazy(() => import('./pages/Orders/OrdersPage'));
 const CustomersPage = lazy(() => import('./pages/Customers/CustomersPage'));
-const EmployeesPage = lazy(() => import('./pages/Employees/EmployeesPage'));
 const CashbookPage = lazy(() => import('./pages/Cashbook/CashbookPage'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
 const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const SuppliersPage = lazy(() => import('./pages/Suppliers/SuppliersPage'));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
 const CategoriesPage = lazy(() => import('./pages/Categories/CategoriesPage'));
-const InventoryCheckPage = lazy(() => import('./pages/InventoryCheck/InventoryCheckPage'));
-const ReturnsPage = lazy(() => import('./pages/Returns/ReturnsPage'));
 const POSPage = lazy(() => import('./pages/POS/POSPage'));
 const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage'));
 
@@ -100,16 +97,23 @@ function App() {
           <Route path="/products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
           <Route path="/categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
           <Route path="/pricebook" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Thiết lập giá" icon="💰" /></Suspense>} />
-          <Route path="/inventory-check" element={<Suspense fallback={<PageLoader />}><InventoryCheckPage /></Suspense>} />
-          <Route path="/stock-transfer" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Chuyển kho" icon="🔄" /></Suspense>} />
+          
           <Route path="/suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
           <Route path="/purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
-          <Route path="/orders" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
-          <Route path="/returns" element={<Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense>} />
+          <Route path="/purchase-returns" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Trả hàng nhập" icon="📦" /></Suspense>} />
+          
+          <Route path="/invoices" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
+          
           <Route path="/customers" element={<Suspense fallback={<PageLoader />}><CustomersPage /></Suspense>} />
-          <Route path="/employees" element={<Suspense fallback={<PageLoader />}><EmployeesPage /></Suspense>} />
           <Route path="/cashbook" element={<Suspense fallback={<PageLoader />}><CashbookPage /></Suspense>} />
-          <Route path="/reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
+          
+          <Route path="/reports/end-of-day" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Cuối ngày" icon="📊" /></Suspense>} />
+          <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Bán hàng" icon="📈" /></Suspense>} />
+          <Route path="/reports/products" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Hàng hóa" icon="📦" /></Suspense>} />
+          <Route path="/reports/customers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Khách hàng" icon="👥" /></Suspense>} />
+          <Route path="/reports/suppliers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Nhà cung cấp" icon="🏢" /></Suspense>} />
+          <Route path="/reports/finance" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Tài chính" icon="💰" /></Suspense>} />
+          
           <Route path="/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
         </Route>
 
