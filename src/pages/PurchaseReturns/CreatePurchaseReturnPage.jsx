@@ -291,8 +291,10 @@ export default function CreatePurchaseReturnPage() {
         items: validItems.map(it => ({
           productId: it.id,
           quantity: Number(it.return_quantity),
+          unit: it.unit || 'Cái',
           price: Number(it.import_price),
           returnPrice: Number(it.return_price),
+          note: it.note || '',
         })),
         paid: actualPaid,
         discount: actualDiscount,
