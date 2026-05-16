@@ -22,6 +22,8 @@ const POSPage = lazy(() => import('./pages/POS/POSPage'));
 const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage'));
 const PriceBooksPage = lazy(() => import('./pages/PriceBooks/PriceBooksPage'));
 const CreatePurchaseOrderPage = lazy(() => import('./pages/PurchaseOrders/CreatePurchaseOrderPage'));
+const PurchaseReturnsPage = lazy(() => import('./pages/PurchaseReturns/PurchaseReturnsPage'));
+const CreatePurchaseReturnPage = lazy(() => import('./pages/PurchaseReturns/CreatePurchaseReturnPage'));
 
 function PageLoader() {
   return (
@@ -103,7 +105,8 @@ function App() {
           <Route path="/suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
           <Route path="/purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
           <Route path="/purchase-orders/create" element={<Suspense fallback={<PageLoader />}><CreatePurchaseOrderPage /></Suspense>} />
-          <Route path="/purchase-returns" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Trả hàng nhập" icon="📦" /></Suspense>} />
+          <Route path="/purchase-returns" element={<Suspense fallback={<PageLoader />}><PurchaseReturnsPage /></Suspense>} />
+          <Route path="/purchase-returns/create" element={<Suspense fallback={<PageLoader />}><CreatePurchaseReturnPage /></Suspense>} />
 
           <Route path="/invoices" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
 

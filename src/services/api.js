@@ -220,6 +220,13 @@ export const purchaseOrderAPI = {
   delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
 
+// ─── Purchase Returns ───
+export const purchaseReturnAPI = {
+  getAll: (params) => api.get('/purchase-returns', { params }).then(r => r.data),
+  getById: (id) => api.get(`/purchase-returns/${id}`).then(r => r.data),
+  create: (data) => api.post('/purchase-returns', data).then(r => r.data),
+};
+
 // ─── Cashbook ───
 export const cashbookAPI = {
   getAll: (params) => api.get('/cashbook', { params }).then(r => r.data),

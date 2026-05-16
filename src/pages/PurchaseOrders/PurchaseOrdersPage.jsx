@@ -398,7 +398,7 @@ export default function PurchaseOrdersPage() {
                     <Button variant="secondary" onClick={() => toast.success('Lưu phiếu thành công')} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold border-none cursor-pointer">
                       <Save size={14} /> Lưu
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold border-none cursor-pointer">
+                    <Button variant="secondary" onClick={() => navigate(`/purchase-returns/create?poId=${o.id}`)} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold border-none cursor-pointer">
                       Trả hàng nhập
                     </Button>
                     <Button variant="secondary" className="p-2 shadow-sm border-none cursor-pointer">
