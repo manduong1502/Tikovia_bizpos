@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Search, GripVertical, Check } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, GripVertical, Check, X } from 'lucide-react';
 
 export default function CategoryFilter({ categories = [], products = [], selectedIds, onApply }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +33,10 @@ export default function CategoryFilter({ categories = [], products = [], selecte
     return roots;
   }, [categories]);
 
-  const getCount = (catId) => products.filter(p => p.category_id === catId).length;
+  const getCount = (catId) => products.filter(p => {
+    const pid = p.category_id ?? p.categoryId ?? p.category?.id;
+    return Number(pid) === Number(catId);
+  }).length;
 
   const toggleExpand = (id) => {
     setExpanded(prev => {
@@ -60,11 +63,12 @@ export default function CategoryFilter({ categories = [], products = [], selecte
     setOpen(false);
   };
 
-  const label = checked.size === 0
-    ? 'Chọn nhóm hàng'
-    : checked.size === 1
-      ? (categories.find(c => checked.has(c.id))?.name || 'Nhóm hàng')
-      : `${checked.size} nhóm hàng`;
+  const selectedList = [...checked]
+    .map((id) => categories.find((c) => Number(c.id) === Number(id)))
+    .filter(Boolean);
+
+  const visibleTags = selectedList.slice(0, 3);
+  const restCount = Math.max(0, selectedList.length - visibleTags.length);
 
   const renderItem = (cat, depth = 0) => {
     const hasKids = cat.children && cat.children.length > 0;
@@ -108,14 +112,47 @@ export default function CategoryFilter({ categories = [], products = [], selecte
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded border text-sm transition-colors cursor-pointer ${
+        className={`w-full min-h-[42px] rounded border px-2.5 py-2 text-left transition-colors cursor-pointer ${
           checked.size > 0
-            ? 'border-primary bg-blue-50/50 text-primary font-medium'
-            : 'border-gray-300 bg-white hover:border-gray-400 text-gray-700'
+            ? 'border-primary bg-blue-50/40'
+            : 'border-gray-300 bg-white hover:border-gray-400'
         }`}
       >
-        <span className="truncate">{label}</span>
-        <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            {checked.size === 0 ? (
+              <span className="text-sm text-gray-500">Chọn nhóm hàng</span>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {visibleTags.map((cat) => (
+                  <span
+                    key={cat.id}
+                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-xs font-semibold text-white"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {cat.name}
+                    <button
+                      type="button"
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCheck(cat.id);
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                {restCount > 0 && (
+                  <span className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2 py-0.5 text-xs font-semibold text-primary">
+                    +{restCount} khác
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <ChevronDown size={14} className={`mt-1 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        </div>
       </button>
 
       {open && (

@@ -16,9 +16,12 @@ const TABS = [
   { key: 'employees', label: 'Nhân viên', icon: BarChart3 },
 ];
 
+import Dropdown from '../../components/ui/Dropdown';
+
 export default function ReportsPage() {
   const [tab, setTab] = useState('revenue');
   const [data, setData] = useState(null);
+  const [timeRange, setTimeRange] = useState('Hôm nay');
 
   useEffect(() => {
     axios.get('/api/dashboard').then(r => setData(r.data)).catch(() => {});
@@ -31,7 +34,16 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Báo cáo</h1>
         <div className="flex items-center gap-3">
-          <select className="border border-gray-200 rounded-lg px-4 py-2 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"><option>Hôm nay</option><option>Tuần này</option><option>Tháng này</option><option>Năm nay</option></select>
+          <Dropdown
+            value={timeRange}
+            options={[
+              { value: 'Hôm nay', label: 'Hôm nay' },
+              { value: 'Tuần này', label: 'Tuần này' },
+              { value: 'Tháng này', label: 'Tháng này' },
+              { value: 'Năm nay', label: 'Năm nay' },
+            ]}
+            onChange={setTimeRange}
+          />
           <Button icon={<Download size={16} />} className="shadow-sm" onClick={() => { const rows = (d.top_products || []).map(p => ({ name: p.name, quantity: p.quantity || p.total_quantity, revenue: p.revenue || p.total_revenue })); exportCSV([{key:'name',label:'Sản phẩm'},{key:'quantity',label:'SL bán'},{key:'revenue',label:'Doanh thu'}], rows, 'bao_cao'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
         </div>
       </div>

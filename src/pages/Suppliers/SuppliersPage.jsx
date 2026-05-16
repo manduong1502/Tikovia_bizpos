@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supplierAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import Dropdown from '../../components/ui/Dropdown';
 import toast from 'react-hot-toast';
 import { Plus, Download, Search, Building2, Edit, Trash2 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportUtils';
@@ -12,6 +13,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
+  const [filterGroup, setFilterGroup] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editSupplier, setEditSupplier] = useState(null);
@@ -27,7 +29,15 @@ export default function SuppliersPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const filtered = search ? suppliers.filter(s => (s.name || '').toLowerCase().includes(search.toLowerCase()) || (s.code || '').toLowerCase().includes(search.toLowerCase())) : suppliers;
+  const filtered = suppliers.filter(s => {
+    if (search && !(s.name || '').toLowerCase().includes(search.toLowerCase()) && !(s.code || '').toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+    if (filterGroup && filterGroup !== 'all') {
+      return false; // Currently all suppliers belong to general group
+    }
+    return true;
+  });
 
   const handleDelete = async (s) => {
     if (!confirm(`Bạn có chắc muốn xóa nhà cung cấp ${s.name}?`)) return;
@@ -70,7 +80,14 @@ export default function SuppliersPage() {
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-5">
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Nhóm NCC</span>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium text-gray-700 bg-gray-50/50 cursor-pointer"><option>Tất cả</option></select>
+              <Dropdown
+                value={filterGroup}
+                options={[
+                  { value: '', label: 'Tất cả' },
+                  { value: 'all', label: 'Nhóm NCC chung' },
+                ]}
+                onChange={setFilterGroup}
+              />
             </div>
           </div>
         </div>

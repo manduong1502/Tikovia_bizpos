@@ -3,9 +3,16 @@ import { customerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import Dropdown from '../../components/ui/Dropdown';
+import DateFilter from '../../components/ui/DateFilter';
 import { Plus, Download, Search, Trash2, Edit, User } from 'lucide-react';
 import { exportCSV } from '../../utils/exportUtils';
 import CustomerModal from './CustomerModal';
+import {
+  getRangeByCreatedLabel,
+  inDateRange,
+  buildCustomRange,
+} from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -19,6 +26,14 @@ export default function CustomersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
 
+  // Filter states
+  const [filterGroup, setFilterGroup] = useState('');
+  const [filterDate, setFilterDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
+  const [filterType, setFilterType] = useState('Tất cả');
+  const [filterGender, setFilterGender] = useState('Tất cả');
+  const [filterTotalFrom, setFilterTotalFrom] = useState('');
+  const [filterTotalTo, setFilterTotalTo] = useState('');
+
   const fetchCustomers = useCallback(() => {
     customerAPI.getAll({ limit: 200 })
       .then(r => setCustomers(Array.isArray(r) ? r : (r.data || [])))
@@ -26,14 +41,48 @@ export default function CustomersPage() {
   }, []);
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-  const filtered = search
-    ? customers.filter(c => (c.name || '').toLowerCase().includes(search.toLowerCase()) || (c.phone || '').includes(search) || (c.code || '').toLowerCase().includes(search.toLowerCase()))
-    : customers;
+  let filtered = customers.filter(c => {
+    if (search && !(c.name || '').toLowerCase().includes(search.toLowerCase()) && !(c.phone || '').includes(search) && !(c.code || '').toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+    if (filterGroup && filterGroup !== 'all') {
+      return false;
+    }
+    if (filterType !== 'Tất cả') {
+      if (filterType === 'Cá nhân' && c.type === 'company') return false;
+    }
+    if (filterGender !== 'Tất cả') {
+      const g = (c.gender || '').toLowerCase();
+      if (filterGender === 'Nam' && g !== 'nam' && g !== 'male') return false;
+      if (filterGender === 'Nữ' && g !== 'nữ' && g !== 'female') return false;
+    }
+    if (filterTotalFrom) {
+      const from = Number(filterTotalFrom) || 0;
+      if (Number(c.totalSpent || c.total_spent || 0) < from) return false;
+    }
+    if (filterTotalTo) {
+      const to = Number(filterTotalTo) || 0;
+      if (Number(c.totalSpent || c.total_spent || 0) > to) return false;
+    }
+    return true;
+  });
+
+  if (filterDate && filterDate.mode === 'all' && filterDate.label !== 'Toàn thời gian') {
+    const range = getRangeByCreatedLabel(filterDate.label);
+    if (range) {
+      filtered = filtered.filter(c => inDateRange(c.created_at || c.createdAt, range));
+    }
+  } else if (filterDate && filterDate.mode === 'custom' && filterDate.start) {
+    const range = buildCustomRange(filterDate.start, filterDate.end);
+    if (range) {
+      filtered = filtered.filter(c => inDateRange(c.created_at || c.createdAt, range));
+    }
+  }
 
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
-  const totalDebt = filtered.reduce((s, c) => s + Number(c.totalDebt || 0), 0);
-  const totalSales = filtered.reduce((s, c) => s + Number(c.totalSpent || 0), 0);
+  const totalDebt = filtered.reduce((s, c) => s + Number(c.totalDebt || c.debt || 0), 0);
+  const totalSales = filtered.reduce((s, c) => s + Number(c.totalSpent || c.total_spent || 0), 0);
 
   const loadDetail = async (id) => {
     try {
@@ -69,24 +118,39 @@ export default function CustomersPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-bold text-gray-800">Nhóm khách hàng</span>
-                <button className="text-primary text-xs font-semibold hover:underline bg-transparent border-none cursor-pointer">Tạo mới</button>
+                <button type="button" className="text-primary text-xs font-semibold hover:underline bg-transparent border-none cursor-pointer">Tạo mới</button>
               </div>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium text-gray-700 bg-gray-50/50 cursor-pointer"><option>Tất cả các nhóm</option></select>
+              <Dropdown
+                value={filterGroup}
+                options={[
+                  { value: '', label: 'Tất cả các nhóm' },
+                  { value: 'all', label: 'Khách hàng chung' },
+                ]}
+                onChange={setFilterGroup}
+              />
             </div>
             <div className="h-[1px] bg-gray-100 w-full" />
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Ngày tạo</span>
-              <div className="flex flex-col gap-2.5 text-[13px] font-medium">
-                <label className="flex items-center gap-2 cursor-pointer text-gray-600 hover:text-primary transition-colors"><input type="radio" name="ct-date" defaultChecked className="text-primary focus:ring-primary h-4 w-4" /> Toàn thời gian</label>
-                <label className="flex items-center gap-2 cursor-pointer text-gray-600 hover:text-primary transition-colors"><input type="radio" name="ct-date" className="text-primary focus:ring-primary h-4 w-4" /> Tùy chỉnh</label>
-              </div>
+              <DateFilter
+                type="created"
+                value={filterDate}
+                onChange={setFilterDate}
+              />
             </div>
             <div className="h-[1px] bg-gray-100 w-full" />
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Loại khách hàng</span>
               <div className="flex gap-1.5">
-                {['Tất cả', 'Cá nhân'].map((t, i) => (
-                  <button key={t} className={`px-3 py-1.5 text-xs rounded-lg border cursor-pointer font-medium transition-all ${i === 0 ? 'bg-blue-50 text-primary border-primary/30 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50 hover:text-primary hover:bg-blue-50/30'}`}>{t}</button>
+                {['Tất cả', 'Cá nhân'].map((t) => (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setFilterType(t)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border cursor-pointer font-medium transition-all ${filterType === t ? 'bg-blue-50 text-primary border-primary/30 shadow-sm font-bold' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50 hover:text-primary hover:bg-blue-50/30'}`}
+                  >
+                    {t}
+                  </button>
                 ))}
               </div>
             </div>
@@ -94,8 +158,15 @@ export default function CustomersPage() {
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Giới tính</span>
               <div className="flex gap-1.5">
-                {['Tất cả', 'Nam', 'Nữ'].map((t, i) => (
-                  <button key={t} className={`px-3 py-1.5 text-xs rounded-lg border cursor-pointer font-medium transition-all ${i === 0 ? 'bg-blue-50 text-primary border-primary/30 shadow-sm' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50 hover:text-primary hover:bg-blue-50/30'}`}>{t}</button>
+                {['Tất cả', 'Nam', 'Nữ'].map((t) => (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setFilterGender(t)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border cursor-pointer font-medium transition-all ${filterGender === t ? 'bg-blue-50 text-primary border-primary/30 shadow-sm font-bold' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50 hover:text-primary hover:bg-blue-50/30'}`}
+                  >
+                    {t}
+                  </button>
                 ))}
               </div>
             </div>
@@ -103,8 +174,26 @@ export default function CustomersPage() {
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Tổng bán</span>
               <div className="space-y-2">
-                <div className="flex items-center gap-2"><span className="text-[13px] font-medium text-gray-500 w-8">Từ</span><input className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Giá trị" /></div>
-                <div className="flex items-center gap-2"><span className="text-[13px] font-medium text-gray-500 w-8">Tới</span><input className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Giá trị" /></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-gray-500 w-8">Từ</span>
+                  <input
+                    type="number"
+                    value={filterTotalFrom}
+                    onChange={e => setFilterTotalFrom(e.target.value)}
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    placeholder="Giá trị"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-gray-500 w-8">Tới</span>
+                  <input
+                    type="number"
+                    value={filterTotalTo}
+                    onChange={e => setFilterTotalTo(e.target.value)}
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    placeholder="Giá trị"
+                  />
+                </div>
               </div>
             </div>
           </div>

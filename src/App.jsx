@@ -98,23 +98,23 @@ function App() {
           <Route path="/products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
           <Route path="/categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
           <Route path="/pricebook" element={<Suspense fallback={<PageLoader />}><PriceBooksPage /></Suspense>} />
-          
+
           <Route path="/suppliers" element={<Suspense fallback={<PageLoader />}><SuppliersPage /></Suspense>} />
           <Route path="/purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
           <Route path="/purchase-returns" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Trả hàng nhập" icon="📦" /></Suspense>} />
-          
+
           <Route path="/invoices" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
-          
+
           <Route path="/customers" element={<Suspense fallback={<PageLoader />}><CustomersPage /></Suspense>} />
           <Route path="/cashbook" element={<Suspense fallback={<PageLoader />}><CashbookPage /></Suspense>} />
-          
+
           <Route path="/reports/end-of-day" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Cuối ngày" icon="📊" /></Suspense>} />
           <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Bán hàng" icon="📈" /></Suspense>} />
           <Route path="/reports/products" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Hàng hóa" icon="📦" /></Suspense>} />
           <Route path="/reports/customers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Khách hàng" icon="👥" /></Suspense>} />
           <Route path="/reports/suppliers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Nhà cung cấp" icon="🏢" /></Suspense>} />
           <Route path="/reports/finance" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Tài chính" icon="💰" /></Suspense>} />
-          
+
           <Route path="/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
         </Route>
 

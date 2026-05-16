@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { employeeAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import Dropdown from '../../components/ui/Dropdown';
 import toast from 'react-hot-toast';
 import { Plus, Download, Search, Shield, ShieldCheck, Users, Edit, Trash2 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportUtils';
@@ -13,6 +14,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
 
@@ -28,9 +30,15 @@ export default function EmployeesPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  const filtered = search
-    ? employees.filter(e => (e.name || e.full_name || '').toLowerCase().includes(search.toLowerCase()) || (e.code || '').toLowerCase().includes(search.toLowerCase()))
-    : employees;
+  const filtered = employees.filter(e => {
+    if (search && !(e.name || e.full_name || '').toLowerCase().includes(search.toLowerCase()) && !(e.code || '').toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+    if (filterBranch && filterBranch !== 'central') {
+      return false; // Currently all employees are in central branch
+    }
+    return true;
+  });
 
   const handleDelete = async (emp) => {
     if (!confirm(`Bạn có chắc muốn xóa nhân viên ${emp.name || emp.full_name}?`)) return;
@@ -81,10 +89,14 @@ export default function EmployeesPage() {
             <div className="h-[1px] bg-gray-100 w-full" />
             <div>
               <span className="text-sm font-bold text-gray-800 mb-2.5 block">Chi nhánh</span>
-              <select className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium text-gray-700 bg-gray-50/50 cursor-pointer">
-                <option>Tất cả chi nhánh</option>
-                <option>Chi nhánh trung tâm</option>
-              </select>
+              <Dropdown
+                value={filterBranch}
+                options={[
+                  { value: '', label: 'Tất cả chi nhánh' },
+                  { value: 'central', label: 'Chi nhánh trung tâm' },
+                ]}
+                onChange={setFilterBranch}
+              />
             </div>
           </div>
         </div>

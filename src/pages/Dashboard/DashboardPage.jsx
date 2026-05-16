@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Users, QrCode, PlusCircle, Monitor, ChevronRight, TrendingUp, TrendingDown, ShoppingCart, RotateCcw, AlertTriangle, Package } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Dropdown from '../../components/ui/Dropdown';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -9,6 +10,10 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('daily');
   const [loading, setLoading] = useState(true);
+
+  const [filterRev, setFilterRev] = useState('Tháng này');
+  const [filterProd, setFilterProd] = useState('Tháng này');
+  const [filterCust, setFilterCust] = useState('Tháng này');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,10 +82,14 @@ export default function DashboardPage() {
                 {pct}%
               </span>
             </div>
-            <select className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 outline-none">
-              <option>Tháng này</option>
-              <option>Tháng trước</option>
-            </select>
+            <Dropdown
+              value={filterRev}
+              options={[
+                { value: 'Tháng này', label: 'Tháng này' },
+                { value: 'Tháng trước', label: 'Tháng trước' },
+              ]}
+              onChange={setFilterRev}
+            />
           </div>
 
           {/* Tab control */}
@@ -125,9 +134,13 @@ export default function DashboardPage() {
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top hàng bán chạy</h3>
-              <select className="border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-500 outline-none">
-                <option>Tháng này</option>
-              </select>
+              <Dropdown
+                value={filterProd}
+                options={[
+                  { value: 'Tháng này', label: 'Tháng này' },
+                ]}
+                onChange={setFilterProd}
+              />
             </div>
             <div className="space-y-3">
               {(d.top_products || []).slice(0, 5).map((p, i) => (
@@ -153,9 +166,13 @@ export default function DashboardPage() {
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top khách chi tiêu</h3>
-              <select className="border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-500 outline-none">
-                <option>Tháng này</option>
-              </select>
+              <Dropdown
+                value={filterCust}
+                options={[
+                  { value: 'Tháng này', label: 'Tháng này' },
+                ]}
+                onChange={setFilterCust}
+              />
             </div>
             <div className="space-y-3">
               {(d.top_customers || []).slice(0, 5).map((c, i) => (

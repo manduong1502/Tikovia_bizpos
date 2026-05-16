@@ -5,6 +5,12 @@ import toast from 'react-hot-toast';
 import { Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown } from 'lucide-react';
 import OrderSidebar from './OrderSidebar';
 import OrderDetail from './OrderDetail';
+import {
+  getRangeByCreatedLabel,
+  getRangeByExpectedLabel,
+  inDateRange,
+  buildCustomRange,
+} from '../../utils/dateFilterUtils';
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -22,7 +28,13 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [perPage] = useState(20);
   const [expandedId, setExpandedId] = useState(null);
-  const [filters, setFilters] = useState({ timeMode: 'month', status: '' });
+  const [filters, setFilters] = useState({
+    orderDate: { mode: 'all', label: 'Tháng này', start: null, end: null },
+    status: '',
+    deliveryStatus: '',
+    deliveryPartner: '',
+    deliveryDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
+  });
 
   const reload = async () => {
     try {
@@ -36,11 +48,41 @@ export default function OrdersPage() {
 
   useEffect(() => { reload(); }, [filters.status, search]);
 
-  const totalPages = Math.ceil(orders.length / perPage) || 1;
-  const pageItems = orders.slice((page - 1) * perPage, page * perPage);
-  const sumTotal = orders.reduce((s, o) => s + Number(o.total || 0), 0);
-  const sumDiscount = orders.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
-  const sumPaid = orders.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
+  let filtered = orders.filter(o => {
+    if (filters.deliveryStatus && o.delivery_status !== filters.deliveryStatus) return false;
+    if (filters.deliveryPartner && o.delivery_partner !== filters.deliveryPartner) return false;
+    return true;
+  });
+
+  if (filters.orderDate && filters.orderDate.mode === 'all' && filters.orderDate.label !== 'Toàn thời gian') {
+    const range = getRangeByCreatedLabel(filters.orderDate.label);
+    if (range) {
+      filtered = filtered.filter(o => inDateRange(o.created_at || o.createdAt, range));
+    }
+  } else if (filters.orderDate && filters.orderDate.mode === 'custom' && filters.orderDate.start) {
+    const range = buildCustomRange(filters.orderDate.start, filters.orderDate.end);
+    if (range) {
+      filtered = filtered.filter(o => inDateRange(o.created_at || o.createdAt, range));
+    }
+  }
+
+  if (filters.deliveryDate && filters.deliveryDate.mode === 'all' && filters.deliveryDate.label !== 'Toàn thời gian') {
+    const range = getRangeByExpectedLabel(filters.deliveryDate.label);
+    if (range) {
+      filtered = filtered.filter(o => inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range));
+    }
+  } else if (filters.deliveryDate && filters.deliveryDate.mode === 'custom' && filters.deliveryDate.start) {
+    const range = buildCustomRange(filters.deliveryDate.start, filters.deliveryDate.end);
+    if (range) {
+      filtered = filtered.filter(o => inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range));
+    }
+  }
+
+  const totalPages = Math.ceil(filtered.length / perPage) || 1;
+  const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
 
   const loadDetail = async (id) => {
     try {
@@ -167,7 +209,7 @@ export default function OrdersPage() {
 
           {/* Pagination */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 border-t text-sm text-gray-600 font-medium">
-            <span>Hiển thị {orders.length} hóa đơn</span>
+            <span>Hiển thị {filtered.length} hóa đơn</span>
             <div className="flex gap-1">
               {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
                 <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center text-xs rounded-lg border cursor-pointer font-bold ${page === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>{i + 1}</button>

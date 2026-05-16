@@ -9,6 +9,13 @@ import FilterSidebar from './FilterSidebar';
 import ProductModal from './ProductModal';
 import { exportProducts } from '../../utils/exportCSV';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
+import {
+  parseFlexibleDate,
+  getRangeByCreatedLabel,
+  getRangeByExpectedLabel,
+  inDateRange,
+  buildCustomRange,
+} from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -35,6 +42,9 @@ export default function ProductsPage() {
     dateCreated: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
     productType: '',
     status: 'active',
+    directSale: '',
+    suppliers: [],
+    location: '',
   });
 
   const handleFilterChange = useCallback((patch) => {
@@ -83,12 +93,73 @@ export default function ProductsPage() {
       list = list.filter(p => p.name.toLowerCase().includes(s) || (p.sku || '').toLowerCase().includes(s));
     }
     if (filters.selectedCategories.size > 0) {
-      list = list.filter(p => filters.selectedCategories.has(p.category_id));
+      list = list.filter(p => {
+        const categoryId = p.category_id ?? p.categoryId ?? p.category?.id;
+        return filters.selectedCategories.has(categoryId);
+      });
     }
-    if (filters.filterStock === 'in') list = list.filter(p => p.stock > 0);
-    else if (filters.filterStock === 'out') list = list.filter(p => !p.stock);
-    else if (filters.filterStock === 'under') list = list.filter(p => p.stock > 0 && p.stock < 10);
-    else if (filters.filterStock === 'over') list = list.filter(p => p.stock > 100);
+
+    const getStock = (p) => Number(p.stock ?? p.on_hand ?? 0) || 0;
+    const getMinStock = (p) => Number(p.minStock ?? p.min_stock ?? 10) || 10;
+    const getMaxStock = (p) => Number(p.maxStock ?? p.max_stock ?? 100) || 100;
+
+    if (filters.filterStock === 'in') list = list.filter(p => getStock(p) > 0);
+    else if (filters.filterStock === 'out') list = list.filter(p => getStock(p) <= 0);
+    else if (filters.filterStock === 'under') list = list.filter(p => {
+      const stock = getStock(p);
+      return stock > 0 && stock < getMinStock(p);
+    });
+    else if (filters.filterStock === 'over') list = list.filter(p => getStock(p) > getMaxStock(p));
+
+    if (filters.status === 'active') list = list.filter(p => p.status !== 'inactive');
+    else if (filters.status === 'inactive') list = list.filter(p => p.status === 'inactive');
+
+    if (filters.productType === 'product') list = list.filter(p => p.type !== 'service');
+    else if (filters.productType === 'service') list = list.filter(p => p.type === 'service');
+
+    if (filters.directSale === 'yes') list = list.filter(p => p.direct_sale !== false);
+    else if (filters.directSale === 'no') list = list.filter(p => p.direct_sale === false);
+
+    if (Array.isArray(filters.suppliers) && filters.suppliers.length > 0) {
+      const selected = new Set(filters.suppliers.map((v) => String(v)));
+      list = list.filter((p) => {
+        const supplierId = p.supplier_id ?? p.supplierId ?? p.supplier?.id;
+        const supplierName = p.supplier_name || p.supplierName || p.supplier?.name;
+        if (supplierId !== undefined && supplierId !== null) {
+          return selected.has(String(supplierId));
+        }
+        return supplierName ? selected.has(String(supplierName)) : false;
+      });
+    }
+
+    if (filters.location) {
+      const loc = filters.location.toLowerCase();
+      list = list.filter(p => (p.location || '').toLowerCase().includes(loc));
+    }
+
+    if (filters.dateCreated && filters.dateCreated.mode === 'all' && filters.dateCreated.label !== 'Toàn thời gian') {
+      const range = getRangeByCreatedLabel(filters.dateCreated.label);
+      if (range) {
+        list = list.filter(p => inDateRange(p.created_at || p.createdAt || p.createdDate, range));
+      }
+    } else if (filters.dateCreated && filters.dateCreated.mode === 'custom' && filters.dateCreated.start) {
+      const range = buildCustomRange(filters.dateCreated.start, filters.dateCreated.end);
+      if (range) {
+        list = list.filter(p => inDateRange(p.created_at || p.createdAt || p.createdDate, range));
+      }
+    }
+
+    if (filters.dateExpected && filters.dateExpected.mode === 'all' && filters.dateExpected.label !== 'Toàn thời gian') {
+      const range = getRangeByExpectedLabel(filters.dateExpected.label);
+      if (range) {
+        list = list.filter(p => inDateRange(p.expected_end_date || p.expectedEndDate || p.end_date || p.endDate, range));
+      }
+    } else if (filters.dateExpected && filters.dateExpected.mode === 'custom' && filters.dateExpected.start) {
+      const range = buildCustomRange(filters.dateExpected.start, filters.dateExpected.end);
+      if (range) {
+        list = list.filter(p => inDateRange(p.expected_end_date || p.expectedEndDate || p.end_date || p.endDate, range));
+      }
+    }
 
     if (sortCol) {
       list.sort((a, b) => {
@@ -146,6 +217,9 @@ export default function ProductsPage() {
       dateCreated: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
       productType: '',
       status: 'active',
+      directSale: '',
+      suppliers: [],
+      location: '',
     });
     setPage(1);
   };
@@ -367,7 +441,12 @@ export default function ProductsPage() {
                         <td className="px-4 py-3 text-right font-medium text-gray-700">{p.stock || 0}</td>
                         <td className="px-4 py-3 text-right text-gray-500">0</td>
                         <td className="px-4 py-3 text-[12px] text-gray-500">
-                          {p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') + ' ' + new Date(p.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          {(() => {
+                            const created = parseFlexibleDate(p.created_at || p.createdAt || p.createdDate);
+                            return created
+                              ? created.toLocaleDateString('vi-VN') + ' ' + created.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                              : '';
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-[12px] text-gray-400">---</td>
                       </tr>

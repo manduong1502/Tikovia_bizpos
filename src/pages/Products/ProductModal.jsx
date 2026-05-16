@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
-import { productAPI, categoryAPI, brandAPI } from '../../services/api';
+import { productAPI, categoryAPI, brandAPI, supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Save, X, ImagePlus, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
@@ -32,11 +32,12 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   const fileInputRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // info | desc
   
   const [form, setForm] = useState({
-    name: '', sku: '', categoryId: '', brandId: '',
+    name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
     sellPrice: '', costPrice: '',
     stock: '', minStock: '0', maxStock: '999999999',
     location: '', weight: '', weightUnit: 'g',
@@ -65,6 +66,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         setCategories(cats);
       }).catch(() => {});
       brandAPI.getAll().then(b => setBrands(Array.isArray(b) ? b : [])).catch(() => {});
+      supplierAPI.getAll().then(s => setSuppliers(Array.isArray(s) ? s : (s?.data || []))).catch(() => {});
     }
   }, [open]);
 
@@ -75,6 +77,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         sku: product.sku || '',
         categoryId: product.categoryId || '',
         brandId: product.brandId || '',
+        supplierId: product.supplierId || product.supplier_id || product.supplier?.id || '',
         sellPrice: product.sellPrice || '',
         costPrice: product.costPrice || '',
         stock: product.stock || '',
@@ -91,7 +94,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
       setActiveTab('info');
     } else {
       setForm({ 
-        name: '', sku: '', categoryId: '', brandId: '', 
+        name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
         sellPrice: '', costPrice: '', stock: '', minStock: '0', maxStock: '999999999', 
         location: '', weight: '', weightUnit: 'g', description: '', note: '', image: '', directSale: true 
       });
@@ -110,6 +113,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         ...form, 
         categoryId: form.categoryId ? Number(form.categoryId) : null,
         brandId: form.brandId ? Number(form.brandId) : null,
+        supplierId: form.supplierId ? Number(form.supplierId) : null,
         sellPrice: Number(form.sellPrice) || 0, 
         costPrice: Number(form.costPrice) || 0, 
         stock: Number(form.stock) || 0,
@@ -273,6 +277,18 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                           {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Nhà cung cấp</label>
+                      <select
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none bg-white"
+                        value={form.supplierId}
+                        onChange={e => update('supplierId', e.target.value)}
+                      >
+                        <option value="">Chọn nhà cung cấp</option>
+                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>

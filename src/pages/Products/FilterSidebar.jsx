@@ -1,6 +1,7 @@
 import Dropdown from '../../components/ui/Dropdown';
 import CategoryFilter from '../../components/ui/CategoryFilter';
 import DateFilter from '../../components/ui/DateFilter';
+import MultiSelectFilter from '../../components/ui/MultiSelectFilter';
 
 const STOCK_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -76,14 +77,14 @@ export default function FilterSidebar({
       {/* Nhà cung cấp */}
       <div>
         <span className="text-sm font-medium text-gray-600 mb-1.5 block">Nhà cung cấp</span>
-        <input
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
+        <MultiSelectFilter
+          items={suppliers.map((s) => ({ value: String(s.id ?? s.name), label: s.name }))}
+          selectedValues={filters.suppliers || []}
           placeholder="Chọn nhà cung cấp"
-          list="dl-sup"
+          panelTitle="Nhà cung cấp"
+          searchPlaceholder="Tìm nhà cung cấp"
+          onApply={(vals) => onFilterChange({ suppliers: vals })}
         />
-        <datalist id="dl-sup">
-          {suppliers.map(s => <option key={s.id} value={s.name} />)}
-        </datalist>
       </div>
 
       {/* Vị trí */}
@@ -92,6 +93,8 @@ export default function FilterSidebar({
         <input
           className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
           placeholder="Chọn vị trí"
+          value={filters.location || ''}
+          onChange={(e) => onFilterChange({ location: e.target.value })}
         />
       </div>
 
@@ -109,12 +112,20 @@ export default function FilterSidebar({
       <div>
         <span className="text-sm font-medium text-gray-600 mb-1.5 block">Bán trực tiếp</span>
         <div className="flex gap-1">
-          {['Tất cả', 'Có', 'Không'].map(tag => (
+          {[
+            { value: '', label: 'Tất cả' },
+            { value: 'yes', label: 'Có' },
+            { value: 'no', label: 'Không' },
+          ].map(tag => (
             <button
-              key={tag}
-              className="px-3 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary transition-colors cursor-pointer first:bg-primary first:text-white first:border-primary"
+              type="button"
+              key={tag.value}
+              onClick={() => onFilterChange({ directSale: tag.value })}
+              className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
+                filters.directSale === tag.value ? 'bg-primary text-white border-primary font-bold' : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'
+              }`}
             >
-              {tag}
+              {tag.label}
             </button>
           ))}
         </div>
