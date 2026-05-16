@@ -37,6 +37,13 @@ export default function CreatePurchaseReturnPage() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
+  const [importSummaryOpen, setImportSummaryOpen] = useState(false);
+  const [importSummary, setImportSummary] = useState({
+    totalRows: 0,
+    validItems: [],
+    invalidItems: [],
+  });
+
   const loadData = async () => {
     try {
       const [prodRes, suppRes, empRes] = await Promise.all([
@@ -161,58 +168,76 @@ export default function CreatePurchaseReturnPage() {
         const skuKeys = ['sku', 'ma_hang', 'mã hàng', 'ma hang', 'mã_hàng'];
         const qtyKeys = ['so_luong', 'số lượng', 'quantity', 'qty', 'sl'];
         const priceKeys = ['don_gia', 'đơn giá', 'price', 'cost_price', 'gia_nhap', 'giá nhập', 'giá trả', 'gia_tra'];
+        const noteKeys = ['ghi_chu', 'ghi chú', 'note', 'ly_do', 'lý do'];
 
         const normalizeKey = (k) => String(k || '').trim().toLowerCase();
 
-        let added = 0;
-        const newItems = [];
+        const validItems = [];
+        const invalidItems = [];
 
-        rows.forEach(r => {
+        rows.forEach((r, idx) => {
           const keys = Object.keys(r);
           const skuKey = keys.find(k => skuKeys.includes(normalizeKey(k)));
           const qtyKey = keys.find(k => qtyKeys.includes(normalizeKey(k)));
           const priceKey = keys.find(k => priceKeys.includes(normalizeKey(k)));
+          const noteKey = keys.find(k => noteKeys.includes(normalizeKey(k)));
 
-          if (!skuKey) return;
-          const sku = String(r[skuKey] || '').trim();
-          const qty = Number(r[qtyKey]) || 1;
-          const price = Number(String(r[priceKey] || '').replace(/[^0-9.-]/g, ''));
+          const sku = skuKey ? String(r[skuKey] || '').trim() : '';
+          const rawQty = qtyKey ? Number(r[qtyKey]) : 1;
+          const qty = Number.isNaN(rawQty) || rawQty <= 0 ? 1 : rawQty;
+          const priceVal = priceKey ? Number(String(r[priceKey] || '').replace(/[^0-9.-]/g, '')) : NaN;
+          const itemNote = noteKey ? String(r[noteKey] || '').trim() : '';
 
-          if (!sku) return;
+          if (!sku) {
+            invalidItems.push({ row: idx + 2, sku: '[Trống]', reason: 'Không tìm thấy mã hàng (SKU)' });
+            return;
+          }
 
-          const matched = products.find(p => {
-            if ((p.sku || '').toLowerCase() !== sku.toLowerCase()) return false;
-            if (selectedSupplier) {
-              const suppId = Number(selectedSupplier.id);
-              const pSuppId = Number(p.supplierId || p.supplier_id || p.supplier?.id);
-              if (pSuppId && pSuppId !== suppId) return false;
+          const matched = products.find(p => (p.sku || '').toLowerCase() === sku.toLowerCase());
+          if (!matched) {
+            invalidItems.push({ row: idx + 2, sku, reason: 'Mã hàng không tồn tại trong hệ thống' });
+            return;
+          }
+
+          if (selectedSupplier) {
+            const suppId = Number(selectedSupplier.id);
+            const pSuppId = Number(matched.supplierId || matched.supplier_id || matched.supplier?.id);
+            if (pSuppId && pSuppId !== suppId) {
+              invalidItems.push({ row: idx + 2, sku, reason: `Mã hàng không thuộc nhà cung cấp "${selectedSupplier.name}"` });
+              return;
             }
-            return true;
-          });
-          if (matched) {
-            added++;
-            newItems.push({
+          }
+
+          const finalPrice = !Number.isNaN(priceVal) ? priceVal : Number(matched.costPrice || matched.cost_price || 0);
+
+          const existing = validItems.find(it => it.id === matched.id);
+          if (existing) {
+            existing.return_quantity += qty;
+            if (itemNote) existing.note = existing.note ? `${existing.note}; ${itemNote}` : itemNote;
+          } else {
+            validItems.push({
               id: matched.id,
               sku: matched.sku,
               name: matched.name,
               unit: matched.unit || 'Cái',
               max_quantity: 999999,
-              return_quantity: qty > 0 ? qty : 1,
-              import_price: !Number.isNaN(price) ? price : matched.costPrice || matched.cost_price || 0,
-              return_price: !Number.isNaN(price) ? price : matched.costPrice || matched.cost_price || 0,
-              note: '',
+              return_quantity: qty,
+              import_price: finalPrice,
+              return_price: finalPrice,
+              note: itemNote,
             });
           }
         });
 
-        if (added > 0) {
-          setItems(prev => [...prev, ...newItems]);
-          toast.success(`Import thành công ${added} sản phẩm!`);
-        } else {
-          toast.error('Không tìm thấy mã hàng nào khớp trong hệ thống');
-        }
+        setImportSummary({
+          totalRows: rows.length,
+          validItems,
+          invalidItems,
+        });
+        setImportSummaryOpen(true);
+
       } catch (err) {
-        toast.error('Lỗi khi đọc file Excel');
+        toast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra định dạng file.');
       } finally {
         e.target.value = '';
       }
@@ -220,16 +245,49 @@ export default function CreatePurchaseReturnPage() {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleConfirmImport = () => {
+    if (importSummary.validItems.length === 0) {
+      toast.error('Không có sản phẩm hợp lệ nào để thêm!');
+      return;
+    }
+
+    setItems(prev => {
+      const combined = [...prev];
+      importSummary.validItems.forEach(newItem => {
+        const ex = combined.find(it => it.id === newItem.id);
+        if (ex) {
+          ex.return_quantity += newItem.return_quantity;
+          if (newItem.note) ex.note = ex.note ? `${ex.note}; ${newItem.note}` : newItem.note;
+        } else {
+          combined.push(newItem);
+        }
+      });
+      return combined;
+    });
+
+    toast.success(`Đã thêm thành công ${importSummary.validItems.length} sản phẩm vào phiếu trả hàng!`);
+    setImportSummaryOpen(false);
+  };
+
   const handleDownloadSample = () => {
     const sampleData = [
-      { 'Mã hàng': 'SP001', 'Số lượng': 5, 'Đơn giá': 150000 },
-      { 'Mã hàng': 'SP002', 'Số lượng': 10, 'Đơn giá': 85000 },
+      { 'Mã hàng': 'SP001', 'Số lượng': 5, 'Đơn giá': 150000, 'Ghi chú': 'Hàng lỗi kỹ thuật' },
+      { 'Mã hàng': 'SP002', 'Số lượng': 10, 'Đơn giá': 85000, 'Ghi chú': 'Hàng cận date' },
+      { 'Mã hàng': 'SP003', 'Số lượng': 2, 'Đơn giá': '', 'Ghi chú': 'Để trống đơn giá sẽ lấy giá vốn' },
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData);
+    
+    ws['!cols'] = [
+      { wch: 15 }, // Mã hàng
+      { wch: 12 }, // Số lượng
+      { wch: 15 }, // Đơn giá
+      { wch: 35 }, // Ghi chú
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'MauTraHangNhap');
     XLSX.writeFile(wb, 'FileMau_TraHangNhap.xlsx');
-    toast.success('Đã tải file mẫu');
+    toast.success('Đã tải file mẫu Excel thành công');
   };
 
   const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
@@ -668,6 +726,132 @@ export default function CreatePurchaseReturnPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Báo cáo & Xác nhận Import Excel */}
+      {importSummaryOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-primary to-blue-600 px-6 py-4 flex items-center justify-between text-white shadow-md">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet size={24} className="text-white" />
+                <h2 className="text-lg font-extrabold tracking-tight">Kết quả xử lý file Excel</h2>
+              </div>
+              <button 
+                onClick={() => setImportSummaryOpen(false)}
+                className="text-white/80 hover:text-white p-1 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-gray-500 mb-1">Tổng dòng dữ liệu</span>
+                  <span className="text-2xl font-extrabold text-gray-800">{importSummary.totalRows}</span>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-emerald-600 mb-1">Dòng hợp lệ</span>
+                  <span className="text-2xl font-extrabold text-emerald-700">{importSummary.validItems.length}</span>
+                </div>
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-rose-600 mb-1">Dòng lỗi / Bỏ qua</span>
+                  <span className="text-2xl font-extrabold text-rose-700">{importSummary.invalidItems.length}</span>
+                </div>
+              </div>
+
+              {/* Danh sách hợp lệ */}
+              {importSummary.validItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Sản phẩm hợp lệ sẵn sàng thêm ({importSummary.validItems.length})
+                  </h3>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-inner max-h-60 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 sticky top-0">
+                          <th className="py-2.5 px-4 w-28">Mã hàng</th>
+                          <th className="py-2.5 px-4 flex-1">Tên hàng</th>
+                          <th className="py-2.5 px-4 w-20 text-center">ĐVT</th>
+                          <th className="py-2.5 px-4 w-24 text-right">Số lượng</th>
+                          <th className="py-2.5 px-4 w-28 text-right">Đơn giá</th>
+                          <th className="py-2.5 px-4 w-36">Ghi chú</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white font-medium">
+                        {importSummary.validItems.map((it) => (
+                          <tr key={it.id} className="hover:bg-gray-50/80">
+                            <td className="py-2 px-4 font-bold text-gray-900">{it.sku}</td>
+                            <td className="py-2 px-4 text-gray-800">{it.name}</td>
+                            <td className="py-2 px-4 text-center text-gray-600">{it.unit}</td>
+                            <td className="py-2 px-4 text-right font-extrabold text-primary">{it.return_quantity}</td>
+                            <td className="py-2 px-4 text-right text-gray-700">{fmt(it.return_price)}</td>
+                            <td className="py-2 px-4 text-gray-500 italic truncate max-w-xs">{it.note || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Danh sách lỗi */}
+              {importSummary.invalidItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-extrabold text-rose-600 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    Danh sách dòng lỗi không thể thêm ({importSummary.invalidItems.length})
+                  </h3>
+                  <div className="border border-rose-200 rounded-xl overflow-hidden shadow-inner max-h-52 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-rose-50/80 text-rose-800 font-bold border-b border-rose-200 sticky top-0">
+                          <th className="py-2 px-4 w-20 text-center">Dòng Excel</th>
+                          <th className="py-2 px-4 w-32">Mã hàng (SKU)</th>
+                          <th className="py-2 px-4 flex-1">Chi tiết lỗi / Nguyên nhân</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-rose-100 bg-white font-medium">
+                        {importSummary.invalidItems.map((err, i) => (
+                          <tr key={i} className="hover:bg-rose-50/30 text-rose-900">
+                            <td className="py-2 px-4 text-center font-bold text-rose-700">#{err.row}</td>
+                            <td className="py-2 px-4 font-bold">{err.sku}</td>
+                            <td className="py-2 px-4 flex items-center gap-1.5 text-rose-600">
+                              <AlertCircle size={14} className="shrink-0" />
+                              <span>{err.reason}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3 shadow-sm">
+              <button 
+                onClick={() => setImportSummaryOpen(false)}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl text-xs font-bold transition-colors cursor-pointer border-none bg-transparent"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                disabled={importSummary.validItems.length === 0}
+                onClick={handleConfirmImport}
+                className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none flex items-center gap-2"
+              >
+                <Plus size={16} /> Xác nhận đưa vào phiếu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ProductModal 
         open={productModalOpen}
