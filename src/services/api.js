@@ -86,6 +86,7 @@ export const productAPI = {
   }).catch(() => ({ data: FALLBACK_PRODUCTS, total: FALLBACK_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/products/${id}`).then(r => r.data).catch(() => FALLBACK_PRODUCTS.find(p => p.id === Number(id))),
   create: (data) => api.post('/products', data).then(r => r.data),
+  importExcel: (data) => api.post('/products/import', data).then(r => r.data),
   update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
 };
@@ -167,6 +168,7 @@ export const orderAPI = {
   }).catch(() => ({ data: FALLBACK_ORDERS.map(normalizeOrder), total: FALLBACK_ORDERS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/orders/${id}`).then(r => normalizeOrderDetail(r.data)).catch(() => normalizeOrderDetail(FALLBACK_ORDERS.find(o => o.id === Number(id)))),
   create: (data) => api.post('/orders', data).then(r => r.data),
+  importExcel: (data) => api.post('/orders/import', data).then(r => r.data),
   update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
   cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => r.data),
@@ -184,6 +186,7 @@ export const customerAPI = {
   getAll: (params) => api.get('/customers', { params }).then(r => r.data).catch(() => ({ data: FALLBACK_CUSTOMERS, total: FALLBACK_CUSTOMERS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/customers/${id}`).then(r => r.data).catch(() => FALLBACK_CUSTOMERS.find(c => c.id === Number(id))),
   create: (data) => api.post('/customers', data).then(r => r.data),
+  importExcel: (data) => api.post('/customers/import', data).then(r => r.data),
   update: (id, data) => api.put(`/customers/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/customers/${id}`).then(r => r.data),
 };
@@ -207,6 +210,7 @@ export const supplierAPI = {
   getAllSimple: () => api.get('/suppliers').then(r => r.data).catch(() => FALLBACK_SUPPLIERS),
   getById: (id) => api.get(`/suppliers/${id}`).then(r => r.data).catch(() => FALLBACK_SUPPLIERS.find(s => s.id === Number(id))),
   create: (data) => api.post('/suppliers', data).then(r => r.data),
+  importExcel: (data) => api.post('/suppliers/import', data).then(r => r.data),
   update: (id, data) => api.put(`/suppliers/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/suppliers/${id}`).then(r => r.data),
 };

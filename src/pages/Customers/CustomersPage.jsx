@@ -4,8 +4,9 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal
+  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
@@ -40,6 +41,139 @@ export default function CustomersPage() {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
+
+  const [importSummaryOpen, setImportSummaryOpen] = useState(false);
+  const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+
+        // 1. Read sheet as 2D array of rows (array of arrays)
+        const rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        // 2. Find the header row index
+        let headerRowIndex = 0;
+        for (let i = 0; i < Math.min(rawRows.length, 20); i++) {
+          const rowText = rawRows[i].map(cell => String(cell || '').trim().toLowerCase()).join(' ');
+          if (
+            rowText.includes('tên hàng') || rowText.includes('tên sản phẩm') || rowText.includes('mã hàng') ||
+            rowText.includes('tên khách hàng') || rowText.includes('mã khách hàng') || rowText.includes('mã kh') ||
+            rowText.includes('tên nhà cung cấp') || rowText.includes('mã nhà cung cấp') || rowText.includes('mã ncc') ||
+            rowText.includes('mã hóa đơn') || rowText.includes('mã hd')
+          ) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+
+        // 3. Extract headers and normalize them
+        const headers = rawRows[headerRowIndex].map(h => String(h || '').trim().toLowerCase());
+
+        const validItems = [];
+        const invalidItems = [];
+        let totalProcessed = 0;
+
+        for (let i = headerRowIndex + 1; i < rawRows.length; i++) {
+          const row = rawRows[i];
+          const isEmptyRow = row.every(cell => String(cell || '').trim() === '');
+          if (isEmptyRow) continue;
+
+          totalProcessed++;
+
+          const findVal = (possibleKeys) => {
+            const colIdx = headers.findIndex(h => possibleKeys.includes(h));
+            return colIdx !== -1 ? row[colIdx] : '';
+          };
+
+          const code = String(findVal(['mã khách hàng', 'mã kh', 'ma kh', 'code', 'ma_kh']) || '').trim();
+          const name = String(findVal(['tên khách hàng', 'ten khach hang', 'name', 'tên_khách_hàng', 'tên kh', 'ten kh']) || '').trim();
+          const phone = String(findVal(['điện thoại', 'dien thoai', 'phone', 'sđt', 'sdt']) || '').trim();
+          const email = String(findVal(['email']) || '').trim();
+          const address = String(findVal(['địa chỉ', 'dia chi', 'address']) || '').trim();
+          const customerType = String(findVal(['loại khách', 'loai khach', 'customer_type']) || '').trim();
+          const branch = String(findVal(['chi nhánh tạo', 'chi nhánh', 'chi nhanh', 'branch']) || '').trim();
+          const totalSpent = Number(String(findVal(['tổng bán', 'tong ban', 'total_spent']) || '').replace(/[^0-9.-]/g, '')) || 0;
+          const totalDebt = Number(String(findVal(['nợ cần thu hiện tại', 'no can thu hien tai', 'công nợ', 'cong no', 'debt', 'nợ', 'no']) || '').replace(/[^0-9.-]/g, '')) || 0;
+          const note = String(findVal(['ghi chú', 'ghi chu', 'note']) || '').trim();
+          
+          const rawStatus = String(findVal(['trạng thái', 'trang thai', 'status', 'is_active', 'active']) || '').trim();
+          const isActive = rawStatus === '0' || rawStatus.toLowerCase() === 'false' || rawStatus.toLowerCase() === 'ngừng hoạt động' ? false : true;
+
+          const createdBy = String(findVal(['người tạo', 'nguoi tao', 'created_by']) || '').trim();
+          const lastTransaction = String(findVal(['ngày giao dịch cuối', 'ngay giao dich cuoi', 'last_transaction']) || '').trim();
+          const createdAt = String(findVal(['ngày tạo', 'ngay tao', 'created_at']) || '').trim();
+
+          if (!name) {
+            invalidItems.push({ row: i + 1, sku: code || '[Trống]', reason: 'Tên khách hàng không được để trống' });
+            continue;
+          }
+
+          validItems.push({
+            code,
+            name,
+            phone,
+            email,
+            address,
+            customerType,
+            branch,
+            totalSpent,
+            totalDebt,
+            note,
+            isActive,
+            createdBy,
+            lastTransaction,
+            createdAt,
+          });
+        }
+
+        setImportSummary({ totalRows: totalProcessed, validItems, invalidItems });
+        setImportSummaryOpen(true);
+      } catch (err) {
+        toast.error('Lỗi khi đọc file Excel. Vui lòng kiểm tra định dạng file.');
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleConfirmImport = async () => {
+    if (importSummary.validItems.length === 0) {
+      toast.error('Không có dữ liệu hợp lệ để import!');
+      return;
+    }
+    const tid = toast.loading('Đang xử lý import dữ liệu...');
+    try {
+      const res = await customerAPI.importExcel({ items: importSummary.validItems });
+      toast.success(res?.message || 'Import dữ liệu thành công!', { id: tid });
+      setImportSummaryOpen(false);
+      reload();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi import dữ liệu', { id: tid });
+    }
+  };
+
+  const handleDownloadSample = () => {
+    const wb = XLSX.utils.book_new();
+    const headers = ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Giới tính', 'Công nợ', 'Ghi chú'];
+    const sampleData = [
+      headers,
+      ['KH000001', 'Nguyễn Văn A', '0912345678', 'nva@gmail.com', '123 Lê Lợi, Q.1, TP.HCM', 'Nam', 500000, 'Khách hàng VIP'],
+      ['KH000002', 'Trần Thị B', '0987654321', 'ttb@yahoo.com', '456 Nguyễn Thị Minh Khai, Q.3, TP.HCM', 'Nữ', 0, 'Khách hàng mới'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(sampleData);
+    ws['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'CustomersTemplate');
+    XLSX.writeFile(wb, 'MauFileKhachHang.xlsx');
+  };
 
   // Filter states
   const [filterGroup, setFilterGroup] = useState('');
@@ -395,6 +529,14 @@ export default function CustomersPage() {
             <Plus size={18} /> Thêm khách hàng
           </Button>
 
+          <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Upload size={16} /> Nhập file
+          </Button>
+
+          <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Download size={16} /> Tải file mẫu
+          </Button>
+
           <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
             <Download size={16} /> Xuất file
           </Button>
@@ -409,7 +551,7 @@ export default function CustomersPage() {
             </button>
 
             {showColumnMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
                 <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
                 <div className="flex flex-col gap-2.5">
                   {ALL_COLUMNS.map(c => (
@@ -611,7 +753,7 @@ export default function CustomersPage() {
                       <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="p-1.5 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa"><Edit size={15} className="text-gray-400 hover:text-primary" /></button>
-                          <button onClick={() => handleDelete(c.id)} className="p-1.5 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" title="Xóa"><Trash2 size={15} className="text-gray-400 hover:text-red-500" /></button>
+                          <button onClick={() => handleDelete(c.id)} className="p-1.5 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" title="Xóa"><Trash2 size={15} className="text-gray-400 hover:text-red-50" /></button>
                         </div>
                       </td>
                     </tr>
@@ -636,6 +778,130 @@ export default function CustomersPage() {
       </div>
 
       <CustomerModal open={modalOpen} onClose={() => setModalOpen(false)} customer={editCustomer} onSaved={reload} />
+
+      {/* Import Summary Modal */}
+      {importSummaryOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] border border-gray-100">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-primary to-blue-600 p-6 flex items-center justify-between text-white shadow-md">
+              <div>
+                <h2 className="text-lg font-extrabold tracking-tight">Kết quả kiểm tra dữ liệu Excel khách hàng</h2>
+                <p className="text-xs text-white/80 mt-1 font-medium">Vui lòng kiểm tra kỹ các thông tin dưới đây trước khi xác nhận đưa vào hệ thống</p>
+              </div>
+              <button 
+                onClick={() => setImportSummaryOpen(false)}
+                className="text-white/80 hover:text-white p-1 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-gray-500 mb-1">Tổng dòng dữ liệu</span>
+                  <span className="text-2xl font-extrabold text-gray-800">{importSummary.totalRows}</span>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-emerald-600 mb-1">Dòng hợp lệ</span>
+                  <span className="text-2xl font-extrabold text-emerald-700">{importSummary.validItems.length}</span>
+                </div>
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm">
+                  <span className="text-xs font-bold text-rose-600 mb-1">Dòng lỗi / Bỏ qua</span>
+                  <span className="text-2xl font-extrabold text-rose-700">{importSummary.invalidItems.length}</span>
+                </div>
+              </div>
+
+              {/* Danh sách hợp lệ */}
+              {importSummary.validItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Khách hàng hợp lệ sẵn sàng import ({importSummary.validItems.length})
+                  </h3>
+                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-inner max-h-60 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 sticky top-0">
+                          <th className="py-2.5 px-4 w-28">Mã KH</th>
+                          <th className="py-2.5 px-4 flex-1">Tên khách hàng</th>
+                          <th className="py-2.5 px-4 w-32">Điện thoại</th>
+                          <th className="py-2.5 px-4 w-24 text-center">Giới tính</th>
+                          <th className="py-2.5 px-4 w-28 text-right">Công nợ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white font-medium">
+                        {importSummary.validItems.map((it, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/80">
+                            <td className="py-2 px-4 font-bold text-gray-900">{it.code || '[Tự động tạo]'}</td>
+                            <td className="py-2 px-4 text-gray-800 font-bold">{it.name}</td>
+                            <td className="py-2 px-4 text-gray-600">{it.phone || '---'}</td>
+                            <td className="py-2 px-4 text-center text-gray-600">{it.gender || '---'}</td>
+                            <td className="py-2 px-4 text-right font-extrabold text-red-600">{fmt(it.debt)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Danh sách lỗi */}
+              {importSummary.invalidItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-extrabold text-rose-600 mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    Danh sách dòng lỗi không thể import ({importSummary.invalidItems.length})
+                  </h3>
+                  <div className="border border-rose-200 rounded-xl overflow-hidden shadow-inner max-h-52 overflow-y-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-rose-50/80 text-rose-800 font-bold border-b border-rose-200 sticky top-0">
+                          <th className="py-2 px-4 w-20 text-center">Dòng Excel</th>
+                          <th className="py-2 px-4 w-32">Mã KH</th>
+                          <th className="py-2 px-4 flex-1">Chi tiết lỗi / Nguyên nhân</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-rose-100 bg-white font-medium">
+                        {importSummary.invalidItems.map((err, i) => (
+                          <tr key={i} className="hover:bg-rose-50/30 text-rose-900">
+                            <td className="py-2 px-4 text-center font-bold text-rose-700">#{err.row}</td>
+                            <td className="py-2 px-4 font-bold">{err.sku}</td>
+                            <td className="py-2 px-4 flex items-center gap-1.5 text-rose-600">
+                              <AlertCircle size={14} className="shrink-0" />
+                              <span>{err.reason}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3 shadow-sm">
+              <button 
+                onClick={() => setImportSummaryOpen(false)}
+                className="px-5 py-2.5 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl text-xs font-bold transition-colors cursor-pointer border-none bg-transparent"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                disabled={importSummary.validItems.length === 0}
+                onClick={handleConfirmImport}
+                className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none flex items-center gap-2"
+              >
+                <Plus size={16} /> Xác nhận import dữ liệu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
