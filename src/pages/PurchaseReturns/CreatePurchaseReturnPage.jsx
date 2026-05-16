@@ -84,12 +84,17 @@ export default function CreatePurchaseReturnPage() {
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
     const q = productSearch.toLowerCase();
-    return products.filter(p => 
-      (p.name || '').toLowerCase().includes(q) || 
-      (p.sku || '').toLowerCase().includes(q) ||
-      (p.barcode || '').toLowerCase().includes(q)
-    ).slice(0, 8);
-  }, [productSearch, products]);
+    return products.filter(p => {
+      if (selectedSupplier) {
+        const suppId = Number(selectedSupplier.id);
+        const pSuppId = Number(p.supplierId || p.supplier_id || p.supplier?.id);
+        if (pSuppId && pSuppId !== suppId) return false;
+      }
+      return (p.name || '').toLowerCase().includes(q) || 
+             (p.sku || '').toLowerCase().includes(q) ||
+             (p.barcode || '').toLowerCase().includes(q);
+    }).slice(0, 8);
+  }, [productSearch, products, selectedSupplier]);
 
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearch.trim()) return [];
@@ -175,7 +180,15 @@ export default function CreatePurchaseReturnPage() {
 
           if (!sku) return;
 
-          const matched = products.find(p => (p.sku || '').toLowerCase() === sku.toLowerCase());
+          const matched = products.find(p => {
+            if ((p.sku || '').toLowerCase() !== sku.toLowerCase()) return false;
+            if (selectedSupplier) {
+              const suppId = Number(selectedSupplier.id);
+              const pSuppId = Number(p.supplierId || p.supplier_id || p.supplier?.id);
+              if (pSuppId && pSuppId !== suppId) return false;
+            }
+            return true;
+          });
           if (matched) {
             added++;
             newItems.push({
