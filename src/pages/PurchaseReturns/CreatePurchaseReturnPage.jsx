@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2 } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import Button from '../../components/ui/Button';
-import { purchaseOrderAPI, purchaseReturnAPI, employeeAPI } from '../../services/api';
+import { purchaseOrderAPI, purchaseReturnAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
+import ProductModal from '../Products/ProductModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -12,9 +14,12 @@ export default function CreatePurchaseReturnPage() {
   const [searchParams] = useSearchParams();
   const poId = searchParams.get('poId');
 
-  const [po, setPo] = useState(null);
-  const [supplier, setSupplier] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [employees, setEmployees] = useState(['Võ Thành Huy', 'Nguyễn Văn A', 'Trần Thị B']);
+  
+  const [po, setPo] = useState(null);
+  const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState('Võ Thành Huy');
   const [returnDate, setReturnDate] = useState(() => {
     const now = new Date();
@@ -25,47 +30,194 @@ export default function CreatePurchaseReturnPage() {
   const [discountStr, setDiscountStr] = useState('0');
   const [paidAmountStr, setPaidAmountStr] = useState('');
   const [note, setNote] = useState('');
+  
+  const [productSearch, setProductSearch] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [productModalOpen, setProductModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const loadPO = async () => {
-    if (!poId) {
-      toast.error('Không tìm thấy ID phiếu nhập');
-      return;
-    }
+  const loadData = async () => {
     try {
-      const [poRes, empRes] = await Promise.all([
-        purchaseOrderAPI.getById(poId),
+      const [prodRes, suppRes, empRes] = await Promise.all([
+        productAPI.getAll().catch(() => []),
+        supplierAPI.getAllSimple().catch(() => []),
         employeeAPI.getAll().catch(() => []),
       ]);
-
-      if (poRes) {
-        setPo(poRes);
-        if (poRes.supplier) setSupplier(poRes.supplier);
-        if (Array.isArray(poRes.items)) {
-          setItems(poRes.items.map((it, idx) => ({
-            id: it.productId || it.product?.id || it.id,
-            sku: it.product?.sku || it.product_sku || `SP00${idx+1}`,
-            name: it.product?.name || it.product_name || '',
-            unit: it.product?.unit || it.unit || 'Cái',
-            max_quantity: Number(it.quantity || 0),
-            return_quantity: Number(it.quantity || 0),
-            import_price: Number(it.price || it.unit_price || 0),
-            return_price: Number(it.price || it.unit_price || 0),
-            note: '',
-          })));
-        }
-      }
+      const prodList = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+      const suppList = Array.isArray(suppRes) ? suppRes : [];
+      setProducts(prodList);
+      setSuppliers(suppList);
       if (Array.isArray(empRes) && empRes.length > 0) {
         setEmployees(empRes.map(e => e.name || e.fullName || 'Võ Thành Huy'));
       }
+
+      if (poId) {
+        const poRes = await purchaseOrderAPI.getById(poId).catch(() => null);
+        if (poRes) {
+          setPo(poRes);
+          if (poRes.supplier) setSelectedSupplier(poRes.supplier);
+          if (Array.isArray(poRes.items)) {
+            setItems(poRes.items.map((it, idx) => ({
+              id: it.productId || it.product?.id || it.id,
+              sku: it.product?.sku || it.product_sku || `SP00${idx+1}`,
+              name: it.product?.name || it.product_name || '',
+              unit: it.product?.unit || it.unit || 'Cái',
+              max_quantity: Number(it.quantity || 0),
+              return_quantity: Number(it.quantity || 0),
+              import_price: Number(it.price || it.unit_price || 0),
+              return_price: Number(it.price || it.unit_price || 0),
+              note: '',
+            })));
+          }
+        }
+      }
     } catch (e) {
-      toast.error('Lỗi khi tải dữ liệu phiếu nhập');
+      toast.error('Lỗi khi tải dữ liệu ban đầu');
     }
   };
 
   useEffect(() => {
-    loadPO();
+    loadData();
   }, [poId]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return [];
+    const q = productSearch.toLowerCase();
+    return products.filter(p => 
+      (p.name || '').toLowerCase().includes(q) || 
+      (p.sku || '').toLowerCase().includes(q) ||
+      (p.barcode || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [productSearch, products]);
+
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch.trim()) return [];
+    const q = supplierSearch.toLowerCase();
+    return suppliers.filter(s => 
+      (s.name || '').toLowerCase().includes(q) || 
+      (s.code || '').toLowerCase().includes(q) ||
+      (s.phone || '').toLowerCase().includes(q)
+    ).slice(0, 6);
+  }, [supplierSearch, suppliers]);
+
+  const handleAddProduct = (prod) => {
+    setItems(prev => {
+      const ex = prev.find(i => i.id === prod.id);
+      if (ex) {
+        return prev.map(i => i.id === prod.id ? { ...i, return_quantity: i.return_quantity + 1 } : i);
+      }
+      return [...prev, {
+        id: prod.id,
+        sku: prod.sku,
+        name: prod.name,
+        unit: prod.unit || 'Cái',
+        max_quantity: 999999, // Đơn độc lập không giới hạn số lượng
+        return_quantity: 1,
+        import_price: prod.costPrice || prod.cost_price || 0,
+        return_price: prod.costPrice || prod.cost_price || 0,
+        note: '',
+      }];
+    });
+    setProductSearch('');
+  };
+
+  const handleCreateSupplier = async () => {
+    const name = window.prompt('Nhập tên nhà cung cấp mới:');
+    if (!name || !name.trim()) return;
+    try {
+      const res = await supplierAPI.create({ 
+        name: name.trim(), 
+        code: `NCC${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        phone: '0901234567',
+        address: 'Hà Nội'
+      });
+      setSuppliers(prev => [...prev, res]);
+      setSelectedSupplier(res);
+      setSupplierSearch('');
+      toast.success('Đã tạo nhà cung cấp mới');
+    } catch (e) {
+      toast.error('Lỗi khi tạo nhà cung cấp');
+    }
+  };
+
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const skuKeys = ['sku', 'ma_hang', 'mã hàng', 'ma hang', 'mã_hàng'];
+        const qtyKeys = ['so_luong', 'số lượng', 'quantity', 'qty', 'sl'];
+        const priceKeys = ['don_gia', 'đơn giá', 'price', 'cost_price', 'gia_nhap', 'giá nhập', 'giá trả', 'gia_tra'];
+
+        const normalizeKey = (k) => String(k || '').trim().toLowerCase();
+
+        let added = 0;
+        const newItems = [];
+
+        rows.forEach(r => {
+          const keys = Object.keys(r);
+          const skuKey = keys.find(k => skuKeys.includes(normalizeKey(k)));
+          const qtyKey = keys.find(k => qtyKeys.includes(normalizeKey(k)));
+          const priceKey = keys.find(k => priceKeys.includes(normalizeKey(k)));
+
+          if (!skuKey) return;
+          const sku = String(r[skuKey] || '').trim();
+          const qty = Number(r[qtyKey]) || 1;
+          const price = Number(String(r[priceKey] || '').replace(/[^0-9.-]/g, ''));
+
+          if (!sku) return;
+
+          const matched = products.find(p => (p.sku || '').toLowerCase() === sku.toLowerCase());
+          if (matched) {
+            added++;
+            newItems.push({
+              id: matched.id,
+              sku: matched.sku,
+              name: matched.name,
+              unit: matched.unit || 'Cái',
+              max_quantity: 999999,
+              return_quantity: qty > 0 ? qty : 1,
+              import_price: !Number.isNaN(price) ? price : matched.costPrice || matched.cost_price || 0,
+              return_price: !Number.isNaN(price) ? price : matched.costPrice || matched.cost_price || 0,
+              note: '',
+            });
+          }
+        });
+
+        if (added > 0) {
+          setItems(prev => [...prev, ...newItems]);
+          toast.success(`Import thành công ${added} sản phẩm!`);
+        } else {
+          toast.error('Không tìm thấy mã hàng nào khớp trong hệ thống');
+        }
+      } catch (err) {
+        toast.error('Lỗi khi đọc file Excel');
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleDownloadSample = () => {
+    const sampleData = [
+      { 'Mã hàng': 'SP001', 'Số lượng': 5, 'Đơn giá': 150000 },
+      { 'Mã hàng': 'SP002', 'Số lượng': 10, 'Đơn giá': 85000 },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'MauTraHangNhap');
+    XLSX.writeFile(wb, 'FileMau_TraHangNhap.xlsx');
+    toast.success('Đã tải file mẫu');
+  };
 
   const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
   const actualDiscount = Number(discountStr.replace(/\D/g, '')) || 0;
@@ -103,13 +255,15 @@ export default function CreatePurchaseReturnPage() {
   };
 
   const handleRemoveItem = (id) => {
-    setItems(prev => prev.map(it => {
-      if (it.id === id) return { ...it, return_quantity: 0 };
-      return it;
-    }));
+    setItems(prev => prev.filter(it => it.id !== id));
   };
 
   const handleSaveReturn = async (saveStatus) => {
+    if (!selectedSupplier) {
+      toast.error('Vui lòng chọn nhà cung cấp');
+      return;
+    }
+
     const validItems = items.filter(it => it.return_quantity > 0);
     if (validItems.length === 0) {
       toast.error('Vui lòng chọn ít nhất 1 sản phẩm có số lượng trả > 0');
@@ -119,8 +273,8 @@ export default function CreatePurchaseReturnPage() {
     setSaving(true);
     try {
       const payload = {
-        purchaseOrderId: Number(poId),
-        supplierId: Number(supplier?.id || po?.supplierId),
+        purchaseOrderId: poId ? Number(poId) : null,
+        supplierId: Number(selectedSupplier.id),
         items: validItems.map(it => ({
           productId: it.id,
           quantity: Number(it.return_quantity),
@@ -152,13 +306,14 @@ export default function CreatePurchaseReturnPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
         <div className="flex items-center gap-6">
           <button 
-            onClick={() => navigate('/purchase-orders')}
+            onClick={() => navigate('/purchase-returns')}
             className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
           >
             <ArrowLeft size={20} className="text-gray-500" />
             <span>Trả hàng nhập</span>
           </button>
 
+          {/* Product Search Bar */}
           <div className="relative w-96">
             <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
               <Search size={18} className="text-gray-400 shrink-0" />
@@ -166,8 +321,38 @@ export default function CreatePurchaseReturnPage() {
                 type="text" 
                 placeholder="Tìm hàng hóa theo mã hoặc tên (F3)" 
                 className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                value={productSearch}
+                onChange={e => setProductSearch(e.target.value)}
               />
+              <button className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer border-none bg-transparent" title="Quét mã vạch">
+                <Scan size={18} />
+              </button>
+              <button 
+                onClick={() => setProductModalOpen(true)}
+                className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors border-none"
+                title="Thêm hàng hóa mới"
+              >
+                <Plus size={18} />
+              </button>
             </div>
+
+            {filteredProducts.length > 0 && (
+              <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-80 overflow-y-auto z-50 divide-y divide-gray-50">
+                {filteredProducts.map(p => (
+                  <div 
+                    key={p.id}
+                    onClick={() => handleAddProduct(p)}
+                    className="p-3 hover:bg-blue-50/60 cursor-pointer flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-sm text-gray-800">{p.name}</span>
+                      <span className="text-xs text-primary font-bold">{p.sku} {p.barcode ? ` - ${p.barcode}` : ''}</span>
+                    </div>
+                    <span className="font-extrabold text-sm text-gray-700">{fmt(p.costPrice || p.cost_price || 0)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -180,88 +365,111 @@ export default function CreatePurchaseReturnPage() {
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Table Section */}
+        {/* Left Table Section / Empty State */}
         <div className="flex-1 flex flex-col bg-white overflow-hidden m-4 rounded-2xl shadow-sm border border-gray-200">
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/80 text-gray-700 text-xs font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-                  <th className="py-3.5 px-4 w-12 text-center"></th>
-                  <th className="py-3.5 px-4 w-16 text-center">STT</th>
-                  <th className="py-3.5 px-4 w-32">Mã hàng</th>
-                  <th className="py-3.5 px-4 flex-1">Tên hàng</th>
-                  <th className="py-3.5 px-4 w-24 text-center">ĐVT</th>
-                  <th className="py-3.5 px-4 w-36 text-right">Số lượng</th>
-                  <th className="py-3.5 px-4 w-32 text-right">Giá nhập</th>
-                  <th className="py-3.5 px-4 w-32 text-right">Giá trả lại</th>
-                  <th className="py-3.5 px-4 w-36 text-right font-extrabold text-primary">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs divide-y divide-gray-100">
-                {items.map((it, idx) => (
-                  <tr key={it.id} className="hover:bg-blue-50/50 transition-colors group">
-                    <td className="py-3 px-4 text-center">
-                      <button 
-                        onClick={() => handleRemoveItem(it.id)}
-                        className="text-gray-400 hover:text-red-500 p-1.5 rounded-xl transition-colors cursor-pointer border-none bg-transparent"
-                        title="Xóa dòng"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                    <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
-                    <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-gray-900 mb-1">{it.name}</div>
-                      <div className="flex items-center gap-1.5">
+          {items.length > 0 ? (
+            <div className="overflow-y-auto flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50/80 text-gray-700 text-xs font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+                    <th className="py-3.5 px-4 w-12 text-center"></th>
+                    <th className="py-3.5 px-4 w-16 text-center">STT</th>
+                    <th className="py-3.5 px-4 w-32">Mã hàng</th>
+                    <th className="py-3.5 px-4 flex-1">Tên hàng</th>
+                    <th className="py-3.5 px-4 w-24 text-center">ĐVT</th>
+                    <th className="py-3.5 px-4 w-36 text-right">Số lượng</th>
+                    <th className="py-3.5 px-4 w-32 text-right">Giá nhập</th>
+                    <th className="py-3.5 px-4 w-32 text-right">Giá trả lại</th>
+                    <th className="py-3.5 px-4 w-36 text-right font-extrabold text-primary">Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs divide-y divide-gray-100">
+                  {items.map((it, idx) => (
+                    <tr key={it.id} className="hover:bg-blue-50/50 transition-colors group">
+                      <td className="py-3 px-4 text-center">
+                        <button 
+                          onClick={() => handleRemoveItem(it.id)}
+                          className="text-gray-400 hover:text-red-500 p-1.5 rounded-xl transition-colors cursor-pointer border-none bg-transparent"
+                          title="Xóa dòng"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                      <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
+                      <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-gray-900 mb-1">{it.name}</div>
+                        <div className="flex items-center gap-1.5">
+                          <input 
+                            type="text"
+                            value={it.note}
+                            onChange={(e) => handleNoteChange(it.id, e.target.value)}
+                            placeholder="Ghi chú..." 
+                            className="text-[11px] text-gray-500 italic bg-transparent border-b border-dashed border-gray-300 focus:border-primary focus:outline-none px-1 py-0.5 w-48 font-medium"
+                          />
+                          <Edit2 size={12} className="text-gray-400" />
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-center text-gray-600 font-medium">{it.unit}</td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <input 
+                            type="number"
+                            value={it.return_quantity}
+                            onChange={(e) => handleQuantityChange(it.id, e.target.value)}
+                            className="w-16 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
+                          />
+                          {poId && <span className="text-gray-400 font-medium">/{it.max_quantity}</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-medium text-gray-600">
+                        {fmt(it.import_price)}
+                      </td>
+                      <td className="py-3 px-4 text-right">
                         <input 
                           type="text"
-                          value={it.note}
-                          onChange={(e) => handleNoteChange(it.id, e.target.value)}
-                          placeholder="Ghi chú..." 
-                          className="text-[11px] text-gray-500 italic bg-transparent border-b border-dashed border-gray-300 focus:border-primary focus:outline-none px-1 py-0.5 w-48 font-medium"
+                          value={fmt(it.return_price)}
+                          onChange={(e) => handlePriceChange(it.id, e.target.value)}
+                          className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
                         />
-                        <Edit2 size={12} className="text-gray-400" />
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600 font-medium">{it.unit}</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <input 
-                          type="number"
-                          value={it.return_quantity}
-                          onChange={(e) => handleQuantityChange(it.id, e.target.value)}
-                          className="w-16 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
-                        />
-                        <span className="text-gray-400 font-medium">/{it.max_quantity}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-medium text-gray-600">
-                      {fmt(it.import_price)}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <input 
-                        type="text"
-                        value={fmt(it.return_price)}
-                        onChange={(e) => handlePriceChange(it.id, e.target.value)}
-                        className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-right font-extrabold text-primary text-sm">
-                      {fmt(it.return_quantity * it.return_price)}
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan="9" className="py-16 text-center text-gray-400 italic font-medium">
-                      Không có sản phẩm nào trong phiếu nhập này
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-extrabold text-primary text-sm">
+                        {fmt(it.return_quantity * it.return_price)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/30">
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-primary shadow-inner">
+                <FileSpreadsheet size={40} />
+              </div>
+              <h3 className="text-base font-extrabold text-gray-800 mb-1">Thêm sản phẩm từ file excel</h3>
+              <button 
+                onClick={handleDownloadSample}
+                className="text-xs text-primary hover:underline font-bold mb-6 cursor-pointer border-none bg-transparent"
+              >
+                (Tải về file mẫu: Excel file)
+              </button>
+
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImportExcel} 
+                accept=".xlsx, .xls" 
+                className="hidden" 
+              />
+              <Button 
+                variant="primary" 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 font-extrabold px-6 py-3 shadow-md bg-primary hover:bg-primary-hover rounded-xl cursor-pointer border-none"
+              >
+                <Upload size={18} /> Chọn file dữ liệu
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Right Panel Section */}
@@ -289,11 +497,58 @@ export default function CreatePurchaseReturnPage() {
               />
             </div>
 
-            {/* Supplier Info */}
+            {/* Supplier Search / Info */}
             <div>
               <label className="text-xs font-bold text-gray-500 mb-1.5 block">Nhà cung cấp</label>
-              <div className="py-2.5 px-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 shadow-inner">
-                {supplier?.name || po?.supplier?.name || 'Nhà cung cấp lẻ'}
+              <div className="relative">
+                {selectedSupplier ? (
+                  <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-sm text-gray-800">{selectedSupplier.name}</span>
+                      <span className="text-xs text-gray-500 font-medium">{selectedSupplier.phone || selectedSupplier.code}</span>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedSupplier(null)} 
+                      className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
+                      title="Xóa nhà cung cấp"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
+                    <Search size={16} className="text-gray-400 shrink-0" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm nhà cung cấp" 
+                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                      value={supplierSearch}
+                      onChange={e => setSupplierSearch(e.target.value)}
+                    />
+                    <button 
+                      onClick={handleCreateSupplier}
+                      className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors border-none"
+                      title="Thêm nhà cung cấp mới"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                )}
+
+                {!selectedSupplier && filteredSuppliers.length > 0 && (
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
+                    {filteredSuppliers.map(s => (
+                      <div 
+                        key={s.id}
+                        onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
+                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                      >
+                        <span className="font-extrabold text-sm text-gray-800">{s.name}</span>
+                        <span className="text-xs text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -361,7 +616,7 @@ export default function CreatePurchaseReturnPage() {
               </div>
 
               <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-600 font-bold">Tính vào công nợ</span>
+                <span className="text- font-bold">Tính vào công nợ</span>
                 <span className="font-extrabold text-gray-900 text-sm">{fmt(debtCalculation)}</span>
               </div>
             </div>
@@ -398,6 +653,15 @@ export default function CreatePurchaseReturnPage() {
           </div>
         </div>
       </div>
+
+      <ProductModal 
+        open={productModalOpen}
+        onClose={() => setProductModalOpen(false)}
+        onSaved={() => {
+          loadData();
+          toast.success('Đã thêm hàng hóa mới');
+        }} 
+      />
     </div>
   );
 }

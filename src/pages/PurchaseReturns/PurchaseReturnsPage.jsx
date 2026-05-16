@@ -217,7 +217,7 @@ export default function PurchaseReturnsPage() {
           </div>
 
           {/* Action Buttons */}
-          <Button variant="primary" onClick={() => navigate('/purchase-orders')} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl cursor-pointer">
+          <Button variant="primary" onClick={() => navigate('/purchase-returns/create')} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl cursor-pointer">
             <Plus size={18} /> Trả hàng nhập
           </Button>
 
