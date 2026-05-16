@@ -53,11 +53,12 @@ export default function MultiSelectFilter({
     });
   };
 
-  const removeTag = (value) => {
+  const removeTag = (value, autoApply = false) => {
     const key = String(value);
     setChecked((prev) => {
       const next = new Set(prev);
       next.delete(key);
+      if (autoApply) onApply?.(Array.from(next));
       return next;
     });
   };
@@ -101,7 +102,7 @@ export default function MultiSelectFilter({
                       className="cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        removeTag(it.value);
+                        removeTag(it.value, true);
                       }}
                     >
                       <X size={12} />

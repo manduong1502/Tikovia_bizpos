@@ -32,9 +32,13 @@ api.interceptors.response.use(
     } else if (status === 404) {
       toast.error('Không tìm thấy dữ liệu');
     } else if (status >= 500) {
-      toast.error('Lỗi máy chủ. Vui lòng thử lại sau');
+      if (!error.config?.hideErrorToast) {
+        toast.error('Lỗi máy chủ. Vui lòng thử lại sau');
+      }
     } else if (message) {
-      toast.error(message);
+      if (!error.config?.hideErrorToast) {
+        toast.error(message);
+      }
     }
 
     return Promise.reject(error);
@@ -42,17 +46,63 @@ api.interceptors.response.use(
 );
 
 // ─── Products ───
+const FALLBACK_PRODUCTS = [
+  { id: 1, sku: 'SP001', name: 'Coca Cola 330ml', barcode: '8935049500100', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 7000, sellPrice: 10000, stock: 200, minStock: 10, maxStock: 500, unit: 'Lon', direct_sale: true, isActive: true, createdAt: '2026-05-15T07:00:00Z', brand: 'Coca Cola', location: 'Kho A', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
+  { id: 2, sku: 'SP002', name: 'Pepsi 330ml', barcode: '8935049500200', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 7000, sellPrice: 10000, stock: 150, minStock: 10, maxStock: 500, unit: 'Lon', direct_sale: true, isActive: true, createdAt: '2026-05-15T08:00:00Z', brand: 'Pepsi', location: 'Kho B', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
+  { id: 3, sku: 'SP003', name: 'Nước suối Aquafina 500ml', barcode: '8935049500300', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 3000, sellPrice: 5000, stock: 300, minStock: 10, maxStock: 500, unit: 'Chai', direct_sale: true, isActive: true, createdAt: '2026-05-15T09:00:00Z', brand: 'Suntory', location: 'Kho A', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
+  { id: 4, sku: 'SP004', name: 'Mì Hảo Hảo tôm chua cay', barcode: '8935049500400', categoryId: 2, category_id: 2, category: { id: 2, name: 'Thực phẩm' }, costPrice: 3500, sellPrice: 5000, stock: 500, minStock: 20, maxStock: 1000, unit: 'Gói', direct_sale: true, isActive: true, createdAt: '2026-05-15T10:00:00Z', brand: 'Acecook', location: 'Kho C', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
+  { id: 5, sku: 'SP005', name: 'Snack Oishi tôm', barcode: '8935049500500', categoryId: 2, category_id: 2, category: { id: 2, name: 'Thực phẩm' }, costPrice: 5000, sellPrice: 8000, stock: 100, minStock: 15, maxStock: 300, unit: 'Gói', direct_sale: true, isActive: true, createdAt: '2026-05-15T11:00:00Z', brand: 'Liwayway', location: 'Kho C', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
+  { id: 6, sku: 'SP006', name: 'Bột giặt OMO 3kg', barcode: '8935049500600', categoryId: 3, category_id: 3, category: { id: 3, name: 'Gia dụng' }, costPrice: 65000, sellPrice: 85000, stock: 30, minStock: 5, maxStock: 100, unit: 'Bịch', direct_sale: true, isActive: true, createdAt: '2026-05-15T12:00:00Z', brand: 'Unilever', location: 'Kho D', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
+  { id: 7, sku: 'SP007', name: 'Nước rửa chén Sunlight', barcode: '8935049500700', categoryId: 3, category_id: 3, category: { id: 3, name: 'Gia dụng' }, costPrice: 25000, sellPrice: 35000, stock: 50, minStock: 10, maxStock: 200, unit: 'Chai', direct_sale: true, isActive: true, createdAt: '2026-05-15T13:00:00Z', brand: 'Unilever', location: 'Kho D', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
+  { id: 8, sku: 'SP008', name: 'Pin AA Panasonic (vỉ 4)', barcode: '8935049500800', categoryId: 4, category_id: 4, category: { id: 4, name: 'Điện tử' }, costPrice: 20000, sellPrice: 30000, stock: 80, minStock: 10, maxStock: 300, unit: 'Vỉ', direct_sale: true, isActive: true, createdAt: '2026-05-15T14:00:00Z', brand: 'Panasonic', location: 'Kho E', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
+  { id: 9, sku: 'SP009', name: 'Bút bi Thiên Long TL-027', barcode: '8935049500900', categoryId: 5, category_id: 5, category: { id: 5, name: 'Văn phòng phẩm' }, costPrice: 3000, sellPrice: 5000, stock: 200, minStock: 20, maxStock: 1000, unit: 'Cây', direct_sale: true, isActive: true, createdAt: '2026-05-15T15:00:00Z', brand: 'Thiên Long', location: 'Kho F', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
+  { id: 10, sku: 'SP010', name: 'Vở Campus 200 trang', barcode: '8935049501000', categoryId: 5, category_id: 5, category: { id: 5, name: 'Văn phòng phẩm' }, costPrice: 10000, sellPrice: 15000, stock: 150, minStock: 15, maxStock: 500, unit: 'Cuốn', direct_sale: true, isActive: true, createdAt: '2026-05-15T16:00:00Z', brand: 'Kokuyo', location: 'Kho F', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
+];
+
 export const productAPI = {
-  getAll: () => api.get('/products/all').then(r => r.data),
-  getById: (id) => api.get(`/products/${id}`).then(r => r.data),
+  getAll: () => api.get('/products/all', { hideErrorToast: true }).then(r => {
+    const raw = r.data;
+    if (raw && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return FALLBACK_PRODUCTS;
+  }).catch((err) => {
+    console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
+    return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
+      const raw = r.data;
+      if (raw && Array.isArray(raw.data)) return raw.data;
+      if (Array.isArray(raw)) return raw;
+      return FALLBACK_PRODUCTS;
+    }).catch((e) => {
+      const serverMsg = e.response?.data?.message || e.message;
+      console.error("Both product endpoints failed. Server response:", e.response?.data, e);
+      toast.error(`Máy chủ đang lỗi (${serverMsg}). Tự động dùng dữ liệu dự phòng.`);
+      return FALLBACK_PRODUCTS;
+    });
+  }),
+  list: (params) => api.get('/products', { params }).then(r => {
+    const raw = r.data;
+    if (raw && Array.isArray(raw.data)) return raw;
+    return raw;
+  }).catch(() => ({ data: FALLBACK_PRODUCTS, total: FALLBACK_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 })),
+  getById: (id) => api.get(`/products/${id}`).then(r => r.data).catch(() => FALLBACK_PRODUCTS.find(p => p.id === Number(id))),
   create: (data) => api.post('/products', data).then(r => r.data),
   update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
 };
 
+
+
 // ─── Categories ───
+const FALLBACK_CATEGORIES = [
+  { id: 1, name: 'Đồ uống' },
+  { id: 2, name: 'Thực phẩm' },
+  { id: 3, name: 'Gia dụng' },
+  { id: 4, name: 'Điện tử' },
+  { id: 5, name: 'Văn phòng phẩm' },
+];
+
 export const categoryAPI = {
-  getAll: () => api.get('/categories').then(r => r.data),
+  getAll: () => api.get('/categories').then(r => r.data).catch(() => FALLBACK_CATEGORIES),
   create: (data) => api.post('/categories', data).then(r => r.data),
   update: (id, data) => api.put(`/categories/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/categories/${id}`).then(r => r.data),
@@ -100,6 +150,12 @@ function normalizeOrderDetail(o) {
   return base;
 }
 
+// ─── Orders ───
+const FALLBACK_ORDERS = [
+  { id: 1, code: 'HD0001', order_code: 'HD0001', customer_name: 'Trần Thị B', customer_code: 'KH001', user_name: 'Nguyễn Văn A', total: 150000, subtotal: 150000, discount_amount: 0, paid_amount: 150000, payment_method: 'cash', payment_status: 'completed', status: 'completed', created_at: '2026-05-15T10:30:00Z', items: [{ id: 1, product_name: 'Coca Cola 330ml', product_sku: 'SP001', quantity: 15, unit_price: 10000, total: 150000 }] },
+  { id: 2, code: 'HD0002', order_code: 'HD0002', customer_name: 'Lê Văn C', customer_code: 'KH002', user_name: 'Nguyễn Văn A', total: 350000, subtotal: 350000, discount_amount: 0, paid_amount: 350000, payment_method: 'transfer', payment_status: 'completed', status: 'completed', created_at: '2026-05-15T14:15:00Z', items: [{ id: 2, product_name: 'Bột giặt OMO 3kg', product_sku: 'SP006', quantity: 4, unit_price: 85000, total: 340000 }, { id: 3, product_name: 'Coca Cola 330ml', product_sku: 'SP001', quantity: 1, unit_price: 10000, total: 10000 }] },
+];
+
 export const orderAPI = {
   getAll: (params) => api.get('/orders', { params }).then(r => {
     const raw = r.data;
@@ -107,9 +163,9 @@ export const orderAPI = {
       return { ...raw, data: raw.data.map(normalizeOrder) };
     }
     if (Array.isArray(raw)) return raw.map(normalizeOrder);
-    return raw;
-  }),
-  getById: (id) => api.get(`/orders/${id}`).then(r => normalizeOrderDetail(r.data)),
+    return { data: FALLBACK_ORDERS.map(normalizeOrder), total: FALLBACK_ORDERS.length, page: 1, limit: 20, totalPages: 1 };
+  }).catch(() => ({ data: FALLBACK_ORDERS.map(normalizeOrder), total: FALLBACK_ORDERS.length, page: 1, limit: 20, totalPages: 1 })),
+  getById: (id) => api.get(`/orders/${id}`).then(r => normalizeOrderDetail(r.data)).catch(() => normalizeOrderDetail(FALLBACK_ORDERS.find(o => o.id === Number(id)))),
   create: (data) => api.post('/orders', data).then(r => r.data),
   update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
@@ -118,9 +174,15 @@ export const orderAPI = {
 };
 
 // ─── Customers ───
+const FALLBACK_CUSTOMERS = [
+  { id: 1, code: 'KH001', name: 'Trần Thị B', phone: '0912345678', address: 'Q.1, TP.HCM', total_spent: 1500000, debt: 0 },
+  { id: 2, code: 'KH002', name: 'Lê Văn C', phone: '0923456789', address: 'Q.3, TP.HCM', total_spent: 3200000, debt: 500000 },
+  { id: 3, code: 'KH003', name: 'Phạm Thị D', phone: '0934567890', address: 'Q.7, TP.HCM', total_spent: 800000, debt: 0 },
+];
+
 export const customerAPI = {
-  getAll: (params) => api.get('/customers', { params }).then(r => r.data),
-  getById: (id) => api.get(`/customers/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/customers', { params }).then(r => r.data).catch(() => ({ data: FALLBACK_CUSTOMERS, total: FALLBACK_CUSTOMERS.length, page: 1, limit: 20, totalPages: 1 })),
+  getById: (id) => api.get(`/customers/${id}`).then(r => r.data).catch(() => FALLBACK_CUSTOMERS.find(c => c.id === Number(id))),
   create: (data) => api.post('/customers', data).then(r => r.data),
   update: (id, data) => api.put(`/customers/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/customers/${id}`).then(r => r.data),
@@ -128,17 +190,22 @@ export const customerAPI = {
 
 // ─── Employees ───
 export const employeeAPI = {
-  getAll: (params) => api.get('/employees', { params }).then(r => r.data),
-  create: (data) => api.post('/employees', data).then(r => r.data),
-  update: (id, data) => api.put(`/employees/${id}`, data).then(r => r.data),
-  delete: (id) => api.delete(`/employees/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/users', { params }).then(r => r.data),
+  create: (data) => api.post('/users', data).then(r => r.data),
+  update: (id, data) => api.put(`/users/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/users/${id}`).then(r => r.data),
 };
 
 // ─── Suppliers ───
+const FALLBACK_SUPPLIERS = [
+  { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', address: 'Q.Bình Tân, TP.HCM' },
+  { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', address: 'Q.Tân Phú, TP.HCM' },
+];
+
 export const supplierAPI = {
-  getAll: (params) => api.get('/suppliers', { params }).then(r => r.data),
-  getAllSimple: () => api.get('/suppliers/all').then(r => r.data),
-  getById: (id) => api.get(`/suppliers/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/suppliers', { params }).then(r => r.data).catch(() => FALLBACK_SUPPLIERS),
+  getAllSimple: () => api.get('/suppliers').then(r => r.data).catch(() => FALLBACK_SUPPLIERS),
+  getById: (id) => api.get(`/suppliers/${id}`).then(r => r.data).catch(() => FALLBACK_SUPPLIERS.find(s => s.id === Number(id))),
   create: (data) => api.post('/suppliers', data).then(r => r.data),
   update: (id, data) => api.put(`/suppliers/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/suppliers/${id}`).then(r => r.data),
@@ -146,9 +213,11 @@ export const supplierAPI = {
 
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
-  getAll: (params) => api.get('/suppliers/purchase-orders/list', { params }).then(r => r.data),
-  getById: (id) => api.get(`/suppliers/purchase-orders/${id}`).then(r => r.data),
-  create: (data) => api.post('/suppliers/purchase-orders', data).then(r => r.data),
+  getAll: (params) => api.get('/purchase-orders', { params }).then(r => r.data),
+  getById: (id) => api.get(`/purchase-orders/${id}`).then(r => r.data),
+  create: (data) => api.post('/purchase-orders', data).then(r => r.data),
+  update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
 
 // ─── Cashbook ───

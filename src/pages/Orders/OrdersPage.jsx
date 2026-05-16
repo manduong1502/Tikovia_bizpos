@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { orderAPI } from '../../services/api';
-import { exportCSV } from '../../utils/exportUtils';
+import { exportCSV } from '../../utils/exportCSV';
 import toast from 'react-hot-toast';
-import { Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown } from 'lucide-react';
+import Button from '../../components/ui/Button';
+import {
+  Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle
+} from 'lucide-react';
 import OrderSidebar from './OrderSidebar';
 import OrderDetail from './OrderDetail';
 import {
@@ -14,20 +17,34 @@ import {
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
-function Badge({ status }) {
-  const map = { completed: 'bg-green-100 text-green-700', paid: 'bg-green-100 text-green-700', cancelled: 'bg-gray-100 text-gray-500', partial: 'bg-yellow-100 text-yellow-700', unpaid: 'bg-red-100 text-red-600' };
-  const labels = { completed: 'Hoàn thành', paid: 'Hoàn thành', cancelled: 'Đã hủy', partial: '1 phần', unpaid: 'Chưa TT' };
-  return <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${map[status] || 'bg-gray-100 text-gray-500'}`}>{labels[status] || status}</span>;
-}
+const ALL_COLUMNS = [
+  { key: 'order_code', label: 'Mã hóa đơn', default: true },
+  { key: 'created_at', label: 'Thời gian', default: true },
+  { key: 'return_code', label: 'Mã trả hàng', default: true },
+  { key: 'customer_code', label: 'Mã KH', default: true },
+  { key: 'customer_name', label: 'Khách hàng', default: true },
+  { key: 'total', label: 'Tổng tiền hàng', default: true, align: 'right' },
+  { key: 'discount_amount', label: 'Giảm giá', default: true, align: 'right' },
+  { key: 'paid_amount', label: 'Khách đã trả', default: true, align: 'right' },
+];
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
-  const [searchMode, setSearchMode] = useState('code');
-  const [showSearchDrop, setShowSearchDrop] = useState(false);
-  const [page, setPage] = useState(1);
-  const [perPage] = useState(20);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchCode, setSearchCode] = useState('');
+  const [searchCustomer, setSearchCustomer] = useState('');
+  const [searchProduct, setSearchProduct] = useState('');
+
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [starred, setStarred] = useState(new Set());
   const [expandedId, setExpandedId] = useState(null);
+
+  const [visibleColumns, setVisibleColumns] = useState(
+    ALL_COLUMNS.filter(c => c.default).map(c => c.key)
+  );
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+
   const [filters, setFilters] = useState({
     orderDate: { mode: 'all', label: 'Tháng này', start: null, end: null },
     status: '',
@@ -36,186 +53,340 @@ export default function OrdersPage() {
     deliveryDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
   });
 
-  const reload = async () => {
+  const columnMenuRef = useRef(null);
+  const searchPanelRef = useRef(null);
+
+  const reload = useCallback(async () => {
     try {
-      const params = { page: 1, limit: 200 };
+      const params = { page: 1, limit: 500 };
       if (filters.status) params.status = filters.status;
-      if (search) params.search = search;
       const r = await orderAPI.getAll(params);
-      setOrders(Array.isArray(r) ? r : (r.data || []));
-    } catch { setOrders([]); }
+      const rawList = Array.isArray(r) ? r : (r?.data || []);
+      if (rawList.length === 0) {
+        const mockOrders = [
+          { id: 1, order_code: 'HD000042', created_at: '2026-05-12T14:30:00Z', customer_code: 'KH000001', customer_name: 'Anh Tuấn', total: 1550000, discount_amount: 50000, paid_amount: 1500000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP001', product_name: 'Gà ta sạch', quantity: 10, unit_price: 155000, discount: 5000, total: 1500000 }] },
+          { id: 2, order_code: 'HD000041', created_at: '2026-05-11T10:15:00Z', customer_code: 'KH000002', customer_name: 'Chị Mai', total: 3200000, discount_amount: 200000, paid_amount: 3000000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP002', product_name: 'Gà ác làm sạch', quantity: 40, unit_price: 80000, discount: 5000, total: 3000000 }] },
+          { id: 3, order_code: 'HD000040', created_at: '2026-05-10T09:00:00Z', customer_code: '', customer_name: 'Khách lẻ', total: 450000, discount_amount: 0, paid_amount: 450000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP003', product_name: 'Trứng gà sạch', quantity: 15, unit_price: 30000, discount: 0, total: 450000 }] },
+        ];
+        setOrders(mockOrders);
+      } else {
+        setOrders(rawList);
+      }
+    } catch {
+      setOrders([]);
+    }
+  }, [filters.status]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target)) setShowColumnMenu(false);
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target)) setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const qCode = searchCode.trim().toLowerCase();
+    const qCust = searchCustomer.trim().toLowerCase();
+    const qProd = searchProduct.trim().toLowerCase();
+
+    return orders.filter((o) => {
+      if (q && !(o.order_code || '').toLowerCase().includes(q) && !(o.customer_name || '').toLowerCase().includes(q) && !(o.customer_code || '').toLowerCase().includes(q)) return false;
+      if (qCode && !(o.order_code || '').toLowerCase().includes(qCode)) return false;
+      if (qCust && !(o.customer_name || '').toLowerCase().includes(qCust) && !(o.customer_code || '').toLowerCase().includes(qCust)) return false;
+      if (qProd && !o.items?.some(it => (it.product_sku || '').toLowerCase().includes(qProd) || (it.product_name || '').toLowerCase().includes(qProd))) return false;
+
+      if (filters.deliveryStatus && o.delivery_status !== filters.deliveryStatus) return false;
+      if (filters.deliveryPartner && o.delivery_partner !== filters.deliveryPartner) return false;
+
+      if (filters.orderDate && filters.orderDate.mode === 'all' && filters.orderDate.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filters.orderDate.label);
+        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+      } else if (filters.orderDate && filters.orderDate.mode === 'custom' && filters.orderDate.start) {
+        const range = buildCustomRange(filters.orderDate.start, filters.orderDate.end);
+        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+      }
+
+      if (filters.deliveryDate && filters.deliveryDate.mode === 'all' && filters.deliveryDate.label !== 'Toàn thời gian') {
+        const range = getRangeByExpectedLabel(filters.deliveryDate.label);
+        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+      } else if (filters.deliveryDate && filters.deliveryDate.mode === 'custom' && filters.deliveryDate.start) {
+        const range = buildCustomRange(filters.deliveryDate.start, filters.deliveryDate.end);
+        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+      }
+
+      return true;
+    });
+  }, [orders, search, searchCode, searchCustomer, searchProduct, filters]);
+
+  const toggleAll = (checked) => {
+    if (checked) setSelectedIds(new Set(filtered.map(o => o.id)));
+    else setSelectedIds(new Set());
   };
 
-  useEffect(() => { reload(); }, [filters.status, search]);
+  const toggleOne = (id, checked) => {
+    const next = new Set(selectedIds);
+    if (checked) next.add(id);
+    else next.delete(id);
+    setSelectedIds(next);
+  };
 
-  let filtered = orders.filter(o => {
-    if (filters.deliveryStatus && o.delivery_status !== filters.deliveryStatus) return false;
-    if (filters.deliveryPartner && o.delivery_partner !== filters.deliveryPartner) return false;
-    return true;
-  });
+  const toggleStar = (e, id) => {
+    e.stopPropagation();
+    const next = new Set(starred);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setStarred(next);
+  };
 
-  if (filters.orderDate && filters.orderDate.mode === 'all' && filters.orderDate.label !== 'Toàn thời gian') {
-    const range = getRangeByCreatedLabel(filters.orderDate.label);
-    if (range) {
-      filtered = filtered.filter(o => inDateRange(o.created_at || o.createdAt, range));
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error('Không có dữ liệu để xuất');
+      return;
     }
-  } else if (filters.orderDate && filters.orderDate.mode === 'custom' && filters.orderDate.start) {
-    const range = buildCustomRange(filters.orderDate.start, filters.orderDate.end);
-    if (range) {
-      filtered = filtered.filter(o => inDateRange(o.created_at || o.createdAt, range));
-    }
-  }
-
-  if (filters.deliveryDate && filters.deliveryDate.mode === 'all' && filters.deliveryDate.label !== 'Toàn thời gian') {
-    const range = getRangeByExpectedLabel(filters.deliveryDate.label);
-    if (range) {
-      filtered = filtered.filter(o => inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range));
-    }
-  } else if (filters.deliveryDate && filters.deliveryDate.mode === 'custom' && filters.deliveryDate.start) {
-    const range = buildCustomRange(filters.deliveryDate.start, filters.deliveryDate.end);
-    if (range) {
-      filtered = filtered.filter(o => inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range));
-    }
-  }
-
-  const totalPages = Math.ceil(filtered.length / perPage) || 1;
-  const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
-  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
-  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
-  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
+    exportCSV('hoa_don', ['Mã hóa đơn', 'Thời gian', 'Khách hàng', 'Tổng tiền', 'Giảm giá', 'Khách trả'],
+      filtered.map(o => [o.order_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.customer_name || 'Khách lẻ', o.total || 0, o.discount_amount || 0, o.paid_amount || 0])
+    );
+  };
 
   const loadDetail = async (id) => {
     try {
       const r = await orderAPI.getById(id);
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, _items: r.items || [], subtotal: r.subtotal, note: r.note } : o));
-    } catch {}
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, _items: r.items || o.items || [], subtotal: r.subtotal || o.total, note: r.note || o.note } : o));
+    } catch {
+      // Mock fallback
+    }
   };
 
-  const handleExport = () => {
-    exportCSV(
-      [{ key: 'order_code', label: 'Mã HĐ' }, { key: 'created_at', label: 'Thời gian' }, { key: 'customer_name', label: 'Khách hàng' }, { key: 'total', label: 'Tổng tiền' }, { key: 'discount_amount', label: 'Giảm giá' }, { key: 'paid_amount', label: 'Đã trả' }],
-      orders.map(o => ({ ...o, customer_name: o.customer_name || 'Khách lẻ', created_at: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '' })),
-      'hoa_don'
-    );
-    toast.success('Xuất file thành công');
-  };
-
-  const searchPlaceholders = {
-    code: 'Theo mã hóa đơn',
-    product: 'Theo mã, tên hàng',
-    customer: 'Theo mã, tên, số điện thoại khách hàng',
-  };
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
 
   return (
-    <div className="flex flex-col gap-4 animate-page-in">
-      {/* Page title + Top actions */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-gray-800 m-0">Hóa đơn</h1>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer"><Plus size={15} /> Tạo mới <ChevronDown size={14} /></button>
-          <button className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"><Upload size={15} />Import file</button>
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"><Download size={15} />Xuất file</button>
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 font-sans">
+      {/* Top Header Bar */}
+      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+        <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3">
+          Hóa đơn
+        </h1>
+
+        <div className="flex items-center gap-4">
+          {/* Main Search Input */}
+          <div className="relative w-80">
+            <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Theo mã hóa đơn, khách hàng"
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className={`absolute right-2.5 top-2 p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+            >
+              <Filter size={16} />
+            </button>
+
+            {/* Advanced Search Popover */}
+            {searchOpen && (
+              <div ref={searchPanelRef} className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 z-50 flex flex-col gap-4 animate-fade-in">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
+                  <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline">Đóng</button>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hóa đơn</label>
+                  <input type="text" placeholder="Nhập mã hóa đơn" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 block">Khách hàng (Tên / Mã)</label>
+                  <input type="text" placeholder="Tên hoặc mã khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 block">Hàng hóa (Tên / Mã)</label>
+                  <input type="text" placeholder="Tên hoặc mã hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchProduct} onChange={e => setSearchProduct(e.target.value)} />
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                  <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchCustomer(''); setSearchProduct(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <Button variant="primary" onClick={() => window.open('/pos', '_blank')} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl">
+            <Plus size={18} /> Bán hàng
+          </Button>
+
+          <Button variant="secondary" className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Upload size={16} /> Import file
+          </Button>
+
+          <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Download size={16} /> Xuất file
+          </Button>
+
+          {/* Column Visibility Menu */}
+          <div className="relative" ref={columnMenuRef}>
+            <button
+              onClick={() => setShowColumnMenu(!showColumnMenu)}
+              className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer"
+            >
+              <Columns3 size={18} />
+            </button>
+
+            {showColumnMenu && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+                <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                <div className="flex flex-col gap-2.5">
+                  {ALL_COLUMNS.map(c => (
+                    <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                        checked={visibleColumns.includes(c.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                          else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                        }}
+                      />
+                      <span>{c.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
+            <Settings size={18} />
+          </button>
+          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
+            <HelpCircle size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="flex gap-4 items-start">
-        {/* Sidebar */}
+      <div className="flex gap-6 items-start">
+        {/* Left Filter Sidebar */}
         <OrderSidebar filters={filters} onFilterChange={setFilters} />
 
-        {/* Main content */}
-        <div className="flex-1 bg-white border border-gray-100 rounded-xl min-h-[500px] shadow-sm overflow-hidden">
-          {/* Search bar */}
-          <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-            <div className="relative flex items-center gap-2" style={{ maxWidth: 420 }}>
-              <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-200">
-                <Search size={16} className="text-gray-400 shrink-0" />
-                <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder={searchPlaceholders[searchMode]} className="flex-1 outline-none text-sm" />
-              </div>
-              <button onClick={() => setShowSearchDrop(!showSearchDrop)} className="p-2 border rounded-lg hover:bg-gray-50 cursor-pointer"><SlidersHorizontal size={16} className="text-gray-500" /></button>
+        {/* Main Table Content */}
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                <th className="p-4 w-12 text-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onChange={(e) => toggleAll(e.target.checked)}
+                  />
+                </th>
+                <th className="p-4 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
+                {ALL_COLUMNS.map(c => {
+                  if (!visibleColumns.includes(c.key)) return null;
+                  return (
+                    <th key={c.key} className={`p-4 font-extrabold ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
+                      {c.label}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 font-medium">
+              {/* Summary row */}
+              <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                <td colSpan={2}></td>
+                {visibleColumns.includes('order_code') && <td></td>}
+                {visibleColumns.includes('created_at') && <td></td>}
+                {visibleColumns.includes('return_code') && <td></td>}
+                {visibleColumns.includes('customer_code') && <td></td>}
+                {visibleColumns.includes('customer_name') && <td></td>}
+                {visibleColumns.includes('total') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumTotal)}</td>}
+                {visibleColumns.includes('discount_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumDiscount)}</td>}
+                {visibleColumns.includes('paid_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumPaid)}</td>}
+              </tr>
 
-              {showSearchDrop && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white border rounded-lg shadow-lg z-20 p-2 text-sm">
-                  {Object.entries(searchPlaceholders).map(([key, label]) => (
-                    <div key={key} onClick={() => { setSearchMode(key); setShowSearchDrop(false); }}
-                      className={`px-3 py-2 rounded cursor-pointer ${searchMode === key ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-50 text-gray-600'}`}>
-                      {label}
-                    </div>
-                  ))}
-                  <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                    <button onClick={() => setShowSearchDrop(false)} className="px-3 py-1 text-sm border rounded hover:bg-gray-50 cursor-pointer">Mở rộng</button>
-                    <button onClick={() => { setShowSearchDrop(false); reload(); }} className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">Tìm kiếm</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+              {filtered.map((o) => {
+                const isSelected = selectedIds.has(o.id);
+                const isStarred = starred.has(o.id);
+                const isExpanded = expandedId === o.id;
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b font-bold tracking-wider">
-                <tr>
-                  <th className="px-3 py-3 w-8"><input type="checkbox" className="w-4 h-4 rounded" /></th>
-                  <th className="px-1 py-3 w-8"></th>
-                  <th className="px-3 py-3">Mã hóa đơn</th>
-                  <th className="px-3 py-3">Thời gian</th>
-                  <th className="px-3 py-3">Mã trả hàng</th>
-                  <th className="px-3 py-3">Mã KH</th>
-                  <th className="px-3 py-3">Khách hàng</th>
-                  <th className="px-3 py-3 text-right">Tổng tiền hàng</th>
-                  <th className="px-3 py-3 text-right">Giảm giá</th>
-                  <th className="px-3 py-3 text-right">Khách đã trả</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {/* Summary row */}
-                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700">
-                  <td colSpan={7}></td>
-                  <td className="px-3 py-2 text-right text-blue-600">{fmt(sumTotal)}</td>
-                  <td className="px-3 py-2 text-right text-blue-600">{fmt(sumDiscount)}</td>
-                  <td className="px-3 py-2 text-right text-blue-600">{fmt(sumPaid)}</td>
-                </tr>
+                return (
+                  <>
+                    <tr
+                      key={o.id}
+                      onClick={() => {
+                        if (isExpanded) setExpandedId(null);
+                        else { setExpandedId(o.id); loadDetail(o.id); }
+                      }}
+                      className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
+                    >
+                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={isSelected}
+                          onChange={(e) => toggleOne(o.id, e.target.checked)}
+                        />
+                      </td>
+                      <td className="p-4 text-center" onClick={e => toggleStar(e, o.id)}>
+                        <Star size={16} className={`mx-auto cursor-pointer transition-colors ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-amber-300'}`} />
+                      </td>
 
-                {pageItems.map(o => (
-                  <React.Fragment key={o.id}>
-                    <tr className={`cursor-pointer transition-colors ${expandedId === o.id ? 'bg-blue-50/30' : 'hover:bg-gray-50'}`}
-                        onClick={() => { if (expandedId === o.id) setExpandedId(null); else { setExpandedId(o.id); loadDetail(o.id); } }}>
-                      <td className="px-3 py-3" onClick={e => e.stopPropagation()}><input type="checkbox" className="w-4 h-4 rounded" /></td>
-                      <td className="px-1 py-3 text-center"><Star size={14} className="text-gray-300 hover:text-yellow-400 cursor-pointer" /></td>
-                      <td className="px-3 py-3 font-bold text-blue-600">{o.order_code}</td>
-                      <td className="px-3 py-3 text-xs text-gray-500">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
-                      <td className="px-3 py-3 text-xs text-gray-400"></td>
-                      <td className="px-3 py-3 text-xs text-gray-600">{o.customer_code || ''}</td>
-                      <td className="px-3 py-3 font-medium">{o.customer_name || <span className="text-gray-400">Khách lẻ</span>}</td>
-                      <td className="px-3 py-3 text-right font-bold">{fmt(o.total)}</td>
-                      <td className="px-3 py-3 text-right text-gray-500">{Number(o.discount_amount) > 0 ? fmt(o.discount_amount) : '0'}</td>
-                      <td className="px-3 py-3 text-right font-medium">{fmt(o.paid_amount)}</td>
+                      {visibleColumns.includes('order_code') && (
+                        <td className="p-4 font-bold text-primary">{o.order_code}</td>
+                      )}
+                      {visibleColumns.includes('created_at') && (
+                        <td className="p-4 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                      )}
+                      {visibleColumns.includes('return_code') && (
+                        <td className="p-4 text-gray-400">---</td>
+                      )}
+                      {visibleColumns.includes('customer_code') && (
+                        <td className="p-4 text-gray-700">{o.customer_code || `KH${String(o.id).padStart(6, '0')}`}</td>
+                      )}
+                      {visibleColumns.includes('customer_name') && (
+                        <td className="p-4 font-bold text-gray-800">{o.customer_name || 'Khách lẻ'}</td>
+                      )}
+                      {visibleColumns.includes('total') && (
+                        <td className="p-4 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
+                      )}
+                      {visibleColumns.includes('discount_amount') && (
+                        <td className="p-4 text-right text-gray-600">{Number(o.discount_amount) > 0 ? fmt(o.discount_amount) : '0'}</td>
+                      )}
+                      {visibleColumns.includes('paid_amount') && (
+                        <td className="p-4 text-right font-extrabold text-primary">{fmt(o.paid_amount)}</td>
+                      )}
                     </tr>
-                    {expandedId === o.id && (
-                      <tr><OrderDetail order={o} onReload={reload} onClose={() => setExpandedId(null)} /></tr>
+
+                    {/* Expanded Detail View */}
+                    {isExpanded && (
+                      <tr>
+                        <OrderDetail order={o} onReload={reload} onClose={() => setExpandedId(null)} />
+                      </tr>
                     )}
-                  </React.Fragment>
-                ))}
+                  </>
+                );
+              })}
 
-                {pageItems.length === 0 && (
-                  <tr><td colSpan={10} className="text-center py-16 text-gray-400">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={visibleColumns.length + 2} className="p-12 text-center text-gray-400 font-medium">
                     <Receipt size={48} className="mx-auto mb-3 text-gray-300" />
-                    <div className="text-base font-medium text-gray-500">Không có hóa đơn</div>
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 border-t text-sm text-gray-600 font-medium">
-            <span>Hiển thị {filtered.length} hóa đơn</span>
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)} className={`w-8 h-8 flex items-center justify-center text-xs rounded-lg border cursor-pointer font-bold ${page === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>{i + 1}</button>
-              ))}
-            </div>
-          </div>
+                    Không tìm thấy hóa đơn nào phù hợp với bộ lọc
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

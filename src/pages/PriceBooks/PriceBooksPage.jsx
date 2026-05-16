@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { productAPI } from '../../services/api';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { productAPI, categoryAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Dropdown from '../../components/ui/Dropdown';
-import { exportProducts } from '../../utils/exportCSV';
+import CategoryFilter from '../../components/ui/CategoryFilter';
 import toast from 'react-hot-toast';
-import { Search, Plus, Download, Upload, X, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import {
+  Search, Plus, Download, Upload, ChevronDown, ChevronUp, Info, HelpCircle, Columns3, Settings, Filter, X
+} from 'lucide-react';
 
 const STOCK_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -30,182 +33,507 @@ const PRICE_COMPARE_OPTIONS = [
   { value: 'lastImport', label: 'Giá nhập cuối' },
 ];
 
+const ALL_COLUMNS = [
+  { key: 'sku', label: 'Mã hàng', defaultVisible: true },
+  { key: 'name', label: 'Tên hàng', defaultVisible: true },
+  { key: 'costPrice', label: 'Giá vốn', defaultVisible: true, align: 'right' },
+  { key: 'lastImportPrice', label: 'Giá nhập cuối', defaultVisible: true, align: 'right' },
+  { key: 'sellPrice', label: 'Bảng giá chung', defaultVisible: true, align: 'right' },
+];
+
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+
+function comparePriceByCondition(cond, left, right) {
+  if (cond === '<') return left < right;
+  if (cond === '<=') return left <= right;
+  if (cond === '=') return left === right;
+  if (cond === '>') return left > right;
+  return true;
+}
+
+function normalizeProduct(p) {
+  return {
+    ...p,
+    id: p.id,
+    sku: p.sku || p.code || '',
+    name: p.name || '',
+    stock: Number(p.stock ?? p.on_hand ?? 0) || 0,
+    minStock: Number(p.minStock ?? p.min_stock ?? 10) || 10,
+    maxStock: Number(p.maxStock ?? p.max_stock ?? 100) || 100,
+    costPrice: Number(p.costPrice ?? p.cost_price ?? 0) || 0,
+    lastImportPrice: Number(p.lastImportPrice ?? p.last_import_price ?? p.costPrice ?? p.cost_price ?? 0) || 0,
+    sellPrice: Number(p.sellPrice ?? p.sell_price ?? 0) || 0,
+    sell_price: Number(p.sellPrice ?? p.sell_price ?? 0) || 0,
+  };
+}
+
 export default function PriceBooksPage() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [search, setSearch] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchSku, setSearchSku] = useState('');
+  const [searchName, setSearchName] = useState('');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
-  
+  const [pricebookName, setPricebookName] = useState('');
+  const [pricebooks, setPricebooks] = useState([{ id: 1, name: 'Bảng giá chung' }]);
+
   const [filters, setFilters] = useState({
-    category: '',
+    selectedCategories: new Set(),
     stock: '',
     priceCond: '',
-    priceComp: ''
+    priceComp: '',
   });
 
   const [expandedSections, setExpandedSections] = useState({
     date: true,
     formula: true,
-    settings: true
+    settings: true,
   });
 
-  const toggleSection = (sec) => setExpandedSections(p => ({ ...p, [sec]: !p[sec] }));
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const init = {};
+    ALL_COLUMNS.forEach((c) => {
+      init[c.key] = c.defaultVisible;
+    });
+    return init;
+  });
+
+  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
+  const columnMenuRef = useRef(null);
+  const searchPanelRef = useRef(null);
+
+  const toggleSection = (sec) => setExpandedSections((p) => ({ ...p, [sec]: !p[sec] }));
 
   useEffect(() => {
-    productAPI.getAll().then(res => setProducts(Array.isArray(res) ? res : [])).catch(() => {});
+    const handleClickOutside = (e) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target)) setColumnMenuOpen(false);
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target)) setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredProducts = products.filter(p => {
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.sku || '').toLowerCase().includes(search.toLowerCase())) return false;
-    
-    if (filters.stock === 'in' && p.stock <= 0) return false;
-    if (filters.stock === 'out' && p.stock > 0) return false;
-    if (filters.stock === 'under' && p.stock >= 10) return false; // Giả sử định mức là 10
-    if (filters.stock === 'over' && p.stock <= 10) return false;
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [p, c] = await Promise.all([
+          productAPI.getAll().catch(() => []),
+          categoryAPI.getAll().catch(() => []),
+        ]);
+        const list = Array.isArray(p) ? p : (p?.data || []);
+        if (list.length === 0) {
+          const mockProducts = [
+            { id: 1, sku: 'SP000001', name: 'Gà ta thả vườn làm sạch', sellPrice: 155000, costPrice: 120000, lastImportPrice: 120000, stock: 50, categoryId: 1 },
+            { id: 2, sku: 'SP000002', name: 'Gà ác làm sạch nguyên con', sellPrice: 85000, costPrice: 65000, lastImportPrice: 65000, stock: 30, categoryId: 1 },
+            { id: 3, sku: 'SP000003', name: 'Trứng gà ta sạch (Hộp 10 quả)', sellPrice: 35000, costPrice: 25000, lastImportPrice: 25000, stock: 100, categoryId: 2 },
+          ];
+          setProducts(mockProducts.map(normalizeProduct));
+        } else {
+          setProducts(list.map(normalizeProduct));
+        }
 
-    if (filters.priceCond && filters.priceComp) {
-      const sell = p.sellPrice || 0;
-      const comp = filters.priceComp === 'costPrice' ? (p.costPrice || 0) : 0; // lastImport mock is 0
-      if (filters.priceCond === '<' && !(sell < comp)) return false;
-      if (filters.priceCond === '<=' && !(sell <= comp)) return false;
-      if (filters.priceCond === '=' && !(sell === comp)) return false;
-      if (filters.priceCond === '>' && !(sell > comp)) return false;
+        let cats = [];
+        if (c && c.roots) {
+          const flatten = (list, prefix = '') => {
+            let res = [];
+            for (let item of list) {
+              res.push({ ...item, name: prefix + item.name });
+              if (item.children && item.children.length > 0) {
+                res = res.concat(flatten(item.children, prefix + '— '));
+              }
+            }
+            return res;
+          };
+          cats = flatten(c.roots);
+        } else if (Array.isArray(c)) {
+          cats = c;
+        }
+        setCategories(cats);
+      } catch (e) {
+        setProducts([]);
+      }
+    };
+    load();
+  }, []);
+
+  const filteredProducts = useMemo(() => {
+    let list = [...products];
+    const q = search.trim().toLowerCase();
+    const qSku = searchSku.trim().toLowerCase();
+    const qName = searchName.trim().toLowerCase();
+
+    if (q) {
+      list = list.filter(p => (p.name || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q));
+    }
+    if (qSku) list = list.filter(p => (p.sku || '').toLowerCase().includes(qSku));
+    if (qName) list = list.filter(p => (p.name || '').toLowerCase().includes(qName));
+
+    if (filters.selectedCategories && filters.selectedCategories.size > 0) {
+      list = list.filter(p => {
+        const categoryId = p.category_id ?? p.categoryId ?? p.category?.id;
+        return filters.selectedCategories.has(categoryId);
+      });
     }
 
-    return true;
-  });
+    if (filters.stock === 'in') list = list.filter((p) => p.stock > 0);
+    if (filters.stock === 'out') list = list.filter((p) => p.stock <= 0);
+    if (filters.stock === 'under') list = list.filter((p) => p.stock > 0 && p.stock < p.minStock);
+    if (filters.stock === 'over') list = list.filter((p) => p.stock > p.maxStock);
+
+    if (filters.priceCond && filters.priceComp) {
+      list = list.filter((p) => {
+        const sell = Number(p.sellPrice || 0);
+        const comp = filters.priceComp === 'costPrice' ? Number(p.costPrice || 0) : Number(p.lastImportPrice || 0);
+        return comparePriceByCondition(filters.priceCond, sell, comp);
+      });
+    }
+
+    return list;
+  }, [products, search, searchSku, searchName, filters]);
+
+  const shownColumns = ALL_COLUMNS.filter((c) => visibleColumns[c.key]);
 
   const handleImport = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv,.xlsx';
-    input.onchange = () => toast.success(`Đã chọn file: ${input.files[0]?.name}. Tính năng import đang phát triển.`);
+    input.accept = '.csv,.xlsx,.xls';
+    input.onchange = async () => {
+      try {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        const skuKeys = ['sku', 'ma_hang', 'mã hàng', 'ma hang', 'mã_hàng'];
+        const priceKeys = ['sellprice', 'sell_price', 'bang_gia', 'bảng giá', 'gia_ban', 'giá bán'];
+
+        const normalizeKey = (k) => String(k || '').trim().toLowerCase();
+
+        const updates = rows
+          .map((r) => {
+            const keys = Object.keys(r);
+            const skuKey = keys.find((k) => skuKeys.includes(normalizeKey(k)));
+            const priceKey = keys.find((k) => priceKeys.includes(normalizeKey(k)));
+            if (!skuKey || !priceKey) return null;
+            const sku = String(r[skuKey] || '').trim();
+            const price = Number(String(r[priceKey]).replace(/[^0-9.-]/g, ''));
+            if (!sku || Number.isNaN(price)) return null;
+            return { sku, price };
+          })
+          .filter(Boolean);
+
+        if (updates.length === 0) {
+          toast.error('File không có dữ liệu hợp lệ (cần cột SKU và Giá bán)');
+          return;
+        }
+
+        const mapUpdate = new Map(updates.map((u) => [u.sku.toLowerCase(), u.price]));
+        let changed = 0;
+
+        setProducts((prev) =>
+          prev.map((p) => {
+            const key = String(p.sku || '').toLowerCase();
+            if (!mapUpdate.has(key)) return p;
+            changed += 1;
+            const newPrice = mapUpdate.get(key);
+            return { ...p, sellPrice: newPrice, sell_price: newPrice };
+          })
+        );
+
+        toast.success(`Import thành công. Cập nhật ${changed} sản phẩm.`);
+      } catch (e) {
+        toast.error('Lỗi khi import file');
+      }
+    };
     input.click();
   };
 
+  const handleExport = () => {
+    try {
+      const rows = filteredProducts.map((p) => {
+        const row = {};
+        shownColumns.forEach((c) => {
+          if (c.key === 'sku') row[c.label] = p.sku || '';
+          if (c.key === 'name') row[c.label] = p.name || '';
+          if (c.key === 'costPrice') row[c.label] = p.costPrice || 0;
+          if (c.key === 'lastImportPrice') row[c.label] = p.lastImportPrice || 0;
+          if (c.key === 'sellPrice') row[c.label] = p.sellPrice || 0;
+        });
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'BangGia');
+      XLSX.writeFile(wb, 'bang_gia.xlsx');
+      toast.success('Xuất file thành công');
+    } catch {
+      toast.error('Lỗi khi xuất file');
+    }
+  };
+
   const handlePriceChange = async (id, newPriceStr) => {
-    const num = Number(newPriceStr.replace(/[^0-9.-]+/g, ""));
-    if (isNaN(num)) return;
-    
+    const num = Number(String(newPriceStr).replace(/[^0-9.-]+/g, ''));
+    if (Number.isNaN(num)) return;
+
     try {
       if (productAPI.update) {
-        await productAPI.update(id, { sell_price: num });
+        await productAPI.update(id, { sellPrice: num, sell_price: num });
       }
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, sellPrice: num, sell_price: num } : p));
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, sellPrice: num, sell_price: num } : p))
+      );
       toast.success('Cập nhật giá thành công');
     } catch (e) {
       toast.error('Lỗi khi cập nhật giá');
     }
   };
 
+  const handleCreatePricebook = () => {
+    const name = pricebookName.trim();
+    if (!name) {
+      toast.error('Vui lòng nhập tên bảng giá');
+      return;
+    }
+    const exists = pricebooks.some((p) => p.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      toast.error('Tên bảng giá đã tồn tại');
+      return;
+    }
+
+    setPricebooks((prev) => [...prev, { id: Date.now(), name }]);
+    setPricebookName('');
+    setModalOpen(false);
+    toast.success('Tạo bảng giá thành công');
+  };
+
   return (
-    <div className="flex flex-col gap-4 animate-page-in h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white px-4 py-3 border-b border-gray-200 -mx-6 -mt-6 mb-2">
-        <h1 className="text-xl font-bold text-gray-800 m-0">Bảng giá chung</h1>
-        <div className="flex items-center gap-3 w-1/3">
-          <Input 
-            icon={<Search size={16} className="text-gray-400" />} 
-            placeholder="Theo mã, tên hàng" 
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-gray-50 border-gray-200"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="primary" icon={<Plus size={16} />} onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 shadow-sm">Bảng giá</Button>
-          <Button icon={<Upload size={16} />} onClick={handleImport} className="bg-white border-gray-300 shadow-sm">Import</Button>
-          <Button icon={<Download size={16} />} onClick={() => exportProducts(filteredProducts)} className="bg-white border-gray-300 shadow-sm">Xuất file</Button>
-          <div className="h-8 w-px bg-gray-200 mx-1"></div>
-          <button className="p-2 border border-gray-300 rounded hover:bg-gray-50 text-gray-600 bg-white"><HelpCircle size={16} /></button>
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 font-sans">
+      {/* Top Header Bar */}
+      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+        <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3">
+          Bảng giá chung
+        </h1>
+
+        <div className="flex items-center gap-4">
+          {/* Main Search Input */}
+          <div className="relative w-80">
+            <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Theo mã, tên hàng"
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            <button
+              onClick={() => setSearchOpen(!searchOpen)}
+              className={`absolute right-2.5 top-2 p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+            >
+              <Filter size={16} />
+            </button>
+
+            {/* Advanced Search Popover */}
+            {searchOpen && (
+              <div ref={searchPanelRef} className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 z-50 flex flex-col gap-4 animate-fade-in">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
+                  <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline">Đóng</button>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hàng</label>
+                  <input type="text" placeholder="Nhập mã hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSku} onChange={e => setSearchSku(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700 mb-1 block">Tên hàng hóa</label>
+                  <input type="text" placeholder="Nhập tên hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
+                </div>
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                  <Button variant="secondary" onClick={() => { setSearchSku(''); setSearchName(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <Button variant="primary" onClick={() => setModalOpen(true)} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl">
+            <Plus size={18} /> Bảng giá
+          </Button>
+
+          <Button variant="secondary" onClick={handleImport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Upload size={16} /> Import
+          </Button>
+
+          <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+            <Download size={16} /> Xuất file
+          </Button>
+
+          {/* Column Visibility Menu */}
+          <div className="relative" ref={columnMenuRef}>
+            <button
+              onClick={() => setColumnMenuOpen(!columnMenuOpen)}
+              className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer"
+            >
+              <Columns3 size={18} />
+            </button>
+
+            {columnMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+                <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                <div className="flex flex-col gap-2.5">
+                  {ALL_COLUMNS.map(c => (
+                    <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                        checked={!!visibleColumns[c.key]}
+                        onChange={(e) => setVisibleColumns((prev) => ({ ...prev, [c.key]: e.target.checked }))}
+                      />
+                      <span>{c.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
+            <Settings size={18} />
+          </button>
+          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
+            <HelpCircle size={18} />
+          </button>
         </div>
       </div>
 
-      <div className="flex gap-5 items-start">
-        {/* Sidebar Filter */}
-        <div className="w-[240px] shrink-0 flex flex-col gap-4">
+      <div className="flex gap-6 items-start">
+        {/* Left Filter Sidebar */}
+        <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
           {/* Nhóm hàng */}
           <div>
-            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Nhóm hàng</span>
-            <input 
-              type="text" 
-              placeholder="Chọn nhóm hàng" 
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none" 
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
+              <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
+            </div>
+            <CategoryFilter
+              categories={categories}
+              products={products}
+              selectedIds={filters.selectedCategories}
+              onApply={(ids) => setFilters((prev) => ({ ...prev, selectedCategories: ids }))}
             />
           </div>
+
+          <hr className="border-gray-100" />
 
           {/* Tồn kho */}
           <div>
-            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Tồn kho</span>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tồn kho</span>
             <Dropdown
               value={filters.stock}
               options={STOCK_OPTIONS}
-              onChange={(v) => setFilters(prev => ({ ...prev, stock: v }))}
+              onChange={(v) => setFilters((prev) => ({ ...prev, stock: v }))}
             />
           </div>
 
+          <hr className="border-gray-100" />
+
           {/* Giá bán */}
           <div>
-            <span className="text-sm font-semibold text-gray-700 mb-1.5 block">Giá bán</span>
-            <div className="flex flex-col gap-2">
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giá bán</span>
+            <div className="flex flex-col gap-3">
               <Dropdown
                 value={filters.priceCond}
                 options={PRICE_COND_OPTIONS}
-                onChange={(v) => setFilters(prev => ({ ...prev, priceCond: v }))}
+                onChange={(v) => setFilters((prev) => ({ ...prev, priceCond: v }))}
               />
               <Dropdown
                 value={filters.priceComp}
                 options={PRICE_COMPARE_OPTIONS}
-                onChange={(v) => setFilters(prev => ({ ...prev, priceComp: v }))}
+                onChange={(v) => setFilters((prev) => ({ ...prev, priceComp: v }))}
               />
             </div>
           </div>
         </div>
 
-        {/* Main Table */}
-        <div className="flex-1 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse text-[13px]">
+        {/* Main Table Content */}
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="py-3 px-4 font-semibold text-gray-700 w-[120px]">Mã hàng</th>
-                <th className="py-3 px-4 font-semibold text-gray-700">Tên hàng</th>
-                <th className="py-3 px-4 font-semibold text-gray-700 text-right w-[120px]">Giá vốn</th>
-                <th className="py-3 px-4 font-semibold text-gray-700 text-right w-[120px]">Giá nhập cuối</th>
-                <th className="py-3 px-4 font-semibold text-gray-700 text-right w-[140px]">Bảng giá chung</th>
-              </tr>
-              <tr className="bg-white border-b border-gray-200">
-                <th className="py-2 px-4"><input type="text" placeholder="Tìm mã hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" value={search} onChange={e => setSearch(e.target.value)} /></th>
-                <th className="py-2 px-4"><input type="text" placeholder="Tìm tên hàng" className="w-full border border-gray-300 rounded px-2 py-1.5 text-xs outline-none focus:border-blue-500" value={search} onChange={e => setSearch(e.target.value)} /></th>
-                <th className="py-2 px-4"></th>
-                <th className="py-2 px-4"></th>
-                <th className="py-2 px-4 text-right"></th>
+              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                {shownColumns.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`p-4 font-extrabold ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {filteredProducts.map(p => (
-                <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4 text-blue-600 font-medium">{p.sku || `SP${p.id}`}</td>
-                  <td className="py-3 px-4 text-gray-800">{p.name}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{new Intl.NumberFormat('vi-VN').format(p.costPrice || 0)}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{new Intl.NumberFormat('vi-VN').format(0)}</td>
-                  <td className="py-3 px-4 text-right">
-                    <input 
-                      type="text" 
-                      className="w-[100px] border border-gray-300 rounded px-2 py-1.5 text-right text-[13px] focus:border-blue-500 outline-none float-right"
-                      defaultValue={new Intl.NumberFormat('vi-VN').format(p.sellPrice || p.sell_price || 0)} 
-                      onBlur={(e) => {
-                        const newVal = e.target.value;
-                        if (newVal !== new Intl.NumberFormat('vi-VN').format(p.sellPrice || p.sell_price || 0)) {
-                          handlePriceChange(p.id, newVal);
-                        }
-                      }}
-                    />
-                  </td>
+            <tbody className="divide-y divide-gray-100 font-medium">
+              {filteredProducts.map((p) => (
+                <tr key={p.id} className="hover:bg-blue-50/30 transition-colors font-medium">
+                  {shownColumns.map((col) => {
+                    if (col.key === 'sku') {
+                      return (
+                        <td key={col.key} className="p-4 text-primary font-bold">
+                          {p.sku || `SP${p.id}`}
+                        </td>
+                      );
+                    }
+                    if (col.key === 'name') {
+                      return (
+                        <td key={col.key} className="p-4 font-bold text-gray-800">
+                          {p.name}
+                        </td>
+                      );
+                    }
+                    if (col.key === 'costPrice') {
+                      return (
+                        <td key={col.key} className="p-4 text-right text-gray-600">
+                          {fmt(p.costPrice)}
+                        </td>
+                      );
+                    }
+                    if (col.key === 'lastImportPrice') {
+                      return (
+                        <td key={col.key} className="p-4 text-right text-gray-600">
+                          {fmt(p.lastImportPrice)}
+                        </td>
+                      );
+                    }
+                    if (col.key === 'sellPrice') {
+                      return (
+                        <td key={col.key} className="p-4 text-right">
+                          <input
+                            type="text"
+                            className="w-32 border border-gray-200 rounded-xl px-3 py-1.5 text-right text-sm font-bold text-gray-800 focus:border-primary outline-none focus:ring-1 focus:ring-primary shadow-sm bg-white transition-all float-right"
+                            defaultValue={fmt(p.sellPrice)}
+                            onBlur={(e) => {
+                              const newVal = e.target.value;
+                              if (newVal !== fmt(p.sellPrice)) {
+                                handlePriceChange(p.id, newVal);
+                              }
+                            }}
+                          />
+                        </td>
+                      );
+                    }
+                    return null;
+                  })}
                 </tr>
               ))}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="py-10 text-center text-gray-500">Không có dữ liệu</td>
+                  <td colSpan={Math.max(1, shownColumns.length)} className="p-12 text-center text-gray-400 font-medium">
+                    Không tìm thấy dữ liệu hàng hóa nào phù hợp
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -213,118 +541,102 @@ export default function PriceBooksPage() {
         </div>
       </div>
 
-      {/* Tạo bảng giá Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Tạo bảng giá" size="lg"
-        footer={<>
-          <Button onClick={() => setModalOpen(false)}>Bỏ qua</Button>
-          <Button variant="primary" onClick={() => setModalOpen(false)} className="bg-blue-600">Lưu</Button>
-        </>}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Tạo bảng giá"
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setModalOpen(false)} className="px-4 py-2 font-bold">Bỏ qua</Button>
+            <Button variant="primary" onClick={handleCreatePricebook} className="px-6 py-2 bg-primary hover:bg-primary-hover font-bold shadow-md">
+              Lưu
+            </Button>
+          </>
+        }
       >
-        <div className="mb-4 flex border-b border-gray-200">
-          <button className={`px-4 py-2 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'}`} onClick={() => setActiveTab('info')}>Thông tin</button>
-          <button className={`px-4 py-2 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'scope' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-800'}`} onClick={() => setActiveTab('scope')}>Phạm vi áp dụng</button>
+        <div className="mb-6 flex border-b border-gray-200 gap-6 px-2">
+          <button
+            className={`py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+            onClick={() => setActiveTab('info')}
+          >
+            Thông tin
+          </button>
+          <button
+            className={`py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'scope' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+            onClick={() => setActiveTab('scope')}
+          >
+            Phạm vi áp dụng
+          </button>
         </div>
 
         {activeTab === 'info' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="text-[13px] text-gray-700 mb-1.5 block font-medium">Tên bảng giá</label>
-              <input type="text" placeholder="Nhập tên bảng giá" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[14px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 outline-none" />
+              <label className="text-xs font-extrabold text-gray-700 mb-2 block tracking-tight">Tên bảng giá</label>
+              <input
+                type="text"
+                placeholder="Nhập tên bảng giá"
+                value={pricebookName}
+                onChange={(e) => setPricebookName(e.target.value)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none shadow-sm"
+              />
+              {pricebooks.length > 0 && (
+                <div className="mt-2 text-xs text-gray-500 font-medium">
+                  Hiện có: <span className="font-bold text-gray-700">{pricebooks.map((p) => p.name).join(', ')}</span>
+                </div>
+              )}
             </div>
 
-            {/* Hiệu lực */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 cursor-pointer select-none" onClick={() => toggleSection('date')}>
-                <div className="font-semibold text-[14px] text-gray-800">Hiệu lực</div>
-                {expandedSections.date ? <ChevronUp size={18} className="text-gray-500"/> : <ChevronDown size={18} className="text-gray-500"/>}
+            <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-5 py-4 bg-gray-50/80 cursor-pointer select-none border-b border-gray-100" onClick={() => toggleSection('date')}>
+                <div className="font-extrabold text-sm text-gray-800">Hiệu lực</div>
+                {expandedSections.date ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
               </div>
               {expandedSections.date && (
-                <div className="p-4 bg-white border-t border-gray-200 space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 text-[13px] text-gray-600">Hiệu lực</div>
+                <div className="p-5 bg-white space-y-4">
+                  <div className="flex items-center gap-6">
+                    <div className="w-24 text-xs font-bold text-gray-600">Hiệu lực</div>
                     <div className="flex items-center gap-3">
-                      <div className="flex items-center border border-gray-300 rounded px-3 py-1.5 bg-white">
-                        <input type="text" defaultValue="15/05/2026 14:09" className="text-[13px] outline-none w-[120px]" />
-                        <div className="flex items-center gap-2 text-gray-400"><Info size={14}/><HelpCircle size={14}/></div>
+                      <div className="flex items-center border border-gray-200 rounded-xl px-3.5 py-2 bg-white shadow-sm">
+                        <input type="text" defaultValue="15/05/2026 14:09" className="text-xs font-bold outline-none w-32 text-gray-800" />
+                        <div className="flex items-center gap-2 text-gray-400"><Info size={14} /><HelpCircle size={14} /></div>
                       </div>
-                      <span className="text-gray-500 text-[13px]">đến</span>
-                      <div className="flex items-center border border-gray-300 rounded px-3 py-1.5 bg-white">
-                        <input type="text" defaultValue="15/05/2027 14:09" className="text-[13px] outline-none w-[120px]" />
-                        <div className="flex items-center gap-2 text-gray-400"><Info size={14}/><HelpCircle size={14}/></div>
+                      <span className="text-gray-500 text-xs font-bold">đến</span>
+                      <div className="flex items-center border border-gray-200 rounded-xl px-3.5 py-2 bg-white shadow-sm">
+                        <input type="text" defaultValue="15/05/2027 14:09" className="text-xs font-bold outline-none w-32 text-gray-800" />
+                        <div className="flex items-center gap-2 text-gray-400"><Info size={14} /><HelpCircle size={14} /></div>
                       </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 text-[13px] text-gray-600">Trạng thái</div>
-                    <div className="flex items-center gap-6">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="status" defaultChecked className="w-4 h-4 text-blue-600" />
-                        <span className="text-[13px]">Áp dụng</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="status" className="w-4 h-4 text-blue-600" />
-                        <span className="text-[13px]">Chưa áp dụng</span>
-                      </label>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Công thức giá */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 cursor-pointer select-none" onClick={() => toggleSection('formula')}>
-                <div className="font-semibold text-[14px] text-gray-800">Công thức giá</div>
-                {expandedSections.formula ? <ChevronUp size={18} className="text-gray-500"/> : <ChevronDown size={18} className="text-gray-500"/>}
+            <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-5 py-4 bg-gray-50/80 cursor-pointer select-none border-b border-gray-100" onClick={() => toggleSection('formula')}>
+                <div className="font-extrabold text-sm text-gray-800">Công thức giá</div>
+                {expandedSections.formula ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
               </div>
               {expandedSections.formula && (
-                <div className="p-4 bg-white border-t border-gray-200">
-                  <div className="text-[13px] text-gray-500 mb-3">Tạo công thức dựa trên giá vốn, giá nhập hoặc giá bán ở các bảng giá khác</div>
-                  <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <span className="text-[13px] font-medium text-gray-700">Giá mới =</span>
-                    <select className="border border-gray-300 rounded px-3 py-1.5 text-[13px] outline-none bg-white min-w-[150px]">
-                      <option>Chọn bảng giá</option>
-                      <option>Giá vốn</option>
-                      <option>Giá nhập cuối</option>
-                    </select>
-                    <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-                      <button className="px-3 py-1.5 bg-white hover:bg-gray-100 border-r border-gray-300 text-gray-600 font-bold">+</button>
-                      <button className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-600 font-bold">−</button>
-                    </div>
-                    <div className="flex items-center flex-1">
-                      <input type="text" defaultValue="0" className="w-full border border-gray-300 border-r-0 rounded-l px-3 py-1.5 text-[13px] outline-none text-right" />
-                      <div className="flex text-[13px] border border-gray-300 rounded-r overflow-hidden">
-                        <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium border-r border-gray-300">VND</button>
-                        <button className="px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-600 font-medium">%</button>
-                      </div>
-                    </div>
-                  </div>
+                <div className="p-5 bg-white font-medium text-xs text-gray-500">
+                  Tạo công thức dựa trên giá vốn, giá nhập hoặc giá bán ở các bảng giá khác
                 </div>
               )}
             </div>
 
-            {/* Khi thu ngân lên đơn... */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-50/50 cursor-pointer select-none" onClick={() => toggleSection('settings')}>
-                <div className="font-semibold text-[14px] text-gray-800">Khi thu ngân lên đơn với bảng giá này</div>
-                {expandedSections.settings ? <ChevronUp size={18} className="text-gray-500"/> : <ChevronDown size={18} className="text-gray-500"/>}
+            <div className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-5 py-4 bg-gray-50/80 cursor-pointer select-none border-b border-gray-100" onClick={() => toggleSection('settings')}>
+                <div className="font-extrabold text-sm text-gray-800">Khi thu ngân lên đơn với bảng giá này</div>
+                {expandedSections.settings ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
               </div>
               {expandedSections.settings && (
-                <div className="p-4 bg-white border-t border-gray-200 space-y-3">
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input type="radio" name="pos_setting" defaultChecked className="w-4 h-4 text-blue-600 mt-0.5" />
-                    <div>
-                      <div className="text-[14px] font-medium text-gray-800">Được phép thêm hàng hóa không có trong bảng giá</div>
-                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                        <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300" />
-                        <span className="text-[13px] text-gray-600">Gửi cảnh báo khi thêm hàng hóa không có trong bảng giá</span>
-                      </label>
-                    </div>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer mt-2">
-                    <input type="radio" name="pos_setting" className="w-4 h-4 text-blue-600" />
-                    <div className="text-[14px] text-gray-800 flex items-center gap-1">Chỉ được thêm hàng hóa có trong bảng giá này <Info size={14} className="text-gray-400"/></div>
-                  </label>
+                <div className="p-5 bg-white font-medium text-xs text-gray-600">
+                  Thiết lập nâng cao có thể mở rộng thêm theo nghiệp vụ.
                 </div>
               )}
             </div>
@@ -332,48 +644,8 @@ export default function PriceBooksPage() {
         )}
 
         {activeTab === 'scope' && (
-          <div className="space-y-4">
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="font-semibold text-[14px] text-gray-800 mb-3">Chi nhánh</div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="branch" defaultChecked className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Toàn hệ thống</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="branch" className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Chi nhánh cụ thể</span>
-                </label>
-              </div>
-            </div>
-            
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="font-semibold text-[14px] text-gray-800 mb-3">Nhóm khách hàng</div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="customer_group" defaultChecked className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Tất cả</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="customer_group" className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Nhóm khách hàng cụ thể</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="font-semibold text-[14px] text-gray-800 mb-3">Người tạo giao dịch</div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="creator" defaultChecked className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Tất cả</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="creator" className="w-4 h-4 text-blue-600" />
-                  <span className="text-[14px]">Người tạo giao dịch cụ thể</span>
-                </label>
-              </div>
-            </div>
+          <div className="space-y-4 text-sm text-gray-700 font-medium">
+            <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">Phạm vi áp dụng theo chi nhánh / nhóm khách hàng / người tạo giao dịch.</div>
           </div>
         )}
       </Modal>

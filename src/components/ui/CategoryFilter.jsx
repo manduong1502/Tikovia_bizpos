@@ -46,10 +46,11 @@ export default function CategoryFilter({ categories = [], products = [], selecte
     });
   };
 
-  const toggleCheck = (id) => {
+  const toggleCheck = (id, autoApply = false) => {
     setChecked(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
+      if (autoApply) onApply(next);
       return next;
     });
   };
@@ -136,7 +137,7 @@ export default function CategoryFilter({ categories = [], products = [], selecte
                       className="cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleCheck(cat.id);
+                        toggleCheck(cat.id, true);
                       }}
                     >
                       <X size={12} />

@@ -29,12 +29,12 @@ export default function FilterSidebar({
   const { selectedCategories, filterStock, dateExpected, dateCreated, productType, status } = filters;
 
   return (
-    <div className="w-[240px] shrink-0 flex flex-col gap-4">
+    <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
       {/* Nhóm hàng */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-sm font-semibold text-gray-700">Nhóm hàng</span>
-          <button className="text-primary text-xs font-medium hover:underline">Tạo mới</button>
+          <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
+          <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
         </div>
         <CategoryFilter
           categories={categories}
@@ -44,9 +44,11 @@ export default function FilterSidebar({
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Tồn kho */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Tồn kho</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tồn kho</span>
         <Dropdown
           value={filterStock}
           options={STOCK_OPTIONS}
@@ -54,29 +56,37 @@ export default function FilterSidebar({
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Dự kiến hết hàng */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Dự kiến hết hàng</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Dự kiến hết hàng</span>
         <DateFilter
+          label="Dự kiến hết hàng"
           type="expected"
           value={dateExpected}
           onChange={(v) => onFilterChange({ dateExpected: v })}
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Thời gian tạo */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Thời gian tạo</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian tạo</span>
         <DateFilter
+          label="Thời gian tạo"
           type="created"
           value={dateCreated}
           onChange={(v) => onFilterChange({ dateCreated: v })}
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Nhà cung cấp */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Nhà cung cấp</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nhà cung cấp</span>
         <MultiSelectFilter
           items={suppliers.map((s) => ({ value: String(s.id ?? s.name), label: s.name }))}
           selectedValues={filters.suppliers || []}
@@ -87,20 +97,24 @@ export default function FilterSidebar({
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Vị trí */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Vị trí</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Vị trí</span>
         <input
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none"
+          className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none shadow-sm bg-white"
           placeholder="Chọn vị trí"
           value={filters.location || ''}
           onChange={(e) => onFilterChange({ location: e.target.value })}
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Loại hàng */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Loại hàng</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại hàng</span>
         <Dropdown
           value={productType}
           options={PRODUCT_TYPES}
@@ -108,10 +122,12 @@ export default function FilterSidebar({
         />
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Bán trực tiếp */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Bán trực tiếp</span>
-        <div className="flex gap-1">
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Bán trực tiếp</span>
+        <div className="flex gap-2">
           {[
             { value: '', label: 'Tất cả' },
             { value: 'yes', label: 'Có' },
@@ -121,8 +137,8 @@ export default function FilterSidebar({
               type="button"
               key={tag.value}
               onClick={() => onFilterChange({ directSale: tag.value })}
-              className={`px-3 py-1 text-xs rounded border cursor-pointer transition-colors ${
-                filters.directSale === tag.value ? 'bg-primary text-white border-primary font-bold' : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'
+              className={`px-3 py-1.5 text-xs rounded-lg border font-bold transition-all cursor-pointer ${
+                filters.directSale === tag.value ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50'
               }`}
             >
               {tag.label}
@@ -131,9 +147,11 @@ export default function FilterSidebar({
         </div>
       </div>
 
+      <hr className="border-gray-100" />
+
       {/* Trạng thái */}
       <div>
-        <span className="text-sm font-medium text-gray-600 mb-1.5 block">Trạng thái</span>
+        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>
         <Dropdown
           value={status}
           options={STATUS_OPTIONS}
