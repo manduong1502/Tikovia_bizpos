@@ -27,9 +27,10 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchCode, setSearchCode] = useState('');
-  const [searchName, setSearchName] = useState('');
-  const [searchPhone, setSearchPhone] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searchAddress, setSearchAddress] = useState('');
+  const [searchNote, setSearchNote] = useState('');
+  const [searchOrderCode, setSearchOrderCode] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -179,10 +180,18 @@ export default function CustomersPage() {
   // Filter states
   const [filterGroup, setFilterGroup] = useState('');
   const [filterDate, setFilterDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
+  const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [filterType, setFilterType] = useState('Tất cả');
   const [filterGender, setFilterGender] = useState('Tất cả');
+  const [filterBirthdayDate, setFilterBirthdayDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
+  const [filterLastTransactionDate, setFilterLastTransactionDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
   const [filterTotalFrom, setFilterTotalFrom] = useState('');
   const [filterTotalTo, setFilterTotalTo] = useState('');
+  const [filterSpentTime, setFilterSpentTime] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
+  const [filterDebtFrom, setFilterDebtFrom] = useState('');
+  const [filterDebtTo, setFilterDebtTo] = useState('');
+  const [filterDeliveryArea, setFilterDeliveryArea] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Tất cả');
 
   const [detailTab, setDetailTab] = useState('info');
   const [custNotes, setCustNotes] = useState({});
@@ -222,37 +231,32 @@ export default function CustomersPage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const qCode = searchCode.trim().toLowerCase();
-    const qName = searchName.trim().toLowerCase();
-    const qPhone = searchPhone.trim().toLowerCase();
+    const qEmail = searchEmail.trim().toLowerCase();
+    const qAddress = searchAddress.trim().toLowerCase();
+    const qNote = searchNote.trim().toLowerCase();
+    const qOrderCode = searchOrderCode.trim().toLowerCase();
 
     return customers.filter((c) => {
+      // 1. Basic search (Theo mã, tên, sđt)
       if (q && !(c.name || '').toLowerCase().includes(q) && !(c.code || '').toLowerCase().includes(q) && !(c.phone || '').toLowerCase().includes(q)) return false;
-      if (qCode && !(c.code || '').toLowerCase().includes(qCode)) return false;
-      if (qName && !(c.name || '').toLowerCase().includes(qName)) return false;
-      if (qPhone && !(c.phone || '').toLowerCase().includes(qPhone)) return false;
 
-      if (filterGroup && filterGroup !== 'all') return false;
-
-      if (filterType !== 'Tất cả') {
-        if (filterType === 'Cá nhân' && c.type === 'company') return false;
+      // 2. Advanced search filters
+      if (qEmail && !(c.email || '').toLowerCase().includes(qEmail)) return false;
+      if (qAddress && !(c.address || '').toLowerCase().includes(qAddress)) return false;
+      if (qNote && !(c.note || '').toLowerCase().includes(qNote)) return false;
+      if (qOrderCode) {
+        const orders = c.orders || [];
+        const hasOrder = orders.some(o => (o.code || '').toLowerCase().includes(qOrderCode));
+        if (!hasOrder) return false;
       }
 
-      if (filterGender !== 'Tất cả') {
-        const g = (c.gender || '').toLowerCase();
-        if (filterGender === 'Nam' && g !== 'nam' && g !== 'male') return false;
-        if (filterGender === 'Nữ' && g !== 'nữ' && g !== 'female') return false;
+      // 3. Sidebar Filters
+      // 3.1. Nhóm khách hàng
+      if (filterGroup && filterGroup !== 'all') {
+        if (filterGroup === 'vip' && !(c.name || '').toLowerCase().includes('vip')) return false;
       }
 
-      if (filterTotalFrom) {
-        const from = Number(filterTotalFrom) || 0;
-        if (Number(c.totalSpent || c.total_spent || 0) < from) return false;
-      }
-      if (filterTotalTo) {
-        const to = Number(filterTotalTo) || 0;
-        if (Number(c.totalSpent || c.total_spent || 0) > to) return false;
-      }
-
+      // 3.2. Ngày tạo
       if (filterDate && filterDate.mode === 'all' && filterDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterDate.label);
         if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
@@ -261,9 +265,97 @@ export default function CustomersPage() {
         if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
       }
 
+      // 3.3. Người tạo
+      if (filterCreatedBy) {
+        const qCreated = filterCreatedBy.trim().toLowerCase();
+        if (!(c.createdBy || '').toLowerCase().includes(qCreated)) return false;
+      }
+
+      // 3.4. Loại khách hàng (Tất cả, Cá nhân, Công ty)
+      if (filterType !== 'Tất cả') {
+        const type = c.customerType || 'Cá nhân';
+        if (filterType === 'Cá nhân' && type !== 'Cá nhân') return false;
+        if (filterType === 'Công ty' && type !== 'Công ty') return false;
+      }
+
+      // 3.5. Giới tính (Tất cả, Nam, Nữ)
+      if (filterGender !== 'Tất cả') {
+        const g = (c.gender || '').toLowerCase();
+        if (filterGender === 'Nam' && g !== 'nam' && g !== 'male') return false;
+        if (filterGender === 'Nữ' && g !== 'nữ' && g !== 'female') return false;
+      }
+
+      // 3.6. Sinh nhật (DateFilter)
+      if (filterBirthdayDate && filterBirthdayDate.mode === 'all' && filterBirthdayDate.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filterBirthdayDate.label);
+        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+      } else if (filterBirthdayDate && filterBirthdayDate.mode === 'custom' && filterBirthdayDate.start) {
+        const range = buildCustomRange(filterBirthdayDate.start, filterBirthdayDate.end);
+        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+      }
+
+      // 3.7. Ngày giao dịch cuối (DateFilter)
+      const lastTx = c.lastTransaction || c.last_transaction;
+      if (filterLastTransactionDate && filterLastTransactionDate.mode === 'all' && filterLastTransactionDate.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filterLastTransactionDate.label);
+        if (range && !inDateRange(lastTx, range)) return false;
+      } else if (filterLastTransactionDate && filterLastTransactionDate.mode === 'custom' && filterLastTransactionDate.start) {
+        const range = buildCustomRange(filterLastTransactionDate.start, filterLastTransactionDate.end);
+        if (range && !inDateRange(lastTx, range)) return false;
+      }
+
+      // 3.8. Tổng bán
+      const spent = Number(c.totalSpent || c.total_spent || 0);
+      if (filterTotalFrom) {
+        const from = Number(filterTotalFrom) || 0;
+        if (spent < from) return false;
+      }
+      if (filterTotalTo) {
+        const to = Number(filterTotalTo) || 0;
+        if (spent > to) return false;
+      }
+
+      // 3.8.1. Thời gian mua (DateFilter for Total Spent)
+      if (filterSpentTime && filterSpentTime.mode === 'all' && filterSpentTime.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filterSpentTime.label);
+        if (range && !inDateRange(lastTx, range)) return false;
+      } else if (filterSpentTime && filterSpentTime.mode === 'custom' && filterSpentTime.start) {
+        const range = buildCustomRange(filterSpentTime.start, filterSpentTime.end);
+        if (range && !inDateRange(lastTx, range)) return false;
+      }
+
+      // 3.9. Nợ hiện tại
+      const debt = Number(c.totalDebt || c.debt || 0);
+      if (filterDebtFrom) {
+        const from = Number(filterDebtFrom) || 0;
+        if (debt < from) return false;
+      }
+      if (filterDebtTo) {
+        const to = Number(filterDebtTo) || 0;
+        if (debt > to) return false;
+      }
+
+      // 3.10. Khu vực giao hàng
+      if (filterDeliveryArea) {
+        const qArea = filterDeliveryArea.trim().toLowerCase();
+        if (!(c.address || '').toLowerCase().includes(qArea)) return false;
+      }
+
+      // 3.11. Trạng thái (Tất cả, Đang hoạt động, Ngừng hoạt động)
+      if (filterStatus !== 'Tất cả') {
+        const active = c.isActive !== undefined ? c.isActive : true;
+        if (filterStatus === 'Đang hoạt động' && !active) return false;
+        if (filterStatus === 'Ngừng hoạt động' && active) return false;
+      }
+
       return true;
     });
-  }, [customers, search, searchCode, searchName, searchPhone, filterGroup, filterType, filterGender, filterTotalFrom, filterTotalTo, filterDate]);
+  }, [
+    customers, search, searchEmail, searchAddress, searchNote, searchOrderCode,
+    filterGroup, filterDate, filterCreatedBy, filterType, filterGender, filterBirthdayDate,
+    filterLastTransactionDate, filterTotalFrom, filterTotalTo, filterSpentTime, filterDebtFrom, filterDebtTo,
+    filterDeliveryArea, filterStatus
+  ]);
 
   const toggleAll = (checked) => {
     if (checked) setSelectedIds(new Set(filtered.map(c => c.id)));
@@ -510,25 +602,66 @@ export default function CustomersPage() {
 
               {/* Advanced Search Popover */}
               {searchOpen && (
-                <div ref={searchPanelRef} className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 z-50 flex flex-col gap-4 animate-fade-in max-w-[calc(100vw-24px)]">
-                  <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                    <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
-                    <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
+                <div ref={searchPanelRef} className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-[360px] bg-white rounded-2xl shadow-2xl border border-gray-150 p-4 z-50 flex flex-col gap-3.5 animate-fade-in max-w-[calc(100vw-24px)] font-sans">
+                  <div>
+                    <input 
+                      type="text" 
+                      placeholder="Theo mã, tên, số điện thoại" 
+                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium text-gray-800" 
+                      value={search} 
+                      onChange={e => setSearch(e.target.value)} 
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Mã KH</label>
-                    <input type="text" placeholder="Nhập mã KH" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+                    <input 
+                      type="text" 
+                      placeholder="Theo email" 
+                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium text-gray-800" 
+                      value={searchEmail} 
+                      onChange={e => setSearchEmail(e.target.value)} 
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Tên khách hàng</label>
-                    <input type="text" placeholder="Nhập tên khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
+                    <input 
+                      type="text" 
+                      placeholder="Theo địa chỉ" 
+                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium text-gray-800" 
+                      value={searchAddress} 
+                      onChange={e => setSearchAddress(e.target.value)} 
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Điện thoại</label>
-                    <input type="text" placeholder="Nhập số điện thoại" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                    <input 
+                      type="text" 
+                      placeholder="Theo ghi chú" 
+                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-bold text-gray-800" 
+                      value={searchNote} 
+                      onChange={e => setSearchNote(e.target.value)} 
+                    />
                   </div>
-                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchName(''); setSearchPhone(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                  <div>
+                    <input 
+                      type="text" 
+                      placeholder="Theo mã hóa đơn" 
+                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium text-gray-800" 
+                      value={searchOrderCode} 
+                      onChange={e => setSearchOrderCode(e.target.value)} 
+                    />
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <button 
+                      onClick={() => { setSearch(''); setSearchEmail(''); setSearchAddress(''); setSearchNote(''); setSearchOrderCode(''); }} 
+                      className="text-xs text-gray-500 hover:text-red-500 bg-transparent border-none cursor-pointer font-bold transition-colors"
+                    >
+                      Xóa bộ lọc
+                    </button>
+                    <Button 
+                      variant="primary" 
+                      onClick={() => setSearchOpen(false)} 
+                      className="text-xs py-2 px-6 rounded-lg font-bold bg-primary hover:bg-primary-hover shadow-md text-white border-none cursor-pointer"
+                    >
+                      Tìm kiếm
+                    </Button>
                   </div>
                 </div>
               )}
@@ -602,14 +735,18 @@ export default function CustomersPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
-          {/* Group Filter */}
+          
+          {/* Nhóm khách hàng */}
           <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nhóm khách hàng</span>
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm khách hàng</span>
+              <button onClick={() => toast.success('Mở form tạo nhóm mới')} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer font-bold">+ Tạo mới</button>
+            </div>
             <select
               className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
               value={filterGroup}
@@ -617,12 +754,13 @@ export default function CustomersPage() {
             >
               <option value="">Tất cả các nhóm</option>
               <option value="all">Khách hàng chung</option>
+              <option value="vip">Khách hàng VIP</option>
             </select>
           </div>
 
           <hr className="border-gray-100" />
 
-          {/* Time Filter */}
+          {/* Ngày tạo */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Ngày tạo</span>
             <DateFilter
@@ -635,11 +773,25 @@ export default function CustomersPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Type Filter */}
+          {/* Người tạo */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
+            <input 
+              type="text" 
+              placeholder="Chọn người tạo" 
+              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white font-medium text-gray-800" 
+              value={filterCreatedBy} 
+              onChange={e => setFilterCreatedBy(e.target.value)} 
+            />
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Loại khách hàng */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại khách hàng</span>
             <div className="flex flex-wrap gap-2">
-              {['Tất cả', 'Cá nhân'].map(t => (
+              {['Tất cả', 'Cá nhân', 'Công ty'].map(t => (
                 <button
                   key={t}
                   type="button"
@@ -654,7 +806,7 @@ export default function CustomersPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Gender Filter */}
+          {/* Giới tính */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giới tính</span>
             <div className="flex flex-wrap gap-2">
@@ -673,7 +825,33 @@ export default function CustomersPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Total Spent Filter */}
+          {/* Sinh nhật */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Sinh nhật</span>
+            <DateFilter
+              label="Sinh nhật"
+              type="birthday"
+              value={filterBirthdayDate}
+              onChange={setFilterBirthdayDate}
+            />
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Ngày giao dịch cuối */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Ngày giao dịch cuối</span>
+            <DateFilter
+              label="Ngày giao dịch cuối"
+              type="lastTransaction"
+              value={filterLastTransactionDate}
+              onChange={setFilterLastTransactionDate}
+            />
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Tổng bán */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tổng bán</span>
             <div className="flex flex-col gap-3">
@@ -682,7 +860,7 @@ export default function CustomersPage() {
                 <input
                   type="number"
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterTotalFrom}
                   onChange={e => setFilterTotalFrom(e.target.value)}
                 />
@@ -692,11 +870,82 @@ export default function CustomersPage() {
                 <input
                   type="number"
                   placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterTotalTo}
                   onChange={e => setFilterTotalTo(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="mt-2.5">
+              <span className="text-xs font-bold text-gray-500 mb-1 block">Thời gian</span>
+              <DateFilter
+                label="Thời gian mua"
+                type="spentTime"
+                value={filterSpentTime}
+                onChange={setFilterSpentTime}
+              />
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Nợ hiện tại */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nợ hiện tại</span>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500 w-8">Từ</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
+                  value={filterDebtFrom}
+                  onChange={e => setFilterDebtFrom(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500 w-8">Tới</span>
+                <input
+                  type="number"
+                  placeholder="0"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
+                  value={filterDebtTo}
+                  onChange={e => setFilterDebtTo(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Khu vực giao hàng */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Khu vực giao hàng</span>
+            <input 
+              type="text" 
+              placeholder="Chọn Tỉnh/TP - Quận/Huyện" 
+              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white font-medium text-gray-800" 
+              value={filterDeliveryArea} 
+              onChange={e => setFilterDeliveryArea(e.target.value)} 
+            />
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* Trạng thái */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>
+            <div className="flex flex-wrap gap-2">
+              {['Tất cả', 'Đang hoạt động', 'Ngừng hoạt động'].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setFilterStatus(t)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border font-bold transition-all cursor-pointer ${filterStatus === t ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50'}`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
           </div>
         </div>

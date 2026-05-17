@@ -9,21 +9,32 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   const isEdit = !!customer;
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: '', code: '', phone: '', phone2: '', email: '', address: '',
-    birthday: '', gender: '', facebook: '', note: '', group: '',
-    tax_name: '', tax_code: '', tax_address: '', customer_type: 'personal',
+    name: '', code: '', phone: '', email: '', address: '', note: '',
+    customerType: 'Cá nhân', branch: 'Chi nhánh trung tâm',
+    totalDebt: 0, totalSpent: 0, isActive: true,
   });
 
   useEffect(() => {
     if (customer) {
       setForm({
-        name: customer.name || '', code: customer.code || '', phone: customer.phone || '',
-        phone2: '', email: customer.email || '', address: customer.address || '',
-        birthday: '', gender: '', facebook: '', note: customer.note || '', group: '',
-        tax_name: '', tax_code: '', tax_address: '', customer_type: 'personal',
+        name: customer.name || '',
+        code: customer.code || '',
+        phone: customer.phone || '',
+        email: customer.email || '',
+        address: customer.address || '',
+        note: customer.note || '',
+        customerType: customer.customerType || 'Cá nhân',
+        branch: customer.branch || 'Chi nhánh trung tâm',
+        totalDebt: customer.totalDebt || customer.debt || 0,
+        totalSpent: customer.totalSpent || customer.total_spent || 0,
+        isActive: customer.isActive !== undefined ? customer.isActive : true,
       });
     } else {
-      setForm({ name: '', code: '', phone: '', phone2: '', email: '', address: '', birthday: '', gender: '', facebook: '', note: '', group: '', tax_name: '', tax_code: '', tax_address: '', customer_type: 'personal' });
+      setForm({
+        name: '', code: '', phone: '', email: '', address: '', note: '',
+        customerType: 'Cá nhân', branch: 'Chi nhánh trung tâm',
+        totalDebt: 0, totalSpent: 0, isActive: true,
+      });
     }
   }, [customer, open]);
 
@@ -33,7 +44,19 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên khách hàng'); return; }
     setSaving(true);
     try {
-      const data = { name: form.name, phone: form.phone, email: form.email, address: form.address, note: form.note };
+      const data = {
+        name: form.name.trim(),
+        code: form.code.trim() || undefined,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        address: form.address.trim() || null,
+        note: form.note.trim() || null,
+        customerType: form.customerType,
+        branch: form.branch.trim() || 'Chi nhánh trung tâm',
+        totalDebt: Number(form.totalDebt) || 0,
+        totalSpent: Number(form.totalSpent) || 0,
+        isActive: form.isActive,
+      };
       if (isEdit) {
         await customerAPI.update(customer.id, data);
         toast.success('Cập nhật khách hàng thành công');
@@ -43,70 +66,91 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
       }
       onSaved?.();
       onClose();
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu khách hàng');
+    } finally { setSaving(false); }
   };
 
   const F = ({ label, required, children }) => (
     <div>
-      <label className="text-sm text-gray-600 mb-1 block">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="text-sm font-bold text-gray-700 mb-1.5 block tracking-tight">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
       {children}
     </div>
   );
   const inp = (key, placeholder, type = 'text') => (
-    <input type={type} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors" value={form[key]} onChange={e => u(key, e.target.value)} placeholder={placeholder} />
+    <input type={type} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" value={form[key]} onChange={e => u(key, e.target.value)} placeholder={placeholder} />
   );
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="lg"
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-sans">
           <F label="Tên khách hàng" required>{inp('name', 'Nhập tên khách hàng')}</F>
           <F label="Mã khách hàng">{inp('code', 'Mã mặc định')}</F>
-          <F label="Điện thoại 1">{inp('phone', 'Nhập số điện thoại', 'tel')}</F>
-          <F label="Điện thoại 2">{inp('phone2', 'Nhập số điện thoại', 'tel')}</F>
-          <F label="Sinh nhật">{inp('birthday', '', 'date')}</F>
-          <F label="Giới tính">
-            <select className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary outline-none" value={form.gender} onChange={e => u('gender', e.target.value)}>
-              <option value="">Chọn giới tính</option><option value="male">Nam</option><option value="female">Nữ</option>
+          <F label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</F>
+          <F label="Email">{inp('email', 'email@gmail.com', 'email')}</F>
+          
+          <div className="md:col-span-2">
+            <F label="Địa chỉ">{inp('address', 'Nhập địa chỉ')}</F>
+          </div>
+
+          <F label="Loại khách hàng">
+            <select 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
+              value={form.customerType} 
+              onChange={e => u('customerType', e.target.value)}
+            >
+              <option value="Cá nhân">Cá nhân</option>
+              <option value="Công ty">Công ty</option>
             </select>
           </F>
-          <F label="Email">{inp('email', 'email@gmail.com', 'email')}</F>
-          <F label="Facebook">{inp('facebook', 'facebook.com/username')}</F>
-        </div>
+          <F label="Chi nhánh">
+            {inp('branch', 'Nhập chi nhánh')}
+          </F>
 
-        <fieldset className="border border-gray-200 rounded-lg p-4">
-          <legend className="text-sm font-semibold px-2">Địa chỉ</legend>
-          <F label="Địa chỉ">{inp('address', 'Nhập địa chỉ')}</F>
-          <div className="grid grid-cols-2 gap-4 mt-3">
-            <F label="Khu vực"><input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Chọn Tỉnh/Thành phố" /></F>
-            <F label="Phường/Xã"><input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Chọn Phường/Xã" /></F>
-          </div>
-        </fieldset>
+          <F label="Nợ hiện tại">
+            <input 
+              type="number" 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
+              value={form.totalDebt} 
+              onChange={e => u('totalDebt', e.target.value)} 
+              placeholder="0" 
+            />
+          </F>
+          <F label="Tổng bán">
+            <input 
+              type="number" 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
+              value={form.totalSpent} 
+              onChange={e => u('totalSpent', e.target.value)} 
+              placeholder="0" 
+            />
+          </F>
 
-        <fieldset className="border border-gray-200 rounded-lg p-4">
-          <legend className="text-sm font-semibold px-2">Nhóm khách hàng, ghi chú</legend>
-          <F label="Nhóm khách hàng"><input className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Chọn nhóm khách hàng" /></F>
-          <div className="mt-3"><F label="Ghi chú"><textarea className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm resize-y min-h-[60px]" value={form.note} onChange={e => u('note', e.target.value)} placeholder="Nhập ghi chú" rows={2} /></F></div>
-        </fieldset>
+          <F label="Trạng thái">
+            <select 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
+              value={form.isActive ? 'active' : 'inactive'} 
+              onChange={e => u('isActive', e.target.value === 'active')}
+            >
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Ngừng hoạt động</option>
+            </select>
+          </F>
 
-        <fieldset className="border border-gray-200 rounded-lg p-4">
-          <legend className="text-sm font-semibold px-2">Thông tin xuất hóa đơn</legend>
-          <div className="flex gap-4 mb-3 text-sm">
-            <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="ctype" checked={form.customer_type === 'personal'} onChange={() => u('customer_type', 'personal')} /> Cá nhân</label>
-            <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="ctype" checked={form.customer_type === 'business'} onChange={() => u('customer_type', 'business')} /> Tổ chức/ Hộ kinh doanh</label>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <F label="Tên người mua">{inp('tax_name', 'Nhập tên người mua')}</F>
-            <F label="Mã số thuế">
-              <div className="flex gap-2">
-                <input className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm" value={form.tax_code} onChange={e => u('tax_code', e.target.value)} placeholder="Nhập MST" />
-                <Button size="sm" variant="primary" className="whitespace-nowrap text-xs">Tra cứu MST</Button>
-              </div>
+          <div className="md:col-span-2">
+            <F label="Ghi chú">
+              <textarea 
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors resize-y min-h-[80px] font-medium text-gray-800" 
+                value={form.note} 
+                onChange={e => u('note', e.target.value)} 
+                placeholder="Nhập ghi chú khách hàng" 
+                rows={3} 
+              />
             </F>
           </div>
-          <div className="mt-3"><F label="Địa chỉ">{inp('tax_address', 'Nhập địa chỉ')}</F></div>
-        </fieldset>
+        </div>
       </div>
     </Modal>
   );
