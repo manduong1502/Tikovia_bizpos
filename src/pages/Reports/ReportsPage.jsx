@@ -30,10 +30,10 @@ export default function ReportsPage() {
   const d = data || {};
 
   return (
-    <div className="flex flex-col gap-6 animate-page-in">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Báo cáo</h1>
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-6 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full mb-1">
+        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Báo cáo</h1>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <Dropdown
             value={timeRange}
             options={[
@@ -44,16 +44,16 @@ export default function ReportsPage() {
             ]}
             onChange={setTimeRange}
           />
-          <Button icon={<Download size={16} />} className="shadow-sm" onClick={() => { const rows = (d.top_products || []).map(p => ({ name: p.name, quantity: p.quantity || p.total_quantity, revenue: p.revenue || p.total_revenue })); exportCSV([{key:'name',label:'Sản phẩm'},{key:'quantity',label:'SL bán'},{key:'revenue',label:'Doanh thu'}], rows, 'bao_cao'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
+          <Button icon={<Download size={16} />} className="shadow-sm w-full sm:w-auto justify-center text-xs sm:text-sm whitespace-nowrap cursor-pointer" onClick={() => { const rows = (d.top_products || []).map(p => ({ name: p.name, quantity: p.quantity || p.total_quantity, revenue: p.revenue || p.total_revenue })); exportCSV([{key:'name',label:'Sản phẩm'},{key:'quantity',label:'SL bán'},{key:'revenue',label:'Doanh thu'}], rows, 'bao_cao'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
         </div>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1.5 w-fit shadow-sm">
+      <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1.5 w-full overflow-x-auto shadow-sm custom-scrollbar">
         {TABS.map(t => {
           const Icon = t.icon;
           return (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-2 px-4 py-2 text-[13px] rounded-lg transition-all cursor-pointer font-bold ${tab === t.key ? 'bg-blue-50 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
+            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-xs sm:text-[13px] rounded-lg transition-all cursor-pointer font-bold whitespace-nowrap shrink-0 ${tab === t.key ? 'bg-blue-50 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'}`}>
               <Icon size={16} />{t.label}
             </button>
           );
@@ -61,57 +61,57 @@ export default function ReportsPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-5">
-        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><DollarSign size={64} className="text-blue-600" /></div>
-          <div className="text-[13px] font-bold text-gray-500 mb-2">Doanh thu</div>
-          <div className="text-3xl font-extrabold text-gray-800 tracking-tight">{fmt(d.monthly_revenue || 0)}</div>
-          <div className="text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1.5"><TrendingUp size={14} />+12.5% so với kỳ trước</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-500 mb-1 sm:mb-2 truncate">Doanh thu</div>
+          <div className="text-xl sm:text-3xl font-extrabold text-gray-800 tracking-tight truncate">{fmt(d.monthly_revenue || 0)}</div>
+          <div className="text-[11px] sm:text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1 sm:gap-1.5"><TrendingUp size={14} />+12.5% so với kỳ trước</div>
         </div>
-        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><TrendingUp size={64} className="text-green-600" /></div>
-          <div className="text-[13px] font-bold text-gray-500 mb-2">Lợi nhuận gộp</div>
-          <div className="text-3xl font-extrabold text-green-600 tracking-tight">{fmt((d.monthly_revenue || 0) * 0.35)}</div>
-          <div className="text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1.5"><TrendingUp size={14} />35% biên lợi nhuận</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-500 mb-1 sm:mb-2 truncate">Lợi nhuận gộp</div>
+          <div className="text-xl sm:text-3xl font-extrabold text-green-600 tracking-tight truncate">{fmt((d.monthly_revenue || 0) * 0.35)}</div>
+          <div className="text-[11px] sm:text-[13px] font-bold text-green-600 mt-2 flex items-center gap-1 sm:gap-1.5"><TrendingUp size={14} />35% biên lợi nhuận</div>
         </div>
-        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><ShoppingCart size={64} className="text-indigo-600" /></div>
-          <div className="text-[13px] font-bold text-gray-500 mb-2">Đơn hàng</div>
-          <div className="text-3xl font-extrabold text-gray-800 tracking-tight">{d.today_orders || 0}</div>
-          <div className="text-[13px] font-bold text-gray-400 mt-2">Hôm nay</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-500 mb-1 sm:mb-2 truncate">Đơn hàng</div>
+          <div className="text-xl sm:text-3xl font-extrabold text-gray-800 tracking-tight truncate">{d.today_orders || 0}</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-400 mt-2 truncate">Hôm nay</div>
         </div>
-        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Package size={64} className="text-orange-500" /></div>
-          <div className="text-[13px] font-bold text-gray-500 mb-2">Trả hàng</div>
-          <div className="text-3xl font-extrabold text-orange-500 tracking-tight">{d.today_returns || 0}</div>
-          <div className="text-[13px] font-bold text-gray-400 mt-2">Hôm nay</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-500 mb-1 sm:mb-2 truncate">Trả hàng</div>
+          <div className="text-xl sm:text-3xl font-extrabold text-orange-500 tracking-tight truncate">{d.today_returns || 0}</div>
+          <div className="text-xs sm:text-[13px] font-bold text-gray-400 mt-2 truncate">Hôm nay</div>
         </div>
       </div>
 
       {/* Chart area */}
-      <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-        <h3 className="text-lg font-bold text-gray-800 mb-6 tracking-tight">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
-        <div className="flex items-end gap-1.5 h-[260px] px-2">
+      <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm overflow-x-auto max-w-full">
+        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 tracking-tight min-w-[500px]">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
+        <div className="flex items-end gap-1 sm:gap-1.5 h-[200px] sm:h-[260px] px-1 sm:px-2 min-w-[500px]">
           {(d.daily_revenues || []).map((r, i) => {
             const maxRev = Math.max(...(d.daily_revenues || []).map(x => x.revenue || 0), 1);
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="w-full bg-gradient-to-t from-blue-500/80 to-blue-400 group-hover:from-blue-600 group-hover:to-blue-500 rounded-t-sm transition-all min-h-[4px] relative" style={{ height: `${Math.max((r.revenue / maxRev) * 240, 4)}px` }}>
+                <div className="w-full bg-gradient-to-t from-blue-500/80 to-blue-400 group-hover:from-blue-600 group-hover:to-blue-500 rounded-t-sm transition-all min-h-[4px] relative" style={{ height: `${Math.max((r.revenue / maxRev) * 200, 4)}px` }}>
                   <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[11px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 shadow-lg">
                     {fmt(r.revenue)}
                   </div>
                 </div>
-                <span className="text-[11px] font-bold text-gray-400">{String(r.day).padStart(2, '0')}</span>
+                <span className="text-[10px] sm:text-[11px] font-bold text-gray-400">{String(r.day).padStart(2, '0')}</span>
               </div>
             );
           })}
-          {(!d.daily_revenues || d.daily_revenues.length === 0) && <div className="flex-1 text-center text-gray-400 py-16 font-medium">Chưa có dữ liệu biểu đồ</div>}
+          {(!d.daily_revenues || d.daily_revenues.length === 0) && <div className="flex-1 text-center text-gray-400 py-16 font-medium min-w-[500px]">Chưa có dữ liệu biểu đồ</div>}
         </div>
       </div>
 
       {/* Detail table */}
-      <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden mb-8">
-        <table className="w-full text-sm">
+      <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-x-auto max-w-full mb-8">
+        <table className="w-full text-sm min-w-[600px]">
           <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100 font-bold tracking-wider">
             <tr>
               <th className="px-6 py-4 text-left">Ngày</th>

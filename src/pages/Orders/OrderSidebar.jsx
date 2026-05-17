@@ -5,7 +5,7 @@ export default function OrderSidebar({ filters, onFilterChange }) {
   const set = (key, val) => onFilterChange(prev => ({ ...prev, [key]: val }));
 
   return (
-    <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
+    <div className="w-full shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
       {/* Thời gian */}
       <div>
         <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian</span>

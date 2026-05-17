@@ -252,123 +252,125 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-page-in">
+    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Nhóm hàng</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Nhóm hàng</h1>
         <Button
           variant="primary"
           icon={<Plus size={16} />}
           onClick={() => openCreateModal()}
-          className="shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-blue-600 border-none"
+          className="shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-blue-600 border-none w-full sm:w-auto justify-center text-xs sm:text-sm py-2 sm:py-2.5 px-4 rounded-xl cursor-pointer"
         >
           Thêm nhóm hàng
         </Button>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm shrink-0">
             <Layers size={20} className="text-white" />
           </div>
-          <div>
-            <div className="text-[22px] font-bold text-gray-800">{totalCount}</div>
-            <div className="text-[12px] text-gray-500 font-medium">Nhóm hàng</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalCount}</div>
+            <div className="text-[12px] text-gray-500 font-medium truncate">Nhóm hàng</div>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm shrink-0">
             <Package size={20} className="text-white" />
           </div>
-          <div>
-            <div className="text-[22px] font-bold text-gray-800">{totalProducts}</div>
-            <div className="text-[12px] text-gray-500 font-medium">Sản phẩm</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalProducts}</div>
+            <div className="text-[12px] text-gray-500 font-medium truncate">Sản phẩm</div>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm shrink-0">
             <Folder size={20} className="text-white" />
           </div>
-          <div>
-            <div className="text-[22px] font-bold text-gray-800">{roots.length}</div>
-            <div className="text-[12px] text-gray-500 font-medium">Nhóm gốc</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{roots.length}</div>
+            <div className="text-[12px] text-gray-500 font-medium truncate">Nhóm gốc</div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 items-start max-w-full">
         {/* Tree Panel */}
-        <div className="flex-1 bg-white border border-gray-100 rounded-xl min-h-[500px] shadow-sm overflow-hidden">
-          {/* Toolbar */}
-          <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-            <div className="flex-1 max-w-sm">
-              <Input
-                icon={<Search size={16} className="text-gray-400" />}
-                placeholder="Tìm nhóm hàng..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="bg-white"
-              />
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                onClick={expandAll}
-                className="px-3 py-1.5 text-[12px] rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-primary hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer font-medium transition-all"
-              >
-                Mở tất cả
-              </button>
-              <button
-                onClick={collapseAll}
-                className="px-3 py-1.5 text-[12px] rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-primary hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer font-medium transition-all"
-              >
-                Thu gọn
-              </button>
-            </div>
-          </div>
-
-          {/* Table Header */}
-          <div className="flex items-center px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
-            <span className="flex-1 pl-14">Tên nhóm hàng</span>
-            <span className="w-[80px] text-center">Sản phẩm</span>
-            <span className="w-[100px] text-center">Nhóm con</span>
-            <span className="w-[110px] text-right pr-2">Thao tác</span>
-          </div>
-
-          {/* Tree Content */}
-          <div className="divide-y divide-gray-50">
-            {filteredRoots.length > 0 ? (
-              filteredRoots.map(c => renderNode(c))
-            ) : (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <Folder size={32} className="text-primary/40" />
-                </div>
-                <div className="text-base font-semibold text-gray-500 mb-1">
-                  {search ? 'Không tìm thấy nhóm hàng phù hợp' : 'Chưa có nhóm hàng nào'}
-                </div>
-                <div className="text-[13px] text-gray-400 mb-4">
-                  {search ? 'Thử tìm kiếm với từ khóa khác' : 'Tạo nhóm hàng đầu tiên để phân loại sản phẩm'}
-                </div>
-                {!search && (
-                  <Button variant="primary" icon={<Plus size={14} />} onClick={() => openCreateModal()} className="shadow-sm">
-                    Tạo nhóm hàng đầu tiên
-                  </Button>
-                )}
+        <div className="flex-1 bg-white border border-gray-100 rounded-xl min-h-[500px] shadow-sm overflow-x-auto max-w-full w-full">
+          <div className="min-w-[600px]">
+            {/* Toolbar */}
+            <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center gap-3 justify-between">
+              <div className="w-full sm:w-auto sm:flex-1 max-w-sm">
+                <Input
+                  icon={<Search size={16} className="text-gray-400" />}
+                  placeholder="Tìm nhóm hàng..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="bg-white w-full"
+                />
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={expandAll}
+                  className="px-3 py-1.5 text-[12px] rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-primary hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer font-medium transition-all"
+                >
+                  Mở tất cả
+                </button>
+                <button
+                  onClick={collapseAll}
+                  className="px-3 py-1.5 text-[12px] rounded-lg border border-gray-200 bg-white text-gray-600 hover:text-primary hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer font-medium transition-all"
+                >
+                  Thu gọn
+                </button>
+              </div>
+            </div>
 
-          {/* Footer */}
-          <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50/50 border-t border-gray-100 text-sm text-gray-600 font-medium">
-            <span>Hiển thị {filteredRoots.length} nhóm gốc / {totalCount} nhóm hàng</span>
+            {/* Table Header */}
+            <div className="flex items-center px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+              <span className="flex-1 pl-14">Tên nhóm hàng</span>
+              <span className="w-[80px] text-center">Sản phẩm</span>
+              <span className="w-[100px] text-center">Nhóm con</span>
+              <span className="w-[110px] text-right pr-2">Thao tác</span>
+            </div>
+
+            {/* Tree Content */}
+            <div className="divide-y divide-gray-50">
+              {filteredRoots.length > 0 ? (
+                filteredRoots.map(c => renderNode(c))
+              ) : (
+                <div className="text-center py-20">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm">
+                    <Folder size={32} className="text-primary/40" />
+                  </div>
+                  <div className="text-base font-semibold text-gray-500 mb-1">
+                    {search ? 'Không tìm thấy nhóm hàng phù hợp' : 'Chưa có nhóm hàng nào'}
+                  </div>
+                  <div className="text-[13px] text-gray-400 mb-4">
+                    {search ? 'Thử tìm kiếm với từ khóa khác' : 'Tạo nhóm hàng đầu tiên để phân loại sản phẩm'}
+                  </div>
+                  {!search && (
+                    <Button variant="primary" icon={<Plus size={14} />} onClick={() => openCreateModal()} className="shadow-sm">
+                      Tạo nhóm hàng đầu tiên
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50/50 border-t border-gray-100 text-sm text-gray-600 font-medium">
+              <span>Hiển thị {filteredRoots.length} nhóm gốc / {totalCount} nhóm hàng</span>
+            </div>
           </div>
         </div>
 
         {/* Detail Panel */}
         {selectedCat && (
-          <div className="w-[320px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+          <div className="w-full lg:w-[320px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100 bg-gradient-to-br from-blue-50/50 to-indigo-50/30">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-md">

@@ -36,6 +36,7 @@ export default function OrdersPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -332,122 +333,145 @@ export default function OrdersPage() {
   const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 font-sans">
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-6 font-sans max-w-full overflow-x-hidden">
       {/* Top Header Bar */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3">
+      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Hóa đơn
         </h1>
 
-        <div className="flex items-center gap-4">
-          {/* Main Search Input */}
-          <div className="relative w-80">
-            <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Theo mã hóa đơn, khách hàng"
-              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+          {/* Row 1: Search + Primary Actions */}
+          <div className="flex items-center gap-2 w-full lg:w-auto flex-1">
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className={`absolute right-2.5 top-2 p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              title="Bộ lọc tìm kiếm"
             >
-              <Filter size={16} />
+              <Filter size={18} />
             </button>
+            <div className="relative flex-1 sm:w-80">
+              <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Theo mã hóa đơn, khách hàng"
+                className="w-full pl-10 pr-10 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <button
+                onClick={() => setSearchOpen(!searchOpen)}
+                className={`absolute right-2.5 top-1.5 sm:top-2 p-1 sm:p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                title="Tìm kiếm nâng cao"
+              >
+                <SlidersHorizontal size={16} />
+              </button>
 
-            {/* Advanced Search Popover */}
-            {searchOpen && (
-              <div ref={searchPanelRef} className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 z-50 flex flex-col gap-4 animate-fade-in">
-                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                  <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
-                  <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline">Đóng</button>
+              {/* Advanced Search Popover */}
+              {searchOpen && (
+                <div ref={searchPanelRef} className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 z-50 flex flex-col gap-4 animate-fade-in max-w-[calc(100vw-24px)]">
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                    <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
+                    <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hóa đơn</label>
+                    <input type="text" placeholder="Nhập mã hóa đơn" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Khách hàng (Tên / Mã)</label>
+                    <input type="text" placeholder="Tên hoặc mã khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Hàng hóa (Tên / Mã)</label>
+                    <input type="text" placeholder="Tên hoặc mã hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchProduct} onChange={e => setSearchProduct(e.target.value)} />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchCustomer(''); setSearchProduct(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hóa đơn</label>
-                  <input type="text" placeholder="Nhập mã hóa đơn" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Khách hàng (Tên / Mã)</label>
-                  <input type="text" placeholder="Tên hoặc mã khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Hàng hóa (Tên / Mã)</label>
-                  <input type="text" placeholder="Tên hoặc mã hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchProduct} onChange={e => setSearchProduct(e.target.value)} />
-                </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                  <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchCustomer(''); setSearchProduct(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            <Button variant="primary" onClick={() => window.open('/pos', '_blank')} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+              <Plus size={18} /> <span className="hidden sm:inline">Bán hàng</span>
+            </Button>
+
+            <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center justify-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold p-2 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+              <Upload size={16} /> <span className="hidden sm:inline">Nhập file</span>
+            </Button>
           </div>
 
-          {/* Action Buttons */}
-          <Button variant="primary" onClick={() => window.open('/pos', '_blank')} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl">
-            <Plus size={18} /> Bán hàng
-          </Button>
+          {/* Row 2: Secondary Actions & Column selection */}
+          <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
+            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+              <Download size={16} /> Tải file mẫu
+            </Button>
 
-          <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Upload size={16} /> Nhập file
-          </Button>
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+              <Download size={16} /> Xuất file
+            </Button>
 
-          <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Download size={16} /> Tải file mẫu
-          </Button>
+            {/* Column Visibility Menu */}
+            <div className="relative" ref={columnMenuRef}>
+              <button
+                onClick={() => setShowColumnMenu(!showColumnMenu)}
+                className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <Columns3 size={18} />
+              </button>
 
-          <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Download size={16} /> Xuất file
-          </Button>
-
-          {/* Column Visibility Menu */}
-          <div className="relative" ref={columnMenuRef}>
-            <button
-              onClick={() => setShowColumnMenu(!showColumnMenu)}
-              className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer"
-            >
-              <Columns3 size={18} />
-            </button>
-
-            {showColumnMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
-                <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
-                <div className="flex flex-col gap-2.5">
-                  {ALL_COLUMNS.map(c => (
-                    <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                        checked={visibleColumns.includes(c.key)}
-                        onChange={(e) => {
-                          if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
-                          else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
-                        }}
-                      />
-                      <span>{c.label}</span>
-                    </label>
-                  ))}
+              {showColumnMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+                  <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                  <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                    {ALL_COLUMNS.map(c => (
+                      <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={visibleColumns.includes(c.key)}
+                          onChange={(e) => {
+                            if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                            else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                          }}
+                        />
+                        <span>{c.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-            <Settings size={18} />
-          </button>
-          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-            <HelpCircle size={18} />
-          </button>
+            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+              <Settings size={18} />
+            </button>
+            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+              <HelpCircle size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative">
+        {/* Backdrop for Mobile Sidebar */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+        )}
+
         {/* Left Filter Sidebar */}
-        <OrderSidebar filters={filters} onFilterChange={setFilters} />
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
+            <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+          </div>
+          <OrderSidebar filters={filters} onFilterChange={setFilters} />
+        </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">

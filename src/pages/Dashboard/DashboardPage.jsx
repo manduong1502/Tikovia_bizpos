@@ -46,55 +46,57 @@ export default function DashboardPage() {
 
   // Simple bar chart using CSS
   const revenues = d.daily_revenues || [];
-  const maxRev = Math.max(...revenues.map(r => r.revenue || 0), 1);
+  const maxRev = Math.max(...revenues.map(r => r.revenue), 0);
 
   return (
-    <div className="grid grid-cols-[1fr_320px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-full">
       {/* Left Panel */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 min-w-0">
         {/* Today Summary */}
         <div>
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Kết quả bán hàng hôm nay</h2>
-          <div className="flex gap-10">
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Doanh thu</div>
-              <div className="text-2xl font-bold text-primary">{fmt(d.todayStats?.revenue || 0)}</div>
+          <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">Kết quả bán hàng hôm nay</h2>
+          <div className="grid grid-cols-3 gap-3 sm:gap-6">
+            <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-100 shadow-sm">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1">Doanh thu</div>
+              <div className="text-base sm:text-2xl font-bold text-primary truncate">{fmt(d.todayStats?.revenue || 0)}</div>
             </div>
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Đơn hàng</div>
-              <div className="text-2xl font-bold text-gray-800">{d.todayStats?.orders || 0}</div>
+            <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-100 shadow-sm">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1">Đơn hàng</div>
+              <div className="text-base sm:text-2xl font-bold text-gray-800">{d.todayStats?.orders || 0}</div>
             </div>
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Trả hàng</div>
-              <div className="text-2xl font-bold text-warning">{d.todayStats?.returns || 0}</div>
+            <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-100 shadow-sm">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1">Trả hàng</div>
+              <div className="text-base sm:text-2xl font-bold text-warning">{d.todayStats?.returns || 0}</div>
             </div>
           </div>
         </div>
 
         {/* Revenue Chart */}
-        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-          <div className="flex items-baseline justify-between mb-5">
-            <div className="flex items-baseline gap-3">
-              <h3 className="text-lg font-bold text-gray-800 m-0">Doanh thu thuần</h3>
-              <span className="text-xl font-bold text-primary">{fmt(d.monthly_revenue)}</span>
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between mb-5 gap-2 sm:gap-0">
+            <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 m-0">Doanh thu thuần</h3>
+              <span className="text-lg sm:text-xl font-bold text-primary">{fmt(d.monthly_revenue)}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isUp ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                 {isUp ? <TrendingUp size={12} className="inline mr-0.5" /> : <TrendingDown size={12} className="inline mr-0.5" />}
                 {pct}%
               </span>
             </div>
-            <Dropdown
-              value={filterRev}
-              options={[
-                { value: 'Tháng này', label: 'Tháng này' },
-                { value: 'Tháng trước', label: 'Tháng trước' },
-              ]}
-              onChange={setFilterRev}
-            />
+            <div className="self-end sm:self-auto">
+              <Dropdown
+                value={filterRev}
+                options={[
+                  { value: 'Tháng này', label: 'Tháng này' },
+                  { value: 'Tháng trước', label: 'Tháng trước' },
+                ]}
+                onChange={setFilterRev}
+              />
+            </div>
           </div>
 
           {/* Tab control */}
-          <div className="flex justify-center mb-5">
-            <div className="inline-flex bg-gray-50 border border-gray-100 rounded-lg p-1">
+          <div className="flex justify-center mb-5 overflow-x-auto pb-1">
+            <div className="inline-flex bg-gray-50 border border-gray-100 rounded-lg p-1 whitespace-nowrap">
               {[
                 { key: 'daily', label: 'Theo ngày' },
                 { key: 'hourly', label: 'Theo giờ' },
@@ -103,8 +105,8 @@ export default function DashboardPage() {
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`px-4 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
-                    tab === t.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  className={`px-3 sm:px-4 py-1 sm:py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                    tab === t.key ? 'bg-white text-primary shadow-sm font-bold' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {t.label}
@@ -114,24 +116,24 @@ export default function DashboardPage() {
           </div>
 
           {/* Simple CSS bar chart */}
-          <div className="flex items-end gap-[3px] h-[180px] px-2">
+          <div className="flex items-end gap-[2px] sm:gap-[3px] h-[150px] sm:h-[180px] px-1 sm:px-2 overflow-x-auto scrollbar-none">
             {revenues.map((r, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+              <div key={i} className="flex-1 min-w-[12px] sm:min-w-[16px] flex flex-col items-center gap-1 group">
                 <div
                   className="w-full bg-blue-100 group-hover:bg-primary rounded-t transition-colors min-h-[2px]"
-                  style={{ height: `${Math.max((r.revenue / maxRev) * 160, 2)}px` }}
+                  style={{ height: `${Math.max((r.revenue / maxRev) * 140, 2)}px` }}
                   title={`Ngày ${r.day}: ${fmt(r.revenue)}`}
                 />
-                <span className="text-[10px] text-gray-400 group-hover:text-primary transition-colors">{String(r.day).padStart(2, '0')}</span>
+                <span className="text-[9px] sm:text-[10px] text-gray-400 group-hover:text-primary transition-colors">{String(r.day).padStart(2, '0')}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Bottom panels */}
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Top Products */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 sm:p-5 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top hàng bán chạy</h3>
               <Dropdown
@@ -144,13 +146,13 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-3">
               {(d.top_products || []).slice(0, 5).map((p, i) => (
-                <div key={i} className="flex items-center gap-3 group cursor-pointer">
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 ${
+                <div key={i} className="flex items-center gap-2 sm:gap-3 group cursor-pointer">
+                  <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 shrink-0 ${
                     i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-100 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-gray-50 text-gray-400'
                   }`}>{i + 1}</span>
-                  <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{p.name}</span>
-                  <span className="text-xs text-gray-500">{p.total_sold} sp</span>
-                  <span className="text-xs font-medium text-primary">{fmt(p.total_revenue)}</span>
+                  <span className="flex-1 text-xs sm:text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{p.name}</span>
+                  <span className="text-[11px] sm:text-xs text-gray-500 shrink-0">{p.total_sold} sp</span>
+                  <span className="text-[11px] sm:text-xs font-medium text-primary shrink-0">{fmt(p.total_revenue)}</span>
                 </div>
               ))}
               {(!d.top_products || d.top_products.length === 0) && (
@@ -163,7 +165,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Top Customers */}
-          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 sm:p-5 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-800 m-0">Top khách chi tiêu</h3>
               <Dropdown
@@ -176,13 +178,13 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-3">
               {(d.top_customers || []).slice(0, 5).map((c, i) => (
-                <div key={i} className="flex items-center gap-3 group cursor-pointer">
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 ${
+                <div key={i} className="flex items-center gap-2 sm:gap-3 group cursor-pointer">
+                  <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold transition-transform group-hover:scale-110 shrink-0 ${
                     i === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-50 text-gray-400'
                   }`}>{i + 1}</span>
-                  <span className="flex-1 text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{c.name}</span>
-                  <span className="text-xs text-gray-500">{c.order_count} đơn</span>
-                  <span className="text-xs font-medium text-primary">{fmt(c.total_spent)}</span>
+                  <span className="flex-1 text-xs sm:text-sm text-gray-700 truncate group-hover:text-primary transition-colors">{c.name}</span>
+                  <span className="text-[11px] sm:text-xs text-gray-500 shrink-0">{c.order_count} đơn</span>
+                  <span className="text-[11px] sm:text-xs font-medium text-primary shrink-0">{fmt(c.total_spent)}</span>
                 </div>
               ))}
               {(!d.top_customers || d.top_customers.length === 0) && (
@@ -215,14 +217,6 @@ export default function DashboardPage() {
             <div className="text-xs text-gray-500 mt-0.5">Tăng tốc kinh doanh đón Tết 2026</div>
           </div>
           <ChevronRight size={18} className="text-gray-300 group-hover:text-green-600 transition-colors" />
-        </div>
-
-        {/* Security alert */}
-        <div className="bg-orange-50/80 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle size={20} className="text-orange-500 shrink-0 mt-0.5" />
-          <div className="text-[13px] text-gray-700 flex-1 leading-relaxed">
-            Có <b>1</b> hoạt động đăng nhập <br /><b>khác thường</b> cần kiểm tra.
-          </div>
         </div>
 
         {/* Recent Activities */}

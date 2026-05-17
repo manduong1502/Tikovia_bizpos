@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload
+  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
@@ -30,6 +30,7 @@ export default function CustomersPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -354,24 +355,24 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Grid Info */}
-                <div className="grid grid-cols-4 gap-6 p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
-                  <div><span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span><span className="font-bold text-gray-800">Khách hàng chung</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span><span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-1">Giới tính</span><span className="font-bold text-gray-800">{c.gender || '---'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-1">Ngày sinh</span><span className="font-bold text-gray-800">---</span></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
+                  <div><span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span><span className="font-bold text-gray-800 truncate block">Khách hàng chung</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span><span className="font-bold text-gray-800 truncate block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-1">Giới tính</span><span className="font-bold text-gray-800 truncate block">{c.gender || '---'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-1">Ngày sinh</span><span className="font-bold text-gray-800 truncate block">---</span></div>
                 </div>
 
                 {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-3 gap-8 items-start">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-8 items-start">
+                  <div className="sm:col-span-2">
                     <textarea
                       placeholder="Ghi chú..."
-                      className="w-full h-32 border border-gray-300 rounded-xl p-4 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                      className="w-full h-24 sm:h-32 border border-gray-300 rounded-xl p-4 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                       value={currentNote}
                       onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
                     />
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-3 text-xs shadow-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col gap-3 text-xs shadow-sm">
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán trừ trả hàng</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
                     <div className="flex justify-between items-center text-sm border-t border-gray-200 pt-3"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(c.debt || c.totalDebt || 0)}</span></div>
@@ -379,33 +380,33 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="flex items-center justify-between border-t border-gray-200 pt-6 mt-2">
-                  <div className="flex items-center gap-3">
-                    <Button variant="danger" onClick={() => handleDelete(c.id)} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-6 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <Button variant="danger" onClick={() => handleDelete(c.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                       <Trash2 size={14} /> Xóa khách hàng
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                       <Copy size={14} /> Sao chép
                     </Button>
-                    <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                       <Download size={14} /> Xuất file
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex items-center gap-1.5 text-xs py-2 px-6 shadow-md font-bold bg-primary hover:bg-primary-hover">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-4 sm:px-6 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
                       <Edit size={14} /> Chỉnh sửa
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                       <Save size={14} /> Lưu
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Thanh toán nợ thành công')} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50">
+                    <Button variant="secondary" onClick={() => toast.success('Thanh toán nợ thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                       Thanh toán nợ
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                       <Printer size={14} /> In
                     </Button>
-                    <Button variant="secondary" className="p-2 shadow-sm">
+                    <Button variant="secondary" className="p-2 shadow-sm flex-none">
                       <MoreHorizontal size={14} />
                     </Button>
                   </div>
@@ -414,9 +415,9 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'history' && (
-              <div className="p-8">
+              <div className="p-4 sm:p-8 overflow-x-auto max-w-full">
                 {c.orders && c.orders.length > 0 ? (
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs min-w-[500px]">
                     <thead>
                       <tr className="text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
                         <th className="py-3">Mã đơn</th>
@@ -441,7 +442,7 @@ export default function CustomersPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <div className="text-center py-12 text-gray-400 font-medium">
+                  <div className="text-center py-12 text-gray-400 font-medium min-w-[500px]">
                     <User size={48} className="mx-auto mb-3 text-gray-300" />
                     Chưa có lịch sử mua hàng nào
                   </div>
@@ -473,118 +474,139 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 font-sans">
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-6 font-sans max-w-full overflow-x-hidden">
       {/* Top Header Bar */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3">
+      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Khách hàng
         </h1>
 
-        <div className="flex items-center gap-4">
-          {/* Main Search Input */}
-          <div className="relative w-80">
-            <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm khách hàng"
-              className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+          {/* Row 1: Search + Primary Actions */}
+          <div className="flex items-center gap-2 w-full lg:w-auto flex-1">
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className={`absolute right-2.5 top-2 p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              title="Bộ lọc tìm kiếm"
             >
-              <Filter size={16} />
+              <Filter size={18} />
             </button>
+            <div className="relative flex-1 sm:w-80">
+              <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Tìm khách hàng"
+                className="w-full pl-10 pr-10 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              <button
+                onClick={() => setSearchOpen(!searchOpen)}
+                className={`absolute right-2.5 top-1.5 sm:top-2 p-1 sm:p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                title="Tìm kiếm nâng cao"
+              >
+                <SlidersHorizontal size={16} />
+              </button>
 
-            {/* Advanced Search Popover */}
-            {searchOpen && (
-              <div ref={searchPanelRef} className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 z-50 flex flex-col gap-4 animate-fade-in">
-                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                  <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
-                  <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline">Đóng</button>
+              {/* Advanced Search Popover */}
+              {searchOpen && (
+                <div ref={searchPanelRef} className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 z-50 flex flex-col gap-4 animate-fade-in max-w-[calc(100vw-24px)]">
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                    <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
+                    <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Mã KH</label>
+                    <input type="text" placeholder="Nhập mã KH" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Tên khách hàng</label>
+                    <input type="text" placeholder="Nhập tên khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Điện thoại</label>
+                    <input type="text" placeholder="Nhập số điện thoại" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchName(''); setSearchPhone(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Mã KH</label>
-                  <input type="text" placeholder="Nhập mã KH" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Tên khách hàng</label>
-                  <input type="text" placeholder="Nhập tên khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 mb-1 block">Điện thoại</label>
-                  <input type="text" placeholder="Nhập số điện thoại" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
-                </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                  <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchName(''); setSearchPhone(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            <Button variant="primary" onClick={() => { setEditCustomer(null); setModalOpen(true); }} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+              <Plus size={18} /> <span className="hidden sm:inline">Thêm khách hàng</span>
+            </Button>
+
+            <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center justify-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold p-2 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+              <Upload size={16} /> <span className="hidden sm:inline">Nhập file</span>
+            </Button>
           </div>
 
-          {/* Action Buttons */}
-          <Button variant="primary" onClick={() => { setEditCustomer(null); setModalOpen(true); }} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl">
-            <Plus size={18} /> Thêm khách hàng
-          </Button>
+          {/* Row 2: Secondary Actions & Column selection */}
+          <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
+            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+              <Download size={16} /> Tải file mẫu
+            </Button>
 
-          <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Upload size={16} /> Nhập file
-          </Button>
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+              <Download size={16} /> Xuất file
+            </Button>
 
-          <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Download size={16} /> Tải file mẫu
-          </Button>
+            {/* Column Visibility Menu */}
+            <div className="relative" ref={columnMenuRef}>
+              <button
+                onClick={() => setShowColumnMenu(!showColumnMenu)}
+                className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <Columns3 size={18} />
+              </button>
 
-          <Button variant="secondary" onClick={handleExport} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-            <Download size={16} /> Xuất file
-          </Button>
-
-          {/* Column Visibility Menu */}
-          <div className="relative" ref={columnMenuRef}>
-            <button
-              onClick={() => setShowColumnMenu(!showColumnMenu)}
-              className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer"
-            >
-              <Columns3 size={18} />
-            </button>
-
-            {showColumnMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
-                <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
-                <div className="flex flex-col gap-2.5">
-                  {ALL_COLUMNS.map(c => (
-                    <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                        checked={visibleColumns.includes(c.key)}
-                        onChange={(e) => {
-                          if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
-                          else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
-                        }}
-                      />
-                      <span>{c.label}</span>
-                    </label>
-                  ))}
+              {showColumnMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+                  <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                  <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                    {ALL_COLUMNS.map(c => (
+                      <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={visibleColumns.includes(c.key)}
+                          onChange={(e) => {
+                            if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                            else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                          }}
+                        />
+                        <span>{c.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-            <Settings size={18} />
-          </button>
-          <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-            <HelpCircle size={18} />
-          </button>
+            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+              <Settings size={18} />
+            </button>
+            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+              <HelpCircle size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative">
+        {/* Backdrop for Mobile Sidebar */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+        )}
+
         {/* Left Filter Sidebar */}
-        <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+          <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
+            <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+          </div>
           {/* Group Filter */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nhóm khách hàng</span>
@@ -616,7 +638,7 @@ export default function CustomersPage() {
           {/* Type Filter */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại khách hàng</span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {['Tất cả', 'Cá nhân'].map(t => (
                 <button
                   key={t}
@@ -635,7 +657,7 @@ export default function CustomersPage() {
           {/* Gender Filter */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giới tính</span>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {['Tất cả', 'Nam', 'Nữ'].map(t => (
                 <button
                   key={t}
@@ -680,8 +702,8 @@ export default function CustomersPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">

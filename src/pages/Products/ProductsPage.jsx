@@ -3,7 +3,7 @@ import { productAPI, categoryAPI, supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import {
-  Plus, Download, Upload, Settings, Search, Star, ChevronUp, ChevronDown, Package, Trash2, Copy, Edit, Tag, MoreHorizontal, ClipboardList, ChevronLeft, ChevronRight, X, Filter, Columns3, HelpCircle, AlertCircle
+  Plus, Download, Upload, Settings, Search, Star, ChevronUp, ChevronDown, Package, Trash2, Copy, Edit, Tag, MoreHorizontal, ClipboardList, ChevronLeft, ChevronRight, X, Filter, Columns3, HelpCircle, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import FilterSidebar from './FilterSidebar';
@@ -38,6 +38,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSku, setSearchSku] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchName, setSearchName] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
 
@@ -497,7 +498,7 @@ export default function ProductsPage() {
                     <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-6 text-xs bg-gray-50/50 p-6 rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
@@ -510,7 +511,7 @@ export default function ProductsPage() {
                     ].map(([label, val]) => (
                       <div key={label}>
                         <div className="text-gray-500 font-medium mb-1">{label}</div>
-                        <div className="font-extrabold text-gray-800 text-sm">{val}</div>
+                        <div className="font-extrabold text-gray-800 text-sm truncate">{val}</div>
                       </div>
                     ))}
                   </div>
@@ -518,7 +519,7 @@ export default function ProductsPage() {
               </div>
             )}
             {detailTab === 'desc' && (
-              <div className="p-6 text-sm text-gray-600 bg-gray-50 rounded-xl border border-gray-200 leading-relaxed font-medium">
+              <div className="p-4 sm:p-6 text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-xl border border-gray-200 leading-relaxed font-medium overflow-x-auto max-w-full">
                 {p.description ? (
                   <div dangerouslySetInnerHTML={{ __html: p.description }} />
                 ) : (
@@ -527,14 +528,14 @@ export default function ProductsPage() {
               </div>
             )}
             {detailTab === 'stock_card' && (
-              <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200">
+              <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 overflow-x-auto max-w-full">
                 <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
                 Không tìm thấy thẻ kho nào phù hợp
               </div>
             )}
             {detailTab === 'inventory' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                <table className="w-full text-xs">
+              <div className="border border-gray-200 rounded-xl overflow-x-auto bg-white shadow-sm max-w-full w-full">
+                <table className="w-full text-xs min-w-[600px]">
                   <thead>
                     <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
                       <th className="p-3 pl-4">Chi nhánh</th>
@@ -565,23 +566,23 @@ export default function ProductsPage() {
             )}
 
             {/* Action bar */}
-            <div className="flex items-center justify-between border-t border-gray-200 pt-6 mt-6" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center gap-3">
-                <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-6 mt-6" onClick={e => e.stopPropagation()}>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                   <Trash2 size={14} /> Xóa
                 </Button>
-                <Button variant="secondary" onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                <Button variant="secondary" onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                   <Copy size={14} /> Sao chép
                 </Button>
-                <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
                   <Tag size={14} /> In tem mã
                 </Button>
               </div>
-              <div className="flex items-center gap-3">
-                <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex items-center gap-1.5 text-xs py-2 px-6 shadow-md font-bold bg-primary hover:bg-primary-hover">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-4 sm:px-6 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
                   <Edit size={14} /> Chỉnh sửa
                 </Button>
-                <Button variant="secondary" className="p-2 shadow-sm">
+                <Button variant="secondary" className="p-2 shadow-sm flex-none">
                   <MoreHorizontal size={14} />
                 </Button>
               </div>
@@ -593,145 +594,168 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-6 font-sans">
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-6 font-sans max-w-full overflow-x-hidden">
       {/* Top Header Bar */}
-      <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-        <h1 className="text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3">
+      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Hàng hóa
         </h1>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
           {selected.size > 0 ? (
-            <>
-              <span className="text-primary font-extrabold text-sm bg-blue-50 px-4 py-2.5 rounded-xl border border-blue-100 shadow-sm flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full">
+              <span className="text-primary font-extrabold text-xs sm:text-sm bg-blue-50 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-blue-100 shadow-sm flex items-center gap-2">
                 Đã chọn {selected.size}
                 <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-red-500 cursor-pointer bg-transparent border-none p-0.5 transition-colors"><X size={16} /></button>
               </span>
-              <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+              <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm">
                 <Download size={16} /> Xuất file
               </Button>
-              <Button variant="secondary" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
+              <Button variant="secondary" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }} className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm">
                 <Tag size={16} /> In tem mã
               </Button>
-            </>
+            </div>
           ) : (
             <>
-              {/* Main Search Input */}
-              <div className="relative w-80">
-                <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Theo mã, tên hàng"
-                  className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
+              {/* Row 1: Search + Primary Actions */}
+              <div className="flex items-center gap-2 w-full lg:w-auto flex-1">
                 <button
-                  onClick={() => setSearchOpen(!searchOpen)}
-                  className={`absolute right-2.5 top-2 p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                  title="Bộ lọc tìm kiếm"
                 >
-                  <Filter size={16} />
+                  <Filter size={18} />
                 </button>
+                <div className="relative flex-1 sm:w-80">
+                  <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Theo mã, tên hàng"
+                    className="w-full pl-10 pr-10 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                  <button
+                    onClick={() => setSearchOpen(!searchOpen)}
+                    className={`absolute right-2.5 top-1.5 sm:top-2 p-1 sm:p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                    title="Tìm kiếm nâng cao"
+                  >
+                    <SlidersHorizontal size={16} />
+                  </button>
 
-                {/* Advanced Search Popover */}
-                {searchOpen && (
-                  <div ref={searchPanelRef} className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 z-50 flex flex-col gap-4 animate-fade-in">
-                    <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-                      <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
-                      <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline">Đóng</button>
+                  {/* Advanced Search Popover */}
+                  {searchOpen && (
+                    <div ref={searchPanelRef} className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 w-full sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-6 z-50 flex flex-col gap-4 animate-fade-in max-w-[calc(100vw-24px)]">
+                      <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                        <span className="font-bold text-gray-800 text-sm">Tìm kiếm nâng cao</span>
+                        <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hàng</label>
+                        <input type="text" placeholder="Nhập mã hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSku} onChange={e => setSearchSku(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-700 mb-1 block">Tên hàng hóa</label>
+                        <input type="text" placeholder="Nhập tên hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-700 mb-1 block">Vị trí</label>
+                        <input type="text" placeholder="Nhập vị trí lưu trữ" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchLocation} onChange={e => setSearchLocation(e.target.value)} />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                        <Button variant="secondary" onClick={() => { setSearchSku(''); setSearchName(''); setSearchLocation(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hàng</label>
-                      <input type="text" placeholder="Nhập mã hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSku} onChange={e => setSearchSku(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 mb-1 block">Tên hàng hóa</label>
-                      <input type="text" placeholder="Nhập tên hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 mb-1 block">Vị trí</label>
-                      <input type="text" placeholder="Nhập vị trí lưu trữ" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchLocation} onChange={e => setSearchLocation(e.target.value)} />
-                    </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                      <Button variant="secondary" onClick={() => { setSearchSku(''); setSearchName(''); setSearchLocation(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <Button variant="primary" onClick={() => { setEditProduct(null); setModalOpen(true); }} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+                  <Plus size={18} /> <span className="hidden sm:inline">Thêm mới</span>
+                </Button>
+
+                <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center justify-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold p-2 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
+                  <Upload size={16} /> <span className="hidden sm:inline">Nhập file</span>
+                </Button>
               </div>
 
-              {/* Action Buttons */}
-              <Button variant="primary" onClick={() => { setEditProduct(null); setModalOpen(true); }} className="flex items-center gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold py-2.5 px-5 rounded-xl">
-                <Plus size={18} /> Thêm mới
-              </Button>
+              {/* Row 2: Secondary Actions & Column selection */}
+              <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
+                <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+                  <Download size={16} /> Tải file mẫu
+                </Button>
 
-              <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-                <Upload size={16} /> Nhập file
-              </Button>
+                <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+                  <Download size={16} /> Xuất file
+                </Button>
 
-              <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-                <Download size={16} /> Tải file mẫu
-              </Button>
+                {/* Column Visibility Menu */}
+                <div className="relative" ref={columnMenuRef}>
+                  <button
+                    onClick={() => setShowColumnMenu(!showColumnMenu)}
+                    className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+                  >
+                    <Columns3 size={18} />
+                  </button>
 
-              <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-xl shadow-sm">
-                <Download size={16} /> Xuất file
-              </Button>
-
-              {/* Column Visibility Menu */}
-              <div className="relative" ref={columnMenuRef}>
-                <button
-                  onClick={() => setShowColumnMenu(!showColumnMenu)}
-                  className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer"
-                >
-                  <Columns3 size={18} />
-                </button>
-
-                {showColumnMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
-                    <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
-                    <div className="flex flex-col gap-2.5">
-                      {ALL_COLUMNS.map(c => (
-                        <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                            checked={visibleColumns.includes(c.key)}
-                            onChange={(e) => {
-                              if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
-                              else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
-                            }}
-                          />
-                          <span>{c.label}</span>
-                        </label>
-                      ))}
+                  {showColumnMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
+                      <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                      <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                        {ALL_COLUMNS.map(c => (
+                          <label key={c.key} className="flex items-center gap-3 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                              checked={visibleColumns.includes(c.key)}
+                              onChange={(e) => {
+                                if (e.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                                else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                              }}
+                            />
+                            <span>{c.label}</span>
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-                <Settings size={18} />
-              </button>
-              <button className="p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer">
-                <HelpCircle size={18} />
-              </button>
+                <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+                  <Settings size={18} />
+                </button>
+                <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
+                  <HelpCircle size={18} />
+                </button>
+              </div>
             </>
           )}
         </div>
       </div>
 
-      <div className="flex gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative">
+        {/* Backdrop for Mobile Sidebar */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+        )}
+
         {/* Left Filter Sidebar */}
-        <FilterSidebar
-          categories={categories}
-          products={products}
-          suppliers={suppliers}
-          filters={filters}
-          onFilterChange={handleFilterChange}
-        />
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
+            <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
+            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+          </div>
+          <FilterSidebar
+            categories={categories}
+            products={products}
+            suppliers={suppliers}
+            filters={filters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
