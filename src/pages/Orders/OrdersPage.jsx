@@ -29,7 +29,6 @@ const ALL_COLUMNS = [
   { key: 'discount_amount', label: 'Giảm giá', default: true, align: 'right' },
   { key: 'paid_amount', label: 'Khách đã trả', default: true, align: 'right' },
   { key: 'payment_status', label: 'Trạng thái thanh toán', default: true },
-  { key: 'actions', label: 'Thao tác', default: true, align: 'center' },
 ];
 
 export default function OrdersPage() {
@@ -510,7 +509,6 @@ export default function OrdersPage() {
                 {visibleColumns.includes('discount_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumDiscount)}</td>}
                 {visibleColumns.includes('paid_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumPaid)}</td>}
                 {visibleColumns.includes('payment_status') && <td></td>}
-                {visibleColumns.includes('actions') && <td></td>}
               </tr>
 
               {filtered.map((o) => {
@@ -610,30 +608,6 @@ export default function OrdersPage() {
                               </div>
                             );
                           })()}
-                        </td>
-                      )}
-                      {visibleColumns.includes('actions') && (
-                        <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={async () => {
-                              const detailItems = o.items || o._items || [];
-                              navigate('/pos', { 
-                                state: { 
-                                  editOrder: { 
-                                    id: o.id, 
-                                    code: o.order_code, 
-                                    items: detailItems, 
-                                    customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, 
-                                    note: o.note 
-                                  } 
-                                } 
-                              });
-                            }}
-                            className="bg-primary hover:bg-primary-hover text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-fit"
-                          >
-                            <Pencil size={12} />
-                            <span>Cập nhật</span>
-                          </button>
                         </td>
                       )}
                     </tr>
