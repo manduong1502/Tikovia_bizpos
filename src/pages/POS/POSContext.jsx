@@ -77,7 +77,7 @@ export function POSProvider({ children }) {
     setInvoices(prev => [...prev, editInvoice]);
     setActiveTabId(nextTabId);
     setNextTabId(prev => prev + 1);
-    setSaleMode('normal');
+    setSaleMode('fast');
     // Clear the state so it doesn't re-trigger
     window.history.replaceState({}, '');
   }, [location.state, products]);

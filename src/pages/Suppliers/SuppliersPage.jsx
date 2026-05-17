@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { supplierAPI, productAPI } from '../../services/api';
+import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -19,12 +19,19 @@ const ALL_COLUMNS = [
   { key: 'email', label: 'Email', default: true },
   { key: 'address', label: 'Địa chỉ', default: true },
   { key: 'debt', label: 'Nợ hiện tại', default: true, align: 'right' },
-  { key: 'total_spent', label: 'Tổng mua', default: false, align: 'right' },
+  { key: 'total_spent', label: 'Tổng mua', default: true, align: 'right' },
+  { key: 'net_purchase', label: 'Tổng mua trừ trả hàng', default: false, align: 'right' },
+  { key: 'isActive', label: 'Trạng thái', default: false },
+  { key: 'note', label: 'Ghi chú', default: false },
+  { key: 'created_by', label: 'Người tạo', default: false },
+  { key: 'created_at', label: 'Ngày tạo', default: false },
 ];
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [purchaseReturns, setPurchaseReturns] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
@@ -106,6 +113,14 @@ export default function SuppliersPage() {
           const rawStatus = String(findVal(['trạng thái', 'trang thai', 'status', 'is_active', 'active']) || '').trim();
           const isActive = rawStatus === '0' || rawStatus.toLowerCase() === 'false' || rawStatus.toLowerCase() === 'ngừng hoạt động' ? false : true;
 
+          const rawNetVal = findVal(['tổng mua trừ trả hàng', 'tong mua tru tra hang', 'net_purchase']);
+          let netPurchase = totalSpent;
+          let totalReturn = 0;
+          if (rawNetVal !== '') {
+            netPurchase = Number(String(rawNetVal).replace(/[^0-9.-]/g, '')) || 0;
+            totalReturn = totalSpent - netPurchase;
+          }
+
           const createdBy = String(findVal(['người tạo', 'nguoi tao', 'created_by']) || '').trim();
           const createdAt = String(findVal(['ngày tạo', 'ngay tao', 'created_at']) || '').trim();
 
@@ -120,12 +135,20 @@ export default function SuppliersPage() {
             phone,
             email,
             address,
-            totalSpent,
-            totalDebt,
+            debt: totalDebt,
+            totalDebt: totalDebt,
+            total_spent: totalSpent,
+            totalSpent: totalSpent,
+            total_return: totalReturn,
+            totalReturn: totalReturn,
+            net_purchase: netPurchase,
+            netPurchase: netPurchase,
             note,
             isActive,
-            createdBy,
-            createdAt,
+            created_by: createdBy,
+            createdBy: createdBy,
+            created_at: createdAt,
+            createdAt: createdAt,
           });
         }
 
@@ -183,25 +206,96 @@ export default function SuppliersPage() {
 
   const reload = useCallback(async () => {
     try {
-      const [supRes, prodRes] = await Promise.all([
+      const [supRes, prodRes, poRes, prRes] = await Promise.all([
         supplierAPI.getAll({ limit: 500 }),
         productAPI.getAll().catch(() => []),
+        purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 500 }).catch(() => []),
       ]);
       const rawList = Array.isArray(supRes) ? supRes : (supRes?.data || []);
       if (rawList.length === 0) {
         const mockSuppliers = [
-          { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000 },
-          { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000 },
-          { id: 3, code: 'NCC003', name: 'Công ty Cổ phần VinaFood', phone: '0283456789', email: 'info@vinafood.vn', address: 'Q.1, TP.HCM', debt: 5000000, total_spent: 45000000 },
+          { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 1305000, net_purchase: 11195000 },
+          { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000 },
+          { id: 3, code: 'NCC003', name: 'Công ty Cổ phần VinaFood', phone: '0283456789', email: 'info@vinafood.vn', address: 'Q.1, TP.HCM', debt: 5000000, total_spent: 45000000, total_return: 0, net_purchase: 45000000 },
         ];
         setSuppliers(mockSuppliers);
       } else {
         setSuppliers(rawList);
       }
       setProducts(Array.isArray(prodRes) ? prodRes : (prodRes?.data || []));
+
+      const rawPOs = Array.isArray(poRes) ? poRes : (poRes?.data || []);
+      const normalizedPOs = rawPOs.map(o => ({
+        ...o,
+        id: o.id,
+        po_code: o.po_code || o.code || '',
+        created_at: o.created_at || o.createdAt || null,
+        supplier_code: o.supplier_code || o.supplier?.code || '',
+        supplier_name: o.supplier_name || o.supplier?.name || '',
+        total: Number(o.total || 0),
+        paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || o.total || 0),
+        payment_status: o.payment_status || o.paymentStatus || (o.status === 'PENDING' ? 'partial' : 'paid'),
+        items: Array.isArray(o.items) ? o.items.map(it => ({
+          ...it,
+          product_sku: it.product_sku || it.product?.sku || '',
+          product_name: it.product_name || it.product?.name || '',
+          quantity: Number(it.quantity || 0),
+          unit_price: Number(it.unit_price || it.price || 0),
+          discount: Number(it.discount || 0),
+          total: Number(it.total || (it.quantity * (it.price || it.unit_price || 0)))
+        })) : []
+      }));
+
+      const rawPRs = Array.isArray(prRes) ? prRes : (prRes?.data || []);
+      const normalizedPRs = rawPRs.map(o => ({
+        ...o,
+        id: o.id,
+        code: o.code || '',
+        created_at: o.createdAt || o.created_at || null,
+        supplier_name: o.supplier?.name || o.supplier_name || '',
+        total: Number(o.total || 0),
+        discount: Number(o.discount || 0),
+        supplier_must_pay: Math.max(0, Number(o.total || 0) - Number(o.discount || 0)),
+        paid: Number(o.paid || 0),
+        status: o.status || 'COMPLETED',
+        createdBy: o.createdBy || 'Võ Thành Huy',
+        receivedBy: o.receivedBy || 'Võ Thành Huy',
+        items: Array.isArray(o.items) ? o.items : []
+      }));
+
+      if (normalizedPOs.length === 0) {
+        setPurchaseOrders([
+          { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Phân phối ABC', total: 12500000, paid_amount: 11000000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+            { product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 20, unit_price: 85000, discount: 0, total: 1700000 },
+            { product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 72, unit_price: 150000, discount: 0, total: 10800000 }
+          ]},
+          { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Đại lý XYZ', total: 8400000, paid_amount: 8400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+            { product_sku: 'NSTP00019', product_name: 'Thịt ba rọi heo', quantity: 60, unit_price: 140000, discount: 0, total: 8400000 }
+          ]},
+          { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Cổ phần VinaFood', total: 45000000, paid_amount: 40000000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+            { product_sku: 'NSTP00020', product_name: 'Gạo ST25', quantity: 1500, unit_price: 30000, discount: 0, total: 45000000 }
+          ]}
+        ]);
+      } else {
+        setPurchaseOrders(normalizedPOs);
+      }
+
+      if (normalizedPRs.length === 0) {
+        setPurchaseReturns([
+          { id: 1, code: 'THN000001', created_at: '2026-05-16T15:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Phân phối ABC', total: 1305000, discount: 0, supplier_must_pay: 1305000, paid: 1305000, status: 'COMPLETED', createdBy: 'Võ Thành Huy', receivedBy: 'Võ Thành Huy', note: '', items: [
+            { product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 3, cost_price: 85000, return_price: 85000, discount: 0, total: 255000 },
+            { product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 7, cost_price: 150000, return_price: 150000, discount: 0, total: 1050000 }
+          ]}
+        ]);
+      } else {
+        setPurchaseReturns(normalizedPRs);
+      }
     } catch {
       setSuppliers([]);
       setProducts([]);
+      setPurchaseOrders([]);
+      setPurchaseReturns([]);
     }
   }, []);
 
@@ -282,6 +376,69 @@ export default function SuppliersPage() {
   };
 
   const renderDetail = (s) => {
+    const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
+    const supPOs = purchaseOrders.filter(po => po.supplier_code === supCode || po.supplier_name === s.name);
+    const supPRs = purchaseReturns.filter(pr => pr.supplier_name === s.name || pr.supplier_code === supCode);
+
+    const transactions = [
+      ...supPOs.map(po => ({
+        id: po.id,
+        code: po.po_code,
+        type: 'import',
+        typeName: 'Nhập hàng',
+        date: po.created_at,
+        total: po.total,
+        status: po.payment_status,
+        items: po.items || []
+      })),
+      ...supPRs.map(pr => ({
+        id: pr.id,
+        code: pr.code,
+        type: 'return',
+        typeName: 'Trả hàng',
+        date: pr.created_at,
+        total: -pr.total,
+        status: pr.status,
+        items: pr.items || []
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const itemStats = {};
+    supPOs.forEach(po => {
+      po.items?.forEach(it => {
+        const sku = it.product_sku || 'N/A';
+        if (!itemStats[sku]) {
+          itemStats[sku] = {
+            sku: sku,
+            name: it.product_name || 'N/A',
+            qty: 0,
+            amount: 0
+          };
+        }
+        itemStats[sku].qty += it.quantity || 0;
+        itemStats[sku].amount += it.total || 0;
+      });
+    });
+
+    supPRs.forEach(pr => {
+      if (pr.status === 'CANCELLED') return;
+      pr.items?.forEach(it => {
+        const sku = it.product_sku || 'N/A';
+        if (!itemStats[sku]) {
+          itemStats[sku] = {
+            sku: sku,
+            name: it.product_name || 'N/A',
+            qty: 0,
+            amount: 0
+          };
+        }
+        itemStats[sku].qty -= it.quantity || 0;
+        itemStats[sku].amount -= it.total || 0;
+      });
+    });
+
+    const statsList = Object.values(itemStats).filter(it => it.qty > 0 || it.amount > 0);
+
     const supProducts = products.filter(p => p.supplier_id === s.id || p.supplier?.code === s.code || (s.code === 'NCC001' && p.id <= 5)) || [];
     const items = supProducts.filter(p => {
       if (detailSearchSku && !(p.sku || '').toLowerCase().includes(detailSearchSku.toLowerCase())) return false;
@@ -449,10 +606,94 @@ export default function SuppliersPage() {
                 </div>
               </div>
             ) : (
-              <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
-                <Building2 size={40} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-sm font-bold text-gray-700 mb-1">Chưa có lịch sử giao dịch nào</p>
-                <p className="text-xs text-gray-400">Các đơn nhập hàng từ nhà cung cấp này sẽ được liệt kê tại đây.</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in text-[13px]">
+                {/* Lịch sử giao dịch */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
+                  <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                    <span className="font-extrabold text-gray-800 text-sm">Lịch sử giao dịch nhập/trả</span>
+                    <span className="px-2.5 py-1 text-xs bg-primary/10 text-primary font-bold rounded-full">{transactions.length} giao dịch</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                          <th className="p-3">Mã đơn</th>
+                          <th className="p-3">Loại</th>
+                          <th className="p-3">Thời gian</th>
+                          <th className="p-3 text-right">Giá trị</th>
+                          <th className="p-3 text-center">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 font-medium">
+                        {transactions.map((tx, idx) => (
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="p-3 font-bold text-primary">{tx.code}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                {tx.typeName}
+                              </span>
+                            </td>
+                            <td className="p-3 text-gray-500">
+                              {tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}
+                            </td>
+                            <td className={`p-3 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : 'text-red-600'}`}>
+                              {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`inline-block py-0.5 px-2 rounded-full text-[10px] font-bold ${
+                                tx.status === 'paid' || tx.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                                tx.status === 'partial' || tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-red-100 text-red-600'
+                              }`}>
+                                {tx.status === 'paid' || tx.status === 'COMPLETED' ? 'Hoàn thành' :
+                                 tx.status === 'partial' || tx.status === 'PENDING' ? 'Phiếu tạm' :
+                                 'Đã hủy'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {transactions.length === 0 && (
+                          <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có giao dịch nào từ nhà cung cấp này</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Thống kê hàng nhập */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
+                  <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                    <span className="font-extrabold text-gray-800 text-sm">Thống kê hàng đã nhập từ NCC này</span>
+                    <span className="px-2.5 py-1 text-xs bg-green-100 text-green-700 font-bold rounded-full">
+                      {statsList.reduce((sum, it) => sum + it.qty, 0)} sản phẩm
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                          <th className="p-3">Mã hàng</th>
+                          <th className="p-3">Tên hàng</th>
+                          <th className="p-3 text-right">Tổng số lượng đã nhập</th>
+                          <th className="p-3 text-right">Tổng giá trị đã nhập</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 font-medium">
+                        {statsList.map((stat, idx) => (
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="p-3 font-bold text-gray-700">{stat.sku}</td>
+                            <td className="p-3 text-gray-800 font-bold">{stat.name}</td>
+                            <td className="p-3 text-right font-extrabold text-primary">{fmt(stat.qty)}</td>
+                            <td className="p-3 text-right font-extrabold text-emerald-600">{fmt(stat.amount)}</td>
+                          </tr>
+                        ))}
+                        {statsList.length === 0 && (
+                          <tr><td colSpan={4} className="p-8 text-center text-gray-400">Chưa nhập mặt hàng nào từ nhà cung cấp này</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -704,6 +945,25 @@ export default function SuppliersPage() {
                       )}
                       {visibleColumns.includes('total_spent') && (
                         <td className="p-4 text-right font-extrabold text-primary">{fmt(s.total_spent || 0)}</td>
+                      )}
+                      {visibleColumns.includes('net_purchase') && (
+                        <td className="p-4 text-right font-extrabold text-emerald-600">{fmt(s.net_purchase ?? s.total_spent ?? 0)}</td>
+                      )}
+                      {visibleColumns.includes('isActive') && (
+                        <td className="p-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${s.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {s.isActive !== false ? 'Hoạt động' : 'Ngừng hoạt động'}
+                          </span>
+                        </td>
+                      )}
+                      {visibleColumns.includes('note') && (
+                        <td className="p-4 text-gray-600 max-w-xs truncate">{s.note || '---'}</td>
+                      )}
+                      {visibleColumns.includes('created_by') && (
+                        <td className="p-4 text-gray-700 font-medium">{s.created_by || 'Admin'}</td>
+                      )}
+                      {visibleColumns.includes('created_at') && (
+                        <td className="p-4 text-gray-500 text-xs">{s.created_at || '2026-05-15'}</td>
                       )}
                       <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">

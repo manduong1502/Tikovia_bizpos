@@ -109,7 +109,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
   };
 
   return (
-    <td colSpan={10} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
+    <td colSpan={14} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
       <div className="p-3 sm:p-6 max-w-full overflow-x-hidden">
         {/* Top Tabs */}
         <div className="flex gap-4 sm:gap-6 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">

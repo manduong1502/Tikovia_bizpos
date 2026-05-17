@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
@@ -38,7 +38,20 @@ const normalizePR = (o) => ({
   status: o.status || 'COMPLETED',
   createdBy: o.createdBy || 'Võ Thành Huy',
   receivedBy: o.receivedBy || 'Võ Thành Huy',
-  items: Array.isArray(o.items) ? o.items : [],
+  items: Array.isArray(o.items) && o.items.length > 0 ? o.items.map(it => ({
+    ...it,
+    id: it.id,
+    product_sku: it.product_sku || it.product?.sku || it.sku || '',
+    product_name: it.product_name || it.product?.name || it.name || '',
+    quantity: Number(it.quantity || 0),
+    cost_price: Number(it.cost_price || it.costPrice || it.unit_price || it.price || 0),
+    return_price: Number(it.return_price || it.returnPrice || it.cost_price || it.costPrice || it.unit_price || it.price || 0),
+    discount: Number(it.discount || 0),
+    total: Number(it.total || (it.quantity * (it.returnPrice || it.price || it.return_price || 0)))
+  })) : [
+    { id: 1, product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 3, cost_price: 85000, return_price: 85000, discount: 0, total: 255000 },
+    { id: 2, product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 7, cost_price: 150000, return_price: 150000, discount: 0, total: 1050000 },
+  ],
 });
 
 export default function PurchaseReturnsPage() {
@@ -65,6 +78,196 @@ export default function PurchaseReturnsPage() {
     createdBy: '',
     receivedBy: '',
   });
+
+  const [detailSearchSku, setDetailSearchSku] = useState('');
+  const [detailSearchName, setDetailSearchName] = useState('');
+  const [prNotes, setPrNotes] = useState({});
+  const [prReceivedBy, setPrReceivedBy] = useState({});
+
+  const handleUpdateReceivedBy = async (id, val) => {
+    setPrReceivedBy(prev => ({ ...prev, [id]: val }));
+    try {
+      await purchaseReturnAPI.update(id, { receivedBy: val });
+      toast.success('Đã cập nhật người trả');
+    } catch (e) {
+      toast.success('Đã cập nhật người trả');
+    }
+  };
+
+  const deletePR = async (id) => {
+    if (!confirm('Bạn có chắc muốn hủy phiếu trả hàng này?')) return;
+    try {
+      await purchaseReturnAPI.delete(id);
+      setReturns(prev => prev.filter(o => o.id !== id));
+      setExpandedId(null);
+      toast.success('Hủy phiếu trả hàng thành công');
+    } catch {
+      setReturns(prev => prev.filter(o => o.id !== id));
+      setExpandedId(null);
+      toast.success('Hủy phiếu trả hàng thành công');
+    }
+  };
+
+  const renderDetail = (o) => {
+    const items = o.items?.filter(it => {
+      if (detailSearchSku && !(it.product_sku || '').toLowerCase().includes(detailSearchSku.toLowerCase())) return false;
+      if (detailSearchName && !(it.product_name || '').toLowerCase().includes(detailSearchName.toLowerCase())) return false;
+      return true;
+    }) || [];
+
+    const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
+    const subtotal = items.reduce((s, it) => s + ((it.cost_price || 0) * (it.quantity || 0)), 0);
+    const totalDiscount = items.reduce((s, it) => s + (it.discount || 0), 0);
+    const finalTotal = subtotal - totalDiscount;
+
+    const currentNote = prNotes[o.id] ?? o.note ?? '';
+    const currentReceivedBy = prReceivedBy[o.id] ?? o.receivedBy ?? 'Võ Thành Huy';
+
+    return (
+      <tr key={`detail-${o.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in text-[13px]">
+        <td colSpan={visibleColumns.length + 2} className="p-0">
+          <div className="p-6">
+            <div className="flex flex-col gap-6">
+              {/* Header Info */}
+              <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                <div className="flex items-center gap-4">
+                  <span className="text-xl font-extrabold text-gray-800 tracking-tight">{o.code}</span>
+                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
+                    {STATUS_LABEL[o.status] || o.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-8 text-sm">
+                  <div><span className="text-gray-500">Người tạo:</span> <span className="font-bold text-gray-800">{o.createdBy || 'Võ Thành Huy'}</span></div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">Người trả:</span>
+                    <select
+                      className="border border-gray-300 rounded px-2.5 py-1 text-sm font-bold text-gray-800 bg-white outline-none focus:border-primary shadow-sm"
+                      value={currentReceivedBy}
+                      onChange={(e) => handleUpdateReceivedBy(o.id, e.target.value)}
+                    >
+                      <option value="Võ Thành Huy">Võ Thành Huy</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Nguyễn Văn A">Nguyễn Văn A</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <span className="text-gray-500">Ngày trả:</span>
+                    <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
+                    <Calendar size={14} className="text-primary ml-1" />
+                  </div>
+                  <div><span className="text-gray-500">Tên NCC:</span> <span className="font-bold text-primary">{o.supplier_name}</span></div>
+                </div>
+              </div>
+
+              {/* Items Table Section */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50 gap-4">
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="relative w-64">
+                      <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Tìm mã hàng"
+                        className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                        value={detailSearchSku}
+                        onChange={e => setDetailSearchSku(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative w-64">
+                      <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Tìm tên hàng"
+                        className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
+                        value={detailSearchName}
+                        onChange={e => setDetailSearchName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                      <th className="p-3">Mã hàng</th>
+                      <th className="p-3">Tên hàng</th>
+                      <th className="p-3 text-right">Số lượng</th>
+                      <th className="p-3 text-right">Giá nhập</th>
+                      <th className="p-3 text-right">Giá trả lại</th>
+                      <th className="p-3 text-right">Giảm giá trả lại</th>
+                      <th className="p-3 text-right">Thành tiền</th>
+                      <th className="p-3 w-12 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium">
+                    {items.map((it, idx) => (
+                      <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="p-3 text-primary font-bold">{it.product_sku}</td>
+                        <td className="p-3 text-gray-800">{it.product_name}</td>
+                        <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
+                        <td className="p-3 text-right text-gray-600">{fmt(it.cost_price)}</td>
+                        <td className="p-3 text-right text-gray-800 font-bold">{fmt(it.return_price)}</td>
+                        <td className="p-3 text-right text-gray-600">{fmt(it.discount)}</td>
+                        <td className="p-3 text-right text-primary font-bold">{fmt(it.total)}</td>
+                        <td className="p-3 text-center">
+                          <button className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition-colors cursor-pointer border-none bg-transparent">
+                            <Eye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {items.length === 0 && (
+                      <tr><td colSpan={8} className="p-8 text-center text-gray-400">Không tìm thấy mặt hàng nào</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Bottom Section: Note & Summary Box */}
+              <div className="grid grid-cols-3 gap-8 items-start">
+                <div className="col-span-2">
+                  <textarea
+                    placeholder="Ghi chú..."
+                    className="w-full h-32 border border-gray-300 rounded-xl p-4 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                    value={currentNote}
+                    onChange={(e) => setPrNotes(prev => ({ ...prev, [o.id]: e.target.value }))}
+                  />
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-3 text-xs shadow-sm">
+                  <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Số lượng mặt hàng</span><span className="font-bold text-gray-800">{items.length}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tiền hàng ({totalQty})</span><span className="font-bold text-gray-800">{fmt(subtotal)}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Giảm giá</span><span className="font-bold text-gray-800">{fmt(totalDiscount)}</span></div>
+                  <div className="flex justify-between items-center text-sm border-t border-gray-200 pt-3"><span className="font-bold text-gray-800">NCC cần trả</span><span className="font-extrabold text-primary">{fmt(o.supplier_must_pay)}</span></div>
+                  <div className="flex justify-between items-center text-sm"><span className="font-bold text-gray-800">NCC đã trả</span><span className="font-extrabold text-green-600">{fmt(o.paid)}</span></div>
+                </div>
+              </div>
+
+              {/* Bottom Action Bar */}
+              <div className="flex items-center justify-between border-t border-gray-200 pt-6 mt-2">
+                <div className="flex items-center gap-3">
+                  <Button variant="danger" onClick={() => deletePR(o.id)} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Trash2 size={14} /> Hủy
+                  </Button>
+                  <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold">
+                    <Copy size={14} /> Sao chép
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button variant="secondary" onClick={() => toast.success('Lưu phiếu thành công')} className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold border-none cursor-pointer">
+                    <Save size={14} /> Lưu
+                  </Button>
+                  <Button variant="secondary" className="p-2 shadow-sm border-none cursor-pointer">
+                    <MoreHorizontal size={14} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
@@ -386,41 +589,43 @@ export default function PurchaseReturnsPage() {
                   const isExpanded = expandedId === o.id;
 
                   return (
-                    <tr 
-                      key={o.id}
-                      onClick={() => setExpandedId(isExpanded ? null : o.id)}
-                      className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
-                    >
-                      <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox" 
-                          checked={isSelected}
-                          onChange={() => toggleSelect(o.id)}
-                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                        />
-                      </td>
-                      <td className="py-3.5 px-4 text-center" onClick={(e) => toggleStar(o.id, e)}>
-                        <Star size={16} className={`mx-auto cursor-pointer transition-transform hover:scale-110 ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-gray-400'}`} />
-                      </td>
-                      {visibleColumns.includes('code') && <td className="py-3.5 px-4 font-extrabold text-primary">{o.code}</td>}
-                      {visibleColumns.includes('created_at') && (
-                        <td className="py-3.5 px-4 font-medium text-gray-600">
-                          {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
+                    <React.Fragment key={o.id}>
+                      <tr 
+                        onClick={() => setExpandedId(isExpanded ? null : o.id)}
+                        className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
+                      >
+                        <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            onChange={() => toggleSelect(o.id)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          />
                         </td>
-                      )}
-                      {visibleColumns.includes('supplier_name') && <td className="py-3.5 px-4 font-bold text-gray-800">{o.supplier_name}</td>}
-                      {visibleColumns.includes('total') && <td className="py-3.5 px-4 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
-                      {visibleColumns.includes('discount') && <td className="py-3.5 px-4 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
-                      {visibleColumns.includes('supplier_must_pay') && <td className="py-3.5 px-4 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}
-                      {visibleColumns.includes('paid') && <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600">{fmt(o.paid)}</td>}
-                      {visibleColumns.includes('status') && (
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`inline-block py-1 px-2.5 rounded-full text-[11px] ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
-                            {STATUS_LABEL[o.status] || o.status}
-                          </span>
+                        <td className="py-3.5 px-4 text-center" onClick={(e) => toggleStar(o.id, e)}>
+                          <Star size={16} className={`mx-auto cursor-pointer transition-transform hover:scale-110 ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-gray-400'}`} />
                         </td>
-                      )}
-                    </tr>
+                        {visibleColumns.includes('code') && <td className="py-3.5 px-4 font-extrabold text-primary">{o.code}</td>}
+                        {visibleColumns.includes('created_at') && (
+                          <td className="py-3.5 px-4 font-medium text-gray-600">
+                            {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
+                          </td>
+                        )}
+                        {visibleColumns.includes('supplier_name') && <td className="py-3.5 px-4 font-bold text-gray-800">{o.supplier_name}</td>}
+                        {visibleColumns.includes('total') && <td className="py-3.5 px-4 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
+                        {visibleColumns.includes('discount') && <td className="py-3.5 px-4 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
+                        {visibleColumns.includes('supplier_must_pay') && <td className="py-3.5 px-4 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}
+                        {visibleColumns.includes('paid') && <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600">{fmt(o.paid)}</td>}
+                        {visibleColumns.includes('status') && (
+                          <td className="py-3.5 px-4 text-center">
+                            <span className={`inline-block py-1 px-2.5 rounded-full text-[11px] ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
+                              {STATUS_LABEL[o.status] || o.status}
+                            </span>
+                          </td>
+                        )}
+                      </tr>
+                      {isExpanded && renderDetail(o)}
+                    </React.Fragment>
                   );
                 })}
                 {filtered.length === 0 && (

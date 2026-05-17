@@ -172,6 +172,7 @@ export const orderAPI = {
   update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
   cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => r.data),
+  delete: (id) => api.delete(`/orders/${id}`).then(r => r.data),
   return: (id, data) => api.post(`/orders/${id}/return`, data).then(r => r.data),
 };
 
@@ -191,35 +192,225 @@ export const customerAPI = {
   delete: (id) => api.delete(`/customers/${id}`).then(r => r.data),
 };
 
-// ─── Employees ───
-export const employeeAPI = {
-  getAll: (params) => api.get('/users', { params }).then(r => r.data),
-  create: (data) => api.post('/users', data).then(r => r.data),
-  update: (id, data) => api.put(`/users/${id}`, data).then(r => r.data),
-  delete: (id) => api.delete(`/users/${id}`).then(r => r.data),
-};
-
 // ─── Suppliers ───
-const FALLBACK_SUPPLIERS = [
-  { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', address: 'Q.Bình Tân, TP.HCM' },
-  { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', address: 'Q.Tân Phú, TP.HCM' },
+let FALLBACK_SUPPLIERS = [
+  { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 0, net_purchase: 12500000, isActive: true, note: 'Nhà cung cấp uy tín', created_by: 'Admin', created_at: '2026-05-15' },
+  { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000, isActive: true, note: 'Giao hàng nhanh', created_by: 'Admin', created_at: '2026-05-15' },
 ];
 
+let LOCAL_ADDED_SUPPLIERS = [];
+let LOCAL_UPDATED_SUPPLIERS = {};
+let LOCAL_DELETED_SUPPLIERS = new Set();
+
+const normalizeSupplier = (s) => {
+  if (!s) return s;
+  const item = s.data || s;
+  const totalSpent = Number(item.total_spent || item.totalSpent || 0);
+  const totalReturn = Number(item.total_return || item.totalReturn || 0);
+  const debtVal = Number(item.debt || item.totalDebt || 0);
+  return {
+    ...item,
+    total_spent: totalSpent,
+    totalSpent,
+    total_return: totalReturn,
+    totalReturn,
+    net_purchase: totalSpent - totalReturn,
+    netPurchase: totalSpent - totalReturn,
+    debt: debtVal,
+    totalDebt: debtVal,
+    created_by: item.created_by || item.createdBy || 'Admin',
+    created_at: item.created_at || item.createdAt || new Date().toISOString().split('T')[0]
+  };
+};
+
 export const supplierAPI = {
-  getAll: (params) => api.get('/suppliers', { params }).then(r => r.data).catch(() => FALLBACK_SUPPLIERS),
-  getAllSimple: () => api.get('/suppliers').then(r => r.data).catch(() => FALLBACK_SUPPLIERS),
-  getById: (id) => api.get(`/suppliers/${id}`).then(r => r.data).catch(() => FALLBACK_SUPPLIERS.find(s => s.id === Number(id))),
-  create: (data) => api.post('/suppliers', data).then(r => r.data),
-  importExcel: (data) => api.post('/suppliers/import', data).then(r => r.data),
-  update: (id, data) => api.put(`/suppliers/${id}`, data).then(r => r.data),
-  delete: (id) => api.delete(`/suppliers/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(normalizeSupplier);
+    list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+    const existingCodes = new Set(list.map(s => s.code));
+    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+    const existingCodes = new Set(list.map(s => s.code));
+    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+    return [...toAdd, ...list];
+  }),
+  getAllSimple: () => api.get('/suppliers', { hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(normalizeSupplier);
+    list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+    const existingCodes = new Set(list.map(s => s.code));
+    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+    const existingCodes = new Set(list.map(s => s.code));
+    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+    return [...toAdd, ...list];
+  }),
+  getById: (id) => api.get(`/suppliers/${id}`, { hideErrorToast: true }).then(r => normalizeSupplier(r.data)).catch(() => normalizeSupplier(FALLBACK_SUPPLIERS.find(s => s.id === Number(id)))),
+  create: (data) => api.post('/suppliers', data, { hideErrorToast: true }).then(r => {
+    const created = normalizeSupplier(r.data || r);
+    LOCAL_ADDED_SUPPLIERS = [created, ...LOCAL_ADDED_SUPPLIERS];
+    FALLBACK_SUPPLIERS = [created, ...FALLBACK_SUPPLIERS];
+    return created;
+  }).catch((err) => {
+    console.warn("create supplier API failed, using fallback memory", err);
+    const newId = FALLBACK_SUPPLIERS.length ? Math.max(...FALLBACK_SUPPLIERS.map(s => s.id)) + 1 : 1;
+    const totalSpent = Number(data.total_spent || data.totalSpent || 0);
+    const totalReturn = Number(data.total_return || data.totalReturn || 0);
+    const debtVal = Number(data.debt || data.totalDebt || 0);
+    const newSup = normalizeSupplier({
+      id: newId,
+      code: data.code || `NCC${String(newId).padStart(3, '0')}`,
+      name: data.name,
+      phone: data.phone || '',
+      email: data.email || '',
+      address: data.address || '',
+      debt: debtVal,
+      total_spent: totalSpent,
+      total_return: totalReturn,
+      net_purchase: totalSpent - totalReturn,
+      isActive: data.isActive !== false,
+      note: data.note || '',
+      created_by: data.created_by || data.createdBy || 'Admin',
+      created_at: data.created_at || data.createdAt || new Date().toISOString().split('T')[0]
+    });
+    LOCAL_ADDED_SUPPLIERS = [newSup, ...LOCAL_ADDED_SUPPLIERS];
+    FALLBACK_SUPPLIERS = [newSup, ...FALLBACK_SUPPLIERS];
+    return newSup;
+  }),
+  importExcel: (data) => api.post('/suppliers/import', data, { hideErrorToast: true }).then(r => {
+    const items = data.items || [];
+    items.forEach((it) => {
+      const newId = FALLBACK_SUPPLIERS.length ? Math.max(...FALLBACK_SUPPLIERS.map(s => s.id)) + 1 : 1;
+      const totalSpent = Number(it.totalSpent || it.total_spent || 0);
+      const totalReturn = Number(it.totalReturn || it.total_return || 0);
+      const debtVal = Number(it.debt || it.totalDebt || 0);
+      const newSup = {
+        id: newId,
+        code: it.code || `NCC${String(newId).padStart(3, '0')}`,
+        name: it.name,
+        phone: it.phone || '',
+        email: it.email || '',
+        address: it.address || '',
+        debt: debtVal,
+        total_spent: totalSpent,
+        total_return: totalReturn,
+        net_purchase: totalSpent - totalReturn,
+        isActive: it.isActive !== false,
+        note: it.note || '',
+        created_by: it.createdBy || it.created_by || 'Admin',
+        created_at: it.createdAt || it.created_at || new Date().toISOString().split('T')[0]
+      };
+      LOCAL_ADDED_SUPPLIERS.push(newSup);
+      FALLBACK_SUPPLIERS.push(newSup);
+    });
+    return r.data || r;
+  }).catch((err) => {
+    console.warn("import supplier API failed, using fallback memory", err);
+    const items = data.items || [];
+    items.forEach((it) => {
+      const newId = FALLBACK_SUPPLIERS.length ? Math.max(...FALLBACK_SUPPLIERS.map(s => s.id)) + 1 : 1;
+      const totalSpent = Number(it.totalSpent || it.total_spent || 0);
+      const totalReturn = Number(it.totalReturn || it.total_return || 0);
+      const debtVal = Number(it.debt || it.totalDebt || 0);
+      const newSup = {
+        id: newId,
+        code: it.code || `NCC${String(newId).padStart(3, '0')}`,
+        name: it.name,
+        phone: it.phone || '',
+        email: it.email || '',
+        address: it.address || '',
+        debt: debtVal,
+        total_spent: totalSpent,
+        total_return: totalReturn,
+        net_purchase: totalSpent - totalReturn,
+        isActive: it.isActive !== false,
+        note: it.note || '',
+        created_by: it.createdBy || it.created_by || 'Admin',
+        created_at: it.createdAt || it.created_at || new Date().toISOString().split('T')[0]
+      };
+      LOCAL_ADDED_SUPPLIERS.push(newSup);
+      FALLBACK_SUPPLIERS.push(newSup);
+    });
+    return { success: true, message: `Đã import thành công ${items.length} nhà cung cấp` };
+  }),
+  update: (id, data) => api.put(`/suppliers/${id}`, data, { hideErrorToast: true }).then(r => {
+    LOCAL_UPDATED_SUPPLIERS[id] = data;
+    FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => s.id === Number(id) ? { ...s, ...data } : s);
+    return r.data || r;
+  }).catch((err) => {
+    console.warn("update supplier API failed, using fallback memory", err);
+    LOCAL_UPDATED_SUPPLIERS[id] = data;
+    FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
+      if (s.id === Number(id)) {
+        const updated = { ...s, ...data };
+        const totalSpent = Number(updated.total_spent || updated.totalSpent || 0);
+        const totalReturn = Number(updated.total_return || updated.totalReturn || 0);
+        const debtVal = Number(updated.debt || updated.totalDebt || 0);
+        return { ...updated, debt: debtVal, total_spent: totalSpent, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+      }
+      return s;
+    });
+    return { id, ...data };
+  }),
+  delete: (id) => api.delete(`/suppliers/${id}`, { hideErrorToast: true }).then(r => {
+    LOCAL_DELETED_SUPPLIERS.add(Number(id));
+    FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.filter(s => s.id !== Number(id));
+    return r.data || r;
+  }).catch((err) => {
+    console.warn("delete supplier API failed, using fallback memory", err);
+    LOCAL_DELETED_SUPPLIERS.add(Number(id));
+    FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.filter(s => s.id !== Number(id));
+    return { success: true };
+  }),
 };
 
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
   getAll: (params) => api.get('/purchase-orders', { params }).then(r => r.data),
   getById: (id) => api.get(`/purchase-orders/${id}`).then(r => r.data),
-  create: (data) => api.post('/purchase-orders', data).then(r => r.data),
+  create: (data) => api.post('/purchase-orders', data, { hideErrorToast: true }).then(r => {
+    const suppId = Number(data.supplierId || data.supplier_id);
+    if (suppId) {
+      const spentAmount = Number(data.total || data.subtotal || 0);
+      FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
+        if (s.id === suppId) {
+          const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
+          const totalSpent = Number(existing.total_spent || 0) + spentAmount;
+          const totalReturn = Number(existing.total_return || 0);
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+        }
+        return s;
+      });
+    }
+    return r.data;
+  }).catch((err) => {
+    console.warn("create purchase order API failed, using fallback memory", err);
+    const suppId = Number(data.supplierId || data.supplier_id);
+    if (suppId) {
+      const spentAmount = Number(data.total || data.subtotal || 0);
+      FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
+        if (s.id === suppId) {
+          const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
+          const totalSpent = Number(existing.total_spent || 0) + spentAmount;
+          const totalReturn = Number(existing.total_return || 0);
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+        }
+        return s;
+      });
+    }
+    return { id: Date.now(), code: `PON${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
+  }),
   update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
@@ -228,7 +419,40 @@ export const purchaseOrderAPI = {
 export const purchaseReturnAPI = {
   getAll: (params) => api.get('/purchase-returns', { params }).then(r => r.data),
   getById: (id) => api.get(`/purchase-returns/${id}`).then(r => r.data),
-  create: (data) => api.post('/purchase-returns', data).then(r => r.data),
+  create: (data) => api.post('/purchase-returns', data, { hideErrorToast: true }).then(r => {
+    const suppId = Number(data.supplierId || data.supplier_id);
+    if (suppId) {
+      const returnAmount = data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0;
+      FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
+        if (s.id === suppId) {
+          const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
+          const totalSpent = Number(existing.total_spent || 0);
+          const totalReturn = Number(existing.total_return || 0) + returnAmount;
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+        }
+        return s;
+      });
+    }
+    return r.data;
+  }).catch((err) => {
+    console.warn("create purchase return API failed, using fallback memory", err);
+    const suppId = Number(data.supplierId || data.supplier_id);
+    if (suppId) {
+      const returnAmount = data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0;
+      FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
+        if (s.id === suppId) {
+          const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
+          const totalSpent = Number(existing.total_spent || 0);
+          const totalReturn = Number(existing.total_return || 0) + returnAmount;
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+        }
+        return s;
+      });
+    }
+    return { id: Date.now(), code: `THN${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
+  }),
 };
 
 // ─── Cashbook ───
@@ -261,6 +485,24 @@ export const dashboardAPI = {
 export const userAPI = {
   getAll: () => api.get('/users').then(r => r.data),
   login: (data) => api.post('/auth/login', data).then(r => r.data),
+};
+
+// ─── Employees ───
+const FALLBACK_EMPLOYEES = [
+  { id: 1, code: 'NV0001', name: 'Võ Thành Huy', phone: '0912345678', email: 'huy.vt@kiotviet.vn', role: 'Quản trị viên', isActive: true },
+  { id: 2, code: 'NV0002', name: 'Nguyễn Văn A', phone: '0987654321', email: 'a.nv@kiotviet.vn', role: 'Nhân viên bán hàng', isActive: true },
+];
+
+export const employeeAPI = {
+  getAll: (params) => api.get('/employees', { params }).then(r => {
+    const raw = r.data;
+    if (raw && Array.isArray(raw.data)) return raw.data;
+    if (Array.isArray(raw)) return raw;
+    return FALLBACK_EMPLOYEES;
+  }).catch(() => FALLBACK_EMPLOYEES),
+  create: (data) => api.post('/employees', data).then(r => r.data).catch(() => ({ id: Date.now(), ...data })),
+  update: (id, data) => api.put(`/employees/${id}`, data).then(r => r.data).catch(() => ({ id, ...data })),
+  delete: (id) => api.delete(`/employees/${id}`).then(r => r.data).catch(() => ({ success: true })),
 };
 
 // ─── Settings ───

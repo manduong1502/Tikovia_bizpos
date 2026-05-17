@@ -3,9 +3,11 @@ import { usePOS } from './POSContext';
 import { Search, User, X, MapPin, Package, Edit2, Truck, ChevronDown, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function POSDeliveryPanel() {
   const { currentInvoice, updateCurrentInvoice, clearCurrentInvoice, setSaleMode } = usePOS();
+  const navigate = useNavigate();
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [activeTab, setActiveTab] = useState('self'); // 'kiotviet' or 'self'
@@ -45,6 +47,7 @@ export default function POSDeliveryPanel() {
       
       toast.success('Tạo đơn giao hàng thành công!');
       clearCurrentInvoice();
+      navigate('/orders');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn giao hàng');

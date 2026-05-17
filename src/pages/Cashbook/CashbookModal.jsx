@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import { cashbookAPI } from '../../services/api';
+import NumericInput from '../../components/ui/NumericInput';
 
 export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) {
   const [form, setForm] = useState({ amount: '', category: '', payment_method: 'cash', payer_name: '', note: '' });
@@ -34,7 +35,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"><X size={20} className="text-gray-400" /></button>
         </div>
         <div className="p-6 flex flex-col gap-4">
-          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Số tiền *</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.amount} onChange={e => f('amount', e.target.value)} placeholder="Nhập số tiền" autoFocus /></div>
+          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Số tiền *</label><NumericInput className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.amount} onChange={e => f('amount', e.target.value)} placeholder="Nhập số tiền" autoFocus /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">{isThu ? 'Người nộp' : 'Người nhận'}</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.payer_name} onChange={e => f('payer_name', e.target.value)} /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Loại thu/chi</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.category} onChange={e => f('category', e.target.value)} placeholder={isThu ? 'VD: Thu tiền bán hàng' : 'VD: Chi mua hàng'} /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Hình thức</label>

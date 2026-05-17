@@ -4,9 +4,11 @@ import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus } fro
 import api, { customerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { printHTML } from '../../utils/exportUtils';
+import { useNavigate } from 'react-router-dom';
 
 export default function POSPaymentPanel({ forceShow = false }) {
   const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice, saleMode, removeTab, activeTabId } = usePOS();
+  const navigate = useNavigate();
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
@@ -73,9 +75,9 @@ export default function POSPaymentPanel({ forceShow = false }) {
       if (isEditMode) {
         try {
           const { orderAPI } = await import('../../services/api');
-          await orderAPI.cancel(currentInvoice._editOrderId);
+          await orderAPI.delete(currentInvoice._editOrderId);
         } catch (e) {
-          console.warn('Could not cancel old order:', e);
+          console.warn('Could not delete old order:', e);
         }
       }
 
@@ -244,6 +246,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
         removeTab(activeTabId);
       }
       setShowUpdateModal(false);
+      navigate('/orders');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');

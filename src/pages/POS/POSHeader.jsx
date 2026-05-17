@@ -55,6 +55,16 @@ export default function POSHeader() {
 
   return (
     <div className="pos-topbar">
+      <button 
+        className="pos-toolbar-btn flex items-center justify-center gap-1.5 px-3 rounded-xl border border-red-500/30"
+        style={{ height: '36px', width: 'auto', background: 'rgba(239, 68, 68, 0.25)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#fee2e2', padding: '0 12px', fontSize: '13px', fontWeight: '600', marginRight: '6px', cursor: 'pointer' }}
+        onClick={() => navigate('/orders')}
+        title="Quay lại trang danh sách đơn hàng"
+      >
+        <Undo2 size={16} />
+        <span>Trở về</span>
+      </button>
+
       <div className="pos-search-box" style={{ position: 'relative' }}>
         <span className="search-icon"><Search size={16} /></span>
         <input

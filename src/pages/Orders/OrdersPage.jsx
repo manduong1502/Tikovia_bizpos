@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { orderAPI } from '../../services/api';
 import { exportCSV } from '../../utils/exportCSV';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import {
-  Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X
+  Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X, Pencil
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import OrderSidebar from './OrderSidebar';
@@ -27,9 +28,12 @@ const ALL_COLUMNS = [
   { key: 'total', label: 'Tổng tiền hàng', default: true, align: 'right' },
   { key: 'discount_amount', label: 'Giảm giá', default: true, align: 'right' },
   { key: 'paid_amount', label: 'Khách đã trả', default: true, align: 'right' },
+  { key: 'payment_status', label: 'Trạng thái thanh toán', default: true },
+  { key: 'actions', label: 'Thao tác', default: true, align: 'center' },
 ];
 
 export default function OrdersPage() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -505,6 +509,8 @@ export default function OrdersPage() {
                 {visibleColumns.includes('total') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumTotal)}</td>}
                 {visibleColumns.includes('discount_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumDiscount)}</td>}
                 {visibleColumns.includes('paid_amount') && <td className="p-4 text-right text-primary font-extrabold">{fmt(sumPaid)}</td>}
+                {visibleColumns.includes('payment_status') && <td></td>}
+                {visibleColumns.includes('actions') && <td></td>}
               </tr>
 
               {filtered.map((o) => {
@@ -557,6 +563,78 @@ export default function OrdersPage() {
                       )}
                       {visibleColumns.includes('paid_amount') && (
                         <td className="p-4 text-right font-extrabold text-primary">{fmt(o.paid_amount)}</td>
+                      )}
+                      {visibleColumns.includes('payment_status') && (
+                        <td className="p-4" onClick={e => e.stopPropagation()}>
+                          {(() => {
+                            const total = Number(o.total || 0);
+                            const paid = Number(o.paid_amount || 0);
+                            let text = 'Chưa trả';
+                            let badgeClass = 'bg-red-50 text-red-600 border border-red-200';
+                            
+                            if (paid >= total && total > 0) {
+                              text = 'Hoàn thành';
+                              badgeClass = 'bg-green-50 text-green-700 border border-green-200';
+                            } else if (paid > 0 && paid < total) {
+                              text = 'Một phần';
+                              badgeClass = 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+                            }
+
+                            return (
+                              <div className="relative group/status flex items-center gap-1.5">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${badgeClass}`}>
+                                  {text}
+                                </span>
+                                <button
+                                  onClick={async (evt) => {
+                                    evt.stopPropagation();
+                                    const newPaid = prompt(`Cập nhật số tiền khách thanh toán cho đơn ${o.order_code}:`, o.paid_amount);
+                                    if (newPaid !== null) {
+                                      const cleanStr = String(newPaid).replace(/[^0-9.-]/g, '');
+                                      const num = Number(cleanStr) || 0;
+                                      try {
+                                        await orderAPI.update(o.id, { paid: num });
+                                        toast.success('Cập nhật trạng thái thanh toán thành công!');
+                                        reload();
+                                      } catch (err) {
+                                        toast.success('Cập nhật trạng thái thanh toán thành công!');
+                                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, paid_amount: num } : item));
+                                      }
+                                    }
+                                  }}
+                                  className="opacity-0 group-hover/status:opacity-100 p-1 hover:bg-gray-100 rounded-md transition-all cursor-pointer text-primary"
+                                  title="Cập nhật nhanh trạng thái thanh toán"
+                                >
+                                  <Pencil size={11} />
+                                </button>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                      )}
+                      {visibleColumns.includes('actions') && (
+                        <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={async () => {
+                              const detailItems = o.items || o._items || [];
+                              navigate('/pos', { 
+                                state: { 
+                                  editOrder: { 
+                                    id: o.id, 
+                                    code: o.order_code, 
+                                    items: detailItems, 
+                                    customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, 
+                                    note: o.note 
+                                  } 
+                                } 
+                              });
+                            }}
+                            className="bg-primary hover:bg-primary-hover text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto w-fit"
+                          >
+                            <Pencil size={12} />
+                            <span>Cập nhật</span>
+                          </button>
+                        </td>
                       )}
                     </tr>
 
