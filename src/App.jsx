@@ -117,8 +117,6 @@ function App() {
           <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Bán hàng" icon="📈" /></Suspense>} />
           <Route path="/reports/products" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Hàng hóa" icon="📦" /></Suspense>} />
           <Route path="/reports/customers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Khách hàng" icon="👥" /></Suspense>} />
-          <Route path="/reports/suppliers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Nhà cung cấp" icon="🏢" /></Suspense>} />
-          <Route path="/reports/finance" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Tài chính" icon="💰" /></Suspense>} />
 
           <Route path="/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
         </Route>
