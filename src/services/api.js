@@ -27,16 +27,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (status === 403) {
-      toast.error('Bạn không có quyền thực hiện thao tác này');
-    } else if (status === 404) {
-      toast.error('Không tìm thấy dữ liệu');
-    } else if (status >= 500) {
-      if (!error.config?.hideErrorToast) {
+    if (!error.config?.hideErrorToast) {
+      if (status === 403) {
+        toast.error('Bạn không có quyền thực hiện thao tác này');
+      } else if (status === 404) {
+        toast.error('Không tìm thấy dữ liệu');
+      } else if (status >= 500) {
         toast.error('Lỗi máy chủ. Vui lòng thử lại sau');
-      }
-    } else if (message) {
-      if (!error.config?.hideErrorToast) {
+      } else if (message) {
         toast.error(message);
       }
     }
@@ -498,7 +496,7 @@ const FALLBACK_EMPLOYEES = [
 ];
 
 export const employeeAPI = {
-  getAll: (params) => api.get('/employees', { params }).then(r => {
+  getAll: (params) => api.get('/employees', { params, hideErrorToast: true }).then(r => {
     const raw = r.data;
     if (raw && Array.isArray(raw.data)) return raw.data;
     if (Array.isArray(raw)) return raw;
