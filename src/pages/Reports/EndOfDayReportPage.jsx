@@ -177,11 +177,11 @@ export default function EndOfDayReportPage() {
   };
 
   return (
-    <div className="flex bg-[#F2F4F7] min-h-screen text-[13px] text-gray-800">
+    <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in">
       
-      {/* ─── SIDEBAR FILTERS (Left) ─── */}
-      <aside className="w-[300px] shrink-0 bg-white border-r border-gray-200 p-4 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-46px)] sticky top-[46px] custom-scrollbar z-20">
-        <h2 className="text-[16px] font-bold text-gray-800 mb-1">Báo cáo cuối ngày</h2>
+      {/* ─── SIDEBAR FILTERS (Left Card) ─── */}
+      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] lg:sticky lg:top-[100px] custom-scrollbar z-20">
+        <h2 className="text-[15px] font-extrabold text-gray-800 border-b border-gray-100 pb-3">Báo cáo cuối ngày</h2>
 
         {/* Kiểu hiển thị */}
         <div className="flex flex-col gap-1.5">
@@ -189,7 +189,7 @@ export default function EndOfDayReportPage() {
           <div className="flex gap-2">
             <button 
               onClick={() => setViewType('Báo cáo')}
-              className={`flex-1 py-1.5 rounded-lg border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-[#0070F3] border-[#0070F3] text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 rounded-xl border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Báo cáo
             </button>
@@ -197,7 +197,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={displayType} 
             onChange={(e) => setDisplayType(e.target.value)}
-            className="w-full mt-1.5 p-2 rounded-lg border border-gray-200 bg-white text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors cursor-pointer"
+            className="w-full mt-1 border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
           >
             <option value="Hiển thị dọc">Hiển thị dọc</option>
             <option value="Hiển thị ngang">Hiển thị ngang</option>
@@ -210,7 +210,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={interestType} 
             onChange={(e) => setInterestType(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors cursor-pointer"
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
           >
             <option value="Bán hàng">Bán hàng</option>
             <option value="Hàng hóa">Hàng hóa</option>
@@ -223,60 +223,60 @@ export default function EndOfDayReportPage() {
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thời gian</label>
           
           {/* Radio 1: Hôm nay / Ngày cụ thể */}
-          <div className="flex flex-col gap-1.5 border border-gray-150 rounded-xl p-2.5 bg-gray-50/50">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
+            <div className="flex items-center gap-2.5">
               <input 
                 type="radio" 
                 name="timeRangeType" 
                 id="timeRangeToday" 
                 checked={timeRangeType === 'today'} 
                 onChange={() => setTimeRangeType('today')}
-                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3] cursor-pointer"
+                className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer"
               />
-              <label htmlFor="timeRangeToday" className="font-bold cursor-pointer text-gray-700">Theo ngày</label>
+              <label htmlFor="timeRangeToday" className="font-semibold text-xs cursor-pointer text-gray-700">Theo ngày</label>
             </div>
             
             {timeRangeType === 'today' && (
-              <div className="flex flex-col gap-1.5 pl-6 mt-1 animate-fade-in">
+              <div className="flex flex-col gap-2 pl-6 mt-1.5 animate-fade-in">
                 <input 
                   type="date" 
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] font-semibold w-full text-center cursor-pointer"
+                  className="w-full border border-gray-200 rounded-xl px-2 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer text-center font-bold text-gray-700"
                 />
-                <div className="flex gap-1.5 items-center mt-1 text-[11px]">
-                  <span className="text-gray-400 shrink-0">Từ:</span>
-                  <input type="time" value={timeFrom} onChange={e => setTimeFrom(e.target.value)} className="p-1 border border-gray-200 bg-white rounded outline-none w-full cursor-pointer" />
-                  <span className="text-gray-400 shrink-0">Đến:</span>
-                  <input type="time" value={timeTo} onChange={e => setTimeTo(e.target.value)} className="p-1 border border-gray-200 bg-white rounded outline-none w-full cursor-pointer" />
+                <div className="flex gap-2 items-center text-[10px] text-gray-500">
+                  <span className="shrink-0 font-bold">Từ:</span>
+                  <input type="time" value={timeFrom} onChange={e => setTimeFrom(e.target.value)} className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none w-full cursor-pointer text-center font-medium" />
+                  <span className="shrink-0 font-bold">Đến:</span>
+                  <input type="time" value={timeTo} onChange={e => setTimeTo(e.target.value)} className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none w-full cursor-pointer text-center font-medium" />
                 </div>
               </div>
             )}
           </div>
 
           {/* Radio 2: Tùy chỉnh */}
-          <div className="flex flex-col gap-1.5 border border-gray-150 rounded-xl p-2.5 bg-gray-50/50">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
+            <div className="flex items-center gap-2.5">
               <input 
                 type="radio" 
                 name="timeRangeType" 
                 id="timeRangeCustom" 
                 checked={timeRangeType === 'custom'} 
                 onChange={() => setTimeRangeType('custom')}
-                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3] cursor-pointer"
+                className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer"
               />
-              <label htmlFor="timeRangeCustom" className="font-bold cursor-pointer text-gray-700">Tùy chỉnh khoảng</label>
+              <label htmlFor="timeRangeCustom" className="font-semibold text-xs cursor-pointer text-gray-700">Tùy chỉnh khoảng</label>
             </div>
             
             {timeRangeType === 'custom' && (
-              <div className="flex flex-col gap-1.5 pl-6 mt-1 animate-fade-in">
+              <div className="flex flex-col gap-2.5 pl-6 mt-1.5 animate-fade-in">
                 <div className="flex flex-col gap-1">
                   <span className="text-[10px] font-bold text-gray-400">Từ ngày:</span>
                   <input 
                     type="date" 
                     value={customFromDate}
                     onChange={(e) => setCustomFromDate(e.target.value)}
-                    className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] cursor-pointer"
+                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -285,7 +285,7 @@ export default function EndOfDayReportPage() {
                     type="date" 
                     value={customToDate}
                     onChange={(e) => setCustomToDate(e.target.value)}
-                    className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] cursor-pointer"
+                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -302,9 +302,9 @@ export default function EndOfDayReportPage() {
               placeholder="Theo mã, tên, số điện thoại" 
               value={customerQuery}
               onChange={(e) => setCustomerQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] transition-colors"
+              className="w-full pl-9 pr-2.5 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-gray-700 font-medium"
             />
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
@@ -314,7 +314,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={selectedEmployee} 
             onChange={(e) => setSelectedEmployee(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn nhân viên</option>
             {employees.map(emp => (
@@ -329,7 +329,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={selectedCreator} 
             onChange={(e) => setSelectedCreator(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn người tạo</option>
             {employees.map(emp => (
@@ -344,7 +344,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={paymentMethod} 
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn phương thức thanh toán</option>
             <option value="Tiền mặt">Tiền mặt</option>
@@ -354,12 +354,12 @@ export default function EndOfDayReportPage() {
         </div>
 
         {/* Phương thức bán hàng */}
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 flex-1 justify-end">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phương thức bán hàng</label>
           <select 
             value={salesMethod} 
             onChange={(e) => setSalesMethod(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn phương thức bán hàng</option>
             <option value="Trực tiếp">Trực tiếp (POS)</option>
@@ -368,40 +368,40 @@ export default function EndOfDayReportPage() {
         </div>
       </aside>
 
-      {/* ─── MAIN DESK / DOCUMENT CANVAS (Right) ─── */}
-      <main className="flex-1 flex flex-col max-h-[calc(100vh-46px)] overflow-hidden">
+      {/* ─── MAIN DESK / DOCUMENT CANVAS (Right Card) ─── */}
+      <main className="flex-1 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col overflow-hidden min-h-[600px] h-[calc(100vh-140px)] relative">
         
         {/* ─── PREMIUM TOOLBAR ─── */}
-        <div className="h-12 bg-[#8C9BA5] border-b border-gray-300 px-4 flex items-center justify-between gap-4 shrink-0 shadow-md z-10 text-white">
+        <div className="h-12 bg-slate-50 border-b border-gray-200 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10 text-gray-600">
           
           {/* Left Buttons: Undo, Redo, Refresh */}
           <div className="flex items-center gap-1.5">
-            <button className="p-1.5 rounded text-white/50 bg-transparent cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
               <ArrowLeft size={16} />
             </button>
-            <button className="p-1.5 rounded text-white/50 bg-transparent cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
               <ArrowRight size={16} />
             </button>
-            <button onClick={fetchData} className="p-1.5 rounded text-white hover:text-white hover:bg-white/20 transition-colors cursor-pointer" title="Làm mới báo cáo">
+            <button onClick={fetchData} className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer" title="Làm mới báo cáo">
               <RotateCcw size={16} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
 
           {/* Center: Pagination simulator */}
           <div className="flex items-center gap-2">
-            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>
               <ChevronsLeft size={14} />
             </button>
-            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>
               <ChevronLeft size={14} />
             </button>
-            <span className="text-[12px] bg-white border border-gray-300 px-2.5 py-0.5 rounded font-bold text-gray-700">
+            <span className="text-[12px] bg-white border border-gray-200 px-2.5 py-0.5 rounded font-extrabold text-gray-700">
               1 / 1
             </span>
-            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>
               <ChevronRight size={14} />
             </button>
-            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>
               <ChevronsRight size={14} />
             </button>
           </div>
@@ -411,7 +411,7 @@ export default function EndOfDayReportPage() {
             {/* Document export icon */}
             <button 
               onClick={handleExportExcel}
-              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
+              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
               title="Xem tài liệu chi tiết"
             >
               <FileText size={16} />
@@ -420,7 +420,7 @@ export default function EndOfDayReportPage() {
             {/* Cloud download / export icon */}
             <button 
               onClick={handleExportExcel}
-              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
+              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
               title="Xuất file báo cáo"
             >
               <Download size={16} />
@@ -429,26 +429,26 @@ export default function EndOfDayReportPage() {
             {/* Print / PDF */}
             <button 
               onClick={handlePrint}
-              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
+              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
               title="In báo cáo (PDF)"
             >
               <Printer size={16} />
             </button>
 
-            <div className="w-px h-5 bg-white/20 mx-1" />
+            <div className="w-px h-5 bg-gray-200 mx-1" />
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-1 bg-[#8C9BA5] border border-white/30 rounded px-1 text-white">
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1.5 py-0.5 text-gray-600">
               <button 
                 onClick={() => setZoom(prev => Math.max(50, prev - 10))} 
-                className="p-1 hover:bg-white/25 rounded cursor-pointer"
+                className="p-1 hover:bg-gray-100 rounded cursor-pointer"
               >
                 <ZoomOut size={13} />
               </button>
-              <span className="text-[11px] font-bold px-1 min-w-[34px] text-center">{zoom}%</span>
+              <span className="text-[11px] font-bold px-1.5 min-w-[34px] text-center">{zoom}%</span>
               <button 
                 onClick={() => setZoom(prev => Math.min(150, prev + 10))} 
-                className="p-1 hover:bg-white/25 rounded cursor-pointer"
+                className="p-1 hover:bg-gray-100 rounded cursor-pointer"
               >
                 <ZoomIn size={13} />
               </button>
@@ -457,7 +457,7 @@ export default function EndOfDayReportPage() {
             {/* Fullscreen */}
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)} 
-              className="p-1.5 rounded text-white hover:bg-white/25 cursor-pointer"
+              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 cursor-pointer"
               title="Phóng to toàn màn hình"
             >
               <Maximize2 size={15} />
@@ -466,7 +466,7 @@ export default function EndOfDayReportPage() {
         </div>
 
         {/* ─── PRINTED A4 SHEET CANVAS ─── */}
-        <div className="flex-1 overflow-auto p-8 flex justify-center bg-[#8492A6]/40 custom-scrollbar">
+        <div className="flex-1 overflow-auto p-8 flex justify-center bg-slate-200/50 custom-scrollbar">
           
           {/* Printable Container */}
           <div 
@@ -480,7 +480,7 @@ export default function EndOfDayReportPage() {
           >
             {/* Header section inside document */}
             <div className="flex justify-between items-start mb-6 text-[11px] text-gray-400">
-              <div className="text-gray-400">
+              <div className="text-gray-400 font-medium">
                 Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
@@ -557,16 +557,16 @@ export default function EndOfDayReportPage() {
                               <tbody className="divide-y divide-gray-100">
                                 {filteredTransactions.map(tx => (
                                   <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-2 text-[#0070F3] font-semibold">
+                                    <td className="px-6 py-2 text-primary font-bold">
                                       {tx.code}
                                     </td>
-                                    <td className="px-2 py-2 text-gray-500">
+                                    <td className="px-2 py-2 text-gray-500 font-medium">
                                       {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                     </td>
-                                    <td className="px-2 py-2 text-right text-gray-700">
+                                    <td className="px-2 py-2 text-right text-gray-700 font-bold">
                                       {tx.quantity}
                                     </td>
-                                    <td className="px-3 py-2 text-right text-gray-700">
+                                    <td className="px-3 py-2 text-right text-gray-800 font-extrabold">
                                       {fmt(tx.revenue)}
                                     </td>
                                     <td className="px-2 py-2 text-right text-gray-400">
@@ -581,7 +581,7 @@ export default function EndOfDayReportPage() {
                                     <td className="px-2 py-2 text-right text-gray-400">
                                       {tx.returnFee ? fmt(tx.returnFee) : '0'}
                                     </td>
-                                    <td className="px-3 py-2 text-right font-bold text-green-600">
+                                    <td className="px-3 py-2 text-right font-extrabold text-green-600">
                                       {fmt(tx.netRevenue)}
                                     </td>
                                   </tr>
