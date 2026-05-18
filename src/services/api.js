@@ -514,5 +514,12 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data).then(r => r.data),
 };
 
+// ─── Reports ───
+export const reportAPI = {
+  getEndOfDay: (params) => api.get('/reports/end-of-day', { params }).then(r => r.data),
+  getSales: (params) => api.get('/reports/sales', { params }).then(r => r.data),
+  getProducts: (params) => api.get('/reports/products', { params }).then(r => r.data),
+};
+
 export default api;
 
