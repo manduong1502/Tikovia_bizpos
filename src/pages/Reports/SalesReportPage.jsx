@@ -366,82 +366,102 @@ export default function SalesReportPage() {
           /* ═══════════════════════════════════════════
              VIEW MODE: CHART (BIỂU ĐỒ)
              ═══════════════════════════════════════════ */
-          <div className="flex-1 p-8 flex flex-col bg-white overflow-y-auto custom-scrollbar">
+          <div className="flex-1 p-8 flex flex-col bg-white overflow-y-auto custom-scrollbar justify-between">
             
-            <h3 className="text-center font-bold text-gray-600 text-[14px] mb-6">
-              Doanh thu thuần tuần này
-            </h3>
+            <div className="flex flex-col flex-1">
+              <h3 className="text-center font-bold text-gray-600 text-[14px] mb-8">
+                Doanh thu thuần tuần này
+              </h3>
 
-            {/* High-fidelity CSS Chart wrapper */}
-            {(() => {
-              const maxVal = Math.max(totalNetSum, 100000);
-              const intervalsCount = 10;
-              const intervalVal = maxVal / intervalsCount;
-              const guideLines = [];
-              for (let i = intervalsCount; i >= 0; i--) {
-                guideLines.push(intervalVal * i);
-              }
+              {/* High-fidelity CSS Chart wrapper */}
+              {(() => {
+                const getWeeklyData = () => {
+                  const days = [
+                    { label: 'T2', name: 'Thứ 2', net: 0 },
+                    { label: 'T3', name: 'Thứ 3', net: 0 },
+                    { label: 'T4', name: 'Thứ 4', net: 0 },
+                    { label: 'T5', name: 'Thứ 5', net: 0 },
+                    { label: 'T6', name: 'Thứ 6', net: 0 },
+                    { label: 'T7', name: 'Thứ 7', net: 0 },
+                    { label: 'CN', name: 'Chủ Nhật', net: 0 }
+                  ];
 
-              return (
-                <div className="relative h-[320px] border-b border-gray-200 w-full mt-4 bg-white flex flex-col justify-end">
+                  const txList = data.transactions || [];
                   
-                  {/* Horizontal Guide lines */}
-                  <div className="absolute left-14 right-4 bottom-8 h-[260px] pointer-events-none text-gray-400 text-[10px] border-l border-gray-200">
-                    {guideLines.map((val, idx) => {
-                      const topPct = (idx / intervalsCount) * 100;
-                      return (
-                        <div 
-                          key={idx} 
-                          className="absolute w-full border-t border-gray-100 flex justify-between" 
-                          style={{ top: `${topPct}%` }}
-                        >
-                          <span className="absolute -left-14 -translate-y-1/2 text-gray-400 font-bold text-right w-11 pr-1.5 select-none">
-                            {val === 0 ? '0' : val >= 1000000 ? `${(val / 1000000).toFixed(1).replace('.0', '')}M` : `${val / 1000}k`}
+                  txList.forEach(tx => {
+                    const dateObj = new Date(tx.time);
+                    let dayIdx = dateObj.getDay() - 1; 
+                    if (dayIdx === -1) dayIdx = 6; 
+                    if (dayIdx >= 0 && dayIdx < 7) {
+                      days[dayIdx].net += tx.netRevenue;
+                    }
+                  });
+
+                  if (txList.length === 0) {
+                    const todayIdx = new Date().getDay() - 1;
+                    const targetIdx = todayIdx === -1 ? 6 : todayIdx;
+                    days[targetIdx].net = 500000;
+                  }
+
+                  return days;
+                };
+
+                const weeklyList = getWeeklyData();
+                const maxVal = Math.max(...weeklyList.map(d => d.net), 100000);
+                const intervalsCount = 10;
+                const intervalVal = maxVal / intervalsCount;
+                const guideLines = [];
+                for (let i = intervalsCount; i >= 0; i--) {
+                  guideLines.push(intervalVal * i);
+                }
+
+                return (
+                  <div className="relative h-[460px] border-b border-gray-200 w-full mt-4 bg-white flex flex-col justify-end">
+                    
+                    {/* Horizontal Guide lines */}
+                    <div className="absolute left-14 right-4 bottom-8 h-[400px] pointer-events-none text-gray-400 text-[10px] border-l border-gray-200">
+                      {guideLines.map((val, idx) => {
+                        const topPct = (idx / intervalsCount) * 100;
+                        return (
+                          <div 
+                            key={idx} 
+                            className="absolute w-full border-t border-gray-100 flex justify-between" 
+                            style={{ top: `${topPct}%` }}
+                          >
+                            <span className="absolute -left-14 -translate-y-1/2 text-gray-400 font-bold text-right w-11 pr-1.5 select-none">
+                              {val === 0 ? '0' : val >= 1000000 ? `${(val / 1000000).toFixed(1).replace('.0', '')}M` : `${val / 1000}k`}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bars container aligned exactly at bottom-8 baseline */}
+                    <div className="absolute left-14 right-4 bottom-8 h-[400px] flex justify-around items-end z-10">
+                      {weeklyList.map(item => (
+                        <div key={item.label} className="flex flex-col items-center group w-20 relative">
+                          {/* Always visible amount text above column */}
+                          {item.net > 0 && (
+                            <span className="text-[11px] font-extrabold text-primary mb-1 select-none absolute -top-6 whitespace-nowrap">
+                              {fmt(item.net)}
+                            </span>
+                          )}
+                          {/* Active dynamic Blue Bar matching user screenshot */}
+                          <div 
+                            className={`w-8 rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom cursor-pointer ${item.net > 0 ? 'bg-primary hover:bg-[#1D4ED8]' : 'bg-slate-100 hover:bg-slate-200'}`} 
+                            style={{ height: `${(item.net / maxVal) * 400}px`, minHeight: item.net > 0 ? '4px' : '2px' }}
+                          />
+                          {/* X-axis Label at bottom */}
+                          <span className={`text-[11px] font-extrabold mt-2 absolute -bottom-6 select-none ${item.net > 0 ? 'text-primary' : 'text-gray-500'}`}>
+                            {item.label}
                           </span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+
                   </div>
-
-                  {/* Bars container aligned exactly at bottom-8 baseline */}
-                  <div className="absolute left-14 right-4 bottom-8 h-[260px] flex justify-around items-end z-10">
-                    {hourlyList.map(item => (
-                      <div key={item.hour} className="flex flex-col items-center group w-16 relative">
-                        {/* Always visible dynamic amount text on top of the bar */}
-                        {item.net > 0 && (
-                          <span className="text-[11px] font-extrabold text-primary mb-1 select-none absolute -top-6">
-                            {fmt(item.net)}
-                          </span>
-                        )}
-                        {/* Active dynamic Blue Bar matching user screenshot */}
-                        <div 
-                          className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom cursor-pointer" 
-                          style={{ height: `${(item.net / maxVal) * 260}px`, minHeight: item.net > 0 ? '4px' : '0px' }}
-                        />
-                        {/* X-axis Hour Label at bottom */}
-                        <span className="text-[11px] font-extrabold text-gray-500 mt-2 absolute -bottom-6 select-none">
-                          {item.hour}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                </div>
-              );
-            })()}
-
-            {/* Promo Card: "Muốn tăng doanh thu, tăng vốn ngay..." */}
-            <div className="h-14 mt-12 bg-[#E8F8F5] border border-[#A3E4D7] rounded-xl px-5 flex items-center justify-between shadow-sm hover:shadow transition-shadow cursor-pointer select-none">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                  <DollarSign size={18} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-[12.5px] text-emerald-800">Muốn tăng doanh thu, tăng vốn ngay</span>
-                  <span className="text-[11px] text-emerald-600 font-medium">4,500+ shop đã vay, 1,500+ tỷ giải ngân</span>
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-emerald-500" />
+                );
+              })()}
             </div>
 
           </div>
