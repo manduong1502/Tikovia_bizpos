@@ -211,7 +211,7 @@ export default function DashboardPage() {
         {/* Recent Activities */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 flex-1 flex flex-col">
           <h3 className="text-base font-bold text-gray-800 mb-5">Hoạt động gần đây</h3>
-          <div className="space-y-4 max-h-[calc(100vh-380px)] overflow-y-auto pr-2 custom-scrollbar flex-1">
+          <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1">
             {(d.recentOrders || []).map((o, i) => (
               <div key={i} className="flex items-start gap-3 group">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${

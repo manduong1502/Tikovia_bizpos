@@ -62,7 +62,7 @@ export default function POSCart() {
                   <span className="pos-cart-item-name">
                     {item.product.name}
                     <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px', fontWeight: 'normal' }}>
-                      (Tồn: {item.product.stock || 0})
+                      (Tồn: {Number(item.product.stock || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })})
                     </span>
                   </span>
                   

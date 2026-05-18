@@ -99,7 +99,7 @@ export default function POSHeader() {
                     {new Intl.NumberFormat('vi-VN').format(p.sellPrice)}
                   </div>
                   <div className={`text-[11px] ${p.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                    Tồn: {p.stock}
+                    Tồn: {Number(p.stock || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}
                   </div>
                 </div>
               </div>

@@ -19,6 +19,7 @@ import {
 } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+const fmtStock = (n) => Number(n || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
 
 const ALL_COLUMNS = [
   { key: 'sku', label: 'Mã hàng', default: true },
@@ -502,7 +503,7 @@ export default function ProductsPage() {
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
-                      ['Tồn kho', p.stock || 0],
+                      ['Tồn kho', fmtStock(p.stock)],
                       ['Định mức tồn', '0 - 10'],
                       ['Giá vốn', fmt(p.costPrice || 0)],
                       ['Giá bán', fmt(p.sellPrice)],
@@ -548,14 +549,14 @@ export default function ProductsPage() {
                   <tbody className="divide-y divide-gray-100 font-medium">
                     <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
                       <td className="p-3 pl-4">Tổng cộng</td>
-                      <td className="text-right p-3 text-primary font-extrabold">{p.stock || 0}</td>
+                      <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
                       <td className="text-right p-3 text-primary font-extrabold">0</td>
                       <td></td>
                       <td></td>
                     </tr>
                     <tr className="hover:bg-blue-50/30 transition-colors">
                       <td className="p-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
-                      <td className="text-right p-3 font-extrabold text-gray-800">{p.stock || 0}</td>
+                      <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
                       <td className="text-right p-3 text-gray-400 font-bold">0</td>
                       <td className="p-3 pl-6 text-gray-400">---</td>
                       <td className="p-3 text-green-600 font-bold">Đang kinh doanh</td>
@@ -784,7 +785,7 @@ export default function ProductsPage() {
                 {visibleColumns.includes('name') && <td></td>}
                 {visibleColumns.includes('sellPrice') && <td></td>}
                 {visibleColumns.includes('costPrice') && <td></td>}
-                {visibleColumns.includes('stock') && <td className="p-4 text-right text-primary font-extrabold">{fmt(totalStock)}</td>}
+                {visibleColumns.includes('stock') && <td className="p-4 text-right text-primary font-extrabold">{fmtStock(totalStock)}</td>}
                 {visibleColumns.includes('reserved') && <td className="p-4 text-right text-primary font-extrabold">0</td>}
                 {visibleColumns.includes('created_at') && <td></td>}
                 {visibleColumns.includes('expected_out') && <td></td>}
@@ -832,7 +833,7 @@ export default function ProductsPage() {
                         <td className="p-4 text-right text-gray-600">{fmt(p.costPrice || 0)}</td>
                       )}
                       {visibleColumns.includes('stock') && (
-                        <td className="p-4 text-right font-extrabold text-gray-800">{p.stock || 0}</td>
+                        <td className="p-4 text-right font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
                       )}
                       {visibleColumns.includes('reserved') && (
                         <td className="p-4 text-right text-gray-500">0</td>
