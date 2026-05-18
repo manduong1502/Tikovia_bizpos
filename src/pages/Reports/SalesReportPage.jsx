@@ -366,85 +366,86 @@ export default function SalesReportPage() {
           /* ═══════════════════════════════════════════
              VIEW MODE: CHART (BIỂU ĐỒ)
              ═══════════════════════════════════════════ */
-          <div className="flex-1 p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar bg-slate-50/20">
+          <div className="flex-1 p-8 flex flex-col bg-white overflow-y-auto custom-scrollbar">
             
-            {/* Chart Area Card */}
-            <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex-1 flex flex-col mb-5">
-              <h3 className="text-center font-bold text-gray-600 text-[14px] mb-8">
-                Doanh thu thuần tuần này
-              </h3>
+            <h3 className="text-center font-bold text-gray-600 text-[14px] mb-8">
+              Doanh thu thuần tuần này
+            </h3>
 
-              {/* High-fidelity CSS Chart wrapper */}
-              <div className="flex-1 flex gap-4 items-end relative h-[300px] border-b border-l border-gray-200 pl-4 pb-4">
-                
-                {/* Horizontal Guide lines */}
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-gray-400 text-[10px] pl-2">
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>500k</span></div>
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>400k</span></div>
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>300k</span></div>
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>200k</span></div>
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>100k</span></div>
-                  <div className="w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>0</span></div>
+            {/* High-fidelity CSS Chart wrapper */}
+            {(() => {
+              const maxVal = Math.max(totalNetSum, 100000);
+              return (
+                <div className="relative h-[240px] border-b border-l border-gray-200 pl-4 pb-6 w-full mt-4">
+                  
+                  {/* Horizontal Guide lines */}
+                  <div className="absolute left-0 right-0 bottom-6 h-[180px] pointer-events-none text-gray-400 text-[10px]">
+                    <div className="absolute top-0 w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal)}</span></div>
+                    <div className="absolute top-[45px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.75)}</span></div>
+                    <div className="absolute top-[90px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.5)}</span></div>
+                    <div className="absolute top-[135px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.25)}</span></div>
+                    <div className="absolute bottom-0 w-full border-t border-gray-200 pt-0.5 flex justify-between"><span>0</span></div>
+                  </div>
+
+                  {/* Bars container aligned exactly at bottom-6 baseline */}
+                  <div className="absolute left-10 right-4 bottom-6 h-[180px] flex justify-around items-end z-10">
+                    {/* Monday (T2) - ACTIVE today */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[11px] font-extrabold text-primary mb-1">{fmt(totalNetSum)}</span>
+                      {/* Active dynamic Blue Bar matching user screenshot */}
+                      <div 
+                        className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom" 
+                        style={{ height: `${(totalNetSum / maxVal) * 180}px` }}
+                      />
+                      <span className="text-[11px] font-extrabold text-primary mt-1">09:00</span>
+                    </div>
+
+                    {/* Tuesday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">T3</span>
+                    </div>
+
+                    {/* Wednesday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">T4</span>
+                    </div>
+
+                    {/* Thursday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">T5</span>
+                    </div>
+
+                    {/* Friday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">T6</span>
+                    </div>
+
+                    {/* Saturday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">T7</span>
+                    </div>
+
+                    {/* Sunday */}
+                    <div className="flex flex-col items-center gap-1.5 group w-14">
+                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
+                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
+                      <span className="text-[11px] font-bold text-gray-500">CN</span>
+                    </div>
+                  </div>
+
                 </div>
-
-                {/* Bars */}
-                <div className="flex-1 flex justify-around items-end h-[260px] z-10">
-                  {/* Monday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">T2</span>
-                  </div>
-
-                  {/* Tuesday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">T3</span>
-                  </div>
-
-                  {/* Wednesday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[11px] font-extrabold text-primary">{fmt(totalNetSum)}</span>
-                    {/* Active dynamic Blue Bar matching user screenshot */}
-                    <div 
-                      className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom" 
-                      style={{ height: `${Math.max(4, Math.min(240, (totalNetSum / 500000) * 240))}px` }}
-                    />
-                    <span className="text-[11px] font-extrabold text-primary">09:00</span>
-                  </div>
-
-                  {/* Thursday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">T5</span>
-                  </div>
-
-                  {/* Friday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">T6</span>
-                  </div>
-
-                  {/* Saturday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">T7</span>
-                  </div>
-
-                  {/* Sunday */}
-                  <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                    <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                    <span className="text-[11px] font-bold text-gray-500">CN</span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
+              );
+            })()}
 
           </div>
         ) : (
