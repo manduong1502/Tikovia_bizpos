@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
@@ -12,6 +12,27 @@ import Pagination from '../../components/common/Pagination';
 import CashbookModal from './CashbookModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+
+const ALL_COLUMNS = [
+  { key: 'code', label: 'Mã phiếu' },
+  { key: 'time', label: 'Thời gian' },
+  { key: 'createdAt', label: 'Thời gian tạo' },
+  { key: 'createdBy', label: 'Người tạo' },
+  { key: 'employee', label: 'Nhân viên' },
+  { key: 'branch', label: 'Chi nhánh' },
+  { key: 'category', label: 'Loại thu chi' },
+  { key: 'bankAccount', label: 'Tên tài khoản' },
+  { key: 'bankAccountNumber', label: 'Số tài khoản' },
+  { key: 'partnerCode', label: 'Mã người nộp/nhận' },
+  { key: 'partnerName', label: 'Người nộp/nhận' },
+  { key: 'partnerPhone', label: 'Số điện thoại' },
+  { key: 'partnerAddress', label: 'Địa chỉ' },
+  { key: 'amount', label: 'Giá trị' },
+  { key: 'transferContent', label: 'Nội dung chuyển khoản' },
+  { key: 'note', label: 'Ghi chú' },
+  { key: 'paymentMethod', label: 'Loại sổ quỹ' },
+  { key: 'status', label: 'Trạng thái' }
+];
 
 const fallbackEntries = [
   {
@@ -78,6 +99,11 @@ export default function CashbookPage() {
   const [partnerNameQuery, setPartnerNameQuery] = useState('');
   const [partnerPhoneQuery, setPartnerPhoneQuery] = useState('');
 
+  // Column visibility states
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState(['code', 'time', 'category', 'partnerName', 'amount']);
+  const columnMenuRef = useRef(null);
+
   // Row selection & Details expander
   const [expandedId, setExpandedId] = useState(null);
   const [stars, setStars] = useState({});
@@ -109,6 +135,17 @@ export default function CashbookPage() {
   }, [search]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(event.target)) {
+        setShowColumnMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Reset page size
   useEffect(() => {
@@ -329,6 +366,58 @@ export default function CashbookPage() {
             >
               <Download size={16} /> Xuất file
             </button>
+
+            {/* Column visibility menu matching illustration */}
+            <div className="relative" ref={columnMenuRef}>
+              <button
+                onClick={() => setShowColumnMenu(!showColumnMenu)}
+                className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <SlidersHorizontal size={18} />
+              </button>
+
+              {showColumnMenu && (
+                <div className="absolute right-0 top-full mt-2 w-[460px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in font-sans">
+                  <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                    {/* Left Column (0-9) */}
+                    <div className="flex flex-col gap-2.5">
+                      {ALL_COLUMNS.slice(0, 9).map(c => (
+                        <label key={c.key} className="flex items-center gap-3 text-xs font-semibold text-gray-600 cursor-pointer hover:text-primary transition-colors select-none">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                            checked={visibleColumns.includes(c.key)}
+                            onChange={(ev) => {
+                              if (ev.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                              else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                            }}
+                          />
+                          <span>{c.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {/* Right Column (9-18) */}
+                    <div className="flex flex-col gap-2.5">
+                      {ALL_COLUMNS.slice(9).map(c => (
+                        <label key={c.key} className="flex items-center gap-3 text-xs font-semibold text-gray-600 cursor-pointer hover:text-primary transition-colors select-none">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                            checked={visibleColumns.includes(c.key)}
+                            onChange={(ev) => {
+                              if (ev.target.checked) setVisibleColumns([...visibleColumns, c.key]);
+                              else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
+                            }}
+                          />
+                          <span>{c.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -595,11 +684,24 @@ export default function CashbookPage() {
                 <tr>
                   <th className="px-4 py-4 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
                   <th className="px-3 py-4 w-10"></th>
-                  <th className="px-6 py-4 text-left">Mã phiếu</th>
-                  <th className="px-6 py-4 text-left">Thời gian</th>
-                  <th className="px-6 py-4 text-left">Loại thu chi</th>
-                  <th className="px-6 py-4 text-left">Người nộp/nhận</th>
-                  <th className="px-6 py-4 text-right">Giá trị</th>
+                  {visibleColumns.includes('code') && <th className="px-6 py-4 text-left">Mã phiếu</th>}
+                  {visibleColumns.includes('time') && <th className="px-6 py-4 text-left">Thời gian</th>}
+                  {visibleColumns.includes('createdAt') && <th className="px-6 py-4 text-left">Thời gian tạo</th>}
+                  {visibleColumns.includes('createdBy') && <th className="px-6 py-4 text-left">Người tạo</th>}
+                  {visibleColumns.includes('employee') && <th className="px-6 py-4 text-left">Nhân viên</th>}
+                  {visibleColumns.includes('branch') && <th className="px-6 py-4 text-left">Chi nhánh</th>}
+                  {visibleColumns.includes('category') && <th className="px-6 py-4 text-left">Loại thu chi</th>}
+                  {visibleColumns.includes('bankAccount') && <th className="px-6 py-4 text-left">Tên tài khoản</th>}
+                  {visibleColumns.includes('bankAccountNumber') && <th className="px-6 py-4 text-left">Số tài khoản</th>}
+                  {visibleColumns.includes('partnerCode') && <th className="px-6 py-4 text-left">Mã người nộp/nhận</th>}
+                  {visibleColumns.includes('partnerName') && <th className="px-6 py-4 text-left">Người nộp/nhận</th>}
+                  {visibleColumns.includes('partnerPhone') && <th className="px-6 py-4 text-left">Số điện thoại</th>}
+                  {visibleColumns.includes('partnerAddress') && <th className="px-6 py-4 text-left">Địa chỉ</th>}
+                  {visibleColumns.includes('amount') && <th className="px-6 py-4 text-right">Giá trị</th>}
+                  {visibleColumns.includes('transferContent') && <th className="px-6 py-4 text-left">Nội dung chuyển khoản</th>}
+                  {visibleColumns.includes('note') && <th className="px-6 py-4 text-left">Ghi chú</th>}
+                  {visibleColumns.includes('paymentMethod') && <th className="px-6 py-4 text-left">Loại sổ quỹ</th>}
+                  {visibleColumns.includes('status') && <th className="px-6 py-4 text-left">Trạng thái</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -615,7 +717,7 @@ export default function CashbookPage() {
                         onClick={() => setExpandedId(isExpanded ? null : e.id)}
                         className={`hover:bg-blue-50/20 transition-all cursor-pointer border-b border-gray-50 ${isExpanded ? 'bg-blue-50/30' : ''}`}
                       >
-                        <td className="px-4 py-4 w-12 text-center" onClick={e => e.stopPropagation()}>
+                        <td className="px-4 py-4 w-12 text-center" onClick={ev => ev.stopPropagation()}>
                           <input type="checkbox" className="rounded border-gray-300" />
                         </td>
                         <td className="px-3 py-4 w-10 text-center">
@@ -629,27 +731,104 @@ export default function CashbookPage() {
                             />
                           </button>
                         </td>
-                        <td className={`px-6 py-4 font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-primary'}`}>
-                          {e.code}
-                        </td>
-                        <td className="px-6 py-4 text-[13px] text-gray-500 font-semibold">
-                          {e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : ''}
-                        </td>
-                        <td className="px-6 py-4 text-gray-600 font-semibold text-[13px]">
-                          {e.category}
-                        </td>
-                        <td className="px-6 py-4 font-bold text-gray-800 text-[13px]">
-                          {e.partnerName}
-                        </td>
-                        <td className={`px-6 py-4 text-right font-black text-[13px] ${isCancelled ? 'text-gray-400 line-through' : (isInc ? 'text-green-600' : 'text-red-500')}`}>
-                          {isCancelled ? '' : (isInc ? '+' : '-')}{fmt(e.amount)}
-                        </td>
+                        {visibleColumns.includes('code') && (
+                          <td className={`px-6 py-4 font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-primary'}`}>
+                            {e.code}
+                          </td>
+                        )}
+                        {visibleColumns.includes('time') && (
+                          <td className="px-6 py-4 text-[13px] text-gray-500 font-semibold">
+                            {e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : ''}
+                          </td>
+                        )}
+                        {visibleColumns.includes('createdAt') && (
+                          <td className="px-6 py-4 text-[13px] text-gray-500">
+                            {e.createdAt ? new Date(e.createdAt).toLocaleDateString('vi-VN') : ''}
+                          </td>
+                        )}
+                        {visibleColumns.includes('createdBy') && (
+                          <td className="px-6 py-4 text-xs font-bold text-gray-700">
+                            {e.createdBy}
+                          </td>
+                        )}
+                        {visibleColumns.includes('employee') && (
+                          <td className="px-6 py-4 text-xs text-gray-600">
+                            {e.createdBy}
+                          </td>
+                        )}
+                        {visibleColumns.includes('branch') && (
+                          <td className="px-6 py-4 text-xs text-gray-600">
+                            {e.branch || 'Chi nhánh trung tâm'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('category') && (
+                          <td className="px-6 py-4 text-gray-600 font-semibold text-[13px]">
+                            {e.category}
+                          </td>
+                        )}
+                        {visibleColumns.includes('bankAccount') && (
+                          <td className="px-6 py-4 text-xs text-gray-600">
+                            {e.paymentMethod === 'bank' ? 'Techcombank - 1903xxx' : '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('bankAccountNumber') && (
+                          <td className="px-6 py-4 text-xs text-gray-600">
+                            {e.paymentMethod === 'bank' ? '1903555222000' : '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('partnerCode') && (
+                          <td className="px-6 py-4 text-xs text-gray-600 font-bold">
+                            {e.partnerType === 'customer' ? 'KH0001' : (e.partnerType === 'supplier' ? 'NCC0001' : '—')}
+                          </td>
+                        )}
+                        {visibleColumns.includes('partnerName') && (
+                          <td className="px-6 py-4 font-bold text-gray-800 text-[13px]">
+                            {e.partnerName}
+                          </td>
+                        )}
+                        {visibleColumns.includes('partnerPhone') && (
+                          <td className="px-6 py-4 text-xs text-gray-600">
+                            {e.partnerPhone || '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('partnerAddress') && (
+                          <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
+                            {e.partnerAddress || '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('amount') && (
+                          <td className={`px-6 py-4 text-right font-black text-[13px] ${isCancelled ? 'text-gray-400 line-through' : (isInc ? 'text-green-600' : 'text-red-500')}`}>
+                            {isCancelled ? '' : (isInc ? '+' : '-')}{fmt(e.amount)}
+                          </td>
+                        )}
+                        {visibleColumns.includes('transferContent') && (
+                          <td className="px-6 py-4 text-xs text-gray-500">
+                            {e.paymentMethod === 'bank' ? `Chuyển khoản ${e.code}` : '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('note') && (
+                          <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate italic">
+                            {e.note || '—'}
+                          </td>
+                        )}
+                        {visibleColumns.includes('paymentMethod') && (
+                          <td className="px-6 py-4 text-xs font-semibold text-gray-600">
+                            {getPaymentMethodLabel(e.paymentMethod)}
+                          </td>
+                        )}
+                        {visibleColumns.includes('status') && (
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${isCancelled ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
+                              {isCancelled ? 'Đã hủy' : 'Đã thanh toán'}
+                            </span>
+                          </td>
+                        )}
                       </tr>
 
                       {/* Row Expander Detail Panel */}
                       {isExpanded && (
                         <tr className="bg-gray-50/60 transition-all">
-                          <td colSpan={7} className="p-0 border-b border-blue-100">
+                          <td colSpan={2 + visibleColumns.length} className="p-0 border-b border-blue-100">
                             <div className="p-6 bg-gradient-to-b from-blue-50/10 to-transparent border-x-2 border-primary/20">
                               {/* Details Tab Menu */}
                               <div className="flex gap-6 border-b border-gray-200 mb-6 px-2">
@@ -756,7 +935,7 @@ export default function CashbookPage() {
 
                 {filteredEntries.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-20 text-gray-400">
+                    <td colSpan={2 + visibleColumns.length} className="text-center py-20 text-gray-400">
                       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
                         <FileText size={32} className="text-gray-300" />
                       </div>
