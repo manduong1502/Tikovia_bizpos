@@ -25,6 +25,7 @@ export default function EndOfDayReportPage() {
   const [displayType, setDisplayType] = useState('Hiển thị dọc'); // Hiển thị dọc / Hiển thị ngang
   const [interestType, setInterestType] = useState('Bán hàng'); // Bán hàng, Hàng hóa, Tổng hợp
   const [timeRangeType, setTimeRangeType] = useState('today'); // today, custom
+  const [sortType, setSortType] = useState('time-desc');
   const [filterDate, setFilterDate] = useState(() => {
     const today = new Date();
     const y = today.getFullYear();
@@ -106,6 +107,17 @@ export default function EndOfDayReportPage() {
       return false;
     }
     return true;
+  });
+
+  // Sort filtered transactions based on selected sortType
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    if (sortType === 'time-desc') return new Date(b.time) - new Date(a.time);
+    if (sortType === 'time-asc') return new Date(a.time) - new Date(b.time);
+    if (sortType === 'revenue-desc') return b.revenue - a.revenue;
+    if (sortType === 'revenue-asc') return a.revenue - b.revenue;
+    if (sortType === 'code-asc') return a.code.localeCompare(b.code);
+    if (sortType === 'code-desc') return b.code.localeCompare(a.code);
+    return 0;
   });
 
   // Calculate totals for currently displayed transactions
@@ -202,7 +214,7 @@ export default function EndOfDayReportPage() {
         totalNetSum
       ]);
 
-      filteredTransactions.forEach(tx => {
+      sortedTransactions.forEach(tx => {
         aoa.push([
           `  ${tx.code}`, 
           new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
@@ -490,7 +502,7 @@ export default function EndOfDayReportPage() {
         </div>
 
         {/* Phương thức bán hàng */}
-        <div className="flex flex-col gap-1.5 flex-1 justify-end">
+        <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phương thức bán hàng</label>
           <select 
             value={salesMethod} 
@@ -500,6 +512,23 @@ export default function EndOfDayReportPage() {
             <option value="">Chọn phương thức bán hàng</option>
             <option value="Trực tiếp">Trực tiếp (POS)</option>
             <option value="Online">Bán hàng Online</option>
+          </select>
+        </div>
+
+        {/* Sắp xếp */}
+        <div className="flex flex-col gap-1.5 flex-1 justify-end">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sắp xếp hiển thị</label>
+          <select 
+            value={sortType} 
+            onChange={(e) => setSortType(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in"
+          >
+            <option value="time-desc">Thời gian: Mới nhất</option>
+            <option value="time-asc">Thời gian: Cũ nhất</option>
+            <option value="revenue-desc">Doanh thu: Giảm dần</option>
+            <option value="revenue-asc">Doanh thu: Tăng dần</option>
+            <option value="code-asc">Mã giao dịch: A-Z</option>
+            <option value="code-desc">Mã giao dịch: Z-A</option>
           </select>
         </div>
       </aside>
@@ -718,7 +747,7 @@ export default function EndOfDayReportPage() {
                             <td colSpan={9} className="p-0 bg-white">
                               <table className="w-full text-[11px] border-collapse bg-slate-50/50">
                                 <tbody className="divide-y divide-gray-100">
-                                  {filteredTransactions.map(tx => (
+                                  {sortedTransactions.map(tx => (
                                     <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                                       <td className="px-6 py-2 text-primary font-bold">
                                         {tx.code}

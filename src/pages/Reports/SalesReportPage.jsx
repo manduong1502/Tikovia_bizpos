@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { reportAPI, employeeAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
@@ -31,6 +31,32 @@ export default function SalesReportPage() {
   const [customToDate, setCustomToDate] = useState('');
   const [salesMethod, setSalesMethod] = useState('');
   const [salesChannel, setSalesChannel] = useState('');
+  const [sortType, setSortType] = useState('time-desc');
+
+  // Helper to calculate weekly parameters (Monday to Sunday) in YYYY-MM-DD
+  const getWeekRangeParams = () => {
+    const today = new Date();
+    const day = today.getDay(); // 0 is Sunday, 1-6 are Mon-Sat
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+    const monday = new Date(today.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const format = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dayStr = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dayStr}`;
+    };
+
+    return {
+      fromDate: format(monday),
+      toDate: format(sunday)
+    };
+  };
 
   // Fetch report data from end-of-day transactions to calculate real sales statistics
   const fetchData = () => {
@@ -39,6 +65,10 @@ export default function SalesReportPage() {
     if (timeRangeType === 'custom') {
       if (customFromDate) params.fromDate = customFromDate;
       if (customToDate) params.toDate = customToDate;
+    } else if (timeRangeType === 'week') {
+      const weekParams = getWeekRangeParams();
+      params.fromDate = weekParams.fromDate;
+      params.toDate = weekParams.toDate;
     }
     
     reportAPI.getEndOfDay(params)
@@ -58,6 +88,43 @@ export default function SalesReportPage() {
     fetchData();
   }, [timeRangeType, customFromDate, customToDate]);
 
+  // Client-side transactions sub-filtering matching sidebar selections
+  const getFilteredTransactions = () => {
+    let txList = data.transactions || [];
+    
+    // Filter Price Book
+    if (priceBook) {
+      txList = txList.filter(tx => {
+        if (priceBook === 'Bảng giá chung') return !tx.priceBook || tx.priceBook === 'Bảng giá chung';
+        if (priceBook === 'Giá sỉ') return tx.priceBook === 'Giá sỉ' || tx.priceBook === 'Giá bán sỉ';
+        if (priceBook === 'Giá lẻ') return tx.priceBook === 'Giá lẻ' || tx.priceBook === 'Giá bán lẻ đặc biệt';
+        return true;
+      });
+    }
+
+    // Filter Sales Method
+    if (salesMethod) {
+      txList = txList.filter(tx => {
+        if (salesMethod === 'Trực tiếp') return !tx.channel || tx.channel === 'Bán trực tiếp' || tx.channel === 'Cửa hàng';
+        if (salesMethod === 'Online') return tx.channel && tx.channel !== 'Bán trực tiếp' && tx.channel !== 'Cửa hàng';
+        return true;
+      });
+    }
+
+    // Filter Sales Channel
+    if (salesChannel) {
+      txList = txList.filter(tx => {
+        if (salesChannel === 'Cửa hàng') return !tx.channel || tx.channel === 'Bán trực tiếp' || tx.channel === 'Cửa hàng';
+        if (salesChannel === 'Facebook') return tx.channel === 'Facebook' || tx.channel === 'Kênh Facebook';
+        if (salesChannel === 'Zalo') return tx.channel === 'Zalo' || tx.channel === 'Kênh Zalo Shop';
+        if (salesChannel === 'Website') return tx.channel === 'Website' || tx.channel === 'Kênh Website';
+        return true;
+      });
+    }
+
+    return txList;
+  };
+
   // Clean data representation grouped by hour
   const getHourlyData = () => {
     const hourlyMap = {};
@@ -65,7 +132,7 @@ export default function SalesReportPage() {
     // Default slot so screen is never empty, matching screenshot
     hourlyMap['09:00'] = { hour: '09:00', revenue: 0, returns: 0, net: 0, txs: [] };
 
-    const txList = data.transactions || [];
+    const txList = getFilteredTransactions();
     txList.forEach(tx => {
       const dateObj = new Date(tx.time);
       const h = String(dateObj.getHours()).padStart(2, '0') + ':00';
@@ -83,6 +150,19 @@ export default function SalesReportPage() {
       hourlyMap['09:00'].revenue = 500000;
       hourlyMap['09:00'].net = 500000;
       hourlyMap['09:00'].txs = [{ code: 'HD000001', customerName: 'Khách lẻ', quantity: 10, revenue: 500000, netRevenue: 500000, time: new Date() }];
+    } else {
+      // Sort the transactions within each hour bucket based on the selected sidebar sortType
+      Object.keys(hourlyMap).forEach(key => {
+        hourlyMap[key].txs.sort((a, b) => {
+          if (sortType === 'time-desc') return new Date(b.time) - new Date(a.time);
+          if (sortType === 'time-asc') return new Date(a.time) - new Date(b.time);
+          if (sortType === 'revenue-desc') return b.revenue - a.revenue;
+          if (sortType === 'revenue-asc') return a.revenue - b.revenue;
+          if (sortType === 'code-asc') return a.code.localeCompare(b.code);
+          if (sortType === 'code-desc') return b.code.localeCompare(a.code);
+          return 0;
+        });
+      });
     }
 
     return Object.values(hourlyMap).sort((a, b) => a.hour.localeCompare(b.hour));
@@ -357,6 +437,23 @@ export default function SalesReportPage() {
             <option value="Website">Kênh Website</option>
           </select>
         </div>
+
+        {/* Sắp xếp */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sắp xếp hiển thị</label>
+          <select 
+            value={sortType} 
+            onChange={(e) => setSortType(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in"
+          >
+            <option value="time-desc">Thời gian: Mới nhất</option>
+            <option value="time-asc">Thời gian: Cũ nhất</option>
+            <option value="revenue-desc">Doanh thu: Giảm dần</option>
+            <option value="revenue-asc">Doanh thu: Tăng dần</option>
+            <option value="code-asc">Mã giao dịch: A-Z</option>
+            <option value="code-desc">Mã giao dịch: Z-A</option>
+          </select>
+        </div>
       </aside>
 
       {/* ─── MAIN DESK / CHART AREA (Right Card) ─── */}
@@ -386,7 +483,7 @@ export default function SalesReportPage() {
                     { label: 'CN', name: 'Chủ Nhật', net: 0 }
                   ];
 
-                  const txList = data.transactions || [];
+                  const txList = getFilteredTransactions();
                   
                   txList.forEach(tx => {
                     const dateObj = new Date(tx.time);
@@ -448,7 +545,7 @@ export default function SalesReportPage() {
                           )}
                           {/* Active dynamic Blue Bar matching user screenshot */}
                           <div 
-                            className={`w-8 rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom cursor-pointer ${item.net > 0 ? 'bg-primary hover:bg-[#1D4ED8]' : 'bg-slate-100 hover:bg-slate-200'}`} 
+                            className={`w-8 rounded-t-sm transition-all shadow-md origin-bottom ${item.net > 0 ? 'bg-primary' : 'bg-slate-100'}`} 
                             style={{ height: `${(item.net / maxVal) * 400}px`, minHeight: item.net > 0 ? '4px' : '2px' }}
                           />
                           {/* X-axis Label at bottom */}
@@ -640,20 +737,50 @@ export default function SalesReportPage() {
 
                       {/* Hourly rows */}
                       {hourlyList.map(h => (
-                        <tr key={h.hour} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-2.5 text-gray-700 font-bold flex items-center gap-1 select-none">
-                            <span 
-                              onClick={() => toggleExpandTime(h.hour)}
-                              className="text-primary font-mono cursor-pointer mr-1 text-[12px] bg-slate-100 hover:bg-slate-200 px-1 rounded"
-                            >
-                              {expandedTimes[h.hour] ? '−' : '+'}
-                            </span>
-                            <span>{h.hour}</span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right text-gray-800">{fmt(h.revenue)}</td>
-                          <td className="px-4 py-2.5 text-right text-gray-500">{fmt(h.returns)}</td>
-                          <td className="px-4 py-2.5 text-right font-extrabold text-slate-800">{fmt(h.net)}</td>
-                        </tr>
+                        <React.Fragment key={h.hour}>
+                          <tr className="hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-2.5 text-gray-700 font-bold flex items-center gap-1 select-none">
+                              <span 
+                                onClick={() => toggleExpandTime(h.hour)}
+                                className="text-primary font-mono cursor-pointer mr-1 text-[12px] bg-slate-100 hover:bg-slate-200 px-1.5 py-0.5 rounded transition-all"
+                              >
+                                {expandedTimes[h.hour] ? '−' : '+'}
+                              </span>
+                              <span>{h.hour}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-gray-800">{fmt(h.revenue)}</td>
+                            <td className="px-4 py-2.5 text-right text-gray-500">{fmt(h.returns)}</td>
+                            <td className="px-4 py-2.5 text-right font-extrabold text-slate-800">{fmt(h.net)}</td>
+                          </tr>
+
+                          {/* Sub-table for hourly transactions when expanded */}
+                          {expandedTimes[h.hour] && h.txs && h.txs.length > 0 && (
+                            <tr>
+                              <td colSpan={4} className="p-0 bg-white">
+                                <table className="w-full text-[11px] border-collapse bg-slate-50/50 border-l-2 border-primary/20">
+                                  <tbody className="divide-y divide-gray-100">
+                                    {h.txs.map(tx => (
+                                      <tr key={tx.code} className="hover:bg-slate-100/50 transition-colors">
+                                        <td className="px-8 py-2 text-primary font-bold w-[200px]">
+                                          {tx.code}
+                                        </td>
+                                        <td className="px-4 py-2 text-gray-600 font-medium">
+                                          {tx.customerName || 'Khách lẻ'}
+                                        </td>
+                                        <td className="px-4 py-2 text-right text-gray-500 font-medium">
+                                          Số lượng: {tx.quantity || 0}
+                                        </td>
+                                        <td className="px-4 py-2 text-right font-extrabold text-green-600">
+                                          {fmt(tx.netRevenue)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
 
                     </tbody>

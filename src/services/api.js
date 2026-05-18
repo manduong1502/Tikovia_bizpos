@@ -519,6 +519,7 @@ export const reportAPI = {
   getEndOfDay: (params) => api.get('/reports/end-of-day', { params }).then(r => r.data),
   getSales: (params) => api.get('/reports/sales', { params }).then(r => r.data),
   getProducts: (params) => api.get('/reports/products', { params }).then(r => r.data),
+  getCustomers: (params) => api.get('/reports/customers', { params }).then(r => r.data),
 };
 
 export default api;
