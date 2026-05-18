@@ -26,7 +26,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const discountAmount = Math.round(subtotal * (currentInvoice.discount || 0) / 100);
   const total = subtotal - discountAmount;
   
-  const paidAmount = paidAmountStr === '' ? total : Number(paidAmountStr.replace(/\D/g, ''));
+  const paidAmount = paidAmountStr === '' ? 0 : Number(paidAmountStr.replace(/\D/g, ''));
   const changeAmount = paidAmount - total;
   const isDebt = changeAmount < 0;
 
@@ -369,13 +369,11 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <span className="value">
                 <input 
                   type="text" 
-                  value={paidAmountStr === '' ? new Intl.NumberFormat('vi-VN').format(total) : paidAmountStr}
+                  value={paidAmountStr}
+                  placeholder="0"
                   onChange={(e) => {
                     const raw = e.target.value.replace(/\D/g, '');
-                    setPaidAmountStr(raw ? new Intl.NumberFormat('vi-VN').format(raw) : '0');
-                  }}
-                  onFocus={() => {
-                    if (paidAmountStr === '') setPaidAmountStr(total.toString());
+                    setPaidAmountStr(raw ? new Intl.NumberFormat('vi-VN').format(raw) : '');
                   }}
                   style={{ width: '100px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', fontWeight: '600', padding: '2px 0' }}
                 />

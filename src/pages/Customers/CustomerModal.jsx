@@ -4,6 +4,14 @@ import Button from '../../components/ui/Button';
 import { customerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Save, X } from 'lucide-react';
+import { Save, X } from 'lucide-react';
+
+const FormField = ({ label, required, children }) => (
+  <div>
+    <label className="text-sm font-bold text-gray-700 mb-1.5 block tracking-tight">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+    {children}
+  </div>
+);
 
 export default function CustomerModal({ open, onClose, customer = null, onSaved }) {
   const isEdit = !!customer;
@@ -71,12 +79,6 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     } finally { setSaving(false); }
   };
 
-  const F = ({ label, required, children }) => (
-    <div>
-      <label className="text-sm font-bold text-gray-700 mb-1.5 block tracking-tight">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
-      {children}
-    </div>
-  );
   const inp = (key, placeholder, type = 'text') => (
     <input type={type} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" value={form[key]} onChange={e => u(key, e.target.value)} placeholder={placeholder} />
   );
@@ -86,16 +88,16 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 font-sans">
-          <F label="Tên khách hàng" required>{inp('name', 'Nhập tên khách hàng')}</F>
-          <F label="Mã khách hàng">{inp('code', 'Mã mặc định')}</F>
-          <F label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</F>
-          <F label="Email">{inp('email', 'email@gmail.com', 'email')}</F>
+          <FormField label="Tên khách hàng" required>{inp('name', 'Nhập tên khách hàng')}</FormField>
+          <FormField label="Mã khách hàng">{inp('code', 'Mã mặc định')}</FormField>
+          <FormField label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</FormField>
+          <FormField label="Email">{inp('email', 'email@gmail.com', 'email')}</FormField>
           
           <div className="md:col-span-2">
-            <F label="Địa chỉ">{inp('address', 'Nhập địa chỉ')}</F>
+            <FormField label="Địa chỉ">{inp('address', 'Nhập địa chỉ')}</FormField>
           </div>
 
-          <F label="Loại khách hàng">
+          <FormField label="Loại khách hàng">
             <select 
               className="w-full border border-gray-300 rounded px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
               value={form.customerType} 
@@ -104,12 +106,12 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
               <option value="Cá nhân">Cá nhân</option>
               <option value="Công ty">Công ty</option>
             </select>
-          </F>
-          <F label="Chi nhánh">
+          </FormField>
+          <FormField label="Chi nhánh">
             {inp('branch', 'Nhập chi nhánh')}
-          </F>
+          </FormField>
 
-          <F label="Nợ hiện tại">
+          <FormField label="Nợ hiện tại">
             <input 
               type="number" 
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
@@ -117,8 +119,8 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
               onChange={e => u('totalDebt', e.target.value)} 
               placeholder="0" 
             />
-          </F>
-          <F label="Tổng bán">
+          </FormField>
+          <FormField label="Tổng bán">
             <input 
               type="number" 
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
@@ -126,9 +128,9 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
               onChange={e => u('totalSpent', e.target.value)} 
               placeholder="0" 
             />
-          </F>
+          </FormField>
 
-          <F label="Trạng thái">
+          <FormField label="Trạng thái">
             <select 
               className="w-full border border-gray-300 rounded px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
               value={form.isActive ? 'active' : 'inactive'} 
@@ -137,10 +139,10 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
               <option value="active">Đang hoạt động</option>
               <option value="inactive">Ngừng hoạt động</option>
             </select>
-          </F>
+          </FormField>
 
           <div className="md:col-span-2">
-            <F label="Ghi chú">
+            <FormField label="Ghi chú">
               <textarea 
                 className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors resize-y min-h-[80px] font-medium text-gray-800" 
                 value={form.note} 
@@ -148,7 +150,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
                 placeholder="Nhập ghi chú khách hàng" 
                 rows={3} 
               />
-            </F>
+            </FormField>
           </div>
         </div>
       </div>

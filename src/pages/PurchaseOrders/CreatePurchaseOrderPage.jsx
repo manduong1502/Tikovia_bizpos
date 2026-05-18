@@ -4,6 +4,7 @@ import { ArrowLeft, Search, Plus, Trash2, User, X, Printer, Eye, AlertCircle, Sc
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import Button from '../../components/ui/Button';
+import NumericInput from '../../components/ui/NumericInput';
 import { purchaseOrderAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
 import ProductModal from '../Products/ProductModal';
 
@@ -440,27 +441,21 @@ export default function CreatePurchaseOrderPage() {
                       <td className="p-4 font-bold text-gray-800">{item.name}</td>
                       <td className="p-4 text-gray-600">{item.unit}</td>
                       <td className="p-4 text-right">
-                        <input
-                          type="number"
-                          min="1"
+                        <NumericInput
                           className="w-20 text-right border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm"
                           value={item.quantity}
                           onChange={e => handleUpdateItem(item.id, 'quantity', e.target.value)}
                         />
                       </td>
                       <td className="p-4 text-right">
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
                           className="w-28 text-right border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm"
                           value={item.unit_price}
                           onChange={e => handleUpdateItem(item.id, 'unit_price', e.target.value)}
                         />
                       </td>
                       <td className="p-4 text-right">
-                        <input
-                          type="number"
-                          min="0"
+                        <NumericInput
                           className="w-24 text-right border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm"
                           value={item.discount}
                           onChange={e => handleUpdateItem(item.id, 'discount', e.target.value)}
@@ -608,11 +603,10 @@ export default function CreatePurchaseOrderPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-700">Giảm giá</span>
-                <input 
-                  type="text" 
-                  className="w-32 border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-right outline-none focus:border-primary font-bold"
+                <NumericInput 
+                  className="w-32 text-right border border-gray-300 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-primary font-bold"
                   value={discountStr}
-                  onChange={e => setDiscountStr(e.target.value)}
+                  onChange={e => setDiscountStr(String(e.target.value))}
                 />
               </div>
 
@@ -623,12 +617,11 @@ export default function CreatePurchaseOrderPage() {
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-700">Tiền trả nhà cung cấp</span>
-                <input 
-                  type="text" 
+                <NumericInput 
                   placeholder={fmt(needToPay)}
-                  className="w-36 border border-gray-300 rounded-xl px-3 py-2 text-sm text-right outline-none focus:border-primary font-extrabold text-primary shadow-sm"
-                  value={paidAmountStr}
-                  onChange={e => setPaidAmountStr(e.target.value)}
+                  className="w-36 text-right border border-gray-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary font-extrabold text-primary shadow-sm"
+                  value={paidAmountStr === '' ? '' : paidAmountStr}
+                  onChange={e => setPaidAmountStr(String(e.target.value))}
                 />
               </div>
 
