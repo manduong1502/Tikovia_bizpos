@@ -8,6 +8,7 @@ import {
   Plus, Download, Search, ClipboardList, Star, Filter, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Calendar, ChevronRight, Eye, Settings, HelpCircle, X, SlidersHorizontal
 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportCSV';
+import Pagination from '../../components/common/Pagination';
 import { inDateRange } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
@@ -62,6 +63,10 @@ export default function PurchaseReturnsPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchSupplier, setSearchSupplier] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -321,6 +326,16 @@ export default function PurchaseReturnsPage() {
     });
   }, [returns, search, searchCode, searchSupplier, filters]);
 
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, searchCode, searchSupplier, filters]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   const handleToggleStatus = (st) => {
     setFilters(prev => {
       const next = new Set(prev.statuses);
@@ -346,10 +361,10 @@ export default function PurchaseReturnsPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    if (selectedIds.size === paginated.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map(o => o.id)));
+      setSelectedIds(new Set(paginated.map(o => o.id)));
     }
   };
 
@@ -489,7 +504,7 @@ export default function PurchaseReturnsPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:h-[calc(100vh-142px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -558,11 +573,11 @@ export default function PurchaseReturnsPage() {
         </div>
 
         {/* Main Table Area */}
-        <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
-          <div className="overflow-x-auto min-w-[800px]">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
             <table className="w-full text-left border-collapse min-w-[800px]">
-              <thead>
-                <tr className="bg-gray-50/70 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
+              <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                <tr className="bg-gray-50 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
                   <th className="py-3.5 px-4 w-12 text-center">
                     <input 
                       type="checkbox" 
@@ -583,7 +598,7 @@ export default function PurchaseReturnsPage() {
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-50">
-                {filtered.map(o => {
+                {paginated.map(o => {
                   const isSelected = selectedIds.has(o.id);
                   const isStarred = starred.has(o.id);
                   const isExpanded = expandedId === o.id;
@@ -639,22 +654,14 @@ export default function PurchaseReturnsPage() {
               </tbody>
             </table>
           </div>
-
-          {/* Bottom Pagination Bar */}
-          <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-4 flex items-center justify-between text-xs text-gray-600 font-bold shadow-sm z-10 shrink-0 min-w-[800px]">
-            <div className="flex items-center gap-2">
-              <span>Hiển thị</span>
-              <select className="border border-gray-300 rounded-lg px-2.5 py-1.5 bg-white font-bold focus:outline-none focus:border-primary shadow-sm cursor-pointer">
-                <option>15 dòng</option>
-                <option>20 dòng</option>
-                <option>50 dòng</option>
-              </select>
-            </div>
-
-            <div>
-              Tổng số <span className="font-extrabold text-primary">{filtered.length}</span> bản ghi
-            </div>
-          </div>
+          <Pagination
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemName="phiếu trả"
+          />
         </div>
       </div>
     </div>

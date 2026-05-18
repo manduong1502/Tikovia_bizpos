@@ -10,6 +10,7 @@ import {
 import * as XLSX from 'xlsx';
 import OrderSidebar from './OrderSidebar';
 import OrderDetail from './OrderDetail';
+import Pagination from '../../components/common/Pagination';
 import {
   getRangeByCreatedLabel,
   getRangeByExpectedLabel,
@@ -40,6 +41,10 @@ export default function OrdersPage() {
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -292,8 +297,18 @@ export default function OrdersPage() {
     });
   }, [orders, search, searchCode, searchCustomer, searchProduct, filters]);
 
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, searchCode, searchCustomer, searchProduct, filters]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   const toggleAll = (checked) => {
-    if (checked) setSelectedIds(new Set(filtered.map(o => o.id)));
+    if (checked) setSelectedIds(new Set(paginated.map(o => o.id)));
     else setSelectedIds(new Set());
   };
 
@@ -464,7 +479,7 @@ export default function OrdersPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:h-[calc(100vh-142px)] lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -473,10 +488,11 @@ export default function OrdersPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
                   <input
                     type="checkbox"
@@ -511,7 +527,7 @@ export default function OrdersPage() {
                 {visibleColumns.includes('payment_status') && <td></td>}
               </tr>
 
-              {filtered.map((o) => {
+              {paginated.map((o) => {
                 const isSelected = selectedIds.has(o.id);
                 const isStarred = starred.has(o.id);
                 const isExpanded = expandedId === o.id;
@@ -633,7 +649,16 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          itemName="hóa đơn"
+        />
       </div>
+    </div>
 
       {/* Import Summary Modal */}
       {importSummaryOpen && (

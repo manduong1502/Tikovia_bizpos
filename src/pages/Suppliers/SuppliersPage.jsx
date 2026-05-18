@@ -9,6 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
+import Pagination from '../../components/common/Pagination';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -38,6 +39,10 @@ export default function SuppliersPage() {
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -331,8 +336,18 @@ export default function SuppliersPage() {
     });
   }, [suppliers, search, searchCode, searchName, searchPhone, filterGroup, filterDebt]);
 
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, searchCode, searchName, searchPhone, filterGroup, filterDebt]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   const toggleAll = (checked) => {
-    if (checked) setSelectedIds(new Set(filtered.map(s => s.id)));
+    if (checked) setSelectedIds(new Set(paginated.map(s => s.id)));
     else setSelectedIds(new Set());
   };
 
@@ -831,7 +846,7 @@ export default function SuppliersPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:h-[calc(100vh-142px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -876,10 +891,11 @@ export default function SuppliersPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
                   <input
                     type="checkbox"
@@ -901,7 +917,7 @@ export default function SuppliersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
-              {filtered.map((s) => {
+              {paginated.map((s) => {
                 const isSelected = selectedIds.has(s.id);
                 const isStarred = starred.has(s.id);
                 const isExpanded = expandedId === s.id;
@@ -990,7 +1006,16 @@ export default function SuppliersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          itemName="nhà cung cấp"
+        />
       </div>
+    </div>
 
       <SupplierModal open={modalOpen} onClose={() => setModalOpen(false)} onSaved={reload} supplier={editSupplier} />
 

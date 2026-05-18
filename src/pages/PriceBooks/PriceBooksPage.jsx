@@ -7,6 +7,7 @@ import Dropdown from '../../components/ui/Dropdown';
 import CategoryFilter from '../../components/ui/CategoryFilter';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import Pagination from '../../components/common/Pagination';
 import {
   Search, Plus, Download, Upload, ChevronDown, ChevronUp, Info, HelpCircle, Columns3, Settings, Filter, X, SlidersHorizontal
 } from 'lucide-react';
@@ -75,6 +76,10 @@ export default function PriceBooksPage() {
   const [searchSku, setSearchSku] = useState('');
   const [searchName, setSearchName] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
@@ -194,6 +199,16 @@ export default function PriceBooksPage() {
 
     return list;
   }, [products, search, searchSku, searchName, filters]);
+
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, searchSku, searchName, filters]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredProducts.slice(start, start + pageSize);
+  }, [filteredProducts, currentPage, pageSize]);
 
   const shownColumns = ALL_COLUMNS.filter((c) => visibleColumns[c.key]);
 
@@ -432,7 +447,7 @@ export default function PriceBooksPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:h-[calc(100vh-142px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -484,10 +499,11 @@ export default function PriceBooksPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 {shownColumns.map((col) => (
                   <th
                     key={col.key}
@@ -499,7 +515,7 @@ export default function PriceBooksPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
-              {filteredProducts.map((p) => (
+              {paginated.map((p) => (
                 <tr key={p.id} className="hover:bg-blue-50/30 transition-colors font-medium">
                   {shownColumns.map((col) => {
                     if (col.key === 'sku') {
@@ -561,7 +577,16 @@ export default function PriceBooksPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          totalItems={filteredProducts.length}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          itemName="hàng hóa"
+        />
       </div>
+    </div>
 
       <Modal
         open={modalOpen}

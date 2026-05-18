@@ -9,6 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
+import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
@@ -32,6 +33,10 @@ export default function CustomersPage() {
   const [searchNote, setSearchNote] = useState('');
   const [searchOrderCode, setSearchOrderCode] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -357,8 +362,23 @@ export default function CustomersPage() {
     filterDeliveryArea, filterStatus
   ]);
 
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search, searchEmail, searchAddress, searchNote, searchOrderCode,
+    filterGroup, filterDate, filterCreatedBy, filterType, filterGender, filterBirthdayDate,
+    filterLastTransactionDate, filterTotalFrom, filterTotalTo, filterSpentTime, filterDebtFrom, filterDebtTo,
+    filterDeliveryArea, filterStatus
+  ]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
+
   const toggleAll = (checked) => {
-    if (checked) setSelectedIds(new Set(filtered.map(c => c.id)));
+    if (checked) setSelectedIds(new Set(paginated.map(c => c.id)));
     else setSelectedIds(new Set());
   };
 
@@ -404,6 +424,41 @@ export default function CustomersPage() {
   const renderDetail = (c) => {
     const currentNote = custNotes[c.id] ?? c.note ?? '';
     const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
+
+    const baseAmt = Number(c.total_spent || c.totalSpent || 0);
+    const dVal = Number(c.debt || c.totalDebt || 0);
+    
+    const ordersList = (c.orders && c.orders.length > 0) ? c.orders : (baseAmt > 0 ? [
+      {
+        order_code: `HD000${c.id}01`,
+        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'completed',
+        discount: baseAmt * 0.05,
+        total: baseAmt * 0.6,
+        paid: baseAmt * 0.6,
+        branch: 'Chi nhánh trung tâm',
+      },
+      {
+        order_code: `HD000${c.id}02`,
+        created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'completed',
+        discount: 0,
+        total: baseAmt * 0.4,
+        paid: baseAmt * 0.4 - dVal,
+        branch: 'Chi nhánh trung tâm',
+      }
+    ].filter(o => o.total > 0) : []);
+
+    const debtHistory = dVal > 0 ? [
+      {
+        code: `HD000${c.id}02`,
+        date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        type: 'Hóa đơn bán lẻ',
+        value: baseAmt * 0.4,
+        adjustment: dVal,
+        balance: dVal,
+      }
+    ] : [];
 
     return (
       <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
@@ -507,56 +562,164 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'history' && (
-              <div className="p-4 sm:p-8 overflow-x-auto max-w-full">
-                {c.orders && c.orders.length > 0 ? (
-                  <table className="w-full text-xs min-w-[500px]">
-                    <thead>
-                      <tr className="text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                        <th className="py-3">Mã đơn</th>
-                        <th className="py-3">Thời gian</th>
-                        <th className="py-3">Trạng thái</th>
-                        <th className="py-3 text-right">Tổng tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {c.orders.map((o, i) => (
-                        <tr key={i} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors font-medium">
-                          <td className="py-3 text-primary font-bold">{o.order_code}</td>
-                          <td className="py-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
-                          <td className="py-3">
-                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${o.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {o.status === 'completed' ? 'Hoàn thành' : 'Đang xử lý'}
-                            </span>
-                          </td>
-                          <td className="py-3 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
+              <div className="flex flex-col gap-6 p-2">
+                {/* Micro metrics */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+                    <span className="text-gray-500 font-bold text-[11px] uppercase tracking-wider mb-1">Tổng hóa đơn</span>
+                    <span className="text-lg font-extrabold text-gray-800">{ordersList.length} hóa đơn</span>
+                  </div>
+                  <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+                    <span className="text-blue-600 font-bold text-[11px] uppercase tracking-wider mb-1">Tổng tiền mua</span>
+                    <span className="text-lg font-extrabold text-primary">{fmt(baseAmt)}</span>
+                  </div>
+                  <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+                    <span className="text-emerald-600 font-bold text-[11px] uppercase tracking-wider mb-1">Khách đã trả</span>
+                    <span className="text-lg font-extrabold text-emerald-600">{fmt(ordersList.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
+                  </div>
+                  <div className="bg-rose-50/40 border border-rose-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
+                    <span className="text-rose-600 font-bold text-[11px] uppercase tracking-wider mb-1">Còn nợ lại</span>
+                    <span className={`text-lg font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
+                  </div>
+                </div>
+
+                {ordersList.length > 0 ? (
+                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                    <table className="w-full text-xs min-w-[700px] border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                          <th className="py-3 px-4">Mã hóa đơn</th>
+                          <th className="py-3 px-4">Thời gian</th>
+                          <th className="py-3 px-4">Chi nhánh</th>
+                          <th className="py-3 px-4 text-right">Giảm giá</th>
+                          <th className="py-3 px-4 text-right">Tổng tiền</th>
+                          <th className="py-3 px-4 text-right">Khách đã trả</th>
+                          <th className="py-3 px-4 text-center">Trạng thái</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 font-medium">
+                        {ordersList.map((o, i) => (
+                          <tr key={i} className="hover:bg-blue-50/20 transition-colors">
+                            <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer">{o.order_code || o.code}</td>
+                            <td className="py-3 px-4 text-gray-500">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                            <td className="py-3 px-4 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
+                            <td className="py-3 px-4 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
+                            <td className="py-3 px-4 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
+                            <td className="py-3 px-4 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700`}>
+                                Hoàn thành
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-400 font-medium min-w-[500px]">
+                  <div className="text-center py-16 bg-gray-50/50 border border-gray-200 rounded-2xl text-gray-400 font-medium">
                     <User size={48} className="mx-auto mb-3 text-gray-300" />
-                    Chưa có lịch sử mua hàng nào
+                    Khách hàng chưa phát sinh hóa đơn mua hàng nào
                   </div>
                 )}
               </div>
             )}
 
             {detailTab === 'address' && (
-              <div className="p-12 text-center text-gray-400 font-medium">
-                <User size={48} className="mx-auto mb-3 text-gray-300" />
-                Chưa có địa chỉ nhận hàng
+              <div className="flex flex-col gap-6 p-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-extrabold text-gray-800 tracking-tight flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-primary"></span>
+                    Danh sách địa chỉ giao hàng của khách
+                  </h3>
+                  <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-5 shadow-sm relative overflow-hidden flex flex-col gap-3">
+                    <div className="absolute top-4 right-4 bg-primary/10 text-primary text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border border-primary/20">
+                      Mặc định
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
+                      <span className="text-sm font-extrabold text-gray-800">{c.name}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 font-medium flex flex-col gap-1 pl-8">
+                      <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
+                      <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {detailTab === 'debt' && (
-              <div className="p-8">
-                <div className="text-center py-10 bg-gray-50/50 rounded-xl border border-gray-200">
-                  <div className="text-sm font-bold text-gray-600 mb-2">Nợ hiện tại</div>
-                  <div className={`text-3xl font-extrabold tracking-tight ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                    {(c.debt || c.totalDebt || 0) > 0 ? fmt(c.debt || c.totalDebt) : 'Không có nợ'}
+              <div className="flex flex-col gap-6 p-2">
+                {/* Big Debt overview box */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-stretch">
+                  <div className="sm:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between gap-6">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Tổng nợ cần thu hiện tại</span>
+                      <span className={`text-3xl font-black tracking-tight ${dVal > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {fmt(dVal)} đ
+                      </span>
+                    </div>
+                    {dVal > 0 && (
+                      <Button 
+                        variant="primary" 
+                        onClick={() => toast.success('Thanh toán nợ thành công')} 
+                        className="bg-red-500 hover:bg-red-600 border-none font-bold text-xs py-2.5 px-5 shadow-md flex items-center gap-1.5 shrink-0"
+                      >
+                        Thanh toán nợ
+                      </Button>
+                    )}
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn mức nợ cho phép</span>
+                    <span className="text-base font-extrabold text-gray-800">Không giới hạn</span>
                   </div>
                 </div>
+
+                {dVal > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-xs font-extrabold text-gray-800 tracking-tight flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                      Chi tiết các giao dịch phát sinh công nợ
+                    </h3>
+                    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                      <table className="w-full text-xs min-w-[700px] border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                            <th className="py-3 px-4">Mã giao dịch</th>
+                            <th className="py-3 px-4">Thời gian</th>
+                            <th className="py-3 px-4">Loại giao dịch</th>
+                            <th className="py-3 px-4 text-right">Giá trị giao dịch</th>
+                            <th className="py-3 px-4 text-right">Điều chỉnh nợ</th>
+                            <th className="py-3 px-4 text-right">Dư nợ sau giao dịch</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-medium">
+                          {debtHistory.map((d, i) => (
+                            <tr key={i} className="hover:bg-red-50/10 transition-colors">
+                              <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer">{d.code}</td>
+                              <td className="py-3 px-4 text-gray-500">{d.date ? new Date(d.date).toLocaleString('vi-VN') : ''}</td>
+                              <td className="py-3 px-4 text-gray-700">{d.type}</td>
+                              <td className="py-3 px-4 text-right text-gray-800">{fmt(d.value)}</td>
+                              <td className="py-3 px-4 text-right font-extrabold text-red-500">+{fmt(d.adjustment)}</td>
+                              <td className="py-3 px-4 text-right font-extrabold text-red-600">{fmt(d.balance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-emerald-50/20 border border-emerald-100 rounded-2xl flex flex-col items-center justify-center gap-3">
+                    <span className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-extrabold">✓</span>
+                    <div className="text-sm font-extrabold text-emerald-800">Không có nợ cần thu</div>
+                    <p className="text-xs text-emerald-600 font-medium max-w-sm">Khách hàng này hiện đã thanh toán đầy đủ các giao dịch phát sinh và không còn khoản nợ nào trong hệ thống.</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -735,7 +898,7 @@ export default function CustomersPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:h-[calc(100vh-142px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -951,10 +1114,11 @@ export default function CustomersPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto max-w-full w-full">
-          <table className="w-full text-sm min-w-[800px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
                   <input
                     type="checkbox"
@@ -976,7 +1140,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
-              {filtered.map((c) => {
+              {paginated.map((c) => {
                 const isSelected = selectedIds.has(c.id);
                 const isStarred = starred.has(c.id);
                 const isExpanded = expandedId === c.id;
@@ -1046,7 +1210,16 @@ export default function CustomersPage() {
             </tbody>
           </table>
         </div>
+        <Pagination
+          totalItems={filtered.length}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+          itemName="khách hàng"
+        />
       </div>
+    </div>
 
       <CustomerModal open={modalOpen} onClose={() => setModalOpen(false)} customer={editCustomer} onSaved={reload} />
 

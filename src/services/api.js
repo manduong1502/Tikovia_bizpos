@@ -459,7 +459,10 @@ export const purchaseReturnAPI = {
 export const cashbookAPI = {
   getAll: (params) => api.get('/cashbook', { params }).then(r => r.data),
   create: (data) => api.post('/cashbook', data).then(r => r.data),
+  cancel: (id) => api.put(`/cashbook/${id}/cancel`).then(r => r.data),
   delete: (id) => api.delete(`/cashbook/${id}`).then(r => r.data),
+  getPartners: (params) => api.get('/cashbook/partners', { params }).then(r => r.data),
+  createPartner: (data) => api.post('/cashbook/partners', data).then(r => r.data),
 };
 
 // ─── Inventory Checks ───
