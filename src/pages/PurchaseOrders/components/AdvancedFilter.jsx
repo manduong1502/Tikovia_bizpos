@@ -1,5 +1,5 @@
 import { Filter } from 'lucide-react';
-import DateFilter from '../../../../components/ui/DateFilter';
+import DateFilter from '../../../components/ui/DateFilter';
 
 export default function AdvancedFilter({
   filters,
