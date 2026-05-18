@@ -193,10 +193,10 @@ export default function SalesReportPage() {
   const isHorizontal = displayType === 'Hiển thị ngang';
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in">
+    <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
       
       {/* ─── SIDEBAR FILTERS (Left Card) ─── */}
-      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] lg:sticky lg:top-[100px] custom-scrollbar z-20">
+      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] lg:sticky lg:top-[75px] custom-scrollbar z-20">
         
         {/* "Xuất tất cả" button matching screenshot */}
         {viewType === 'Báo cáo' && (
@@ -375,7 +375,7 @@ export default function SalesReportPage() {
               </h3>
 
               {/* High-fidelity CSS Chart wrapper */}
-              <div className="flex-1 flex gap-4 items-end relative min-h-[300px] border-b border-l border-gray-200 pl-4 pb-4">
+              <div className="flex-1 flex gap-4 items-end relative h-[300px] border-b border-l border-gray-200 pl-4 pb-4">
                 
                 {/* Horizontal Guide lines */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-gray-400 text-[10px] pl-2">
@@ -388,7 +388,7 @@ export default function SalesReportPage() {
                 </div>
 
                 {/* Bars */}
-                <div className="flex-1 flex justify-around items-end h-full z-10">
+                <div className="flex-1 flex justify-around items-end h-[260px] z-10">
                   {/* Monday */}
                   <div className="flex flex-col items-center gap-2 group w-12">
                     <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
@@ -409,7 +409,7 @@ export default function SalesReportPage() {
                     {/* Active dynamic Blue Bar matching user screenshot */}
                     <div 
                       className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom" 
-                      style={{ height: `${Math.min(100, (totalNetSum / 500000) * 100)}%`, minHeight: '20px' }}
+                      style={{ height: `${Math.min(100, (totalNetSum / 500000) * 100)}%`, minHeight: '4px' }}
                     />
                     <span className="text-[11px] font-extrabold text-primary">09:00</span>
                   </div>
@@ -444,20 +444,6 @@ export default function SalesReportPage() {
                 </div>
 
               </div>
-            </div>
-
-            {/* Promo Card: "Muốn tăng doanh thu, tăng vốn ngay..." */}
-            <div className="h-14 bg-[#E8F8F5] border border-[#A3E4D7] rounded-xl px-5 flex items-center justify-between shadow-sm hover:shadow transition-shadow cursor-pointer select-none">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                  <DollarSign size={18} />
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-[12.5px] text-emerald-800">Muốn tăng doanh thu, tăng vốn ngay</span>
-                  <span className="text-[11px] text-emerald-600 font-medium">4,500+ shop đã vay, 1,500+ tỷ giải ngân</span>
-                </div>
-              </div>
-              <ChevronRight size={16} className="text-emerald-500" />
             </div>
 
           </div>
