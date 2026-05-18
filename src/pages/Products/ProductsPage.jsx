@@ -725,7 +725,7 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative">
+      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative lg:h-[calc(100vh-160px)]">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
@@ -747,8 +747,8 @@ export default function ProductsPage() {
         </div>
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
-          <div className="overflow-x-auto max-w-full w-full">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
+          <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
             <table className="w-full text-sm min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">

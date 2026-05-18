@@ -487,17 +487,13 @@ export default function PurchaseReturnsPage() {
               )}
             </div>
 
-            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
-              <Settings size={18} />
-            </button>
-            <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
-              <HelpCircle size={18} />
-            </button>
+            
+            
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative">
+      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative lg:h-[calc(100vh-160px)]">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
@@ -573,8 +569,8 @@ export default function PurchaseReturnsPage() {
         </div>
 
         {/* Main Table Area */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
+          <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
