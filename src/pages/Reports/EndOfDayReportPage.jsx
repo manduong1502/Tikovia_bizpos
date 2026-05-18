@@ -175,19 +175,19 @@ export default function EndOfDayReportPage() {
   };
 
   return (
-    <div className="flex bg-[#F2F4F7] dark:bg-slate-900 min-h-screen text-[13px] text-gray-800 dark:text-gray-200">
+    <div className="flex bg-[#F2F4F7] min-h-screen text-[13px] text-gray-800">
       
       {/* ─── SIDEBAR FILTERS (Left) ─── */}
-      <aside className="w-[300px] shrink-0 bg-white dark:bg-slate-950 border-r border-gray-200 dark:border-slate-800 p-4 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-46px)] sticky top-[46px] custom-scrollbar">
-        <h2 className="text-[16px] font-bold text-gray-800 dark:text-white mb-1">Báo cáo cuối ngày</h2>
+      <aside className="w-[300px] shrink-0 bg-white border-r border-gray-200 p-4 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-46px)] sticky top-[46px] custom-scrollbar z-20">
+        <h2 className="text-[16px] font-bold text-gray-800 mb-1">Báo cáo cuối ngày</h2>
 
         {/* Kiểu hiển thị */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Kiểu hiển thị</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kiểu hiển thị</label>
           <div className="flex gap-2">
             <button 
               onClick={() => setViewType('Báo cáo')}
-              className={`flex-1 py-1.5 rounded-lg border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-[#0070F3] border-[#0070F3] text-white shadow-sm' : 'bg-transparent border-gray-200 dark:border-slate-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-900'}`}
+              className={`flex-1 py-1.5 rounded-lg border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-[#0070F3] border-[#0070F3] text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Báo cáo
             </button>
@@ -195,7 +195,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={displayType} 
             onChange={(e) => setDisplayType(e.target.value)}
-            className="w-full mt-1.5 p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors"
+            className="w-full mt-1.5 p-2 rounded-lg border border-gray-200 bg-white text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors cursor-pointer"
           >
             <option value="Hiển thị dọc">Hiển thị dọc</option>
             <option value="Hiển thị ngang">Hiển thị ngang</option>
@@ -204,11 +204,11 @@ export default function EndOfDayReportPage() {
 
         {/* Mối quan tâm */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Mối quan tâm</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mối quan tâm</label>
           <select 
             value={interestType} 
             onChange={(e) => setInterestType(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors"
+            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] font-medium outline-none focus:border-[#0070F3] transition-colors cursor-pointer"
           >
             <option value="Bán hàng">Bán hàng</option>
             <option value="Hàng hóa">Hàng hóa</option>
@@ -218,10 +218,10 @@ export default function EndOfDayReportPage() {
 
         {/* Thời gian */}
         <div className="flex flex-col gap-2">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Thời gian</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thời gian</label>
           
           {/* Radio 1: Hôm nay / Ngày cụ thể */}
-          <div className="flex flex-col gap-1.5 border border-gray-100 dark:border-slate-900 rounded-xl p-2.5 bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="flex flex-col gap-1.5 border border-gray-150 rounded-xl p-2.5 bg-gray-50/50">
             <div className="flex items-center gap-2">
               <input 
                 type="radio" 
@@ -229,9 +229,9 @@ export default function EndOfDayReportPage() {
                 id="timeRangeToday" 
                 checked={timeRangeType === 'today'} 
                 onChange={() => setTimeRangeType('today')}
-                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3]"
+                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3] cursor-pointer"
               />
-              <label htmlFor="timeRangeToday" className="font-bold cursor-pointer text-gray-700 dark:text-gray-300">Theo ngày</label>
+              <label htmlFor="timeRangeToday" className="font-bold cursor-pointer text-gray-700">Theo ngày</label>
             </div>
             
             {timeRangeType === 'today' && (
@@ -240,20 +240,20 @@ export default function EndOfDayReportPage() {
                   type="date" 
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  className="p-1.5 border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg outline-none text-[12px] font-medium w-full text-center"
+                  className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] font-semibold w-full text-center cursor-pointer"
                 />
                 <div className="flex gap-1.5 items-center mt-1 text-[11px]">
                   <span className="text-gray-400 shrink-0">Từ:</span>
-                  <input type="time" value={timeFrom} onChange={e => setTimeFrom(e.target.value)} className="p-1 border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded outline-none w-full" />
+                  <input type="time" value={timeFrom} onChange={e => setTimeFrom(e.target.value)} className="p-1 border border-gray-200 bg-white rounded outline-none w-full cursor-pointer" />
                   <span className="text-gray-400 shrink-0">Đến:</span>
-                  <input type="time" value={timeTo} onChange={e => setTimeTo(e.target.value)} className="p-1 border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded outline-none w-full" />
+                  <input type="time" value={timeTo} onChange={e => setTimeTo(e.target.value)} className="p-1 border border-gray-200 bg-white rounded outline-none w-full cursor-pointer" />
                 </div>
               </div>
             )}
           </div>
 
           {/* Radio 2: Tùy chỉnh */}
-          <div className="flex flex-col gap-1.5 border border-gray-100 dark:border-slate-900 rounded-xl p-2.5 bg-gray-50/50 dark:bg-slate-900/30">
+          <div className="flex flex-col gap-1.5 border border-gray-150 rounded-xl p-2.5 bg-gray-50/50">
             <div className="flex items-center gap-2">
               <input 
                 type="radio" 
@@ -261,9 +261,9 @@ export default function EndOfDayReportPage() {
                 id="timeRangeCustom" 
                 checked={timeRangeType === 'custom'} 
                 onChange={() => setTimeRangeType('custom')}
-                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3]"
+                className="w-4 h-4 text-[#0070F3] border-gray-300 focus:ring-[#0070F3] cursor-pointer"
               />
-              <label htmlFor="timeRangeCustom" className="font-bold cursor-pointer text-gray-700 dark:text-gray-300">Tùy chỉnh khoảng</label>
+              <label htmlFor="timeRangeCustom" className="font-bold cursor-pointer text-gray-700">Tùy chỉnh khoảng</label>
             </div>
             
             {timeRangeType === 'custom' && (
@@ -274,7 +274,7 @@ export default function EndOfDayReportPage() {
                     type="date" 
                     value={customFromDate}
                     onChange={(e) => setCustomFromDate(e.target.value)}
-                    className="p-1.5 border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg outline-none text-[12px]"
+                    className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] cursor-pointer"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -283,7 +283,7 @@ export default function EndOfDayReportPage() {
                     type="date" 
                     value={customToDate}
                     onChange={(e) => setCustomToDate(e.target.value)}
-                    className="p-1.5 border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-lg outline-none text-[12px]"
+                    className="p-1.5 border border-gray-200 bg-white rounded-lg outline-none text-[12px] cursor-pointer"
                   />
                 </div>
               </div>
@@ -293,14 +293,14 @@ export default function EndOfDayReportPage() {
 
         {/* Khách hàng */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Khách hàng</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Khách hàng</label>
           <div className="relative">
             <input 
               type="text" 
               placeholder="Theo mã, tên, số điện thoại" 
               value={customerQuery}
               onChange={(e) => setCustomerQuery(e.target.value)}
-              className="w-full pl-8 pr-2.5 py-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] outline-none focus:border-[#0070F3] transition-colors"
+              className="w-full pl-8 pr-2.5 py-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] transition-colors"
             />
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
@@ -308,11 +308,11 @@ export default function EndOfDayReportPage() {
 
         {/* Nhân viên */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Nhân viên</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nhân viên</label>
           <select 
             value={selectedEmployee} 
             onChange={(e) => setSelectedEmployee(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] outline-none focus:border-[#0070F3]"
+            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
           >
             <option value="">Chọn nhân viên</option>
             {employees.map(emp => (
@@ -323,11 +323,11 @@ export default function EndOfDayReportPage() {
 
         {/* Người tạo */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Người tạo</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Người tạo</label>
           <select 
             value={selectedCreator} 
             onChange={(e) => setSelectedCreator(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] outline-none focus:border-[#0070F3]"
+            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
           >
             <option value="">Chọn người tạo</option>
             {employees.map(emp => (
@@ -338,11 +338,11 @@ export default function EndOfDayReportPage() {
 
         {/* Phương thức thanh toán */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Phương thức thanh toán</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phương thức thanh toán</label>
           <select 
             value={paymentMethod} 
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] outline-none focus:border-[#0070F3]"
+            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
           >
             <option value="">Chọn phương thức thanh toán</option>
             <option value="Tiền mặt">Tiền mặt</option>
@@ -353,11 +353,11 @@ export default function EndOfDayReportPage() {
 
         {/* Phương thức bán hàng */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Phương thức bán hàng</label>
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Phương thức bán hàng</label>
           <select 
             value={salesMethod} 
             onChange={(e) => setSalesMethod(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-[13px] outline-none focus:border-[#0070F3]"
+            className="w-full p-2 rounded-lg border border-gray-200 bg-white text-[13px] outline-none focus:border-[#0070F3] cursor-pointer"
           >
             <option value="">Chọn phương thức bán hàng</option>
             <option value="Trực tiếp">Trực tiếp (POS)</option>
@@ -370,17 +370,17 @@ export default function EndOfDayReportPage() {
       <main className="flex-1 flex flex-col max-h-[calc(100vh-46px)] overflow-hidden">
         
         {/* ─── PREMIUM TOOLBAR ─── */}
-        <div className="h-12 bg-slate-100 dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
+        <div className="h-12 bg-slate-100 border-b border-gray-200 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
           
           {/* Left Buttons: Undo, Redo, Refresh */}
           <div className="flex items-center gap-1.5">
-            <button className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/50 dark:hover:bg-slate-800 cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
               <ArrowLeft size={16} />
             </button>
-            <button className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/50 dark:hover:bg-slate-800 cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
               <ArrowRight size={16} />
             </button>
-            <button onClick={fetchData} className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/50 dark:hover:bg-slate-800 transition-colors cursor-pointer" title="Làm mới báo cáo">
+            <button onClick={fetchData} className="p-1.5 rounded text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors cursor-pointer" title="Làm mới báo cáo">
               <RotateCcw size={16} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
@@ -389,7 +389,7 @@ export default function EndOfDayReportPage() {
           <div className="flex items-center gap-2">
             <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&lt;&lt;</button>
             <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&lt;</button>
-            <span className="text-[12px] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 px-2 py-0.5 rounded font-bold">1 / 1</span>
+            <span className="text-[12px] bg-white border border-gray-200 px-2.5 py-0.5 rounded font-bold text-gray-700">1 / 1</span>
             <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&gt;</button>
             <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&gt;&gt;</button>
           </div>
@@ -399,7 +399,7 @@ export default function EndOfDayReportPage() {
             {/* Export Spreadsheet */}
             <button 
               onClick={handleExportExcel}
-              className="p-1.5 rounded text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 transition-all flex items-center gap-1 font-bold text-[12px] border border-green-200/50 cursor-pointer bg-white dark:bg-slate-900"
+              className="p-1.5 rounded text-green-600 hover:bg-green-50 transition-all flex items-center gap-1 font-bold text-[12px] border border-green-200/50 cursor-pointer bg-white"
               title="Xuất Excel/CSV"
             >
               <FileSpreadsheet size={15} />
@@ -409,27 +409,27 @@ export default function EndOfDayReportPage() {
             {/* Print / PDF */}
             <button 
               onClick={handlePrint}
-              className="p-1.5 rounded text-[#0070F3] hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all flex items-center gap-1 font-bold text-[12px] border border-blue-200/50 cursor-pointer bg-white dark:bg-slate-900"
+              className="p-1.5 rounded text-[#0070F3] hover:bg-blue-50 transition-all flex items-center gap-1 font-bold text-[12px] border border-blue-200/50 cursor-pointer bg-white"
               title="In báo cáo (PDF)"
             >
               <Printer size={15} />
               <span>In PDF</span>
             </button>
 
-            <div className="w-px h-5 bg-gray-200 dark:bg-slate-800 mx-1" />
+            <div className="w-px h-5 bg-gray-200 mx-1" />
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded px-1">
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1">
               <button 
                 onClick={() => setZoom(prev => Math.max(50, prev - 10))} 
-                className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded cursor-pointer text-gray-600 dark:text-gray-400"
+                className="p-1 hover:bg-gray-100 rounded cursor-pointer text-gray-600"
               >
                 <ZoomOut size={13} />
               </button>
               <span className="text-[11px] font-bold px-1 min-w-[34px] text-center">{zoom}%</span>
               <button 
                 onClick={() => setZoom(prev => Math.min(150, prev + 10))} 
-                className="p-1 hover:bg-gray-100 dark:hover:bg-slate-800 rounded cursor-pointer text-gray-600 dark:text-gray-400"
+                className="p-1 hover:bg-gray-100 rounded cursor-pointer text-gray-600"
               >
                 <ZoomIn size={13} />
               </button>
@@ -438,7 +438,7 @@ export default function EndOfDayReportPage() {
             {/* Fullscreen */}
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)} 
-              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/50 dark:hover:bg-slate-800 cursor-pointer"
+              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/70 cursor-pointer"
               title="Phóng to toàn màn hình"
             >
               <Maximize2 size={15} />
@@ -447,12 +447,12 @@ export default function EndOfDayReportPage() {
         </div>
 
         {/* ─── PRINTED A4 SHEET CANVAS ─── */}
-        <div className="flex-1 overflow-auto p-8 flex justify-center bg-gray-300/30 dark:bg-slate-900/50 custom-scrollbar">
+        <div className="flex-1 overflow-auto p-8 flex justify-center bg-[#E9EBEF] custom-scrollbar">
           
           {/* Printable Container */}
           <div 
             id="printed-report-page"
-            className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 shadow-2xl p-10 min-h-[1100px] border border-gray-200/50 dark:border-slate-800 rounded-sm origin-top transition-transform duration-200 select-text"
+            className="bg-white text-slate-800 shadow-2xl p-10 min-h-[1100px] border border-gray-200/60 rounded-sm origin-top transition-transform duration-200 select-text"
             style={{ 
               width: `${794 * (zoom / 100)}px`, 
               minWidth: '680px',
@@ -460,9 +460,9 @@ export default function EndOfDayReportPage() {
             }}
           >
             {/* Header section inside document */}
-            <div className="flex justify-between items-start mb-8 text-[11px] text-gray-400 border-b border-gray-100 dark:border-slate-900 pb-4">
+            <div className="flex justify-between items-start mb-8 text-[11px] text-gray-400 border-b border-gray-100 pb-4">
               <div>
-                <p className="font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Tiko BizPOS - Giải pháp quản lý bán hàng</p>
+                <p className="font-bold text-gray-500 uppercase tracking-wide">Tiko BizPOS - Giải pháp quản lý bán hàng</p>
                 <p className="mt-0.5">Chi nhánh: Chi nhánh trung tâm</p>
               </div>
               <div className="text-right">
@@ -473,7 +473,7 @@ export default function EndOfDayReportPage() {
 
             {/* Title & metadata */}
             <div className="text-center mb-10">
-              <h1 className="text-[20px] font-black uppercase text-gray-800 dark:text-white tracking-wide">
+              <h1 className="text-[20px] font-black uppercase text-gray-800 tracking-wide">
                 BÁO CÁO CUỐI NGÀY VỀ BÁN HÀNG
               </h1>
               <div className="mt-2.5 flex flex-col gap-1 text-[12px] text-gray-500">
@@ -484,10 +484,10 @@ export default function EndOfDayReportPage() {
             </div>
 
             {/* Main report grid */}
-            <div className="border border-gray-200 dark:border-slate-800 rounded-sm overflow-hidden mb-8">
+            <div className="border border-gray-200 rounded-sm overflow-hidden mb-8 bg-white">
               <table className="w-full text-[11.5px] border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 text-gray-500 dark:text-gray-400 font-bold">
+                  <tr className="bg-slate-50 border-b border-gray-200 text-gray-500 font-bold">
                     <th className="px-3 py-3 text-left w-[120px]">Mã giao dịch</th>
                     <th className="px-2 py-3 text-left">Thời gian</th>
                     <th className="px-2 py-3 text-right">SL</th>
@@ -499,7 +499,7 @@ export default function EndOfDayReportPage() {
                     <th className="px-3 py-3 text-right">Thực thu</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-slate-900 font-medium">
+                <tbody className="divide-y divide-gray-100 font-medium">
                   {filteredTransactions.map((tx) => {
                     const isExpanded = expandedOrders[tx.id];
                     return (
@@ -507,7 +507,7 @@ export default function EndOfDayReportPage() {
                         <tr 
                           key={tx.id} 
                           onClick={() => toggleExpandOrder(tx.id)}
-                          className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors cursor-pointer"
+                          className="hover:bg-slate-50 transition-colors cursor-pointer"
                         >
                           <td className="px-3 py-3 text-[#0070F3] font-bold flex items-center gap-1 select-none">
                             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -516,10 +516,10 @@ export default function EndOfDayReportPage() {
                           <td className="px-2 py-3 text-gray-500">
                             {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                           </td>
-                          <td className="px-2 py-3 text-right font-bold text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-3 text-right font-bold text-gray-700">
                             {tx.quantity}
                           </td>
-                          <td className="px-3 py-3 text-right font-extrabold text-gray-900 dark:text-white">
+                          <td className="px-3 py-3 text-right font-extrabold text-gray-900">
                             {fmt(tx.revenue)}
                           </td>
                           <td className="px-2 py-3 text-right text-gray-400">
@@ -541,25 +541,25 @@ export default function EndOfDayReportPage() {
 
                         {/* Collapsible Expanded Order Items */}
                         {isExpanded && (
-                          <tr className="bg-slate-50/30 dark:bg-slate-900/10">
+                          <tr className="bg-slate-50/50">
                             <td colSpan={9} className="px-6 py-4">
-                              <div className="border border-dashed border-gray-200 dark:border-slate-800 rounded p-3 bg-white dark:bg-slate-950 animate-fade-in shadow-inner">
+                              <div className="border border-dashed border-gray-200 rounded p-4 bg-white animate-fade-in shadow-inner">
                                 <div className="flex justify-between items-center mb-3">
-                                  <span className="font-bold text-[12px] text-gray-700 dark:text-gray-300">
+                                  <span className="font-bold text-[12px] text-gray-700">
                                     Chi tiết hóa đơn <span className="text-[#0070F3]">{tx.code}</span>
                                   </span>
                                   <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                    <span>Khách hàng: <strong className="text-gray-700 dark:text-gray-300">{tx.customerName}</strong></span>
+                                    <span>Khách hàng: <strong className="text-gray-700">{tx.customerName}</strong></span>
                                     {tx.customerPhone && <span>SĐT: <strong>{tx.customerPhone}</strong></span>}
                                     <span>Người tạo: <strong>{tx.createdBy}</strong></span>
-                                    <span>Thanh toán: <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/20 text-[#0070F3] font-bold">{tx.paymentMethod}</span></span>
+                                    <span>Thanh toán: <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[#0070F3] font-bold">{tx.paymentMethod}</span></span>
                                   </div>
                                 </div>
                                 
                                 <div className="overflow-x-auto">
                                   <table className="w-full text-[11px] text-left">
                                     <thead>
-                                      <tr className="border-b border-gray-100 dark:border-slate-900 pb-2 text-gray-400 font-bold">
+                                      <tr className="border-b border-gray-100 pb-2 text-gray-400 font-bold">
                                         <th className="py-1">Sản phẩm</th>
                                         <th className="py-1 text-center w-[80px]">Mã SKU</th>
                                         <th className="py-1 text-right w-[80px]">Đơn giá</th>
@@ -567,10 +567,9 @@ export default function EndOfDayReportPage() {
                                         <th className="py-1 text-right w-[100px]">Thành tiền</th>
                                       </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-50 dark:divide-slate-900 font-medium">
-                                      {/* Mock items or fetch actual if needed. Since we have items inside the query, we can query it or fallback */}
-                                      <tr className="text-gray-600 dark:text-gray-400">
-                                        <td className="py-2 font-bold text-gray-800 dark:text-gray-300">Sản phẩm tổng hợp trong đơn</td>
+                                    <tbody className="divide-y divide-gray-50 font-medium">
+                                      <tr className="text-gray-600">
+                                        <td className="py-2 font-bold text-gray-800">Sản phẩm tổng hợp trong đơn</td>
                                         <td className="py-2 text-center text-gray-400">SP-COMBO</td>
                                         <td className="py-2 text-right">{fmt(tx.revenue / tx.quantity)}</td>
                                         <td className="py-2 text-right font-bold">{tx.quantity}</td>
@@ -598,7 +597,7 @@ export default function EndOfDayReportPage() {
 
                   {/* Cumulative dynamic totals */}
                   {filteredTransactions.length > 0 && (
-                    <tr className="bg-slate-100/50 dark:bg-slate-900/50 font-black border-t-2 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white">
+                    <tr className="bg-slate-100/70 font-black border-t-2 border-slate-300 text-slate-900">
                       <td className="px-3 py-3.5 text-left font-black" colSpan={2}>TỔNG CỘNG</td>
                       <td className="px-2 py-3.5 text-right font-black">{totalQtySum}</td>
                       <td className="px-3 py-3.5 text-right font-black">{fmt(totalRevenueSum)}</td>
@@ -614,19 +613,19 @@ export default function EndOfDayReportPage() {
             </div>
 
             {/* Footer Signatures */}
-            <div className="grid grid-cols-3 gap-8 text-center mt-12 text-[12px] font-bold text-gray-600 dark:text-gray-400">
+            <div className="grid grid-cols-3 gap-8 text-center mt-12 text-[12px] font-bold text-gray-600">
               <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800 dark:text-white">Người lập biểu</p>
+                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Người lập biểu</p>
                 <p className="text-[11px] text-gray-400">(Ký, ghi rõ họ tên)</p>
-                <p className="mt-8 font-extrabold text-slate-800 dark:text-slate-200">Võ Thành Huy</p>
+                <p className="mt-8 font-extrabold text-slate-800">Võ Thành Huy</p>
               </div>
               <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800 dark:text-white">Kế toán trưởng</p>
+                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Kế toán trưởng</p>
                 <p className="text-[11px] text-gray-400">(Ký, ghi rõ họ tên)</p>
                 <p className="mt-8">......................................</p>
               </div>
               <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800 dark:text-white">Giám đốc</p>
+                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Giám đốc</p>
                 <p className="text-[11px] text-gray-400">(Ký, họ tên và đóng dấu)</p>
                 <p className="mt-8">......................................</p>
               </div>
