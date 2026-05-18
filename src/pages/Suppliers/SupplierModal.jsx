@@ -90,7 +90,7 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Tổng mua trừ trả hàng</label><NumericInput className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.net_purchase} onChange={e => f('net_purchase', Number(e.target.value))} placeholder="0" /></div>
           <div>
             <label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Trạng thái</label>
-            <select className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer" value={form.isActive ? 'true' : 'false'} onChange={e => f('isActive', e.target.value === 'true')}>
+            <select className="w-full border border-gray-200 rounded px-3 py-2 min-h-[42px] text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer" value={form.isActive ? 'true' : 'false'} onChange={e => f('isActive', e.target.value === 'true')}>
               <option value="true">Hoạt động</option>
               <option value="false">Ngừng hoạt động</option>
             </select>

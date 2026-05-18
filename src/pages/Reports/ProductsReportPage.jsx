@@ -257,7 +257,7 @@ export default function ProductsReportPage() {
 
         {viewType === 'Báo cáo' && (
           <div className="flex flex-col gap-2 mt-[-5px]">
-            <select className="w-full mt-1 border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
+            <select className="w-full mt-1 border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
               <option>Hiển thị dọc</option>
               <option>Hiển thị ngang</option>
             </select>
@@ -280,7 +280,7 @@ export default function ProductsReportPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mối quan tâm</label>
-          <select value={interestType} onChange={(e) => setInterestType(e.target.value)} className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
+          <select value={interestType} onChange={(e) => setInterestType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
             <option value="Bán hàng">Bán hàng</option>
             <option value="Lợi nhuận">Lợi nhuận</option>
           </select>
@@ -350,7 +350,7 @@ export default function ProductsReportPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Loại hàng</label>
-          <select value={selectedProductType} onChange={e => setSelectedProductType(e.target.value)} className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
+          <select value={selectedProductType} onChange={e => setSelectedProductType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
             <option value="">Tất cả loại hàng</option>
             <option value="product">Hàng hóa</option>
             <option value="service">Dịch vụ</option>
@@ -359,7 +359,7 @@ export default function ProductsReportPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nhóm hàng</label>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
+          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
             <option value="">Tất cả nhóm hàng</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -369,7 +369,7 @@ export default function ProductsReportPage() {
 
         <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-4 pb-2">
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sắp xếp hiển thị</label>
-          <select value={sortType} onChange={e => setSortType(e.target.value)} className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in shadow-sm">
+          <select value={sortType} onChange={e => setSortType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in shadow-sm">
             <option value="revenue-desc">Doanh thu: Giảm dần</option>
             <option value="revenue-asc">Doanh thu: Tăng dần</option>
             <option value="qty-desc">Số lượng: Giảm dần</option>

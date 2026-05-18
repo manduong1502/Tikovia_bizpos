@@ -326,7 +326,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
                   Người {isThu ? 'thu' : 'chi'}
                 </label>
                 <select 
-                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold bg-white outline-none cursor-pointer hover:border-gray-300 transition-all"
+                  className="w-full border border-gray-200 rounded px-3.5 py-2 text-xs font-bold bg-white outline-none cursor-pointer hover:border-gray-300 transition-all"
                   value={form.createdBy}
                   onChange={e => f('createdBy', e.target.value)}
                 >

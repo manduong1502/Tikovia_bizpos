@@ -337,7 +337,7 @@ export default function EndOfDayReportPage() {
           <div className="flex gap-2">
             <button 
               onClick={() => setViewType('Báo cáo')}
-              className={`flex-1 py-2 rounded-xl border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`flex-1 py-2 rounded border font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Báo cáo
             </button>
@@ -345,7 +345,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={displayType} 
             onChange={(e) => setDisplayType(e.target.value)}
-            className="w-full mt-1 border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
+            className="w-full mt-1 border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
           >
             <option value="Hiển thị dọc">Hiển thị dọc</option>
             <option value="Hiển thị ngang">Hiển thị ngang</option>
@@ -358,7 +358,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={interestType} 
             onChange={(e) => setInterestType(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700"
           >
             <option value="Bán hàng">Bán hàng</option>
             <option value="Hàng hóa">Hàng hóa</option>
@@ -371,7 +371,7 @@ export default function EndOfDayReportPage() {
           <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thời gian</label>
           
           {/* Radio 1: Hôm nay / Ngày cụ thể */}
-          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
+          <div className="flex flex-col gap-1.5 border border-gray-200 rounded p-2.5 bg-gray-50/50">
             <div className="flex items-center gap-2.5">
               <input 
                 type="radio" 
@@ -390,7 +390,7 @@ export default function EndOfDayReportPage() {
                   type="date" 
                   value={filterDate}
                   onChange={(e) => setFilterDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-2 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer text-center font-bold text-gray-700"
+                  className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer text-center font-bold text-gray-700"
                 />
                 <div className="flex gap-2 items-center text-[10px] text-gray-500">
                   <span className="shrink-0 font-bold">Từ:</span>
@@ -403,7 +403,7 @@ export default function EndOfDayReportPage() {
           </div>
 
           {/* Radio 2: Tùy chỉnh */}
-          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
+          <div className="flex flex-col gap-1.5 border border-gray-200 rounded p-2.5 bg-gray-50/50">
             <div className="flex items-center gap-2.5">
               <input 
                 type="radio" 
@@ -424,7 +424,7 @@ export default function EndOfDayReportPage() {
                     type="date" 
                     value={customFromDate}
                     onChange={(e) => setCustomFromDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
+                    className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -433,7 +433,7 @@ export default function EndOfDayReportPage() {
                     type="date" 
                     value={customToDate}
                     onChange={(e) => setCustomToDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
+                    className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -450,7 +450,7 @@ export default function EndOfDayReportPage() {
               placeholder="Theo mã, tên, số điện thoại" 
               value={customerQuery}
               onChange={(e) => setCustomerQuery(e.target.value)}
-              className="w-full pl-9 pr-2.5 py-2 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-gray-700 font-medium"
+              className="w-full pl-9 pr-2.5 py-2 rounded border border-gray-200 bg-white text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-gray-700 font-medium"
             />
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
@@ -462,7 +462,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={selectedEmployee} 
             onChange={(e) => setSelectedEmployee(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn nhân viên</option>
             {employees.map(emp => (
@@ -477,7 +477,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={selectedCreator} 
             onChange={(e) => setSelectedCreator(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn người tạo</option>
             {employees.map(emp => (
@@ -492,7 +492,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={paymentMethod} 
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn phương thức thanh toán</option>
             <option value="Tiền mặt">Tiền mặt</option>
@@ -507,7 +507,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={salesMethod} 
             onChange={(e) => setSalesMethod(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
           >
             <option value="">Chọn phương thức bán hàng</option>
             <option value="Trực tiếp">Trực tiếp (POS)</option>
@@ -521,7 +521,7 @@ export default function EndOfDayReportPage() {
           <select 
             value={sortType} 
             onChange={(e) => setSortType(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in"
+            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in"
           >
             <option value="time-desc">Thời gian: Mới nhất</option>
             <option value="time-asc">Thời gian: Cũ nhất</option>

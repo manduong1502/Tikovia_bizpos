@@ -81,7 +81,7 @@ export default function PurchaseOrderModal({ open, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Nhà cung cấp *</label>
-              <select className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm cursor-pointer" value={supplierId} onChange={e => setSupplierId(e.target.value)}>
+              <select className="w-full border border-gray-200 rounded px-3 py-2 min-h-[42px] text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm cursor-pointer" value={supplierId} onChange={e => setSupplierId(e.target.value)}>
                 <option value="">-- Chọn NCC --</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.code} - {s.name}</option>)}
               </select>

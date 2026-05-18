@@ -500,7 +500,7 @@ export default function CategoriesPage() {
           <div>
             <label className="text-sm text-gray-600 mb-1.5 block font-medium">Nhóm cha</label>
             <select
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:border-primary outline-none cursor-pointer font-medium text-gray-700 bg-white"
+              className="w-full border border-gray-200 rounded px-3 py-2.5 text-sm focus:border-primary outline-none cursor-pointer font-medium text-gray-700 bg-white"
               value={form.parentId}
               onChange={e => setForm(p => ({ ...p, parentId: e.target.value }))}
             >

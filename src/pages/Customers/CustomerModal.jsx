@@ -97,7 +97,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
 
           <F label="Loại khách hàng">
             <select 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
+              className="w-full border border-gray-300 rounded px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
               value={form.customerType} 
               onChange={e => u('customerType', e.target.value)}
             >
@@ -130,7 +130,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
 
           <F label="Trạng thái">
             <select 
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
+              className="w-full border border-gray-300 rounded px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors bg-white font-medium cursor-pointer text-gray-800" 
               value={form.isActive ? 'active' : 'inactive'} 
               onChange={e => u('isActive', e.target.value === 'active')}
             >

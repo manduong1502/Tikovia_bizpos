@@ -646,7 +646,7 @@ export default function CashbookPage() {
               <span className="text-[13px] font-extrabold text-gray-800 mb-2.5 block">Người nộp/nhận</span>
               <div className="flex flex-col gap-2">
                 <select 
-                  className="w-full border border-gray-200 rounded-xl px-2 py-2 text-xs bg-white outline-none cursor-pointer"
+                  className="w-full border border-gray-200 rounded px-2 py-2 text-xs bg-white outline-none cursor-pointer"
                   value={partnerTypeFilter}
                   onChange={e => setPartnerTypeFilter(e.target.value)}
                 >

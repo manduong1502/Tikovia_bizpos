@@ -877,7 +877,7 @@ export default function ProductsPage() {
               <select
                 value={perPage}
                 onChange={(e) => { setPerPage(+e.target.value); setPage(1); }}
-                className="border border-gray-300 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"
+                className="border border-gray-300 rounded px-3 py-1.5 text-xs font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"
               >
                 {[15, 30, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
               </select>

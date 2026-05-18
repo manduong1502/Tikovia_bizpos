@@ -492,7 +492,7 @@ export default function CreatePurchaseOrderPage() {
             {/* Employee & Date Row */}
             <div className="grid grid-cols-2 gap-3">
               <select 
-                className="border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm cursor-pointer bg-white"
+                className="border border-gray-300 rounded px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm cursor-pointer bg-white"
                 value={selectedEmployee}
                 onChange={e => setSelectedEmployee(e.target.value)}
               >
@@ -592,7 +592,7 @@ export default function CreatePurchaseOrderPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-600">Trạng thái</span>
                 <select 
-                  className="w-44 border border-gray-300 rounded-xl px-3 py-1.5 text-xs font-bold text-primary outline-none focus:border-primary shadow-sm cursor-pointer bg-white text-right"
+                  className="w-44 border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-primary outline-none focus:border-primary shadow-sm cursor-pointer bg-white text-right"
                   value={status}
                   onChange={e => setStatus(e.target.value)}
                 >

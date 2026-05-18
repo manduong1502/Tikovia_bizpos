@@ -851,7 +851,7 @@ export default function SuppliersPage() {
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nhóm nhà cung cấp</span>
             <select
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
+              className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
               value={filterGroup}
               onChange={e => setFilterGroup(e.target.value)}
             >
