@@ -129,16 +129,28 @@ export default function InventoryCheckPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filtered.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3.5 font-bold text-primary">{c.code}</td>
-                  <td className="px-4 py-3.5 text-[13px] text-gray-500 font-medium">{c.created_at ? new Date(c.created_at).toLocaleString('vi-VN') : ''}</td>
-                  <td className="px-4 py-3.5 text-right font-medium text-gray-700">{c.total_items || 0}</td>
-                  <td className="px-4 py-3.5 text-right font-bold text-green-600">{c.total_increase > 0 ? `+${c.total_increase}` : '0'}</td>
-                  <td className="px-4 py-3.5 text-right font-bold text-red-500">{c.total_decrease > 0 ? `-${c.total_decrease}` : '0'}</td>
-                  <td className="px-4 py-3.5"><span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${STATUS_BADGE[c.status] || 'bg-gray-100 text-gray-50'}`}>{STATUS_LABEL[c.status] || c.status}</span></td>
-                </tr>
-              ))}
+              {filtered.map(c => {
+                const total_items = c.items ? c.items.length : 0;
+                let total_increase = 0;
+                let total_decrease = 0;
+                if (c.items) {
+                  c.items.forEach(item => {
+                    if (item.difference > 0) total_increase += item.difference;
+                    if (item.difference < 0) total_decrease += Math.abs(item.difference);
+                  });
+                }
+                
+                return (
+                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-primary">{c.code}</td>
+                    <td className="px-4 py-3.5 text-[13px] text-gray-500 font-medium">{c.createdAt ? new Date(c.createdAt).toLocaleString('vi-VN') : ''}</td>
+                    <td className="px-4 py-3.5 text-right font-medium text-gray-700">{total_items}</td>
+                    <td className="px-4 py-3.5 text-right font-bold text-green-600">{total_increase > 0 ? `+${total_increase}` : '0'}</td>
+                    <td className="px-4 py-3.5 text-right font-bold text-red-500">{total_decrease > 0 ? `-${total_decrease}` : '0'}</td>
+                    <td className="px-4 py-3.5"><span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${STATUS_BADGE[c.status?.toLowerCase()] || 'bg-gray-100 text-gray-500'}`}>{STATUS_LABEL[c.status?.toLowerCase()] || c.status}</span></td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && <tr><td colSpan={6} className="text-center py-16 text-gray-400"><div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4"><ClipboardCheck size={32} className="text-gray-300" /></div><div className="text-base font-medium text-gray-500">Không có phiếu kiểm kho</div></td></tr>}
             </tbody>
           </table>
