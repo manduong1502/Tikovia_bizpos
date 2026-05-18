@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import { 
   Download, Printer, RotateCcw, ZoomIn, ZoomOut, Maximize2, 
   ChevronDown, ChevronRight, FileSpreadsheet, Calendar, 
-  Search, Users, DollarSign, ArrowLeft, ArrowRight 
+  Search, Users, DollarSign, ArrowLeft, ArrowRight,
+  ChevronLeft, ChevronsLeft, ChevronsRight, FileText
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import { exportCSV } from '../../utils/exportUtils';
@@ -14,7 +15,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 export default function EndOfDayReportPage() {
   const [data, setData] = useState({ transactions: [], orderCount: 0, totalSales: 0, totalPaid: 0, totalReturns: 0, netRevenue: 0 });
   const [loading, setLoading] = useState(false);
-  const [expandedOrders, setExpandedOrders] = useState({});
+  const [expandedOrders, setExpandedOrders] = useState({ group: true }); // keep grouped invoice row expanded by default
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -106,7 +107,8 @@ export default function EndOfDayReportPage() {
     return true;
   });
 
-  // Calculate dynamic totals for currently displayed transactions
+  // Calculate totals for currently displayed transactions
+  const totalInvoiceCount = filteredTransactions.length;
   const totalQtySum = filteredTransactions.reduce((sum, tx) => sum + (tx.quantity || 0), 0);
   const totalRevenueSum = filteredTransactions.reduce((sum, tx) => sum + (tx.revenue || 0), 0);
   const totalOtherFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.otherFee || 0), 0);
@@ -115,10 +117,10 @@ export default function EndOfDayReportPage() {
   const totalReturnFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.returnFee || 0), 0);
   const totalNetSum = filteredTransactions.reduce((sum, tx) => sum + (tx.netRevenue || 0), 0);
 
-  const toggleExpandOrder = (id) => {
+  const toggleExpandGroup = () => {
     setExpandedOrders(prev => ({
       ...prev,
-      [id]: !prev[id]
+      group: !prev.group
     }));
   };
 
@@ -370,66 +372,83 @@ export default function EndOfDayReportPage() {
       <main className="flex-1 flex flex-col max-h-[calc(100vh-46px)] overflow-hidden">
         
         {/* ─── PREMIUM TOOLBAR ─── */}
-        <div className="h-12 bg-slate-100 border-b border-gray-200 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
+        <div className="h-12 bg-[#8C9BA5] border-b border-gray-300 px-4 flex items-center justify-between gap-4 shrink-0 shadow-md z-10 text-white">
           
           {/* Left Buttons: Undo, Redo, Refresh */}
           <div className="flex items-center gap-1.5">
-            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-white/50 bg-transparent cursor-not-allowed" disabled>
               <ArrowLeft size={16} />
             </button>
-            <button className="p-1.5 rounded text-gray-400 bg-transparent cursor-not-allowed" disabled>
+            <button className="p-1.5 rounded text-white/50 bg-transparent cursor-not-allowed" disabled>
               <ArrowRight size={16} />
             </button>
-            <button onClick={fetchData} className="p-1.5 rounded text-gray-600 hover:text-gray-900 hover:bg-white/70 transition-colors cursor-pointer" title="Làm mới báo cáo">
+            <button onClick={fetchData} className="p-1.5 rounded text-white hover:text-white hover:bg-white/20 transition-colors cursor-pointer" title="Làm mới báo cáo">
               <RotateCcw size={16} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
 
           {/* Center: Pagination simulator */}
           <div className="flex items-center gap-2">
-            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&lt;&lt;</button>
-            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&lt;</button>
-            <span className="text-[12px] bg-white border border-gray-200 px-2.5 py-0.5 rounded font-bold text-gray-700">1 / 1</span>
-            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&gt;</button>
-            <button className="p-1 rounded text-gray-400 cursor-not-allowed" disabled>&gt;&gt;</button>
+            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+              <ChevronsLeft size={14} />
+            </button>
+            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-[12px] bg-white border border-gray-300 px-2.5 py-0.5 rounded font-bold text-gray-700">
+              1 / 1
+            </span>
+            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+              <ChevronRight size={14} />
+            </button>
+            <button className="p-1 rounded text-white/40 cursor-not-allowed" disabled>
+              <ChevronsRight size={14} />
+            </button>
           </div>
 
           {/* Right Controls: Excel, PDF Print, Zoom, Fullscreen */}
           <div className="flex items-center gap-2">
-            {/* Export Spreadsheet */}
+            {/* Document export icon */}
             <button 
               onClick={handleExportExcel}
-              className="p-1.5 rounded text-green-600 hover:bg-green-50 transition-all flex items-center gap-1 font-bold text-[12px] border border-green-200/50 cursor-pointer bg-white"
-              title="Xuất Excel/CSV"
+              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
+              title="Xem tài liệu chi tiết"
             >
-              <FileSpreadsheet size={15} />
-              <span>Xuất Excel</span>
+              <FileText size={16} />
+            </button>
+
+            {/* Cloud download / export icon */}
+            <button 
+              onClick={handleExportExcel}
+              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
+              title="Xuất file báo cáo"
+            >
+              <Download size={16} />
             </button>
 
             {/* Print / PDF */}
             <button 
               onClick={handlePrint}
-              className="p-1.5 rounded text-[#0070F3] hover:bg-blue-50 transition-all flex items-center gap-1 font-bold text-[12px] border border-blue-200/50 cursor-pointer bg-white"
+              className="p-1.5 rounded text-white hover:bg-white/25 transition-all flex items-center gap-1 cursor-pointer"
               title="In báo cáo (PDF)"
             >
-              <Printer size={15} />
-              <span>In PDF</span>
+              <Printer size={16} />
             </button>
 
-            <div className="w-px h-5 bg-gray-200 mx-1" />
+            <div className="w-px h-5 bg-white/20 mx-1" />
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-1">
+            <div className="flex items-center gap-1 bg-[#8C9BA5] border border-white/30 rounded px-1 text-white">
               <button 
                 onClick={() => setZoom(prev => Math.max(50, prev - 10))} 
-                className="p-1 hover:bg-gray-100 rounded cursor-pointer text-gray-600"
+                className="p-1 hover:bg-white/25 rounded cursor-pointer"
               >
                 <ZoomOut size={13} />
               </button>
               <span className="text-[11px] font-bold px-1 min-w-[34px] text-center">{zoom}%</span>
               <button 
                 onClick={() => setZoom(prev => Math.min(150, prev + 10))} 
-                className="p-1 hover:bg-gray-100 rounded cursor-pointer text-gray-600"
+                className="p-1 hover:bg-white/25 rounded cursor-pointer"
               >
                 <ZoomIn size={13} />
               </button>
@@ -438,7 +457,7 @@ export default function EndOfDayReportPage() {
             {/* Fullscreen */}
             <button 
               onClick={() => setIsFullscreen(!isFullscreen)} 
-              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/70 cursor-pointer"
+              className="p-1.5 rounded text-white hover:bg-white/25 cursor-pointer"
               title="Phóng to toàn màn hình"
             >
               <Maximize2 size={15} />
@@ -447,12 +466,12 @@ export default function EndOfDayReportPage() {
         </div>
 
         {/* ─── PRINTED A4 SHEET CANVAS ─── */}
-        <div className="flex-1 overflow-auto p-8 flex justify-center bg-[#E9EBEF] custom-scrollbar">
+        <div className="flex-1 overflow-auto p-8 flex justify-center bg-[#8492A6]/40 custom-scrollbar">
           
           {/* Printable Container */}
           <div 
             id="printed-report-page"
-            className="bg-white text-slate-800 shadow-2xl p-10 min-h-[1100px] border border-gray-200/60 rounded-sm origin-top transition-transform duration-200 select-text"
+            className="bg-white text-slate-800 shadow-2xl p-10 min-h-[900px] border border-gray-200/60 rounded-sm origin-top transition-transform duration-200 select-text"
             style={{ 
               width: `${794 * (zoom / 100)}px`, 
               minWidth: '680px',
@@ -460,176 +479,131 @@ export default function EndOfDayReportPage() {
             }}
           >
             {/* Header section inside document */}
-            <div className="flex justify-between items-start mb-8 text-[11px] text-gray-400 border-b border-gray-100 pb-4">
-              <div>
-                <p className="font-bold text-gray-500 uppercase tracking-wide">Tiko BizPOS - Giải pháp quản lý bán hàng</p>
-                <p className="mt-0.5">Chi nhánh: Chi nhánh trung tâm</p>
-              </div>
-              <div className="text-right">
-                <p>Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
-                <p className="mt-0.5">Người lập: Võ Thành Huy</p>
+            <div className="flex justify-between items-start mb-6 text-[11px] text-gray-400">
+              <div className="text-gray-400">
+                Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
 
             {/* Title & metadata */}
-            <div className="text-center mb-10">
-              <h1 className="text-[20px] font-black uppercase text-gray-800 tracking-wide">
-                BÁO CÁO CUỐI NGÀY VỀ BÁN HÀNG
+            <div className="text-center mb-8">
+              <h1 className="text-[22px] font-bold uppercase text-gray-800 tracking-wide">
+                Báo cáo cuối ngày về bán hàng
               </h1>
-              <div className="mt-2.5 flex flex-col gap-1 text-[12px] text-gray-500">
-                <p><span className="font-bold">Ngày bán:</span> {getFormattedDateRange()}</p>
-                <p><span className="font-bold">Ngày thanh toán:</span> {getFormattedDateRange()}</p>
-                <p><span className="font-bold">Chi nhánh:</span> Chi nhánh trung tâm</p>
+              <div className="mt-2.5 flex flex-col gap-1 text-[12px] text-gray-600">
+                <p><span className="font-semibold text-gray-500">Ngày bán:</span> {getFormattedDateRange()}</p>
+                <p><span className="font-semibold text-gray-500">Ngày thanh toán:</span> {getFormattedDateRange()}</p>
+                <p><span className="font-semibold text-gray-500">Chi nhánh:</span> Chi nhánh trung tâm</p>
               </div>
             </div>
 
             {/* Main report grid */}
-            <div className="border border-gray-200 rounded-sm overflow-hidden mb-8 bg-white">
+            <div className="border border-gray-200 rounded-sm overflow-hidden mb-8 bg-white shadow-sm">
               <table className="w-full text-[11.5px] border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-gray-200 text-gray-500 font-bold">
-                    <th className="px-3 py-3 text-left w-[120px]">Mã giao dịch</th>
-                    <th className="px-2 py-3 text-left">Thời gian</th>
-                    <th className="px-2 py-3 text-right">SL</th>
-                    <th className="px-3 py-3 text-right">Doanh thu</th>
-                    <th className="px-2 py-3 text-right">Thu khác</th>
-                    <th className="px-2 py-3 text-right">VAT</th>
-                    <th className="px-2 py-3 text-right">Làm tròn</th>
-                    <th className="px-2 py-3 text-right">Phí trả hàng</th>
-                    <th className="px-3 py-3 text-right">Thực thu</th>
+                  <tr className="bg-[#BFE3F9] text-slate-700 font-bold border-b border-gray-200">
+                    <th className="px-3 py-2.5 text-left w-[180px]">Mã giao dịch</th>
+                    <th className="px-2 py-2.5 text-left w-[100px]">Thời gian</th>
+                    <th className="px-2 py-2.5 text-right w-[60px]">SL</th>
+                    <th className="px-3 py-2.5 text-right">Doanh thu</th>
+                    <th className="px-2 py-2.5 text-right">Thu khác</th>
+                    <th className="px-2 py-2.5 text-right">VAT</th>
+                    <th className="px-2 py-2.5 text-right">Làm tròn</th>
+                    <th className="px-2 py-2.5 text-right">Phí trả hàng</th>
+                    <th className="px-3 py-2.5 text-right">Thực thu</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-medium">
-                  {filteredTransactions.map((tx) => {
-                    const isExpanded = expandedOrders[tx.id];
-                    return (
-                      <>
-                        <tr 
-                          key={tx.id} 
-                          onClick={() => toggleExpandOrder(tx.id)}
-                          className="hover:bg-slate-50 transition-colors cursor-pointer"
-                        >
-                          <td className="px-3 py-3 text-[#0070F3] font-bold flex items-center gap-1 select-none">
-                            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            {tx.code}
-                          </td>
-                          <td className="px-2 py-3 text-gray-500">
-                            {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="px-2 py-3 text-right font-bold text-gray-700">
-                            {tx.quantity}
-                          </td>
-                          <td className="px-3 py-3 text-right font-extrabold text-gray-900">
-                            {fmt(tx.revenue)}
-                          </td>
-                          <td className="px-2 py-3 text-right text-gray-400">
-                            {tx.otherFee ? fmt(tx.otherFee) : '0'}
-                          </td>
-                          <td className="px-2 py-3 text-right text-gray-400">
-                            {tx.vat ? fmt(tx.vat) : '0'}
-                          </td>
-                          <td className="px-2 py-3 text-right text-gray-400">
-                            {tx.rounding ? fmt(tx.rounding) : '0'}
-                          </td>
-                          <td className="px-2 py-3 text-right text-gray-400">
-                            {tx.returnFee ? fmt(tx.returnFee) : '0'}
-                          </td>
-                          <td className="px-3 py-3 text-right font-extrabold text-green-600">
-                            {fmt(tx.netRevenue)}
+                <tbody className="divide-y divide-white font-medium">
+                  
+                  {/* Grouped Row: [+] Hóa đơn */}
+                  {totalInvoiceCount > 0 ? (
+                    <>
+                      <tr 
+                        onClick={toggleExpandGroup}
+                        className="bg-[#F7F2E8] hover:bg-[#ebdcc4] transition-colors cursor-pointer border-b border-white text-slate-800"
+                      >
+                        <td className="px-3 py-3 text-slate-800 font-extrabold flex items-center gap-1 select-none">
+                          {expandedOrders.group ? '[−]' : '[+]'} Hóa đơn: {totalInvoiceCount}
+                        </td>
+                        <td className="px-2 py-3 text-gray-500"></td>
+                        <td className="px-2 py-3 text-right font-extrabold text-slate-800">
+                          {totalQtySum}
+                        </td>
+                        <td className="px-3 py-3 text-right font-extrabold text-slate-800">
+                          {fmt(totalRevenueSum)}
+                        </td>
+                        <td className="px-2 py-3 text-right text-slate-600">
+                          {totalOtherFeeSum ? fmt(totalOtherFeeSum) : '0'}
+                        </td>
+                        <td className="px-2 py-3 text-right text-slate-600">
+                          {totalVatSum ? fmt(totalVatSum) : '0'}
+                        </td>
+                        <td className="px-2 py-3 text-right text-slate-600">
+                          {totalRoundingSum ? fmt(totalRoundingSum) : '0'}
+                        </td>
+                        <td className="px-2 py-3 text-right text-slate-600">
+                          {totalReturnFeeSum ? fmt(totalReturnFeeSum) : '0'}
+                        </td>
+                        <td className="px-3 py-3 text-right font-extrabold text-slate-800">
+                          {fmt(totalNetSum)}
+                        </td>
+                      </tr>
+
+                      {/* Expanded Invoices list */}
+                      {expandedOrders.group && (
+                        <tr>
+                          <td colSpan={9} className="p-0 bg-white">
+                            <table className="w-full text-[11px] border-collapse bg-slate-50/50">
+                              <tbody className="divide-y divide-gray-100">
+                                {filteredTransactions.map(tx => (
+                                  <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-2 text-[#0070F3] font-semibold">
+                                      {tx.code}
+                                    </td>
+                                    <td className="px-2 py-2 text-gray-500">
+                                      {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-700">
+                                      {tx.quantity}
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-gray-700">
+                                      {fmt(tx.revenue)}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-400">
+                                      {tx.otherFee ? fmt(tx.otherFee) : '0'}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-400">
+                                      {tx.vat ? fmt(tx.vat) : '0'}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-400">
+                                      {tx.rounding ? fmt(tx.rounding) : '0'}
+                                    </td>
+                                    <td className="px-2 py-2 text-right text-gray-400">
+                                      {tx.returnFee ? fmt(tx.returnFee) : '0'}
+                                    </td>
+                                    <td className="px-3 py-2 text-right font-bold text-green-600">
+                                      {fmt(tx.netRevenue)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </td>
                         </tr>
-
-                        {/* Collapsible Expanded Order Items */}
-                        {isExpanded && (
-                          <tr className="bg-slate-50/50">
-                            <td colSpan={9} className="px-6 py-4">
-                              <div className="border border-dashed border-gray-200 rounded p-4 bg-white animate-fade-in shadow-inner">
-                                <div className="flex justify-between items-center mb-3">
-                                  <span className="font-bold text-[12px] text-gray-700">
-                                    Chi tiết hóa đơn <span className="text-[#0070F3]">{tx.code}</span>
-                                  </span>
-                                  <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                    <span>Khách hàng: <strong className="text-gray-700">{tx.customerName}</strong></span>
-                                    {tx.customerPhone && <span>SĐT: <strong>{tx.customerPhone}</strong></span>}
-                                    <span>Người tạo: <strong>{tx.createdBy}</strong></span>
-                                    <span>Thanh toán: <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[#0070F3] font-bold">{tx.paymentMethod}</span></span>
-                                  </div>
-                                </div>
-                                
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-[11px] text-left">
-                                    <thead>
-                                      <tr className="border-b border-gray-100 pb-2 text-gray-400 font-bold">
-                                        <th className="py-1">Sản phẩm</th>
-                                        <th className="py-1 text-center w-[80px]">Mã SKU</th>
-                                        <th className="py-1 text-right w-[80px]">Đơn giá</th>
-                                        <th className="py-1 text-right w-[60px]">Số lượng</th>
-                                        <th className="py-1 text-right w-[100px]">Thành tiền</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50 font-medium">
-                                      <tr className="text-gray-600">
-                                        <td className="py-2 font-bold text-gray-800">Sản phẩm tổng hợp trong đơn</td>
-                                        <td className="py-2 text-center text-gray-400">SP-COMBO</td>
-                                        <td className="py-2 text-right">{fmt(tx.revenue / tx.quantity)}</td>
-                                        <td className="py-2 text-right font-bold">{tx.quantity}</td>
-                                        <td className="py-2 text-right font-extrabold text-[#0070F3]">{fmt(tx.revenue)}</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    );
-                  })}
-
-                  {/* Empty state */}
-                  {filteredTransactions.length === 0 && (
+                      )}
+                    </>
+                  ) : (
                     <tr>
-                      <td colSpan={9} className="text-center py-16 text-gray-400 font-bold text-[12px]">
+                      <td colSpan={9} className="text-center py-12 text-gray-400 font-bold text-[12px]">
                         Không có dữ liệu hóa đơn nào trong khoảng thời gian đã chọn!
                       </td>
                     </tr>
                   )}
 
-                  {/* Cumulative dynamic totals */}
-                  {filteredTransactions.length > 0 && (
-                    <tr className="bg-slate-100/70 font-black border-t-2 border-slate-300 text-slate-900">
-                      <td className="px-3 py-3.5 text-left font-black" colSpan={2}>TỔNG CỘNG</td>
-                      <td className="px-2 py-3.5 text-right font-black">{totalQtySum}</td>
-                      <td className="px-3 py-3.5 text-right font-black">{fmt(totalRevenueSum)}</td>
-                      <td className="px-2 py-3.5 text-right font-black">{totalOtherFeeSum ? fmt(totalOtherFeeSum) : '0'}</td>
-                      <td className="px-2 py-3.5 text-right font-black">{totalVatSum ? fmt(totalVatSum) : '0'}</td>
-                      <td className="px-2 py-3.5 text-right font-black">{totalRoundingSum ? fmt(totalRoundingSum) : '0'}</td>
-                      <td className="px-2 py-3.5 text-right font-black">{totalReturnFeeSum ? fmt(totalReturnFeeSum) : '0'}</td>
-                      <td className="px-3 py-3.5 text-right font-black text-green-600">{fmt(totalNetSum)}</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
 
-            {/* Footer Signatures */}
-            <div className="grid grid-cols-3 gap-8 text-center mt-12 text-[12px] font-bold text-gray-600">
-              <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Người lập biểu</p>
-                <p className="text-[11px] text-gray-400">(Ký, ghi rõ họ tên)</p>
-                <p className="mt-8 font-extrabold text-slate-800">Võ Thành Huy</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Kế toán trưởng</p>
-                <p className="text-[11px] text-gray-400">(Ký, ghi rõ họ tên)</p>
-                <p className="mt-8">......................................</p>
-              </div>
-              <div>
-                <p className="uppercase tracking-wider font-bold mb-14 text-gray-800">Giám đốc</p>
-                <p className="text-[11px] text-gray-400">(Ký, họ tên và đóng dấu)</p>
-                <p className="mt-8">......................................</p>
-              </div>
-            </div>
           </div>
 
         </div>
