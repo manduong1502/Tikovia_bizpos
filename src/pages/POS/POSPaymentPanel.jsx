@@ -5,6 +5,7 @@ import api, { customerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { printHTML } from '../../utils/exportUtils';
 import { useNavigate } from 'react-router-dom';
+import CustomerModal from '../Customers/CustomerModal';
 
 export default function POSPaymentPanel({ forceShow = false }) {
   const { currentInvoice, updateCurrentInvoice, togglePaymentMode, clearCurrentInvoice, saleMode, removeTab, activeTabId } = usePOS();
@@ -15,6 +16,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const [paidAmountStr, setPaidAmountStr] = useState('');
   const [salesChannel, setSalesChannel] = useState('Bán trực tiếp');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   
   const isEditMode = !!(currentInvoice?._editOrderId);
   
@@ -305,7 +307,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
               onFocus={(e) => e.target.select()}
             />
           </div>
-          <button className="pos-add-customer-btn" title="Thêm khách hàng"><Plus size={18} /></button>
+          <button className="pos-add-customer-btn" title="Thêm khách hàng" onClick={() => setShowCustomerModal(true)}><Plus size={18} /></button>
           {customerSuggestions.length > 0 && (
             <div id="pos-cust-suggest" className="pos-customer-suggestions" style={{ position: 'absolute', top: '100%', left: '16px', right: '16px', background: 'var(--pos-surface)', zIndex: 50, border: '1px solid var(--pos-border)', borderRadius: 'var(--pos-radius-md)', boxShadow: 'var(--pos-shadow-md)', marginTop: '4px' }}>
               {customerSuggestions.map(c => (
@@ -460,6 +462,18 @@ export default function POSPaymentPanel({ forceShow = false }) {
             </div>
           </div>
         </div>
+      )}
+      
+      {showCustomerModal && (
+        <CustomerModal 
+          open={showCustomerModal} 
+          onClose={() => setShowCustomerModal(false)}
+          onSaved={(newCustomer) => {
+            if (newCustomer) {
+              updateCurrentInvoice({ customer: newCustomer });
+            }
+          }}
+        />
       )}
     </div>
   );

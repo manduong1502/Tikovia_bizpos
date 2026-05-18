@@ -65,13 +65,14 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
         isActive: form.isActive,
       };
       if (isEdit) {
-        await customerAPI.update(customer.id, data);
+        const res = await customerAPI.update(customer.id, data);
         toast.success('Cập nhật khách hàng thành công');
+        onSaved?.(res);
       } else {
-        await customerAPI.create(data);
+        const res = await customerAPI.create(data);
         toast.success('Tạo khách hàng thành công');
+        onSaved?.(res);
       }
-      onSaved?.();
       onClose();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu khách hàng');
