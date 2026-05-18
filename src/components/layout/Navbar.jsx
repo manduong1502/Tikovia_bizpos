@@ -58,17 +58,12 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
             Báo cáo
             <div className={dropdownWrapper}>
               <div className={dropdownBox}>
-                <div className="w-[180px] border-r border-gray-100 py-1">
+                <div className="w-[180px] py-1">
                   <div className={dropdownHeading}>BÁO CÁO</div>
                   <Link className={dropdownItem} to="/reports/end-of-day">Cuối ngày</Link>
                   <Link className={dropdownItem} to="/reports/sales">Bán hàng</Link>
                   <Link className={dropdownItem} to="/reports/products">Hàng hóa</Link>
                   <Link className={dropdownItem} to="/reports/customers">Khách hàng</Link>
-                </div>
-                <div className="w-[180px] py-1">
-                  <div className={dropdownHeading}>&nbsp;</div>
-                  <Link className={dropdownItem} to="/reports/suppliers">Nhà cung cấp</Link>
-                  <Link className={dropdownItem} to="/reports/finance">Tài chính</Link>
                 </div>
               </div>
             </div>
@@ -182,8 +177,6 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
                     <Link to="/reports/sales" className={`py-1.5 text-[13px] no-underline ${page === '/reports/sales' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Bán hàng</Link>
                     <Link to="/reports/products" className={`py-1.5 text-[13px] no-underline ${page === '/reports/products' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Hàng hóa</Link>
                     <Link to="/reports/customers" className={`py-1.5 text-[13px] no-underline ${page === '/reports/customers' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Khách hàng</Link>
-                    <Link to="/reports/suppliers" className={`py-1.5 text-[13px] no-underline ${page === '/reports/suppliers' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Nhà cung cấp</Link>
-                    <Link to="/reports/finance" className={`py-1.5 text-[13px] no-underline ${page === '/reports/finance' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Tài chính</Link>
                   </div>
                 )}
               </div>
