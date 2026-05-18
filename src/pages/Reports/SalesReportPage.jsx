@@ -368,84 +368,81 @@ export default function SalesReportPage() {
              ═══════════════════════════════════════════ */
           <div className="flex-1 p-8 flex flex-col bg-white overflow-y-auto custom-scrollbar">
             
-            <h3 className="text-center font-bold text-gray-600 text-[14px] mb-8">
+            <h3 className="text-center font-bold text-gray-600 text-[14px] mb-6">
               Doanh thu thuần tuần này
             </h3>
 
             {/* High-fidelity CSS Chart wrapper */}
             {(() => {
               const maxVal = Math.max(totalNetSum, 100000);
+              const intervalsCount = 10;
+              const intervalVal = maxVal / intervalsCount;
+              const guideLines = [];
+              for (let i = intervalsCount; i >= 0; i--) {
+                guideLines.push(intervalVal * i);
+              }
+
               return (
-                <div className="relative h-[240px] border-b border-l border-gray-200 pl-4 pb-6 w-full mt-4">
+                <div className="relative h-[320px] border-b border-gray-200 w-full mt-4 bg-white flex flex-col justify-end">
                   
                   {/* Horizontal Guide lines */}
-                  <div className="absolute left-0 right-0 bottom-6 h-[180px] pointer-events-none text-gray-400 text-[10px]">
-                    <div className="absolute top-0 w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal)}</span></div>
-                    <div className="absolute top-[45px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.75)}</span></div>
-                    <div className="absolute top-[90px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.5)}</span></div>
-                    <div className="absolute top-[135px] w-full border-t border-gray-100 pt-0.5 flex justify-between"><span>{fmt(maxVal * 0.25)}</span></div>
-                    <div className="absolute bottom-0 w-full border-t border-gray-200 pt-0.5 flex justify-between"><span>0</span></div>
+                  <div className="absolute left-14 right-4 bottom-8 h-[260px] pointer-events-none text-gray-400 text-[10px] border-l border-gray-200">
+                    {guideLines.map((val, idx) => {
+                      const topPct = (idx / intervalsCount) * 100;
+                      return (
+                        <div 
+                          key={idx} 
+                          className="absolute w-full border-t border-gray-100 flex justify-between" 
+                          style={{ top: `${topPct}%` }}
+                        >
+                          <span className="absolute -left-14 -translate-y-1/2 text-gray-400 font-bold text-right w-11 pr-1.5 select-none">
+                            {val === 0 ? '0' : val >= 1000000 ? `${(val / 1000000).toFixed(1).replace('.0', '')}M` : `${val / 1000}k`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* Bars container aligned exactly at bottom-6 baseline */}
-                  <div className="absolute left-10 right-4 bottom-6 h-[180px] flex justify-around items-end z-10">
-                    {/* Monday (T2) - ACTIVE today */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[11px] font-extrabold text-primary mb-1">{fmt(totalNetSum)}</span>
-                      {/* Active dynamic Blue Bar matching user screenshot */}
-                      <div 
-                        className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom" 
-                        style={{ height: `${(totalNetSum / maxVal) * 180}px` }}
-                      />
-                      <span className="text-[11px] font-extrabold text-primary mt-1">09:00</span>
-                    </div>
-
-                    {/* Tuesday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">T3</span>
-                    </div>
-
-                    {/* Wednesday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">T4</span>
-                    </div>
-
-                    {/* Thursday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">T5</span>
-                    </div>
-
-                    {/* Friday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">T6</span>
-                    </div>
-
-                    {/* Saturday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">T7</span>
-                    </div>
-
-                    {/* Sunday */}
-                    <div className="flex flex-col items-center gap-1.5 group w-14">
-                      <span className="text-[10px] font-bold text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">0k</span>
-                      <div className="w-8 bg-slate-100 hover:bg-slate-200 rounded-t-sm h-1 transition-all" />
-                      <span className="text-[11px] font-bold text-gray-500">CN</span>
-                    </div>
+                  {/* Bars container aligned exactly at bottom-8 baseline */}
+                  <div className="absolute left-14 right-4 bottom-8 h-[260px] flex justify-around items-end z-10">
+                    {hourlyList.map(item => (
+                      <div key={item.hour} className="flex flex-col items-center group w-16 relative">
+                        {/* Always visible dynamic amount text on top of the bar */}
+                        {item.net > 0 && (
+                          <span className="text-[11px] font-extrabold text-primary mb-1 select-none absolute -top-6">
+                            {fmt(item.net)}
+                          </span>
+                        )}
+                        {/* Active dynamic Blue Bar matching user screenshot */}
+                        <div 
+                          className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom cursor-pointer" 
+                          style={{ height: `${(item.net / maxVal) * 260}px`, minHeight: item.net > 0 ? '4px' : '0px' }}
+                        />
+                        {/* X-axis Hour Label at bottom */}
+                        <span className="text-[11px] font-extrabold text-gray-500 mt-2 absolute -bottom-6 select-none">
+                          {item.hour}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
                 </div>
               );
             })()}
+
+            {/* Promo Card: "Muốn tăng doanh thu, tăng vốn ngay..." */}
+            <div className="h-14 mt-12 bg-[#E8F8F5] border border-[#A3E4D7] rounded-xl px-5 flex items-center justify-between shadow-sm hover:shadow transition-shadow cursor-pointer select-none">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <DollarSign size={18} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-[12.5px] text-emerald-800">Muốn tăng doanh thu, tăng vốn ngay</span>
+                  <span className="text-[11px] text-emerald-600 font-medium">4,500+ shop đã vay, 1,500+ tỷ giải ngân</span>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-emerald-500" />
+            </div>
 
           </div>
         ) : (
