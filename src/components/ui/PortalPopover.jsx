@@ -2,8 +2,21 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function PortalPopover({ anchorEl, open, widthMatch = true, children, className = '' }) {
+import { useRef } from 'react';
+export default function PortalPopover({ anchorEl, open, onClose, widthMatch = true, children, className = '' }) {
+  const popoverRef = useRef(null);
   const [style, setStyle] = useState({});
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (anchorEl && anchorEl.contains(e.target)) return;
+      if (popoverRef.current && popoverRef.current.contains(e.target)) return;
+      if (onClose) onClose();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open, anchorEl, onClose]);
 
   useEffect(() => {
     if (!open || !anchorEl) return;
@@ -45,7 +58,7 @@ export default function PortalPopover({ anchorEl, open, widthMatch = true, child
   if (!open) return null;
 
   return createPortal(
-    <div style={style} className={className}>
+    <div style={style} className={className} ref={popoverRef}>
       <AnimatePresence>
         {open && (
           <motion.div

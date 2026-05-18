@@ -7,14 +7,6 @@ export default function Dropdown({ label, value, options = [], onChange, classNa
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
   const selectedLabel = options.find(o => o.value === value)?.label || 'Tất cả';
 
   return (
@@ -30,7 +22,7 @@ export default function Dropdown({ label, value, options = [], onChange, classNa
         <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <PortalPopover anchorEl={ref.current} open={open} widthMatch={true}>
+      <PortalPopover anchorEl={ref.current} open={open} onClose={() => setOpen(false)} widthMatch={true}>
         <div className="mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 py-1 max-h-[240px] overflow-y-auto">
           {options.map((opt) => (
             <button

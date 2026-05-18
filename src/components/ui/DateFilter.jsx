@@ -86,14 +86,6 @@ export default function DateFilter({ label, type = 'created', value, onChange })
 
   const presets = type === 'expected' ? EXPECTED_PRESETS : CREATED_PRESETS;
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setPopover(null);
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-
   const displayLabel = value?.label || 'Toàn thời gian';
 
   const selectPreset = (lbl) => {
@@ -168,7 +160,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
       </button>
 
       {/* Preset Popover */}
-      <PortalPopover anchorEl={ref.current} open={popover === 'preset'} widthMatch={false}>
+      <PortalPopover anchorEl={ref.current} open={popover === 'preset'} onClose={() => setPopover(null)} widthMatch={false}>
         <div className="ml-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 flex p-5 gap-6 min-w-[420px]">
           {Object.entries(presets).map(([title, items], idx, arr) => {
             const isLast = idx === arr.length - 1;
@@ -214,7 +206,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
       </PortalPopover>
 
       {/* Calendar Popover */}
-      <PortalPopover anchorEl={ref.current} open={popover === 'calendar'} widthMatch={false}>
+      <PortalPopover anchorEl={ref.current} open={popover === 'calendar'} onClose={() => setPopover(null)} widthMatch={false}>
         <div className="ml-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-[480px]">
           {/* Header range display */}
           <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs text-gray-600 rounded-t-lg">
