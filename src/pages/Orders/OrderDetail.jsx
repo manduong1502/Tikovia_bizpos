@@ -112,7 +112,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
     <td colSpan={11} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
       <div className="p-3 sm:p-6 max-w-full overflow-x-hidden">
         {/* Top Tabs */}
-        <div className="flex gap-4 sm:gap-6 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">
+        <div className="flex gap-4 sm:gap-4 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">
           {['info', 'payment'].map(t => (
             <button
               key={t}
@@ -127,7 +127,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
         </div>
 
         {tab === 'info' ? (
-          <div className="flex flex-col gap-6 max-w-full">
+          <div className="flex flex-col gap-4 max-w-full">
             {/* Header Info */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -143,7 +143,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
             </div>
 
             {/* Meta Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-6 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-4 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
               <div><span className="text-gray-500 font-medium block mb-1">Người tạo</span><span className="font-bold text-gray-800 truncate block">{o.user_name || 'Admin'}</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Người bán</span><span className="font-bold text-gray-800 truncate block">{o.user_name || 'Admin'}</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Ngày bán</span><span className="font-bold text-gray-800 truncate block">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span></div>

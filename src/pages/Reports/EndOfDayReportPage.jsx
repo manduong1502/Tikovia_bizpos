@@ -325,7 +325,7 @@ export default function EndOfDayReportPage() {
   const isHorizontal = displayType === 'Hiển thị ngang';
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
+    <div className="flex flex-col lg:flex-row gap-4 p-1.5 sm:p-4 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
       
       {/* ─── SIDEBAR FILTERS (Left Card) ─── */}
       <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 z-20">
@@ -836,7 +836,7 @@ export default function EndOfDayReportPage() {
               </div>
             ) : (
               /* ─── VIEW: TỔNG HỢP (SUMMARY) ─── */
-              <div className="flex flex-col gap-6 max-w-2xl mx-auto mb-8 bg-white border border-gray-200 p-6 rounded-sm shadow-sm animate-fade-in text-[12px]">
+              <div className="flex flex-col gap-4 max-w-2xl mx-auto mb-8 bg-white border border-gray-200 p-6 rounded-sm shadow-sm animate-fade-in text-[12px]">
                 <h3 className="text-[14px] font-bold border-b border-gray-100 pb-2 text-slate-800 uppercase tracking-wide">Bảng Tổng Hợp Tài Chính Trong Ngày</h3>
                 
                 <div className="flex flex-col gap-3 font-medium">

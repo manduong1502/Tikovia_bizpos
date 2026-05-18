@@ -40,7 +40,7 @@ const HorizontalChart = ({ title, dataList, valueKey, labelKey }) => {
           </div>
 
           {/* Y-axis labels and bars */}
-          <div className="flex flex-col gap-6 z-10 relative mt-2 mb-2">
+          <div className="flex flex-col gap-4 z-10 relative mt-2 mb-2">
             {dataList.map((item, idx) => {
               const pct = (item[valueKey] / chartMax) * 100;
               return (
@@ -225,7 +225,7 @@ export default function ProductsReportPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
+    <div className="flex flex-col lg:flex-row gap-4 p-1.5 sm:p-4 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
       
       {/* ─── SIDEBAR FILTERS ─── */}
       <aside className="w-full lg:w-[260px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col gap-5 z-20 sticky top-4">

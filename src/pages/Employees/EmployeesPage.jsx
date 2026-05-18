@@ -67,8 +67,8 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden">
-      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Nhân viên
         </h1>
@@ -109,7 +109,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5 items-start max-w-full relative">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />

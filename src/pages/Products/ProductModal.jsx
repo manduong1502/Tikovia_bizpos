@@ -242,7 +242,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           {activeTab === 'info' ? (
-            <div className="flex gap-6">
+            <div className="flex gap-4">
               {/* Left Column: Form */}
               <div className="flex-1 space-y-4">
                 {/* Basic Info */}

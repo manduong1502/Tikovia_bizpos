@@ -453,7 +453,7 @@ export default function ProductsPage() {
         <td colSpan={visibleColumns.length + 3} className="p-0">
           <div className="p-6">
             {/* Tabs */}
-            <div className="flex gap-6 border-b border-gray-200 mb-6 px-2">
+            <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
               {tabs.map(t => (
                 <button
                   key={t.key}
@@ -498,7 +498,7 @@ export default function ProductsPage() {
                     <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-4 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
@@ -594,9 +594,9 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-6 font-sans max-w-full overflow-x-hidden">
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-4 font-sans max-w-full overflow-x-hidden">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Hàng hóa
         </h1>
@@ -725,14 +725,14 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative lg:h-[calc(100vh-160px)]">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative lg:h-[calc(100vh-144px)]">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-160px)] lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-144px)] lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>

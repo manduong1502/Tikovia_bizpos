@@ -315,7 +315,7 @@ export default function CashbookPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
+    <div className="flex flex-col gap-4 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
       {/* Top Search and Action bar */}
       <div className="flex flex-col gap-3 mb-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
@@ -445,7 +445,7 @@ export default function CashbookPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5 items-start max-w-full relative">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative">
         {/* Mobile Filter Sidebar backdrop */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/40 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
@@ -831,13 +831,13 @@ export default function CashbookPage() {
                           <td colSpan={2 + visibleColumns.length} className="p-0 border-b border-blue-100">
                             <div className="p-6 bg-gradient-to-b from-blue-50/10 to-transparent border-x-2 border-primary/20">
                               {/* Details Tab Menu */}
-                              <div className="flex gap-6 border-b border-gray-200 mb-6 px-2">
+                              <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
                                 <span className="font-bold text-sm text-primary border-b-2 border-primary pb-2.5 cursor-pointer">
                                   Thông tin
                                 </span>
                               </div>
 
-                              <div className="flex flex-col md:flex-row justify-between items-start gap-6 bg-white p-5 rounded-2xl border border-blue-50 shadow-sm">
+                              <div className="flex flex-col md:flex-row justify-between items-start gap-4 bg-white p-5 rounded-2xl border border-blue-50 shadow-sm">
                                 <div className="flex-1 w-full flex flex-col gap-4">
                                   {/* Title & Status Badges */}
                                   <div className="flex items-center gap-3 flex-wrap">
@@ -863,7 +863,7 @@ export default function CashbookPage() {
                                   </p>
 
                                   {/* Fields Matrix Grid */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-2">
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
                                     <div className="flex flex-col gap-1.5">
                                       <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Số tiền</span>
                                       <span className={`text-base font-black ${isInc ? 'text-green-600' : 'text-red-500'}`}>{fmt(e.amount)} VNĐ</span>
@@ -879,7 +879,7 @@ export default function CashbookPage() {
                                   </div>
 
                                   {/* Payer and Payment Method details */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-2 pt-4 border-t border-dashed border-gray-100">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 pt-4 border-t border-dashed border-gray-100">
                                     <div className="flex flex-col gap-1">
                                       <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Người nộp/nhận</span>
                                       <span className="text-xs font-black text-gray-800">{e.partnerName}</span>

@@ -85,7 +85,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="lg"
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 font-sans">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 font-sans">
           <F label="Tên khách hàng" required>{inp('name', 'Nhập tên khách hàng')}</F>
           <F label="Mã khách hàng">{inp('code', 'Mã mặc định')}</F>
           <F label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</F>

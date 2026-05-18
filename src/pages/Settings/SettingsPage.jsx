@@ -41,9 +41,9 @@ export default function SettingsPage() {
   const { darkMode, toggleDarkMode } = useAppStore();
 
   return (
-    <div className="flex flex-col gap-6 animate-page-in p-3 sm:p-6 max-w-full overflow-x-hidden">
+    <div className="flex flex-col gap-4 animate-page-in p-3 sm:p-6 max-w-full overflow-x-hidden">
       <h1 className="text-xl sm:text-2xl font-extrabold text-gray-800 m-0 tracking-tight">Thiết lập</h1>
-      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full">
         {/* Sidebar */}
         <div className="w-full lg:w-[260px] shrink-0 bg-white border border-gray-100 rounded-xl overflow-x-auto shadow-sm flex lg:flex-col py-2 custom-scrollbar max-w-full">
           {SECTIONS.map(s => {
@@ -61,7 +61,7 @@ export default function SettingsPage() {
           {section === 'store' && (
             <div className="animate-fade-in max-w-full">
               <h2 className="text-lg sm:text-xl font-extrabold text-gray-800 mb-6 tracking-tight">Thông tin cửa hàng</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4 bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-100">
                 <div><label className="text-xs sm:text-[13px] font-bold text-gray-700 mb-1.5 block">Tên cửa hàng</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-xs sm:text-[13px] font-medium text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white" defaultValue="Tiko BizPOS" /></div>
                 <div><label className="text-xs sm:text-[13px] font-bold text-gray-700 mb-1.5 block">Mã cửa hàng</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-xs sm:text-[13px] font-bold text-gray-500 bg-gray-100 cursor-not-allowed" readOnly defaultValue="TIKO001" /></div>
                 <div><label className="text-xs sm:text-[13px] font-bold text-gray-700 mb-1.5 block">Điện thoại</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-xs sm:text-[13px] font-medium text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white" defaultValue="1900 0000" /></div>

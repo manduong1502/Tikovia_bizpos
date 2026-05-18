@@ -324,7 +324,7 @@ export default function CreatePurchaseOrderPage() {
     <div className="flex flex-col h-[calc(100vh-90px)] -m-5 bg-gray-100 font-sans">
       {/* Top Action Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/purchase-orders')}
             className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors"

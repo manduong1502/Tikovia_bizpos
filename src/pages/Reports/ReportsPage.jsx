@@ -30,7 +30,7 @@ export default function ReportsPage() {
   const d = data || {};
 
   return (
-    <div className="flex flex-col gap-6 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
+    <div className="flex flex-col gap-4 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full mb-1">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Báo cáo</h1>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -90,7 +90,7 @@ export default function ReportsPage() {
 
       {/* Chart area */}
       <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm overflow-x-auto max-w-full">
-        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6 tracking-tight min-w-[500px]">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4 tracking-tight min-w-[500px]">Biểu đồ {TABS.find(t => t.key === tab)?.label || ''}</h3>
         <div className="flex items-end gap-1 sm:gap-1.5 h-[200px] sm:h-[260px] px-1 sm:px-2 min-w-[500px]">
           {(d.daily_revenues || []).map((r, i) => {
             const maxRev = Math.max(...(d.daily_revenues || []).map(x => x.revenue || 0), 1);

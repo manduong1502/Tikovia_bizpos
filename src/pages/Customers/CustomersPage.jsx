@@ -465,7 +465,7 @@ export default function CustomersPage() {
         <td colSpan={visibleColumns.length + 3} className="p-0">
           <div className="p-6">
             {/* Top Tabs */}
-            <div className="flex gap-6 border-b border-gray-200 mb-6 px-2">
+            <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
               {[
                 { key: 'info', label: 'Thông tin' },
                 { key: 'history', label: 'Lịch sử mua hàng' },
@@ -485,7 +485,7 @@ export default function CustomersPage() {
             </div>
 
             {detailTab === 'info' && (
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
                 {/* Header Info */}
                 <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                   <div className="flex items-center gap-4">
@@ -502,7 +502,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-4 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
                   <div><span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span><span className="font-bold text-gray-800 truncate block">Khách hàng chung</span></div>
                   <div><span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span><span className="font-bold text-gray-800 truncate block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
                   <div><span className="text-gray-500 font-medium block mb-1">Giới tính</span><span className="font-bold text-gray-800 truncate block">{c.gender || '---'}</span></div>
@@ -562,7 +562,7 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'history' && (
-              <div className="flex flex-col gap-6 p-2">
+              <div className="flex flex-col gap-4 p-2">
                 {/* Micro metrics */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
@@ -626,7 +626,7 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'address' && (
-              <div className="flex flex-col gap-6 p-2">
+              <div className="flex flex-col gap-4 p-2">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xs font-extrabold text-gray-800 tracking-tight flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary"></span>
@@ -654,10 +654,10 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'debt' && (
-              <div className="flex flex-col gap-6 p-2">
+              <div className="flex flex-col gap-4 p-2">
                 {/* Big Debt overview box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-stretch">
-                  <div className="sm:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
+                  <div className="sm:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between gap-4">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Tổng nợ cần thu hiện tại</span>
                       <span className={`text-3xl font-black tracking-tight ${dVal > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -729,9 +729,9 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-6 font-sans max-w-full overflow-x-hidden">
+    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-4 font-sans max-w-full overflow-x-hidden">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 mb-4 sm:mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Khách hàng
         </h1>
@@ -887,14 +887,14 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start max-w-full relative lg:h-[calc(100vh-160px)]">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative lg:h-[calc(100vh-144px)]">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-160px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
+        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-144px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>

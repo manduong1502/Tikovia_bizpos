@@ -252,7 +252,7 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-6 max-w-full overflow-x-hidden">
+    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Nhóm hàng</h1>
@@ -298,7 +298,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col lg:flex-row gap-5 items-start max-w-full">
+      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full">
         {/* Tree Panel */}
         <div className="flex-1 bg-white border border-gray-100 rounded-xl min-h-[500px] shadow-sm overflow-x-auto max-w-full w-full">
           <div className="min-w-[600px]">

@@ -49,13 +49,13 @@ export default function DashboardPage() {
   const maxRev = Math.max(...revenues.map(r => r.revenue), 0);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 max-w-full">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 max-w-full">
       {/* Left Panel */}
-      <div className="flex flex-col gap-6 min-w-0">
+      <div className="flex flex-col gap-4 min-w-0">
         {/* Today Summary */}
         <div>
           <h2 className="text-base sm:text-lg font-bold text-gray-800 mb-4">Kết quả bán hàng hôm nay</h2>
-          <div className="grid grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-100 shadow-sm">
               <div className="text-xs sm:text-sm text-gray-500 mb-1">Doanh thu</div>
               <div className="text-base sm:text-2xl font-bold text-primary truncate">{fmt(d.todayStats?.revenue || 0)}</div>
