@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
+import PortalPopover from './PortalPopover';
 
 export default function MultiSelectFilter({
   items = [],
@@ -121,10 +122,10 @@ export default function MultiSelectFilter({
         </div>
       </button>
 
-      {open && (
+      <PortalPopover anchorEl={ref.current} open={open} widthMatch={false}>
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 w-[320px] rounded-lg border border-gray-200 bg-white shadow-xl z-50">
+          <div className="mt-1 w-[320px] rounded-lg border border-gray-200 bg-white shadow-xl z-50">
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
               <span className="text-sm font-semibold text-gray-700">{panelTitle}</span>
             </div>
@@ -196,7 +197,7 @@ export default function MultiSelectFilter({
             </div>
           </div>
         </>
-      )}
+      </PortalPopover>
     </div>
   );
 }

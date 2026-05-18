@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Search, GripVertical, Check, X } from 'lucide-react';
+import PortalPopover from './PortalPopover';
 
 export default function CategoryFilter({ categories = [], products = [], selectedIds, onApply }) {
   const [open, setOpen] = useState(false);
@@ -156,10 +157,10 @@ export default function CategoryFilter({ categories = [], products = [], selecte
         </div>
       </button>
 
-      {open && (
+      <PortalPopover anchorEl={ref.current} open={open} widthMatch={false}>
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 w-[320px] bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+          <div className="mt-1 w-[320px] bg-white border border-gray-200 rounded-lg shadow-xl z-50">
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
               <span className="font-semibold text-sm text-gray-700">Nhóm hàng</span>
@@ -199,7 +200,7 @@ export default function CategoryFilter({ categories = [], products = [], selecte
             </div>
           </div>
         </>
-      )}
+      </PortalPopover>
     </div>
   );
 }

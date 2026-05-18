@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PortalPopover from './PortalPopover';
 
 export default function Dropdown({ label, value, options = [], onChange, className = '' }) {
   const [open, setOpen] = useState(false);
@@ -29,33 +30,25 @@ export default function Dropdown({ label, value, options = [], onChange, classNa
         <ChevronDown size={14} className={`text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 py-1 max-h-[240px] overflow-y-auto"
-          >
-            {options.map((opt) => (
-              <button
-                type="button"
-                key={opt.value}
-                onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer ${
-                  value === opt.value
-                    ? 'bg-blue-50 text-primary font-medium'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span>{opt.label}</span>
-                {value === opt.value && <Check size={14} className="text-primary" />}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PortalPopover anchorEl={ref.current} open={open} widthMatch={true}>
+        <div className="mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 py-1 max-h-[240px] overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              type="button"
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer ${
+                value === opt.value
+                  ? 'bg-blue-50 text-primary font-medium'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span>{opt.label}</span>
+              {value === opt.value && <Check size={14} className="text-primary" />}
+            </button>
+          ))}
+        </div>
+      </PortalPopover>
     </div>
   );
 }
