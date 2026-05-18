@@ -412,6 +412,7 @@ export const purchaseOrderAPI = {
     return { id: Date.now(), code: `PON${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
   }),
   update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data),
+  cancel: (id) => api.put(`/purchase-orders/${id}/cancel`).then(r => r.data),
   delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
 

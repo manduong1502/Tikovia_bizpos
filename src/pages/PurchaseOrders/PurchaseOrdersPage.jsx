@@ -11,6 +11,8 @@ import { exportCSV } from '../../utils/exportCSV';
 import PurchaseOrderModal from './PurchaseOrderModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
+import AdvancedFilter from './components/AdvancedFilter';
+import PurchaseOrderDetail from './components/PurchaseOrderDetail';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 const PAY_BADGE = { paid: 'bg-green-100 text-green-700', partial: 'bg-yellow-100 text-yellow-700', unpaid: 'bg-red-100 text-red-600' };
@@ -234,134 +236,6 @@ export default function PurchaseOrdersPage() {
     setFilters(prev => ({ ...prev, statuses: next }));
   };
 
-  const renderDetail = (o) => {
-    const items = o.items?.filter(it => {
-      if (detailSearchSku && !(it.product_sku || '').toLowerCase().includes(detailSearchSku.toLowerCase())) return false;
-      if (detailSearchName && !(it.product_name || '').toLowerCase().includes(detailSearchName.toLowerCase())) return false;
-      return true;
-    }) || [];
-
-    const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
-    const subtotal = items.reduce((s, it) => s + ((it.unit_price || 0) * (it.quantity || 0)), 0);
-    const totalDiscount = items.reduce((s, it) => s + (it.discount || 0), 0);
-    const finalTotal = subtotal - totalDiscount;
-
-    const currentNote = poNotes[o.id] ?? o.note;
-    const currentReceivedBy = poReceivedBy[o.id] ?? o.received_by;
-
-    return (
-      <tr key={`detail-${o.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
-        <td colSpan={visibleColumns.length + 2} className="p-0">
-          <div className="p-6">
-            {/* Top Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
-              <button
-                onClick={() => setDetailTab('info')}
-                className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
-                  detailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                Thông tin
-              </button>
-              <button
-                onClick={() => setDetailTab('history')}
-                className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
-                  detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                Lịch sử thanh toán
-              </button>
-            </div>
-
-            {detailTab === 'info' ? (
-              <div className="flex flex-col gap-4">
-                {/* Header Info */}
-                <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                  <div className="flex items-center gap-4">
-                    <span className="text-xl font-extrabold text-gray-800 tracking-tight">{o.po_code}</span>
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${PAY_BADGE[o.payment_status]}`}>
-                      {PAY_LABEL[o.payment_status]}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-8 text-sm">
-                    <div><span className="text-gray-500">Người tạo:</span> <span className="font-bold text-gray-800">{o.created_by}</span></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Người nhập:</span>
-                      <select
-                        className="border border-gray-300 rounded px-2.5 py-1 text-sm font-bold text-gray-800 bg-white outline-none focus:border-primary shadow-sm"
-                        value={currentReceivedBy}
-                        onChange={(e) => handleUpdateReceivedBy(o.id, e.target.value)}
-                      >
-                        <option value="Võ Thành Huy">Võ Thành Huy</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Nguyễn Văn A">Nguyễn Văn A</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <span className="text-gray-500">Ngày nhập:</span>
-                      <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
-                      <Calendar size={14} className="text-primary ml-1" />
-                    </div>
-                    <div><span className="text-gray-500">Tên NCC:</span> <a href="#" className="font-bold text-primary hover:underline">{o.supplier_name}</a></div>
-                  </div>
-                </div>
-
-                {/* Items Table Section */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  {/* Search bar above items */}
-                  <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50 gap-4">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="relative w-64">
-                        <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Tìm mã hàng"
-                          className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                          value={detailSearchSku}
-                          onChange={e => setDetailSearchSku(e.target.value)}
-                        />
-                      </div>
-                      <div className="relative w-64">
-                        <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Tìm tên hàng"
-                          className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                          value={detailSearchName}
-                          onChange={e => setDetailSearchName(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <a href="/pricebook" target="_blank" className="text-primary text-xs font-bold flex items-center gap-1.5 hover:underline cursor-pointer">
-                      <Tag size={14} /> Thiết lập giá
-                    </a>
-                  </div>
-
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                        <th className="p-3">Mã hàng</th>
-                        <th className="p-3">Tên hàng</th>
-                        <th className="p-3 text-right">Số lượng</th>
-                        <th className="p-3 text-right">Đơn giá</th>
-                        <th className="p-3 text-right">Giảm giá</th>
-                        <th className="p-3 text-right">Giá nhập</th>
-                        <th className="p-3 text-right">Thành tiền</th>
-                        <th className="p-3 w-12 text-center"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
-                      {items.map((it, idx) => (
-                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-3 text-primary font-bold">{it.product_sku}</td>
-                          <td className="p-3 text-gray-800">{it.product_name}</td>
-                          <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
-                          <td className="p-3 text-right text-gray-600">{fmt(it.unit_price)}</td>
-                          <td className="p-3 text-right text-gray-600">{fmt(it.discount)}</td>
-                          <td className="p-3 text-right text-gray-800 font-bold">{fmt((it.unit_price || 0) - (it.discount || 0))}</td>
-                          <td className="p-3 text-right text-primary font-bold">{fmt(it.total)}</td>
-                          <td className="p-3 text-center">
-                            <button className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition-colors cursor-pointer">
                               <Eye size={14} />
                             </button>
                           </td>
@@ -449,13 +323,13 @@ export default function PurchaseOrdersPage() {
   const deletePO = async (id) => {
     if (!confirm('Bạn có chắc muốn hủy phiếu nhập này?')) return;
     try {
-      await purchaseOrderAPI.delete(id);
-      setOrders(prev => prev.filter(o => o.id !== id));
+      await purchaseOrderAPI.cancel(id);
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled' } : o));
       setExpandedId(null);
       toast.success('Hủy phiếu nhập thành công');
     } catch {
-      // Fallback mock delete
-      setOrders(prev => prev.filter(o => o.id !== id));
+      // Fallback mock cancel
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled' } : o));
       setExpandedId(null);
       toast.success('Hủy phiếu nhập thành công');
     }
@@ -577,71 +451,15 @@ export default function PurchaseOrdersPage() {
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
-        {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-144px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
-          <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
-            <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
-          </div>
-          {/* Status Filter */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>
-            <div className="flex flex-col gap-2.5">
-              {STATUS_OPTIONS.map(st => (
-                <label key={st.value} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    checked={filters.statuses.has(st.value)}
-                    onChange={() => toggleStatusFilter(st.value)}
-                  />
-                  <span>{st.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Time Filter */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian</span>
-            <DateFilter
-              label="Thời gian"
-              type="created"
-              value={filters.dateRange}
-              onChange={(val) => setFilters(prev => ({ ...prev, dateRange: val }))}
-            />
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Created By Filter */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
-            <select
-              className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
-              value={filters.createdBy}
-              onChange={e => setFilters(prev => ({ ...prev, createdBy: e.target.value }))}
-            >
-               {createdByOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Received By Filter */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người nhập</span>
-            <select
-              className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
-              value={filters.receivedBy}
-              onChange={e => setFilters(prev => ({ ...prev, receivedBy: e.target.value }))}
-            >
-              {receivedByOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-        </div>
+        <AdvancedFilter 
+          filters={filters}
+          setFilters={setFilters}
+          createdByOptions={createdByOptions}
+          receivedByOptions={receivedByOptions}
+          statusOptions={STATUS_OPTIONS}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+        />
 
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
@@ -718,7 +536,18 @@ export default function PurchaseOrdersPage() {
                     </tr>
 
                     {/* Expanded Detail View */}
-                    {isExpanded && renderDetail(o)}
+                    {isExpanded && (
+                      <PurchaseOrderDetail
+                        order={o}
+                        visibleColumns={visibleColumns}
+                        PAY_BADGE={PAY_BADGE}
+                        PAY_LABEL={PAY_LABEL}
+                        poNotes={poNotes}
+                        poReceivedBy={poReceivedBy}
+                        handleUpdateReceivedBy={handleUpdateReceivedBy}
+                        deletePO={deletePO}
+                      />
+                    )}
                   </>
                 );
               })}

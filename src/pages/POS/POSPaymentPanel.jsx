@@ -75,9 +75,9 @@ export default function POSPaymentPanel({ forceShow = false }) {
       if (isEditMode) {
         try {
           const { orderAPI } = await import('../../services/api');
-          await orderAPI.delete(currentInvoice._editOrderId);
+          await orderAPI.cancel(currentInvoice._editOrderId);
         } catch (e) {
-          console.warn('Could not delete old order:', e);
+          console.warn('Could not cancel old order:', e);
         }
       }
 
