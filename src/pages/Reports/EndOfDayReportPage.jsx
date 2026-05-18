@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronsLeft, ChevronsRight, FileText
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
-import { exportCSV } from '../../utils/exportUtils';
+import * as XLSX from 'xlsx';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -18,6 +18,7 @@ export default function EndOfDayReportPage() {
   const [expandedOrders, setExpandedOrders] = useState({ group: true }); // keep grouped invoice row expanded by default
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   // Filter States
   const [viewType, setViewType] = useState('Báo cáo'); // Báo cáo
@@ -125,37 +126,82 @@ export default function EndOfDayReportPage() {
   };
 
   const handleExportExcel = () => {
-    const rows = filteredTransactions.map(tx => ({
-      code: tx.code,
-      time: new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      customer: tx.customerName,
-      quantity: tx.quantity,
-      revenue: tx.revenue,
-      otherFee: tx.otherFee,
-      vat: tx.vat,
-      rounding: tx.rounding,
-      returnFee: tx.returnFee,
-      net: tx.netRevenue,
-      paymentMethod: tx.paymentMethod,
-      creator: tx.createdBy
-    }));
+    // We build a multi-row structured array of arrays to match the screenshot perfectly!
+    const todayStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateRangeStr = getFormattedDateRange();
 
-    exportCSV([
-      { key: 'code', label: 'Mã giao dịch' },
-      { key: 'time', label: 'Thời gian' },
-      { key: 'customer', label: 'Khách hàng' },
-      { key: 'quantity', label: 'Số lượng' },
-      { key: 'revenue', label: 'Doanh thu' },
-      { key: 'otherFee', label: 'Thu khác' },
-      { key: 'vat', label: 'VAT' },
-      { key: 'rounding', label: 'Làm tròn' },
-      { key: 'returnFee', label: 'Phí trả hàng' },
-      { key: 'net', label: 'Thực thu' },
-      { key: 'paymentMethod', label: 'Phương thức TT' },
-      { key: 'creator', label: 'Người tạo' },
-    ], rows, `bao_cao_cuoi_ngay_${filterDate}`);
+    const aoa = [
+      [`Ngày lập: ${todayStr}`],
+      [], // Empty row
+      ["", "", "", "", "Báo cáo cuối ngày về bán hàng"],
+      ["", "", "", "", `Ngày bán: ${dateRangeStr}`],
+      ["", "", "", "", `Ngày thanh toán: ${dateRangeStr}`],
+      ["", "", "", "", "Chi nhánh: Chi nhánh trung tâm"],
+      [], // Empty row
+      [
+        "Mã giao dịch",
+        "Thời gian",
+        "SL",
+        "Doanh thu",
+        "Thu khác",
+        "VAT",
+        "Làm tròn",
+        "Phí trả hàng",
+        "Thực thu"
+      ]
+    ];
 
-    toast.success('Xuất file báo cáo thành công!');
+    // Group row: "Hóa đơn: <count>"
+    aoa.push([
+      `Hóa đơn: ${totalInvoiceCount}`,
+      "",
+      totalQtySum,
+      totalRevenueSum,
+      totalOtherFeeSum,
+      totalVatSum,
+      totalRoundingSum,
+      totalReturnFeeSum,
+      totalNetSum
+    ]);
+
+    // Sub-rows under the group: list the individual transactions
+    filteredTransactions.forEach(tx => {
+      aoa.push([
+        `  ${tx.code}`, 
+        new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        tx.quantity,
+        tx.revenue,
+        tx.otherFee || 0,
+        tx.vat || 0,
+        tx.rounding || 0,
+        tx.returnFee || 0,
+        tx.netRevenue
+      ]);
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Set column widths to look neat and perfect
+    worksheet['!cols'] = [
+      { wch: 22 }, // Mã giao dịch
+      { wch: 12 }, // Thời gian
+      { wch: 8 },  // SL
+      { wch: 15 }, // Doanh thu
+      { wch: 12 }, // Thu khác
+      { wch: 10 }, // VAT
+      { wch: 10 }, // Làm tròn
+      { wch: 12 }, // Phí trả hàng
+      { wch: 15 }  // Thực thu
+    ];
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "EndOfDayDocument");
+
+    // Save workbook
+    XLSX.writeFile(workbook, `BaoCaoCuoiNgay_${filterDate}.xlsx`);
+    toast.success('Xuất file Excel thành công!');
   };
 
   const handlePrint = () => {
@@ -408,23 +454,51 @@ export default function EndOfDayReportPage() {
 
           {/* Right Controls: Excel, PDF Print, Zoom, Fullscreen */}
           <div className="flex items-center gap-2">
-            {/* Document export icon */}
+            {/* Document view icon */}
             <button 
-              onClick={handleExportExcel}
               className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
               title="Xem tài liệu chi tiết"
             >
               <FileText size={16} />
             </button>
 
-            {/* Cloud download / export icon */}
-            <button 
-              onClick={handleExportExcel}
-              className="p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer"
-              title="Xuất file báo cáo"
-            >
-              <Download size={16} />
-            </button>
+            {/* Dropdown for Download button (PDF & Excel) */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowExportDropdown(!showExportDropdown)}
+                className="p-1.5 rounded hover:bg-white/90 border border-transparent hover:border-gray-200 transition-all cursor-pointer flex items-center gap-0.5 text-gray-500 hover:text-gray-800"
+                title="Tải xuống báo cáo"
+              >
+                <Download size={16} />
+                <ChevronDown size={12} className="opacity-70" />
+              </button>
+              
+              {showExportDropdown && (
+                <>
+                  <div className="fixed inset-0 z-30 bg-transparent" onClick={() => setShowExportDropdown(false)} />
+                  <div className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-40 animate-fade-in font-sans">
+                    <button 
+                      onClick={() => {
+                        handlePrint();
+                        setShowExportDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-50 font-semibold text-xs text-gray-700 hover:text-slate-900 border-none bg-transparent cursor-pointer flex items-center justify-between"
+                    >
+                      <span>Acrobat (PDF) file</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        handleExportExcel();
+                        setShowExportDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-50 font-semibold text-xs text-gray-700 hover:text-slate-900 border-none bg-transparent cursor-pointer flex items-center justify-between"
+                    >
+                      <span>Excel 97-2003</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Print / PDF */}
             <button 
