@@ -142,7 +142,7 @@ export default function ReturnOrderPage() {
 
       const res = await returnAPI.create(payload);
       toast.success(`Tạo phiếu trả hàng thành công! Mã: ${res?.code || ''}`);
-      navigate('/returns');
+      navigate('/invoices');
     } catch (e) {
       const msg = e.response?.data?.message || e.message;
       toast.error(`Lỗi khi lưu phiếu trả hàng: ${msg}`);

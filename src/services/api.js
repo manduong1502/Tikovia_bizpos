@@ -129,6 +129,7 @@ function normalizeOrder(o) {
     payment_method: o.payment_method || (o.paymentMethod || '').toLowerCase(),
     payment_status: o.payment_status || (o.status === 'COMPLETED' ? 'completed' : o.status?.toLowerCase()),
     status: o.status?.toLowerCase?.() || o.status,
+    return_code: (o.returns && o.returns.length > 0) ? o.returns.map(r => r.code).join(', ') : '---',
   };
 }
 

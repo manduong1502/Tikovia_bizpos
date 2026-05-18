@@ -242,7 +242,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
         removeTab(activeTabId);
       }
       setShowUpdateModal(false);
-      navigate('/orders');
+      navigate('/invoices');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');

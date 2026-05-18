@@ -557,7 +557,7 @@ export default function OrdersPage() {
                         <td className="p-4 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
                       )}
                       {visibleColumns.includes('return_code') && (
-                        <td className="p-4 text-gray-400">---</td>
+                        <td className="p-4 text-gray-500 font-medium">{o.return_code || '---'}</td>
                       )}
                       {visibleColumns.includes('customer_code') && (
                         <td className="p-4 text-gray-700">{o.customer_code || `KH${String(o.id).padStart(6, '0')}`}</td>
