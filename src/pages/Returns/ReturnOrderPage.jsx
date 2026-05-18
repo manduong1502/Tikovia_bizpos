@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, User } from 'lucide-react';
+import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, User, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI, returnAPI } from '../../services/api';
+import '../POS/pos.css'; // Import styles from POS
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -20,10 +21,16 @@ export default function ReturnOrderPage() {
   });
   
   const [discountStr, setDiscountStr] = useState('0'); // Phí trả hàng (khách chịu)
-  const [paidAmountStr, setPaidAmountStr] = useState(''); // Khách đã nhận
+  const [paidAmountStr, setPaidAmountStr] = useState(''); // Tiền đã trả khách
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Add light background for POS UI
+    document.body.style.backgroundColor = '#f0f2f5';
+    return () => { document.body.style.backgroundColor = ''; };
+  }, []);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -49,7 +56,7 @@ export default function ReturnOrderPage() {
               name: it.product?.name || it.product_name || '',
               unit: it.product?.unit || it.unit || 'Cái',
               max_quantity: boughtQty,
-              return_quantity: 0, // default to 0
+              return_quantity: boughtQty, // Mặc định trả hết
               return_price: pricePerUnit,
               note: '',
             };
@@ -66,7 +73,7 @@ export default function ReturnOrderPage() {
   }, [orderId, navigate]);
 
   const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
-  const returnFee = Number(discountStr.replace(/\D/g, '')) || 0; // Phí trả hàng
+  const returnFee = Number(discountStr.replace(/\D/g, '')) || 0; 
   const customerMustReceive = Math.max(0, totalReturnGoods - returnFee);
   
   const actualPaid = paidAmountStr === '' ? customerMustReceive : (Number(paidAmountStr.replace(/\D/g, '')) || 0);
@@ -82,6 +89,24 @@ export default function ReturnOrderPage() {
     }));
   };
 
+  const handleIncQty = (id) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id && it.return_quantity < it.max_quantity) {
+        return { ...it, return_quantity: it.return_quantity + 1 };
+      }
+      return it;
+    }));
+  };
+
+  const handleDecQty = (id) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id && it.return_quantity > 0) {
+        return { ...it, return_quantity: it.return_quantity - 1 };
+      }
+      return it;
+    }));
+  };
+
   const handlePriceChange = (id, val) => {
     setItems(prev => prev.map(it => {
       if (it.id === id) {
@@ -91,22 +116,8 @@ export default function ReturnOrderPage() {
     }));
   };
 
-  const handleNoteChange = (id, val) => {
-    setItems(prev => prev.map(it => {
-      if (it.id === id) {
-        return { ...it, note: val };
-      }
-      return it;
-    }));
-  };
-
-  const handleSetMax = (id) => {
-    setItems(prev => prev.map(it => {
-      if (it.id === id) {
-        return { ...it, return_quantity: it.max_quantity };
-      }
-      return it;
-    }));
+  const handleRemoveItem = (id) => {
+    setItems(prev => prev.filter(it => it.id !== id));
   };
 
   const handleSaveReturn = async () => {
@@ -130,7 +141,7 @@ export default function ReturnOrderPage() {
       };
 
       const res = await returnAPI.create(payload);
-      toast.success(`Tạo phiếu trả hàng thành công! Mã: ${res.code || ''}`);
+      toast.success(`Tạo phiếu trả hàng thành công! Mã: ${res?.code || ''}`);
       navigate('/returns');
     } catch (e) {
       const msg = e.response?.data?.message || e.message;
@@ -141,224 +152,184 @@ export default function ReturnOrderPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full">Đang tải thông tin đơn hàng...</div>;
+    return <div className="flex items-center justify-center h-screen bg-gray-50">Đang tải thông tin đơn hàng...</div>;
   }
 
+  const validItems = items.filter(it => it.return_quantity > 0);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-90px)] -m-5 bg-gray-100 font-sans">
-      {/* Top Action Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/invoices')}
-            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
-          >
-            <ArrowLeft size={20} className="text-gray-500" />
-            <span>Trả hàng</span>
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-600">Hóa đơn gốc:</span>
-            <span className="px-2 py-1 bg-blue-50 text-primary font-bold rounded-md text-sm border border-blue-100">{order?.order_code || order?.code}</span>
-          </div>
+    <div className="pos-fullscreen">
+      {/* ─── Top Bar ─── */}
+      <div className="pos-topbar" style={{ backgroundColor: '#1E3A8A' }}>
+        <button 
+          className="pos-add-tab-btn border-none hover:bg-white/10" 
+          onClick={() => navigate('/invoices')}
+        >
+          <ArrowLeft size={16} /> Trở về
+        </button>
+        
+        <div className="pos-search-box ml-4">
+          <Search className="search-icon" />
+          <input type="text" placeholder="Tìm hàng hóa" disabled />
         </div>
 
-        <div className="flex items-center gap-2 text-gray-600">
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="Ẩn/hiện cột"><Eye size={18} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors text-amber-600 border-none bg-transparent" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
+        <div className="pos-invoice-tabs">
+          <button className="pos-invoice-tab active">
+            Trả hàng: {order?.order_code || order?.code}
+          </button>
+        </div>
+
+        <div className="pos-toolbar-right">
+          <button className="pos-toolbar-btn"><Printer size={18} /></button>
+          <button className="pos-toolbar-btn"><Eye size={18} /></button>
+          <span className="pos-user-display">Quản trị viên</span>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Table Section */}
-        <div className="flex-1 flex flex-col bg-white overflow-hidden m-4 rounded-2xl shadow-sm border border-gray-200">
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/80 text-gray-700 text-xs font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-                  <th className="py-3.5 px-4 w-16 text-center">STT</th>
-                  <th className="py-3.5 px-4 w-32">Mã hàng</th>
-                  <th className="py-3.5 px-4 flex-1">Tên hàng</th>
-                  <th className="py-3.5 px-4 w-24 text-center">ĐVT</th>
-                  <th className="py-3.5 px-4 w-36 text-center">SL Trả / Mua</th>
-                  <th className="py-3.5 px-4 w-32 text-right">Giá trả lại</th>
-                  <th className="py-3.5 px-4 w-36 text-right font-extrabold text-primary">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs divide-y divide-gray-100">
-                {items.map((it, idx) => (
-                  <tr key={it.id} className="hover:bg-blue-50/50 transition-colors group">
-                    <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
-                    <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-gray-900 mb-1">{it.name}</div>
-                      <div className="flex items-center gap-1.5">
-                        <input 
-                          type="text"
-                          value={it.note}
-                          onChange={(e) => handleNoteChange(it.id, e.target.value)}
-                          placeholder="Ghi chú..." 
-                          className="text-[11px] text-gray-500 italic bg-transparent border-b border-dashed border-gray-300 focus:border-primary focus:outline-none px-1 py-0.5 w-48 font-medium"
-                        />
-                        <Edit2 size={12} className="text-gray-400" />
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-center text-gray-600 font-medium">{it.unit}</td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <input 
-                          type="number"
-                          value={it.return_quantity}
-                          onChange={(e) => handleQuantityChange(it.id, e.target.value)}
-                          className="w-16 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
-                        />
-                        <span className="text-gray-400 font-medium">/ {it.max_quantity}</span>
-                      </div>
-                      {it.return_quantity < it.max_quantity && (
-                        <div 
-                          className="text-[10px] text-primary hover:underline cursor-pointer mt-1 font-bold text-center"
-                          onClick={() => handleSetMax(it.id)}
-                        >
-                          Trả hết
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
+      <div className="pos-body">
+        {/* ─── Cart Panel (Left) ─── */}
+        <div className="pos-cart-panel">
+          <div className="pos-cart-list">
+            {items.map((it, idx) => (
+              <div key={it.id} className="pos-cart-item">
+                <div className="pos-cart-item-top">
+                  <span className="pos-cart-item-stt">{idx + 1}</span>
+                  <button className="pos-cart-item-delete" onClick={() => handleRemoveItem(it.id)}>
+                    <Trash2 />
+                  </button>
+                  <span className="pos-cart-item-sku">{it.sku}</span>
+                  <span className="pos-cart-item-name">{it.name} <span className="text-gray-400 font-normal text-xs ml-2">[Mua: {it.max_quantity}]</span></span>
+                  
+                  <div className="pos-cart-item-actions">
+                    <div className="pos-qty-control">
+                      <button className="pos-qty-btn" onClick={() => handleDecQty(it.id)}>-</button>
+                      <input 
+                        type="number" 
+                        className="pos-cart-item-qty" 
+                        value={it.return_quantity}
+                        onChange={(e) => handleQuantityChange(it.id, e.target.value)}
+                      />
+                      <button className="pos-qty-btn" onClick={() => handleIncQty(it.id)}>+</button>
+                    </div>
+                    
+                    <div className="pos-cart-item-price">
                       <input 
                         type="text"
                         value={fmt(it.return_price)}
                         onChange={(e) => handlePriceChange(it.id, e.target.value)}
-                        className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
+                        className="w-24 text-right bg-transparent border-none outline-none font-medium text-gray-700"
+                        style={{ borderBottom: '1px dashed #ccc' }}
                       />
-                    </td>
-                    <td className="py-3 px-4 text-right font-extrabold text-primary text-sm">
-                      {fmt(it.return_quantity * it.return_price)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <Edit2 size={12} className="inline ml-1 text-gray-400" />
+                    </div>
+                    
+                    <span className="pos-cart-item-total text-primary">{fmt(it.return_quantity * it.return_price)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {items.length === 0 && (
+              <div className="pos-cart-empty">
+                Chưa có sản phẩm nào để trả
+              </div>
+            )}
+          </div>
+          
+          <div className="pos-cart-footer">
+            <div className="pos-note-input">
+              <Edit2 size={16} className="text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Ghi chú phiếu trả hàng" 
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+            <div className="pos-total-summary">
+              <span>Tổng tiền hàng trả</span>
+              <span id="pos-item-count">{validItems.length}</span>
+              <span className="pos-total-amount text-primary">{fmt(totalReturnGoods)}</span>
+            </div>
           </div>
         </div>
 
-        {/* Right Panel Section */}
-        <div className="w-[380px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-lg z-10 shrink-0 overflow-y-auto">
-          <div className="space-y-5">
-            {/* Date */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 font-bold text-sm text-gray-700">Người lập: Admin</div>
-              <input 
-                type="datetime-local" 
-                value={returnDate} 
-                onChange={(e) => setReturnDate(e.target.value)}
-                className="w-36 py-2 px-2 bg-gray-50 border border-gray-300 rounded-xl text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-sm"
-              />
+        {/* ─── Right Panel ─── */}
+        <div className="pos-right-panel narrow">
+          <div className="pos-payment-panel">
+            <div className="pos-seller-info">
+              <span className="pos-seller-name"><User size={14} className="inline mr-1"/> Admin</span>
+              <span className="pos-seller-date">{new Date(returnDate).toLocaleString('vi-VN')}</span>
             </div>
-
-            {/* Customer Info */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Khách hàng</label>
-              <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-sm text-gray-800">{customer?.name || 'Khách lẻ'}</span>
-                  <span className="text-xs text-gray-500 font-medium">{customer?.phone || ''}</span>
-                </div>
-                <User size={20} className="text-gray-400" />
+            
+            <div className="pos-customer-search">
+              <div className="pos-customer-search-input-wrapper">
+                <Search size={16} className="text-gray-400" />
+                <input type="text" placeholder="Tìm khách hàng (F4)" value={customer?.name || 'Khách lẻ'} disabled />
               </div>
             </div>
 
-            {/* Return Code */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Mã trả hàng</label>
-              <input 
-                type="text" 
-                disabled 
-                placeholder="Mã phiếu tự động" 
-                className="w-full py-2 px-3.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
-              />
-            </div>
+            <div className="pos-payment-rows">
+              <div className="pos-payment-row">
+                <span className="label">Mã trả hàng</span>
+                <span className="value text-gray-500 font-normal">Mã phiếu tự động</span>
+              </div>
+              <div className="pos-payment-row">
+                <span className="label">Tổng tiền hàng</span>
+                <span className="value">{fmt(totalReturnGoods)}</span>
+              </div>
+              <div className="pos-payment-row">
+                <span className="label">Phí trả hàng</span>
+                <span className="value">
+                  <input 
+                    type="text" 
+                    value={discountStr === '0' ? '' : discountStr}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setDiscountStr(val === '' ? '0' : fmt(Number(val)));
+                    }}
+                    placeholder="0"
+                  />
+                </span>
+              </div>
+              <div className="pos-payment-row total">
+                <span className="label text-primary">Khách cần trả (hoàn lại)</span>
+                <span className="value text-primary">{fmt(customerMustReceive)}</span>
+              </div>
+              <div className="pos-payment-row">
+                <span className="label">Tiền đã trả khách</span>
+                <span className="value">
+                  <input 
+                    type="text" 
+                    value={paidAmountStr === '' ? fmt(customerMustReceive) : paidAmountStr}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
+                    }}
+                  />
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-4 mt-2 mb-2 text-sm text-gray-600 pl-2">
+                <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="payment" defaultChecked /> Tiền mặt</label>
+                <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="payment" /> Chuyển khoản</label>
+                <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="payment" /> Thẻ</label>
+              </div>
 
-            {/* Status */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">Trạng thái</label>
-              <div className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 py-1.5 px-3.5 rounded-xl inline-block shadow-sm">
-                Đã trả hàng
+              <div className="pos-payment-row change mt-4">
+                <span className="label">Tính vào công nợ</span>
+                <span className="value font-bold text-danger" style={{ color: debtCalculation > 0 ? '#EF4444' : '#475569' }}>
+                  {fmt(debtCalculation)}
+                </span>
               </div>
             </div>
 
-            <hr className="border-gray-100 my-2" />
-
-            {/* Financial Summary */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Tổng tiền hàng trả</span>
-                <span className="font-extrabold text-gray-900 text-sm">{fmt(totalReturnGoods)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Phí trả hàng</span>
-                <input 
-                  type="text" 
-                  value={discountStr === '0' ? '' : discountStr}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setDiscountStr(val === '' ? '0' : fmt(Number(val)));
-                  }}
-                  placeholder="0"
-                  className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-800 font-extrabold">Cần trả khách</span>
-                <span className="font-extrabold text-primary text-base">{fmt(customerMustReceive)}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-extrabold">Tiền đã trả khách (F8)</span>
-                  <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
-                </div>
-                <input 
-                  type="text" 
-                  value={paidAmountStr === '' ? fmt(customerMustReceive) : paidAmountStr}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
-                  }}
-                  className="w-32 py-2 px-3 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text- font-bold">Tính vào công nợ</span>
-                <span className="font-extrabold text-gray-900 text-sm">{fmt(debtCalculation)}</span>
-              </div>
-            </div>
-
-            {/* Note */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Ghi chú</label>
-              <textarea 
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                placeholder="Lý do trả hàng..." 
-                className="w-full p-3.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary shadow-inner resize-none font-medium"
-              />
-            </div>
-          </div>
-
-          {/* Bottom Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-4">
             <button 
-              disabled={saving}
+              className="pos-pay-button" 
               onClick={handleSaveReturn}
-              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
+              disabled={saving}
             >
-              {saving ? 'Đang xử lý...' : 'Hoàn thành trả hàng'}
+              {saving ? 'ĐANG XỬ LÝ...' : 'HOÀN THÀNH TRẢ HÀNG'}
             </button>
           </div>
         </div>

@@ -475,7 +475,9 @@ export const inventoryCheckAPI = {
 
 // ─── Returns ───
 export const returnAPI = {
-  getAll: (params) => api.get('/orders/returns/list', { params }).then(r => r.data),
+  getAll: (params) => api.get('/returns', { params }).then(r => r.data),
+  getById: (id) => api.get(`/returns/${id}`).then(r => r.data),
+  create: (data) => api.post('/returns', data).then(r => r.data),
 };
 
 // ─── Dashboard ───
