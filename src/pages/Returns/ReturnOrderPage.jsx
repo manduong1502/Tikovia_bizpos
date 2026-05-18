@@ -1,34 +1,60 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { orderAPI, returnAPI } from '../../services/api';
+import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { ChevronLeft, Search, Trash2, Package } from 'lucide-react';
-import Button from '../../components/ui/Button';
+import { orderAPI, returnAPI } from '../../services/api';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 export default function ReturnOrderPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+
   const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [customer, setCustomer] = useState(null);
+  const [items, setItems] = useState([]);
   
-  // returnItems[itemId] = quantity to return
-  const [returnItems, setReturnItems] = useState({});
-  const [reason, setReason] = useState('');
+  const [returnDate, setReturnDate] = useState(() => {
+    const now = new Date();
+    return now.toISOString().slice(0, 16);
+  });
+  
+  const [discountStr, setDiscountStr] = useState('0'); // Phí trả hàng (khách chịu)
+  const [paidAmountStr, setPaidAmountStr] = useState(''); // Khách đã nhận
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         const data = await orderAPI.getById(orderId);
         setOrder(data);
-        const initialReturnItems = {};
-        if (data.items) {
-          data.items.forEach(it => {
-            initialReturnItems[it.id] = 0; // default to 0 return
-          });
+        if (data.customer) {
+          setCustomer(data.customer);
+        } else if (data.customer_name) {
+          setCustomer({ id: data.customerId, name: data.customer_name, phone: data.customer_phone });
         }
-        setReturnItems(initialReturnItems);
+        
+        if (Array.isArray(data.items)) {
+          setItems(data.items.map((it, idx) => {
+            const boughtQty = Number(it.quantity || 0);
+            const unitPrice = Number(it.price || it.unit_price || 0);
+            const itemDiscount = Number(it.discount || 0);
+            const pricePerUnit = unitPrice - (itemDiscount / boughtQty); // Giá thực tế khách đã trả cho 1 SP
+            
+            return {
+              id: it.productId || it.product?.id || it.id,
+              sku: it.product?.sku || it.product_sku || `SP00${idx+1}`,
+              name: it.product?.name || it.product_name || '',
+              unit: it.product?.unit || it.unit || 'Cái',
+              max_quantity: boughtQty,
+              return_quantity: 0, // default to 0
+              return_price: pricePerUnit,
+              note: '',
+            };
+          }));
+        }
       } catch (err) {
         toast.error('Không tìm thấy đơn hàng');
         navigate('/invoices');
@@ -39,208 +65,300 @@ export default function ReturnOrderPage() {
     if (orderId) fetchOrder();
   }, [orderId, navigate]);
 
-  const handleQtyChange = (itemId, maxQty, val) => {
-    const num = Number(val);
-    if (isNaN(num)) return;
-    if (num < 0) return;
-    if (num > maxQty) return;
-    
-    setReturnItems(prev => ({ ...prev, [itemId]: num }));
-  };
+  const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
+  const returnFee = Number(discountStr.replace(/\D/g, '')) || 0; // Phí trả hàng
+  const customerMustReceive = Math.max(0, totalReturnGoods - returnFee);
+  
+  const actualPaid = paidAmountStr === '' ? customerMustReceive : (Number(paidAmountStr.replace(/\D/g, '')) || 0);
+  const debtCalculation = customerMustReceive - actualPaid;
 
-  const handleSetMax = (itemId, maxQty) => {
-    setReturnItems(prev => ({ ...prev, [itemId]: maxQty }));
-  };
-
-  const handleSubmit = async () => {
-    const itemsToReturn = [];
-    if (!order?.items) return;
-
-    for (const it of order.items) {
-      const returnQty = returnItems[it.id] || 0;
-      if (returnQty > 0) {
-        itemsToReturn.push({
-          productId: it.productId,
-          quantity: returnQty,
-          price: it.price - (it.discount || 0) / it.quantity // adjust for item discount if any
-        });
+  const handleQuantityChange = (id, val) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id) {
+        const num = val === '' ? 0 : Math.min(it.max_quantity, Math.max(0, Number(val) || 0));
+        return { ...it, return_quantity: num };
       }
-    }
+      return it;
+    }));
+  };
 
-    if (itemsToReturn.length === 0) {
-      toast.error('Vui lòng chọn ít nhất 1 sản phẩm để trả hàng');
+  const handlePriceChange = (id, val) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id) {
+        return { ...it, return_price: Number(val.replace(/\D/g, '')) || 0 };
+      }
+      return it;
+    }));
+  };
+
+  const handleNoteChange = (id, val) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id) {
+        return { ...it, note: val };
+      }
+      return it;
+    }));
+  };
+
+  const handleSetMax = (id) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id) {
+        return { ...it, return_quantity: it.max_quantity };
+      }
+      return it;
+    }));
+  };
+
+  const handleSaveReturn = async () => {
+    const validItems = items.filter(it => it.return_quantity > 0);
+    if (validItems.length === 0) {
+      toast.error('Vui lòng chọn ít nhất 1 sản phẩm có số lượng trả > 0');
       return;
     }
 
+    setSaving(true);
     try {
-      const data = {
-        orderId: order.id,
-        customerId: order.customerId,
-        reason: reason,
-        items: itemsToReturn
+      const payload = {
+        orderId: Number(order.id),
+        customerId: customer?.id ? Number(customer.id) : null,
+        items: validItems.map(it => ({
+          productId: it.id,
+          quantity: Number(it.return_quantity),
+          price: Number(it.return_price)
+        })),
+        reason: note || ''
       };
-      
-      const res = await returnAPI.create(data);
-      toast.success('Lập phiếu trả hàng thành công');
-      // Go back to the invoice page
-      navigate('/invoices');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Lỗi khi trả hàng');
+
+      const res = await returnAPI.create(payload);
+      toast.success(`Tạo phiếu trả hàng thành công! Mã: ${res.code || ''}`);
+      navigate('/returns');
+    } catch (e) {
+      const msg = e.response?.data?.message || e.message;
+      toast.error(`Lỗi khi lưu phiếu trả hàng: ${msg}`);
+    } finally {
+      setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Đang tải thông tin hóa đơn...</div>;
+    return <div className="flex items-center justify-center h-full">Đang tải thông tin đơn hàng...</div>;
   }
 
-  if (!order) return null;
-
-  let totalReturnAmount = 0;
-  order.items?.forEach(it => {
-    const returnQty = returnItems[it.id] || 0;
-    const finalPrice = it.price - ((it.discount || 0) / it.quantity);
-    totalReturnAmount += returnQty * finalPrice;
-  });
-
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-primary text-white shadow-sm shrink-0">
+    <div className="flex flex-col h-[calc(100vh-90px)] -m-5 bg-gray-100 font-sans">
+      {/* Top Action Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/invoices')} className="p-1 hover:bg-white/20 rounded-md transition-colors cursor-pointer">
-            <ChevronLeft size={24} />
+          <button 
+            onClick={() => navigate('/invoices')}
+            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
+          >
+            <ArrowLeft size={20} className="text-gray-500" />
+            <span>Trả hàng</span>
           </button>
+          
           <div className="flex items-center gap-2">
-            <span className="font-bold">Trả hàng hóa đơn:</span>
-            <span className="font-medium bg-white/20 px-2 py-0.5 rounded text-sm">{order.code}</span>
+            <span className="text-sm font-bold text-gray-600">Hóa đơn gốc:</span>
+            <span className="px-2 py-1 bg-blue-50 text-primary font-bold rounded-md text-sm border border-blue-100">{order?.order_code || order?.code}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span>Khách hàng: <strong className="ml-1">{order.customer?.name || 'Khách lẻ'}</strong></span>
+
+        <div className="flex items-center gap-2 text-gray-600">
+          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="Ẩn/hiện cột"><Eye size={18} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors text-amber-600 border-none bg-transparent" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
         </div>
       </div>
 
+      {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Side: Items list */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white border-r border-gray-200">
-          <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Tìm hàng trong đơn..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:border-primary shadow-sm"
-              />
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-            <div className="space-y-3">
-              {order.items?.map(it => {
-                const maxQty = it.quantity;
-                const returnQty = returnItems[it.id] || 0;
-                return (
-                  <div key={it.id} className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-primary/30 transition-colors">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-                        <Package size={20} className="text-gray-400" />
+        {/* Left Table Section */}
+        <div className="flex-1 flex flex-col bg-white overflow-hidden m-4 rounded-2xl shadow-sm border border-gray-200">
+          <div className="overflow-y-auto flex-1">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50/80 text-gray-700 text-xs font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+                  <th className="py-3.5 px-4 w-16 text-center">STT</th>
+                  <th className="py-3.5 px-4 w-32">Mã hàng</th>
+                  <th className="py-3.5 px-4 flex-1">Tên hàng</th>
+                  <th className="py-3.5 px-4 w-24 text-center">ĐVT</th>
+                  <th className="py-3.5 px-4 w-36 text-center">SL Trả / Mua</th>
+                  <th className="py-3.5 px-4 w-32 text-right">Giá trả lại</th>
+                  <th className="py-3.5 px-4 w-36 text-right font-extrabold text-primary">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody className="text-xs divide-y divide-gray-100">
+                {items.map((it, idx) => (
+                  <tr key={it.id} className="hover:bg-blue-50/50 transition-colors group">
+                    <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
+                    <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-gray-900 mb-1">{it.name}</div>
+                      <div className="flex items-center gap-1.5">
+                        <input 
+                          type="text"
+                          value={it.note}
+                          onChange={(e) => handleNoteChange(it.id, e.target.value)}
+                          placeholder="Ghi chú..." 
+                          className="text-[11px] text-gray-500 italic bg-transparent border-b border-dashed border-gray-300 focus:border-primary focus:outline-none px-1 py-0.5 w-48 font-medium"
+                        />
+                        <Edit2 size={12} className="text-gray-400" />
                       </div>
-                      <div className="flex-1">
-                        <div className="font-bold text-gray-800 text-sm mb-1">{it.product.name}</div>
-                        <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
-                          <span>Mã: <span className="text-gray-700">{it.product.sku}</span></span>
-                          <span>Giá bán: <span className="text-primary font-bold">{fmt(it.price)}</span></span>
-                          {it.discount > 0 && <span>Giảm giá: {fmt(it.discount)}</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center text-gray-600 font-medium">{it.unit}</td>
+                    <td className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <input 
+                          type="number"
+                          value={it.return_quantity}
+                          onChange={(e) => handleQuantityChange(it.id, e.target.value)}
+                          className="w-16 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
+                        />
+                        <span className="text-gray-400 font-medium">/ {it.max_quantity}</span>
+                      </div>
+                      {it.return_quantity < it.max_quantity && (
+                        <div 
+                          className="text-[10px] text-primary hover:underline cursor-pointer mt-1 font-bold text-center"
+                          onClick={() => handleSetMax(it.id)}
+                        >
+                          Trả hết
                         </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-6">
-                      <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-1">Đã mua</span>
-                        <span className="text-sm font-bold text-gray-700">{maxQty}</span>
-                      </div>
-                      
-                      <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-primary uppercase tracking-wider font-bold mb-1">SL Trả</span>
-                        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden h-8">
-                          <button 
-                            className="px-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold border-r border-gray-300 cursor-pointer h-full"
-                            onClick={() => handleQtyChange(it.id, maxQty, Math.max(0, returnQty - 1))}
-                          >-</button>
-                          <input 
-                            type="text" 
-                            className="w-12 text-center text-sm font-bold text-gray-800 outline-none h-full"
-                            value={returnQty}
-                            onChange={(e) => handleQtyChange(it.id, maxQty, e.target.value)}
-                          />
-                          <button 
-                            className="px-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold border-l border-gray-300 cursor-pointer h-full"
-                            onClick={() => handleQtyChange(it.id, maxQty, Math.min(maxQty, returnQty + 1))}
-                          >+</button>
-                        </div>
-                      </div>
-                      
-                      <button 
-                        onClick={() => handleSetMax(it.id, maxQty)}
-                        className="text-xs font-bold text-primary hover:text-blue-700 bg-blue-50 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors"
-                      >
-                        Trả hết
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="mt-6">
-              <label className="block text-sm font-bold text-gray-700 mb-2">Ghi chú trả hàng</label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Lý do khách trả hàng..."
-                className="w-full h-24 p-3 text-sm border border-gray-300 rounded-xl bg-white outline-none focus:border-primary resize-none shadow-sm"
-              />
-            </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <input 
+                        type="text"
+                        value={fmt(it.return_price)}
+                        onChange={(e) => handlePriceChange(it.id, e.target.value)}
+                        className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
+                      />
+                    </td>
+                    <td className="py-3 px-4 text-right font-extrabold text-primary text-sm">
+                      {fmt(it.return_quantity * it.return_price)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Right Side: Summary */}
-        <div className="w-80 bg-gray-50 flex flex-col shrink-0">
-          <div className="p-5 flex-1 flex flex-col gap-6">
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2">Thông tin thanh toán</h3>
-              
-              <div className="space-y-3 text-sm font-medium">
-                <div className="flex justify-between text-gray-600">
-                  <span>Tổng giá gốc hàng mua</span>
-                  <span className="font-bold text-gray-900">{fmt(order.total)}</span>
+        {/* Right Panel Section */}
+        <div className="w-[380px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-lg z-10 shrink-0 overflow-y-auto">
+          <div className="space-y-5">
+            {/* Date */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 font-bold text-sm text-gray-700">Người lập: Admin</div>
+              <input 
+                type="datetime-local" 
+                value={returnDate} 
+                onChange={(e) => setReturnDate(e.target.value)}
+                className="w-36 py-2 px-2 bg-gray-50 border border-gray-300 rounded-xl text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-sm"
+              />
+            </div>
+
+            {/* Customer Info */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Khách hàng</label>
+              <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-sm text-gray-800">{customer?.name || 'Khách lẻ'}</span>
+                  <span className="text-xs text-gray-500 font-medium">{customer?.phone || ''}</span>
                 </div>
-                
-                <div className="flex justify-between text-gray-600">
-                  <span>Tổng tiền hàng trả</span>
-                  <span className="font-bold text-gray-900">{fmt(totalReturnAmount)}</span>
-                </div>
-                
-                <div className="flex justify-between text-gray-600">
-                  <span>Phí trả hàng</span>
-                  <span className="font-bold text-gray-900">0</span>
-                </div>
-                
-                <div className="pt-3 border-t border-gray-200 border-dashed flex justify-between items-center mt-2">
-                  <span className="font-bold text-gray-800 text-base">Cần trả khách</span>
-                  <span className="font-extrabold text-primary text-xl">{fmt(totalReturnAmount)}</span>
-                </div>
+                <User size={20} className="text-gray-400" />
               </div>
             </div>
+
+            {/* Return Code */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Mã trả hàng</label>
+              <input 
+                type="text" 
+                disabled 
+                placeholder="Mã phiếu tự động" 
+                className="w-full py-2 px-3.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1 block">Trạng thái</label>
+              <div className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 py-1.5 px-3.5 rounded-xl inline-block shadow-sm">
+                Đã trả hàng
+              </div>
+            </div>
+
+            <hr className="border-gray-100 my-2" />
+
+            {/* Financial Summary */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600 font-bold">Tổng tiền hàng trả</span>
+                <span className="font-extrabold text-gray-900 text-sm">{fmt(totalReturnGoods)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600 font-bold">Phí trả hàng</span>
+                <input 
+                  type="text" 
+                  value={discountStr === '0' ? '' : discountStr}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setDiscountStr(val === '' ? '0' : fmt(Number(val)));
+                  }}
+                  placeholder="0"
+                  className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
+                <span className="text-gray-800 font-extrabold">Cần trả khách</span>
+                <span className="font-extrabold text-primary text-base">{fmt(customerMustReceive)}</span>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex flex-col">
+                  <span className="text-gray-800 font-extrabold">Tiền đã trả khách (F8)</span>
+                  <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
+                </div>
+                <input 
+                  type="text" 
+                  value={paidAmountStr === '' ? fmt(customerMustReceive) : paidAmountStr}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
+                  }}
+                  className="w-32 py-2 px-3 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
+                <span className="text- font-bold">Tính vào công nợ</span>
+                <span className="font-extrabold text-gray-900 text-sm">{fmt(debtCalculation)}</span>
+              </div>
+            </div>
+
+            {/* Note */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Ghi chú</label>
+              <textarea 
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder="Lý do trả hàng..." 
+                className="w-full p-3.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary shadow-inner resize-none font-medium"
+              />
+            </div>
           </div>
-          
-          <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+
+          {/* Bottom Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-4">
             <button 
-              onClick={handleSubmit}
-              className="w-full py-3.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold text-base shadow-lg shadow-primary/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              disabled={saving}
+              onClick={handleSaveReturn}
+              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
             >
-              HOÀN TẤT TRẢ HÀNG
+              {saving ? 'Đang xử lý...' : 'Hoàn thành trả hàng'}
             </button>
           </div>
         </div>
