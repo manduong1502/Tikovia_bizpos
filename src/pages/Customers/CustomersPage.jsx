@@ -601,14 +601,14 @@ export default function CustomersPage() {
                         {ordersList.map((o, i) => (
                           <tr key={i} className="hover:bg-blue-50/20 transition-colors">
                             <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer">{o.order_code || o.code}</td>
-                            <td className="py-3 px-4 text-gray-500">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                            <td className="py-3 px-4 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
                             <td className="py-3 px-4 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
                             <td className="py-3 px-4 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
                             <td className="py-3 px-4 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
                             <td className="py-3 px-4 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
                             <td className="py-3 px-4 text-center">
-                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700`}>
-                                Hoàn thành
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                {o.status === 'CANCELLED' ? 'Đã hủy' : 'Hoàn thành'}
                               </span>
                             </td>
                           </tr>
