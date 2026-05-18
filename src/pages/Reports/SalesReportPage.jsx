@@ -196,7 +196,7 @@ export default function SalesReportPage() {
     <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
       
       {/* ─── SIDEBAR FILTERS (Left Card) ─── */}
-      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] lg:sticky lg:top-[75px] custom-scrollbar z-20">
+      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 z-20">
         
         {/* "Xuất tất cả" button matching screenshot */}
         {viewType === 'Báo cáo' && (
@@ -405,11 +405,11 @@ export default function SalesReportPage() {
 
                   {/* Wednesday */}
                   <div className="flex flex-col items-center gap-2 group w-12">
-                    <span className="text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">{fmt(totalNetSum)}</span>
+                    <span className="text-[11px] font-extrabold text-primary">{fmt(totalNetSum)}</span>
                     {/* Active dynamic Blue Bar matching user screenshot */}
                     <div 
                       className="w-8 bg-primary hover:bg-[#1D4ED8] rounded-t-sm transition-all shadow-md group-hover:scale-y-105 origin-bottom" 
-                      style={{ height: `${Math.min(100, (totalNetSum / 500000) * 100)}%`, minHeight: '4px' }}
+                      style={{ height: `${Math.max(4, Math.min(240, (totalNetSum / 500000) * 240))}px` }}
                     />
                     <span className="text-[11px] font-extrabold text-primary">09:00</span>
                   </div>

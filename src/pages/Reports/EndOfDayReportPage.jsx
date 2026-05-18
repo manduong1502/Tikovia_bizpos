@@ -316,7 +316,7 @@ export default function EndOfDayReportPage() {
     <div className="flex flex-col lg:flex-row gap-5 p-1.5 sm:p-6 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
       
       {/* ─── SIDEBAR FILTERS (Left Card) ─── */}
-      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 overflow-y-auto max-h-[calc(100vh-140px)] lg:sticky lg:top-[75px] custom-scrollbar z-20">
+      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex flex-col gap-5 z-20">
         <h2 className="text-[15px] font-extrabold text-gray-800 border-b border-gray-100 pb-3">Báo cáo cuối ngày</h2>
 
         {/* Kiểu hiển thị */}
