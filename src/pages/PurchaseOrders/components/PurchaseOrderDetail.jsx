@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Printer, Copy, Save, XCircle, Search } from 'lucide-react';
+import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
