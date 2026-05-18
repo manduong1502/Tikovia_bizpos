@@ -15,6 +15,7 @@ const CustomersPage = lazy(() => import('./pages/Customers/CustomersPage'));
 const CashbookPage = lazy(() => import('./pages/Cashbook/CashbookPage'));
 const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
 const EndOfDayReportPage = lazy(() => import('./pages/Reports/EndOfDayReportPage'));
+const SalesReportPage = lazy(() => import('./pages/Reports/SalesReportPage'));
 const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
 const SuppliersPage = lazy(() => import('./pages/Suppliers/SuppliersPage'));
 const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
@@ -115,7 +116,7 @@ function App() {
           <Route path="/cashbook" element={<Suspense fallback={<PageLoader />}><CashbookPage /></Suspense>} />
 
           <Route path="/reports/end-of-day" element={<Suspense fallback={<PageLoader />}><EndOfDayReportPage /></Suspense>} />
-          <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Bán hàng" icon="📈" /></Suspense>} />
+          <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><SalesReportPage /></Suspense>} />
           <Route path="/reports/products" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Hàng hóa" icon="📦" /></Suspense>} />
           <Route path="/reports/customers" element={<Suspense fallback={<PageLoader />}><PlaceholderPage title="Báo cáo: Khách hàng" icon="👥" /></Suspense>} />
 
