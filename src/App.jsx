@@ -29,6 +29,9 @@ const CreatePurchaseOrderPage = lazy(() => import('./pages/PurchaseOrders/Create
 const PurchaseReturnsPage = lazy(() => import('./pages/PurchaseReturns/PurchaseReturnsPage'));
 const CreatePurchaseReturnPage = lazy(() => import('./pages/PurchaseReturns/CreatePurchaseReturnPage'));
 
+const ReturnsPage = lazy(() => import('./pages/Returns/ReturnsPage'));
+const ReturnOrderPage = lazy(() => import('./pages/Returns/ReturnOrderPage'));
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center h-[40vh]">
@@ -111,6 +114,9 @@ function App() {
           <Route path="/purchase-orders/create" element={<Suspense fallback={<PageLoader />}><CreatePurchaseOrderPage /></Suspense>} />
           <Route path="/purchase-returns" element={<Suspense fallback={<PageLoader />}><PurchaseReturnsPage /></Suspense>} />
           <Route path="/purchase-returns/create" element={<Suspense fallback={<PageLoader />}><CreatePurchaseReturnPage /></Suspense>} />
+
+          <Route path="/returns" element={<Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense>} />
+          <Route path="/returns/new/:orderId" element={<Suspense fallback={<PageLoader />}><ReturnOrderPage /></Suspense>} />
 
           <Route path="/invoices" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />
 

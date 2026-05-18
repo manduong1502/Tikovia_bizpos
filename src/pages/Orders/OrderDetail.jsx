@@ -43,11 +43,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
 
   const handleReturn = async () => {
     if (o.status === 'cancelled') return toast.error('Không thể trả hàng');
-    const reason = prompt('Lý do trả hàng:');
-    if (!reason) return;
-    try { await orderAPI.return(o.id, { reason }); toast.success('Trả hàng thành công'); onReload(); onClose(); } catch {
-      toast.success('Trả hàng thành công'); onReload(); onClose();
-    }
+    navigate(`/returns/new/${o.id}`);
   };
 
   const handlePrint = () => {

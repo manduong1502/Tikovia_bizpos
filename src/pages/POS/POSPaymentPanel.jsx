@@ -71,16 +71,6 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
 
     try {
-      // If editing, cancel old order first
-      if (isEditMode) {
-        try {
-          const { orderAPI } = await import('../../services/api');
-          await orderAPI.cancel(currentInvoice._editOrderId);
-        } catch (e) {
-          console.warn('Could not cancel old order:', e);
-        }
-      }
-
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
         items: cart.map(i => ({
@@ -95,11 +85,17 @@ export default function POSPaymentPanel({ forceShow = false }) {
         note: currentInvoice.note || null
       };
 
-      const res = await api.post('/orders', orderData);
-      const newOrder = res.data?.data || res.data;
+      let newOrder;
+      if (isEditMode) {
+        const res = await api.put(`/orders/${currentInvoice._editOrderId}`, orderData);
+        newOrder = res.data?.data || res.data;
+      } else {
+        const res = await api.post('/orders', orderData);
+        newOrder = res.data?.data || res.data;
+      }
       
       toast.success(isEditMode 
-        ? `Cập nhật hóa đơn thành công! (${currentInvoice._editOrderCode} → ${newOrder?.code || ''})` 
+        ? `Cập nhật hóa đơn thành công! (${currentInvoice._editOrderCode})` 
         : `Tạo đơn hàng thành công! ${isDebt ? `(Ghi nợ: ${new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))})` : ''}`
       );
       
