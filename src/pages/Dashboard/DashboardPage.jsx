@@ -18,16 +18,16 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get('/dashboard');
+        const res = await api.get(`/dashboard?timeProd=${encodeURIComponent(filterProd)}&timeCust=${encodeURIComponent(filterCust)}`);
         setData(res.data);
       } catch (e) {
-        setData({ today_revenue: 0, today_orders: 0, today_returns: 0, monthly_revenue: 0, prev_month_revenue: 0, daily_revenues: [], top_products: [], top_customers: [], recent_orders: [] });
+        setData({ todayStats: { revenue: 0, orders: 0, returns: 0 }, overview: {}, monthly_revenue: 0, prev_month_revenue: 0, daily_revenues: [], top_products: [], top_customers: [], recentOrders: [] });
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, []);
+  }, [filterProd, filterCust]);
 
   if (loading) {
     return (
@@ -139,7 +139,11 @@ export default function DashboardPage() {
               <Dropdown
                 value={filterProd}
                 options={[
+                  { value: 'Hôm nay', label: 'Hôm nay' },
+                  { value: 'Hôm qua', label: 'Hôm qua' },
+                  { value: '7 ngày qua', label: '7 ngày qua' },
                   { value: 'Tháng này', label: 'Tháng này' },
+                  { value: 'Tháng trước', label: 'Tháng trước' },
                 ]}
                 onChange={setFilterProd}
               />
@@ -171,7 +175,11 @@ export default function DashboardPage() {
               <Dropdown
                 value={filterCust}
                 options={[
+                  { value: 'Hôm nay', label: 'Hôm nay' },
+                  { value: 'Hôm qua', label: 'Hôm qua' },
+                  { value: '7 ngày qua', label: '7 ngày qua' },
                   { value: 'Tháng này', label: 'Tháng này' },
+                  { value: 'Tháng trước', label: 'Tháng trước' },
                 ]}
                 onChange={setFilterCust}
               />
@@ -199,26 +207,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Right Panel */}
-      <div className="flex flex-col gap-4">
-        {/* Quick cards */}
-        <div className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all group">
-          <div className="w-12 h-12 bg-blue-50 group-hover:bg-primary rounded-xl flex items-center justify-center text-primary group-hover:text-white transition-colors"><QrCode size={22} /></div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">Thanh toán</div>
-            <div className="text-xs text-gray-500 mt-0.5">Cài đặt QR ting ting miễn phí</div>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 group-hover:text-primary transition-colors" />
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md hover:border-green-500/20 transition-all group">
-          <div className="w-12 h-12 bg-green-50 group-hover:bg-green-500 rounded-xl flex items-center justify-center text-green-600 group-hover:text-white transition-colors"><PlusCircle size={22} /></div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold text-gray-800 group-hover:text-green-600 transition-colors">Vay vốn</div>
-            <div className="text-xs text-gray-500 mt-0.5">Tăng tốc kinh doanh đón Tết 2026</div>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 group-hover:text-green-600 transition-colors" />
-        </div>
-
+      <div className="flex flex-col gap-4 min-h-[600px]">
         {/* Recent Activities */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 flex-1 flex flex-col">
           <h3 className="text-base font-bold text-gray-800 mb-5">Hoạt động gần đây</h3>

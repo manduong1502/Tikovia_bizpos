@@ -97,58 +97,6 @@ export default function FilterSidebar({
         />
       </div>
 
-      <hr className="border-gray-100" />
-
-      {/* Vị trí */}
-      <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Vị trí</span>
-        <input
-          className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium text-gray-700 focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none shadow-sm bg-white"
-          placeholder="Chọn vị trí"
-          value={filters.location || ''}
-          onChange={(e) => onFilterChange({ location: e.target.value })}
-        />
-      </div>
-
-      <hr className="border-gray-100" />
-
-      {/* Loại hàng */}
-      <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại hàng</span>
-        <Dropdown
-          value={productType}
-          options={PRODUCT_TYPES}
-          onChange={(v) => onFilterChange({ productType: v })}
-        />
-      </div>
-
-      <hr className="border-gray-100" />
-
-      {/* Bán trực tiếp */}
-      <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Bán trực tiếp</span>
-        <div className="flex gap-2">
-          {[
-            { value: '', label: 'Tất cả' },
-            { value: 'yes', label: 'Có' },
-            { value: 'no', label: 'Không' },
-          ].map(tag => (
-            <button
-              type="button"
-              key={tag.value}
-              onClick={() => onFilterChange({ directSale: tag.value })}
-              className={`px-3 py-1.5 text-xs rounded-lg border font-bold transition-all cursor-pointer ${
-                filters.directSale === tag.value ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50'
-              }`}
-            >
-              {tag.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <hr className="border-gray-100" />
-
       {/* Trạng thái */}
       <div>
         <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>

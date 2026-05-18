@@ -719,13 +719,6 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </div>
-
-                <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
-                  <Settings size={18} />
-                </button>
-                <button className="hidden sm:flex p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer items-center justify-center">
-                  <HelpCircle size={18} />
-                </button>
               </div>
             </>
           )}
@@ -755,7 +748,7 @@ export default function ProductsPage() {
 
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full">
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-230px)] custom-scrollbar max-w-full w-full">
+          <div className="overflow-x-auto max-w-full w-full">
             <table className="w-full text-sm min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
