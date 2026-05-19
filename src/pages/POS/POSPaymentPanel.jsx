@@ -128,8 +128,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
           .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
           .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
           @media print {
-            @page { margin: 0; size: 80mm auto; }
-            body { margin: 0; padding: 0; width: 80mm; }
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
             .inv-wrap { padding-top: 5mm; }
           }
         </style>
@@ -166,16 +166,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
             <tbody>
               ${cart.map(i => {
                 const itemTotal = (i.price - (i.discount || 0)) * i.quantity;
-                return \`
+                return `
                 <tr>
-                  <td>\${i.product.name}</td>
-                  <td style="text-align: center;">\${i.quantity}</td>
-                  <td style="text-align: center;">\${i.product.unit || 'cái'}</td>
-                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(i.price)}</td>
-                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(i.discount || 0)}</td>
-                  <td style="text-align: right;">\${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
+                  <td>${i.product.name}</td>
+                  <td style="text-align: center;">${i.quantity}</td>
+                  <td style="text-align: center;">${i.product.unit || 'cái'}</td>
+                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(i.price)}</td>
+                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(i.discount || 0)}</td>
+                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
                 </tr>
-                \`;
+                `;
               }).join('')}
             </tbody>
           </table>

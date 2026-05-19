@@ -75,8 +75,8 @@ export default function OrderDetail({ order, onReload, onClose }) {
           .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
           .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
           @media print {
-            @page { margin: 0; size: 80mm auto; }
-            body { margin: 0; padding: 0; width: 80mm; }
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
             .inv-wrap { padding-top: 5mm; }
           }
         </style>
