@@ -111,18 +111,17 @@ export default function POSPaymentPanel({ forceShow = false }) {
         <style>
           .inv-wrap { width: 75mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding-top: 10px; }
           .inv-logo-container { text-align: center; margin-bottom: 5px; }
-          .inv-logo-img { height: 60px; object-fit: contain; }
-          .inv-company-name { text-align: center; font-size: 13px; font-weight: bold; margin: 5px 0 2px; text-transform: uppercase; }
+          .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
           .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
           .inv-stk { text-align: center; font-size: 11px; font-weight: bold; margin: 2px 0; }
           .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
           .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
           .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
           .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
-          .inv-table th, .inv-table td { border: 1px solid #000; padding: 4px 2px; }
+          .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
           .inv-table th { font-weight: bold; text-align: center; }
           .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
-          .inv-summary td { padding: 3px 0; }
+          .inv-summary td { padding: 3px 0; border: none !important; }
           .inv-summary .label { text-align: right; padding-right: 15px; }
           .inv-summary .value { text-align: right; width: 70px; }
           .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
@@ -137,8 +136,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
           <div class="inv-logo-container">
             <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
           </div>
-          <div class="inv-company-name">CÔNG TY TNHH THƯƠNG MẠI<br/>VÀ DỊCH VỤ TIKOVIA</div>
-          <div class="inv-info">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+          <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
           <div class="inv-info">Điện Thoại: 0796.637.194</div>
           <div class="inv-stk">STK : 8282688686</div>
           <div class="inv-stk">Ngân hàng: TMCP Quân Đội (MB<br/>Bank)</div>
