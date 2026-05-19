@@ -109,83 +109,89 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       const invoiceHTML = `
         <style>
-          .inv-wrap { width: 100%; max-width: 800px; margin: 0 auto; font-family: 'Inter', Arial, sans-serif; color: #000; line-height: 1.5; padding: 20px; box-sizing: border-box; }
-          .inv-title { font-size: 32px; font-weight: bold; color: #000; margin: 0; letter-spacing: 2px; }
-          .inv-sub { font-size: 11px; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; display: inline-block; padding: 2px 25px; margin-top: 4px; }
-          .inv-company { font-size: 16px; margin: 8px 0; text-transform: uppercase; }
-          .inv-info { font-size: 13px; margin: 3px 0; }
-          .inv-header-text { font-size: 18px; font-weight: bold; text-decoration: underline; margin: 0; }
-          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-          .inv-table th, .inv-table td { padding: 8px 6px; border: 1px solid #000; }
-          .inv-totals { width: 320px; border-collapse: collapse; font-size: 13px; margin-left: auto; }
-          .inv-totals td { padding: 4px 0; text-align: right; }
-          .inv-totals td:first-child { padding-right: 10px; }
+          @page { margin: 0; size: 80mm auto; }
+          body { 
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0 !important; 
+            width: 72mm; /* Printable width of 80mm paper is roughly 72mm */
+            margin-left: auto; 
+            margin-right: auto;
+            color: #000;
+          }
+          .inv-wrap { width: 100%; box-sizing: border-box; padding: 10px 0; }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .text-left { text-align: left; }
+          .font-bold { font-weight: bold; }
+          .inv-company { font-size: 14px; font-weight: bold; margin: 0 0 5px 0; text-transform: uppercase; }
+          .inv-info { font-size: 11px; margin: 2px 0; line-height: 1.4; }
+          .inv-header-text { font-size: 16px; font-weight: bold; text-decoration: underline; margin: 15px 0 5px 0; }
           
-          /* Responsive for Thermal/A6 Narrow Paper */
-          @media print and (max-width: 140mm) {
-            .inv-wrap { padding: 0; }
-            .inv-title { font-size: 22px; }
-            .inv-company { font-size: 13px; }
-            .inv-info { font-size: 11px; }
-            .inv-header-text { font-size: 15px; }
-            .inv-table { font-size: 11px; }
-            .inv-table th, .inv-table td { padding: 4px 2px; }
-            .inv-totals { width: 100%; font-size: 11px; }
-            .hide-on-narrow { display: none !important; }
+          .inv-divider { border-top: 1px dashed #000; margin: 10px 0; }
+          
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; border: none; }
+          .inv-table th { padding: 4px 2px; border: none; border-bottom: 1px dashed #000; font-weight: bold; background: none; }
+          .inv-table td { padding: 4px 2px; border: none; vertical-align: top; background: none; }
+          
+          .inv-item-row { border-bottom: 1px dashed #ccc; }
+          
+          .inv-totals { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+          .inv-totals td { padding: 3px 0; }
+          
+          /* Non-print fallback (in case they view it on desktop first) */
+          @media screen {
+            body { width: 100%; max-width: 400px; padding: 20px !important; margin: 0 auto; background: #f5f5f5; }
+            .inv-wrap { background: #fff; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
           }
         </style>
         <div class="inv-wrap">
           
           <!-- Header -->
-          <div style="text-align: center; margin-bottom: 20px;">
-            <div style="margin-bottom: 10px;">
-              <img src="${window.location.origin}/logovuong.png" alt="TIKOVIA" style="height: 60px; object-fit: contain; margin-bottom: 5px;" />
-            </div>
-            <h2 class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
-            <p class="inv-info">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, P.Hòa Xuân, TP.Đà Nẵng, Việt Nam</p>
-            <p class="inv-info">Điện Thoại : 0796.637.194</p>
-            <p class="inv-info">Chủ TK : <strong style="font-weight: 600;">CÔNG TY TNHH TM VÀ DV TIKOVIA</strong></p>
-            <p class="inv-info">Số TK : <strong style="font-weight: 600;">8282688686 ( MB BANK )</strong></p>
+          <div class="text-center">
+            <img src="${window.location.origin}/logovuong.png" alt="TIKOVIA" style="height: 50px; object-fit: contain; margin-bottom: 5px; filter: grayscale(100%);" />
+            <h2 class="inv-company">CTY TNHH TM&DV TIKOVIA</h2>
+            <p class="inv-info">Thửa 382, TBĐ 38, Quang Châu<br/>Hòa Xuân, Cẩm Lệ, Đà Nẵng</p>
+            <p class="inv-info">ĐT: 0796.637.194</p>
           </div>
 
-          <!-- Invoice Title -->
-          <div style="text-align: center; margin-bottom: 25px;">
+          <div class="text-center">
             <h3 class="inv-header-text">HÓA ĐƠN BÁN HÀNG</h3>
-            <p class="inv-info" style="font-weight: 500;">${orderCode} - ${dateStr}</p>
+            <p class="inv-info font-bold">${orderCode}</p>
+            <p class="inv-info">${dateStr}</p>
           </div>
+
+          <div class="inv-divider"></div>
 
           <!-- Customer Info -->
-          <div style="margin-bottom: 15px;">
-            <p class="inv-info">Khách hàng: ${customer ? customer.name : 'Người mua không cung cấp thông tin'}</p>
-            <p class="inv-info">SĐT: ${customer?.phone || ''}</p>
-            <p class="inv-info">ĐC: ${customer?.address || ''}</p>
+          <div>
+            <p class="inv-info">KH: <span class="font-bold">${customer ? customer.name : 'Khách lẻ'}</span></p>
+            ${customer?.phone ? `<p class="inv-info">SĐT: ${customer.phone}</p>` : ''}
+            ${customer?.address ? `<p class="inv-info">ĐC: ${customer.address}</p>` : ''}
           </div>
+
+          <div class="inv-divider"></div>
 
           <!-- Table -->
           <table class="inv-table">
             <thead>
               <tr>
-                <th style="text-align: left; font-weight: bold;">Mặt hàng</th>
-                <th style="text-align: center; font-weight: bold;">SL</th>
-                <th class="hide-on-narrow" style="text-align: center; font-weight: bold;">ĐVT</th>
-                <th style="text-align: right; font-weight: bold;">Giá</th>
-                <th style="text-align: right; font-weight: bold;">T.Tiền</th>
-                <th class="hide-on-narrow" style="text-align: right; font-weight: bold;">Vat 5%</th>
+                <th class="text-left">Tên hàng</th>
+                <th class="text-center" style="width: 30px;">SL</th>
+                <th class="text-right">Đơn giá</th>
+                <th class="text-right">T.Tiền</th>
               </tr>
             </thead>
             <tbody>
               ${cart.map(i => {
                 const finalPrice = i.price - (i.discount || 0);
                 const itemTotal = finalPrice * i.quantity;
-                const vat = Math.round(itemTotal * 0.05);
                 return `
-                <tr>
-                  <td>${i.product.name}</td>
-                  <td style="text-align: center;">${i.quantity}</td>
-                  <td class="hide-on-narrow" style="text-align: center;">${i.product.unit || 'Cái'}</td>
-                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
-                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
-                  <td class="hide-on-narrow" style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(vat)}</td>
+                <tr class="inv-item-row">
+                  <td class="text-left">${i.product.name}</td>
+                  <td class="text-center">${i.quantity}</td>
+                  <td class="text-right">${new Intl.NumberFormat('vi-VN').format(finalPrice)}</td>
+                  <td class="text-right font-bold">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
                 </tr>
                 `;
               }).join('')}
@@ -193,44 +199,48 @@ export default function POSPaymentPanel({ forceShow = false }) {
           </table>
 
           <!-- Totals -->
-          <div style="margin-bottom: 30px;">
-            <table class="inv-totals">
-              <tbody>
-                <tr>
-                  <td>Tổng đơn hàng:</td>
-                  <td>${new Intl.NumberFormat('vi-VN').format(total)}</td>
-                </tr>
-                <tr>
-                  <td>Nợ cũ:</td>
-                  <td>${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
-                </tr>
-                <tr>
-                  <td>Tổng Nợ:</td>
-                  <td>${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
-                </tr>
-                <tr>
-                  <td>Khách đã trả:</td>
-                  <td>${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
-                </tr>
-                <tr>
-                  <td>Dư nợ sau khi trả:</td>
-                  <td>${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
-                </tr>
-                <tr>
-                  <td style="padding-top: 10px; font-weight: bold;">Chữ ký Khách Hàng :</td>
-                  <td style="padding-top: 10px;"></td>
-                </tr>
-                <tr>
-                  <td style="font-weight: bold;">Ghi chú :</td>
-                  <td style="font-style: italic; color: #444;">${currentInvoice.note || ''}</td>
-                </tr>
-              </tbody>
-            </table>
+          <table class="inv-totals">
+            <tbody>
+              <tr>
+                <td>Tổng tiền hàng:</td>
+                <td class="text-right font-bold">${new Intl.NumberFormat('vi-VN').format(total)}</td>
+              </tr>
+              ${oldDebt > 0 ? `
+              <tr>
+                <td>Nợ cũ:</td>
+                <td class="text-right">${new Intl.NumberFormat('vi-VN').format(oldDebt)}</td>
+              </tr>
+              <tr>
+                <td>Tổng thanh toán:</td>
+                <td class="text-right font-bold">${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td>Khách đã trả:</td>
+                <td class="text-right font-bold">${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
+              </tr>
+              ${remainingDebt > 0 ? `
+              <tr>
+                <td>Còn nợ:</td>
+                <td class="text-right font-bold">${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
+              </tr>
+              ` : ''}
+            </tbody>
+          </table>
+
+          <div class="inv-divider"></div>
+
+          ${currentInvoice.note ? `
+          <div>
+            <p class="inv-info"><span class="font-bold">Ghi chú:</span> ${currentInvoice.note}</p>
           </div>
+          <div class="inv-divider"></div>
+          ` : ''}
 
           <!-- Footer -->
-          <div style="text-align: center; margin-top: 30px; font-style: italic;" class="inv-info">
-            <p>Cảm ơn và hẹn gặp lại!</p>
+          <div class="text-center inv-info" style="margin-top: 15px;">
+            <p>Cảm ơn quý khách và hẹn gặp lại!</p>
+            <p style="font-size: 9px; margin-top: 10px; color: #555;">In bởi Tiko BizPOS</p>
           </div>
 
         </div>
