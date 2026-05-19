@@ -49,7 +49,15 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
             </div>
           </div>
 
-          <Link className={`${navItemBase} ${page === '/invoices' ? navItemActive : ''}`} to="/invoices">Hóa đơn</Link>
+          <div className={`${navItemBase} ${['/invoices', '/returns'].includes(page) ? navItemActive : ''}`}>
+            Đơn hàng
+            <div className={dropdownWrapper}>
+              <div className={`${dropdownBox} flex-col !min-w-[160px] py-1`}>
+                <Link className={dropdownItem} to="/invoices">Hóa đơn</Link>
+                <Link className={dropdownItem} to="/returns">Trả hàng</Link>
+              </div>
+            </div>
+          </div>
 
           <Link className={`${navItemBase} ${page === '/customers' ? navItemActive : ''}`} to="/customers">Khách hàng</Link>
           <Link className={`${navItemBase} ${page === '/cashbook' ? navItemActive : ''}`} to="/cashbook">Sổ quỹ</Link>
@@ -138,13 +146,22 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
                 )}
               </div>
 
-              <Link 
-                to="/invoices" 
-                className={`flex items-center px-3 py-2.5 rounded-xl text-[14px] font-medium no-underline transition-colors ${page === '/invoices' ? 'bg-[#1E3A8A]/10 text-[#1E3A8A] font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Hóa đơn
-              </Link>
+              {/* Đơn hàng */}
+              <div>
+                <button 
+                  onClick={() => toggleSubmenu('orders')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[14px] font-medium bg-transparent border-none cursor-pointer transition-colors ${['/invoices', '/returns'].includes(page) ? 'bg-[#1E3A8A]/10 text-[#1E3A8A] font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <span>Đơn hàng</span>
+                  {mobileSubmenu === 'orders' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                {mobileSubmenu === 'orders' && (
+                  <div className="flex flex-col pl-6 pr-2 py-1 gap-1 border-l-2 border-gray-100 ml-4 my-1">
+                    <Link to="/invoices" className={`py-1.5 text-[13px] no-underline ${page === '/invoices' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Hóa đơn</Link>
+                    <Link to="/returns" className={`py-1.5 text-[13px] no-underline ${page === '/returns' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Trả hàng</Link>
+                  </div>
+                )}
+              </div>
 
               <Link 
                 to="/customers" 
