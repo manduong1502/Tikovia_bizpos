@@ -51,56 +51,108 @@ export default function OrderDetail({ order, onReload, onClose }) {
     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
     const customerName = o.customer_name || 'Khách lẻ';
 
+    const remainingDebt = Math.max(0, o.total - (o.paid_amount || 0));
+    const paidAmount = o.paid_amount || 0;
+
     const invoiceHTML = `
-      <style>
-        .inv-wrap { width: 100%; max-width: 800px; margin: 0 auto; font-family: 'Inter', Arial, sans-serif; color: #000; line-height: 1.5; padding: 20px; box-sizing: border-box; }
-        .inv-company { font-size: 16px; margin: 8px 0; text-transform: uppercase; }
-        .inv-info { font-size: 13px; margin: 3px 0; }
-        .inv-header-text { font-size: 18px; font-weight: bold; text-decoration: underline; margin: 0; }
-        .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-        .inv-table th, .inv-table td { padding: 8px 6px; border: 1px solid #000; }
-        .inv-totals { width: 320px; border-collapse: collapse; font-size: 13px; margin-left: auto; }
-        .inv-totals td { padding: 4px 0; text-align: right; }
-        .inv-totals td:first-child { padding-right: 10px; }
-      </style>
-      <div class="inv-wrap">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</h2>
-          <p class="inv-info">ĐC: Thửa đất số 382, Tờ bản đồ số 38, Thôn Quang Châu, P.Hòa Xuân, TP.Đà Nẵng, Việt Nam</p>
-          <p class="inv-info">Điện Thoại : 0796.637.194</p>
+        <style>
+          .inv-wrap { width: 75mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding-top: 10px; }
+          .inv-logo-container { text-align: center; margin-bottom: 5px; }
+          .inv-logo-img { height: 60px; object-fit: contain; }
+          .inv-company-name { text-align: center; font-size: 13px; font-weight: bold; margin: 5px 0 2px; text-transform: uppercase; }
+          .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
+          .inv-stk { text-align: center; font-size: 11px; font-weight: bold; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+          .inv-table th, .inv-table td { border: 1px solid #000; padding: 4px 2px; }
+          .inv-table th { font-weight: bold; text-align: center; }
+          .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary td { padding: 3px 0; }
+          .inv-summary .label { text-align: right; padding-right: 15px; }
+          .inv-summary .value { text-align: right; width: 70px; }
+          .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
+          @media print {
+            @page { margin: 0; size: 80mm auto; }
+            body { margin: 0; padding: 0; width: 80mm; }
+            .inv-wrap { padding-top: 5mm; }
+          }
+        </style>
+        <div class="inv-wrap">
+          <div class="inv-logo-container">
+            <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
+          </div>
+          <div class="inv-company-name">CÔNG TY TNHH THƯƠNG MẠI<br/>VÀ DỊCH VỤ TIKOVIA</div>
+          <div class="inv-info">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+          <div class="inv-info">Điện Thoại: 0796.637.194</div>
+          <div class="inv-stk">STK : 8282688686</div>
+          <div class="inv-stk">Ngân hàng: TMCP Quân Đội (MB<br/>Bank)</div>
+
+          <div class="inv-title">HÓA ĐƠN BÁN HÀNG</div>
+          <div class="inv-code-date">${o.order_code} - ${dateStr}</div>
+
+          <div class="inv-customer-info">
+            <div>Khách hàng: ${customerName}</div>
+            <div>SĐT: ${o.customer?.phone || ''}</div>
+            <div>ĐC: ${o.customer?.address || ''}</div>
+          </div>
+
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">Mặt hàng</th>
+                <th style="width: 20px;">SL</th>
+                <th style="width: 25px;">ĐVT</th>
+                <th style="text-align: right;">Giá</th>
+                <th style="text-align: right;">CK</th>
+                <th style="text-align: right;">Thành<br/>tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => {
+                const price = Number(it.unit_price || 0) - Number(it.discount || 0);
+                const itemTotal = Number(it.total || price * it.quantity);
+                return `
+                <tr>
+                  <td>${it.product_name || ''}</td>
+                  <td style="text-align: center;">${it.quantity}</td>
+                  <td style="text-align: center;">${it.unit || 'cái'}</td>
+                  <td style="text-align: right;">${f(it.unit_price || 0)}</td>
+                  <td style="text-align: right;">${f(it.discount || 0)}</td>
+                  <td style="text-align: right;">${f(itemTotal)}</td>
+                </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <table class="inv-summary">
+            <tr>
+              <td class="label">Tổng đơn hàng:</td>
+              <td class="value">${f(o.total)}</td>
+            </tr>
+            <tr>
+              <td class="label">Khách đã trả:</td>
+              <td class="value">${f(paidAmount)}</td>
+            </tr>
+            <tr>
+              <td class="label">Dư nợ sau khi trả:</td>
+              <td class="value">${f(remainingDebt)}</td>
+            </tr>
+          </table>
+
+          <div class="inv-footer">
+            <div>Chữ ký Khách Hàng :</div>
+            <div style="margin-top: 5px;">Ghi chú: ${o.note || ''}</div>
+          </div>
+
+          <div class="inv-thanks">
+            Cảm ơn và hẹn gặp lại!
+          </div>
         </div>
-        <div style="text-align: center; margin-bottom: 25px;">
-          <h3 class="inv-header-text">HÓA ĐƠN BÁN HÀNG</h3>
-          <p class="inv-info" style="font-weight: 500;">${o.order_code} - ${dateStr}</p>
-        </div>
-        <div style="margin-bottom: 15px;">
-          <p class="inv-info">Khách hàng: ${customerName}</p>
-        </div>
-        <table class="inv-table">
-          <thead><tr>
-            <th style="text-align:left;font-weight:bold">Mặt hàng</th>
-            <th style="text-align:center;font-weight:bold">SL</th>
-            <th style="text-align:right;font-weight:bold">Giá</th>
-            <th style="text-align:right;font-weight:bold">T.Tiền</th>
-          </tr></thead>
-          <tbody>
-            ${items.map(it => {
-              const price = Number(it.unit_price || 0) - Number(it.discount || 0);
-              const total = Number(it.total || price * it.quantity);
-              return '<tr><td>' + (it.product_name || '') + '</td><td style="text-align:center">' + it.quantity + '</td><td style="text-align:right">' + f(price) + '</td><td style="text-align:right">' + f(total) + '</td></tr>';
-            }).join('')}
-          </tbody>
-        </table>
-        <div style="margin-bottom: 30px;">
-          <table class="inv-totals"><tbody>
-            <tr><td>Tổng đơn hàng:</td><td>${f(o.total)}</td></tr>
-            <tr><td>Khách đã trả:</td><td>${f(o.paid_amount)}</td></tr>
-            <tr><td style="font-weight:bold">Ghi chú :</td><td style="font-style:italic;color:#444">${o.note || ''}</td></tr>
-          </tbody></table>
-        </div>
-        <div style="text-align:center;margin-top:30px;font-style:italic" class="inv-info"><p>Cảm ơn và hẹn gặp lại!</p></div>
-      </div>
-    `;
+      `;
     printHTML(invoiceHTML, 'In Hóa Đơn');
   };
 
