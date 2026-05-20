@@ -30,6 +30,7 @@ const ALL_COLUMNS = [
   { key: 'supplier_code', label: 'Mã NCC', default: true },
   { key: 'supplier_name', label: 'Nhà cung cấp', default: true },
   { key: 'total', label: 'Cần trả NCC', default: true, align: 'right' },
+  { key: 'paid_amount', label: 'Đã trả NCC', default: true, align: 'right' },
   { key: 'payment_status', label: 'Trạng thái', default: true },
 ];
 
@@ -249,8 +250,8 @@ export default function PurchaseOrdersPage() {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    exportCSV('phieu_nhap_hang', ['Mã nhập hàng', 'Thời gian', 'Mã NCC', 'Nhà cung cấp', 'Cần trả NCC', 'Trạng thái'],
-      filtered.map(o => [o.po_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.supplier_code, o.supplier_name, o.total, PAY_LABEL[o.payment_status] || o.payment_status])
+    exportCSV('phieu_nhap_hang', ['Mã nhập hàng', 'Thời gian', 'Mã NCC', 'Nhà cung cấp', 'Cần trả NCC', 'Đã trả NCC', 'Trạng thái'],
+      filtered.map(o => [o.po_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.supplier_code, o.supplier_name, o.total, o.paid_amount, PAY_LABEL[o.payment_status] || o.payment_status])
     );
   };
 
@@ -492,6 +493,9 @@ export default function PurchaseOrdersPage() {
                       )}
                       {visibleColumns.includes('total') && (
                         <td className="p-4 text-right font-extrabold text-primary">{fmt(o.total)}</td>
+                      )}
+                      {visibleColumns.includes('paid_amount') && (
+                        <td className="p-4 text-right font-extrabold text-emerald-600">{fmt(o.paid_amount)}</td>
                       )}
                       {visibleColumns.includes('payment_status') && (
                         <td className="p-4">

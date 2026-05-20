@@ -16,6 +16,7 @@ export default function CreatePurchaseReturnPage() {
 
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [employees, setEmployees] = useState(['Võ Thành Huy', 'Nguyễn Văn A', 'Trần Thị B']);
   
   const [po, setPo] = useState(null);
@@ -33,6 +34,7 @@ export default function CreatePurchaseReturnPage() {
   
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [poSearch, setPoSearch] = useState('');
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
@@ -46,15 +48,17 @@ export default function CreatePurchaseReturnPage() {
 
   const loadData = async () => {
     try {
-      const [prodRes, suppRes, empRes] = await Promise.all([
+      const [prodRes, suppRes, empRes, poListRes] = await Promise.all([
         productAPI.getAll().catch(() => []),
         supplierAPI.getAllSimple().catch(() => []),
         employeeAPI.getAll().catch(() => []),
+        purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
       ]);
       const prodList = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
       const suppList = Array.isArray(suppRes) ? suppRes : [];
       setProducts(prodList);
       setSuppliers(suppList);
+      setPurchaseOrders(Array.isArray(poListRes) ? poListRes : (poListRes?.data || []));
       if (Array.isArray(empRes) && empRes.length > 0) {
         setEmployees(empRes.map(e => e.name || e.fullName || 'Võ Thành Huy'));
       }
@@ -112,6 +116,41 @@ export default function CreatePurchaseReturnPage() {
       (s.phone || '').toLowerCase().includes(q)
     ).slice(0, 6);
   }, [supplierSearch, suppliers]);
+
+  const filteredPOs = useMemo(() => {
+    if (!poSearch.trim()) return [];
+    const q = poSearch.toLowerCase();
+    return purchaseOrders.filter(o => 
+      (o.po_code || o.code || '').toLowerCase().includes(q)
+    ).slice(0, 6);
+  }, [poSearch, purchaseOrders]);
+
+  const handleSelectPO = async (poItem) => {
+    setPoSearch('');
+    try {
+      const fullPo = await purchaseOrderAPI.getById(poItem.id);
+      if (fullPo) {
+        setPo(fullPo);
+        if (fullPo.supplier) setSelectedSupplier(fullPo.supplier);
+        if (Array.isArray(fullPo.items)) {
+          setItems(fullPo.items.map((it, idx) => ({
+            id: it.productId || it.product?.id || it.id,
+            sku: it.product?.sku || it.product_sku || `SP00${idx+1}`,
+            name: it.product?.name || it.product_name || '',
+            unit: it.product?.unit || it.unit || 'Cái',
+            max_quantity: Number(it.quantity || 0),
+            return_quantity: Number(it.quantity || 0),
+            import_price: Number(it.price || it.unit_price || 0),
+            return_price: Number(it.price || it.unit_price || 0),
+            note: '',
+          })));
+        }
+        toast.success(`Đã chọn phiếu nhập ${fullPo.po_code || fullPo.code}`);
+      }
+    } catch (e) {
+      toast.error('Lỗi khi lấy chi tiết phiếu nhập');
+    }
+  };
 
   const handleAddProduct = (prod) => {
     setItems(prev => {
@@ -618,6 +657,55 @@ export default function CreatePurchaseReturnPage() {
                       >
                         <span className="font-extrabold text-sm text-gray-800">{s.name}</span>
                         <span className="text-xs text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Purchase Order Search */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Chọn phiếu nhập (Tùy chọn)</label>
+              <div className="relative">
+                {po ? (
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 shadow-inner">
+                    <span className="font-extrabold text-sm text-emerald-800">{po.po_code || po.code}</span>
+                    <button 
+                      onClick={() => {
+                        setPo(null);
+                        setItems([]);
+                        setSelectedSupplier(null);
+                      }} 
+                      className="p-1.5 hover:bg-emerald-100 rounded-xl cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
+                      title="Bỏ chọn phiếu nhập"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
+                    <Search size={16} className="text-gray-400 shrink-0" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo mã phiếu nhập..." 
+                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                      value={poSearch}
+                      onChange={e => setPoSearch(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {!po && filteredPOs.length > 0 && (
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
+                    {filteredPOs.map(o => (
+                      <div 
+                        key={o.id}
+                        onClick={() => handleSelectPO(o)}
+                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                      >
+                        <span className="font-extrabold text-sm text-gray-800">{o.po_code || o.code}</span>
+                        <span className="text-xs text-gray-500 font-medium">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''} - {o.supplier_name || o.supplier?.name}</span>
                       </div>
                     ))}
                   </div>
