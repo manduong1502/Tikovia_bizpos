@@ -3,6 +3,7 @@ import { usePOS } from './POSContext';
 import { Search, Plus, X, Menu, User, LogOut, ScanBarcode, ArrowLeftRight, ChevronDown, Lock, Undo2, RotateCcw, Printer } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useNavigate } from 'react-router-dom';
+import ProductModal from '../Products/ProductModal';
 
 export default function POSHeader() {
   const { invoices, activeTabId, addTab, removeTab, switchTab, addToCart, products } = usePOS();
@@ -12,6 +13,7 @@ export default function POSHeader() {
   const user = useAppStore(s => s.user);
   const logout = useAppStore(s => s.logout);
   const navigate = useNavigate();
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
   const handleSearch = (e) => {
     const val = e.target.value;
@@ -79,7 +81,13 @@ export default function POSHeader() {
             }
           }}
         />
-        <span className="shortcut-badge">F3</span>
+        <button 
+          onClick={() => setIsProductModalOpen(true)}
+          className="absolute right-2 top-1.5 p-1 text-primary hover:bg-blue-50 rounded"
+          title="Thêm hàng hóa mới"
+        >
+          <Plus size={16} />
+        </button>
         
         {/* Suggestions Dropdown */}
         {suggestions.length > 0 && (
@@ -146,6 +154,19 @@ export default function POSHeader() {
         <span className="pos-user-display">{user?.fullName || 'Nhân viên'}</span>
         <button className="pos-menu-btn" title="Menu" onClick={handleLogout}><Menu size={22} /></button>
       </div>
+
+      {isProductModalOpen && (
+        <ProductModal 
+          open={isProductModalOpen} 
+          onClose={() => setIsProductModalOpen(false)} 
+          onSaved={(newProduct) => {
+            setIsProductModalOpen(false);
+            if (newProduct) {
+              addToCart(newProduct);
+            }
+          }} 
+        />
+      )}
     </div>
   );
 }

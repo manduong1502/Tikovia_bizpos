@@ -29,7 +29,7 @@ export default function FilterSidebar({
   const { selectedCategories, filterStock, dateExpected, dateCreated, productType, status } = filters;
 
   return (
-    <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
+    <div className="w-64 shrink-0 flex flex-col gap-2 bg-white p-4 pb-[200px] rounded-2xl shadow-sm border border-gray-100 font-sans">
       {/* Nhóm hàng */}
       <div>
         <div className="flex items-center justify-between mb-1.5">

@@ -25,7 +25,7 @@ export default function AdvancedFilter({
         </button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 pb-[200px]">
         {/* Status Filter */}
         <div>
           <span className="text-sm font-extrabold text-gray-800 mb-3 block tracking-tight">Trạng thái phiếu</span>

@@ -19,6 +19,17 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
     note: ''
   });
   const [saving, setSaving] = useState(false);
+  const [existingNames, setExistingNames] = useState([]);
+  const [nameError, setNameError] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      supplierAPI.getAllSimple().then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setExistingNames(list.map(s => s.name.trim().toLowerCase()));
+      }).catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (supplier) {
@@ -72,6 +83,20 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
 
   const f = (key, val) => setForm(p => ({ ...p, [key]: val }));
 
+  const handleNameBlur = () => {
+    const val = form.name.trim().toLowerCase();
+    if (val) {
+      const isDuplicate = existingNames.includes(val) && val !== (supplier?.name || '').trim().toLowerCase();
+      if (isDuplicate) {
+        setNameError('Tên nhà cung cấp đã tồn tại');
+      } else {
+        setNameError('');
+      }
+    } else {
+      setNameError('Vui lòng nhập tên nhà cung cấp');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[640px] max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
@@ -81,7 +106,17 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
         </div>
         <div className="p-6 grid grid-cols-2 gap-4">
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Mã nhà cung cấp</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.code} onChange={e => f('code', e.target.value)} placeholder="Mã tự động nếu để trống" /></div>
-          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Tên nhà cung cấp *</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.name} onChange={e => f('name', e.target.value)} placeholder="Nhập tên nhà cung cấp" /></div>
+          <div>
+            <label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Tên nhà cung cấp *</label>
+            <input 
+              className={`w-full border rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:ring-1 shadow-sm transition-colors ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : 'border-gray-200 focus:border-primary focus:ring-primary'}`} 
+              value={form.name} 
+              onChange={e => { f('name', e.target.value); setNameError(''); }} 
+              onBlur={handleNameBlur}
+              placeholder="Nhập tên nhà cung cấp" 
+            />
+            {nameError && <p className="text-red-500 text-[11px] font-bold mt-1.5">{nameError}</p>}
+          </div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Điện thoại</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.phone} onChange={e => f('phone', e.target.value)} placeholder="Số điện thoại" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Email</label><input type="email" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.email} onChange={e => f('email', e.target.value)} placeholder="Email liên hệ" /></div>
           <div className="col-span-2"><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Địa chỉ</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.address} onChange={e => f('address', e.target.value)} placeholder="Địa chỉ chi tiết" /></div>

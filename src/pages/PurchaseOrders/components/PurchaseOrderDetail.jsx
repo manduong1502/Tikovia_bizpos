@@ -54,6 +54,14 @@ export default function PurchaseOrderDetail({
             >
               Lịch sử thanh toán
             </button>
+            <button
+              onClick={() => setDetailTab('returns')}
+              className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                detailTab === 'returns' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              Lịch sử trả hàng
+            </button>
           </div>
 
           {detailTab === 'info' ? (
@@ -208,10 +216,15 @@ export default function PurchaseOrderDetail({
                 </div>
               </div>
             </div>
-          ) : (
+          ) : detailTab === 'history' ? (
             <div className="py-12 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
               <ClipboardList size={40} className="mb-3 text-gray-300" />
               <p className="text-xs text-gray-400">Các giao dịch thanh toán cho phiếu nhập này sẽ được liệt kê tại đây.</p>
+            </div>
+          ) : (
+            <div className="py-12 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <ClipboardList size={40} className="mb-3 text-gray-300" />
+              <p className="text-xs text-gray-400">Chưa có lịch sử trả hàng cho phiếu nhập này.</p>
             </div>
           )}
         </div>

@@ -15,11 +15,23 @@ const FormField = ({ label, required, children }) => (
 export default function CustomerModal({ open, onClose, customer = null, onSaved }) {
   const isEdit = !!customer;
   const [saving, setSaving] = useState(false);
+  const [existingNames, setExistingNames] = useState([]);
+  const [nameError, setNameError] = useState('');
+
   const [form, setForm] = useState({
     name: '', code: '', phone: '', email: '', address: '', note: '',
     customerType: 'Cá nhân', branch: 'Chi nhánh trung tâm',
     totalDebt: 0, totalSpent: 0, isActive: true,
   });
+
+  useEffect(() => {
+    if (open) {
+      customerAPI.getAllSimple().then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setExistingNames(list.map(c => c.name.trim().toLowerCase()));
+      }).catch(() => {});
+    }
+  }, [open]);
 
   useEffect(() => {
     if (customer) {
@@ -46,6 +58,20 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   }, [customer, open]);
 
   const u = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleNameBlur = () => {
+    const val = form.name.trim().toLowerCase();
+    if (val) {
+      const isDuplicate = existingNames.includes(val) && val !== (customer?.name || '').trim().toLowerCase();
+      if (isDuplicate) {
+        setNameError('Tên khách hàng đã tồn tại');
+      } else {
+        setNameError('');
+      }
+    } else {
+      setNameError('Vui lòng nhập tên khách hàng');
+    }
+  };
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên khách hàng'); return; }
@@ -83,12 +109,26 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     <input type={type} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" value={form[key]} onChange={e => u(key, e.target.value)} placeholder={placeholder} />
   );
 
+  const nameInput = (
+    <div>
+      <input 
+        type="text" 
+        className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none transition-colors font-medium text-gray-800 ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary/30'}`} 
+        value={form.name} 
+        onChange={e => { u('name', e.target.value); setNameError(''); }} 
+        onBlur={handleNameBlur}
+        placeholder="Nhập tên khách hàng" 
+      />
+      {nameError && <p className="text-red-500 text-[11px] font-bold mt-1.5">{nameError}</p>}
+    </div>
+  );
+
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="lg"
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 font-sans">
-          <FormField label="Tên khách hàng" required>{inp('name', 'Nhập tên khách hàng')}</FormField>
+          <FormField label="Tên khách hàng" required>{nameInput}</FormField>
           <FormField label="Mã khách hàng">{inp('code', 'Mã mặc định')}</FormField>
           <FormField label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</FormField>
           <FormField label="Email">{inp('email', 'email@gmail.com', 'email')}</FormField>

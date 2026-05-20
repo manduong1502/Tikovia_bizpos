@@ -35,6 +35,8 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   const [suppliers, setSuppliers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('info'); // info | desc
+  const [existingNames, setExistingNames] = useState([]);
+  const [nameError, setNameError] = useState('');
   
   const [form, setForm] = useState({
     name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
@@ -67,6 +69,13 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
       }).catch(() => {});
       brandAPI.getAll().then(b => setBrands(Array.isArray(b) ? b : [])).catch(() => {});
       supplierAPI.getAll().then(s => setSuppliers(Array.isArray(s) ? s : (s?.data || []))).catch(() => {});
+      productAPI.getAllSimple ? productAPI.getAllSimple().then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setExistingNames(list.map(p => p.name.trim().toLowerCase()));
+      }).catch(() => {}) : productAPI.getAll().then(res => {
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setExistingNames(list.map(p => p.name.trim().toLowerCase()));
+      }).catch(() => {});
     }
   }, [open]);
 
@@ -104,6 +113,20 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
+  const handleNameBlur = () => {
+    const val = form.name.trim().toLowerCase();
+    if (val) {
+      const isDuplicate = existingNames.includes(val) && val !== (product?.name || '').trim().toLowerCase();
+      if (isDuplicate) {
+        setNameError('Tên hàng hóa đã tồn tại');
+      } else {
+        setNameError('');
+      }
+    } else {
+      setNameError('Vui lòng nhập tên hàng hóa');
+    }
+  };
+
   const handleSave = async (createAnother = false) => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên hàng'); return; }
     
@@ -122,14 +145,15 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         weight: form.weight ? Number(form.weight) : null,
       };
       
+      let createdOrUpdatedProduct = null;
       if (isEdit) {
-        await productAPI.update(product.id, data);
+        createdOrUpdatedProduct = await productAPI.update(product.id, data);
         toast.success('Cập nhật sản phẩm thành công');
       } else {
-        await productAPI.create(data);
+        createdOrUpdatedProduct = await productAPI.create(data);
         toast.success('Tạo sản phẩm thành công');
       }
-      onSaved?.();
+      onSaved?.(createdOrUpdatedProduct);
       
       if (createAnother && !isEdit) {
         setForm({ ...form, name: '', sku: '', image: '' }); // Reset some fields
@@ -254,7 +278,14 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                     </div>
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Tên hàng <span className="text-red-500">*</span></label>
-                      <input className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" value={form.name} onChange={e => update('name', e.target.value)} placeholder="Bắt buộc" />
+                      <input 
+                        className={`w-full border rounded px-3 py-2 text-[14px] outline-none transition-colors ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`} 
+                        value={form.name} 
+                        onChange={e => { update('name', e.target.value); setNameError(''); }} 
+                        onBlur={handleNameBlur}
+                        placeholder="Bắt buộc" 
+                      />
+                      {nameError && <p className="text-red-500 text-[11px] font-bold mt-1.5">{nameError}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
