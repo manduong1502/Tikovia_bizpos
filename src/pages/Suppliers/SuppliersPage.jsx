@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { exportCSV } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
 import ExportDebtModal from './ExportDebtModal';
 import AdjustDebtModal from './AdjustDebtModal';
@@ -613,12 +615,27 @@ export default function SuppliersPage() {
 
     const statsList = Object.values(itemStats).filter(it => it.qty > 0 || it.amount > 0);
 
-    const supProducts = products.filter(p => 
-      p.supplierId === supId || 
-      p.supplier_id === supId || 
-      p.supplier?.id === supId || 
-      p.supplier?.code === supCode
-    ) || [];
+    // Derive product list from purchase order items (products table doesn't have supplierId)
+    const productMap = {};
+    supPOs.forEach(po => {
+      po.items?.forEach(it => {
+        const sku = it.product_sku || it.product?.sku || 'N/A';
+        const productId = it.productId || it.product_id || it.product?.id;
+        const key = productId || sku;
+        if (!productMap[key]) {
+          // Find matching product from full product list for price/stock
+          const fullProduct = products.find(p => p.id === productId || p.sku === sku);
+          productMap[key] = {
+            sku: sku,
+            name: it.product_name || it.product?.name || 'N/A',
+            cost_price: fullProduct?.cost_price || fullProduct?.costPrice || it.unit_price || it.price || 0,
+            sell_price: fullProduct?.sell_price || fullProduct?.sellPrice || 0,
+            stock: fullProduct?.stock || fullProduct?.stock_quantity || 0,
+          };
+        }
+      });
+    });
+    const supProducts = Object.values(productMap);
     const items = supProducts.filter(p => {
       if (detailSearchSku && !(p.sku || '').toLowerCase().includes(detailSearchSku.toLowerCase())) return false;
       if (detailSearchName && !(p.name || '').toLowerCase().includes(detailSearchName.toLowerCase())) return false;
