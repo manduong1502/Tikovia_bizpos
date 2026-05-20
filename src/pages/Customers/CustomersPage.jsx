@@ -38,6 +38,14 @@ export default function CustomersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
   const [expandedId, setExpandedId] = useState(null);
@@ -182,10 +190,8 @@ export default function CustomersPage() {
     XLSX.writeFile(wb, 'MauFileKhachHang.xlsx');
   };
 
-  // Filter states
   const [filterGroup, setFilterGroup] = useState('');
   const [filterDate, setFilterDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
-  const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [filterType, setFilterType] = useState('Tất cả');
   const [filterGender, setFilterGender] = useState('Tất cả');
   const [filterBirthdayDate, setFilterBirthdayDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
@@ -270,12 +276,6 @@ export default function CustomersPage() {
         if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
       }
 
-      // 3.3. Người tạo
-      if (filterCreatedBy) {
-        const qCreated = filterCreatedBy.trim().toLowerCase();
-        if (!(c.createdBy || '').toLowerCase().includes(qCreated)) return false;
-      }
-
       // 3.4. Loại khách hàng (Tất cả, Cá nhân, Công ty)
       if (filterType !== 'Tất cả') {
         const type = c.customerType || 'Cá nhân';
@@ -357,7 +357,7 @@ export default function CustomersPage() {
     });
   }, [
     customers, search, searchEmail, searchAddress, searchNote, searchOrderCode,
-    filterGroup, filterDate, filterCreatedBy, filterType, filterGender, filterBirthdayDate,
+    filterGroup, filterDate, filterType, filterGender, filterBirthdayDate,
     filterLastTransactionDate, filterTotalFrom, filterTotalTo, filterSpentTime, filterDebtFrom, filterDebtTo,
     filterDeliveryArea, filterStatus
   ]);
@@ -367,15 +367,38 @@ export default function CustomersPage() {
     setCurrentPage(1);
   }, [
     search, searchEmail, searchAddress, searchNote, searchOrderCode,
-    filterGroup, filterDate, filterCreatedBy, filterType, filterGender, filterBirthdayDate,
+    filterGroup, filterDate, filterType, filterGender, filterBirthdayDate,
     filterLastTransactionDate, filterTotalFrom, filterTotalTo, filterSpentTime, filterDebtFrom, filterDebtTo,
     filterDeliveryArea, filterStatus
   ]);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filtered;
+    return [...filtered].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (sortConfig.key === 'debt') {
+        valA = Number(a.debt || a.totalDebt || 0);
+        valB = Number(b.debt || b.totalDebt || 0);
+      } else if (sortConfig.key === 'total_spent') {
+        valA = Number(a.total_spent || a.totalSpent || 0);
+        valB = Number(b.total_spent || b.totalSpent || 0);
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortConfig]);
+
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const toggleAll = (checked) => {
     if (checked) setSelectedIds(new Set(paginated.map(c => c.id)));
@@ -932,19 +955,7 @@ export default function CustomersPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Người tạo */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
-            <input 
-              type="text" 
-              placeholder="Chọn người tạo" 
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white font-medium text-gray-800" 
-              value={filterCreatedBy} 
-              onChange={e => setFilterCreatedBy(e.target.value)} 
-            />
-          </div>
 
-          <hr className="border-gray-100" />
 
           {/* Loại khách hàng */}
           <div>
@@ -1127,8 +1138,23 @@ export default function CustomersPage() {
                 {ALL_COLUMNS.map(c => {
                   if (!visibleColumns.includes(c.key)) return null;
                   return (
-                    <th key={c.key} className={`p-4 font-extrabold ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
-                      {c.label}
+                    <th 
+                      key={c.key} 
+                      className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      onClick={() => handleSort(c.key)}
+                    >
+                      <div className={`flex items-center gap-1.5 inline-flex ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
+                        <span>{c.label}</span>
+                        {sortConfig.key === c.key ? (
+                          <span className="text-primary text-[10px] leading-none flex flex-col">
+                            {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 text-[10px] leading-none flex flex-col opacity-0 group-hover:opacity-100">
+                            ▲
+                          </span>
+                        )}
+                      </div>
                     </th>
                   );
                 })}

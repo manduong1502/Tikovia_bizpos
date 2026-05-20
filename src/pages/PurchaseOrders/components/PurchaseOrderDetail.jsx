@@ -67,7 +67,6 @@ export default function PurchaseOrderDetail({
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-8 text-sm">
-                  <div><span className="text-gray-500">Người tạo:</span> <span className="font-bold text-gray-800">{o.created_by}</span></div>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">Người nhập:</span>
                     <select

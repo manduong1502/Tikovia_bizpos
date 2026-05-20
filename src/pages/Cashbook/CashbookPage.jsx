@@ -17,7 +17,6 @@ const ALL_COLUMNS = [
   { key: 'code', label: 'Mã phiếu' },
   { key: 'time', label: 'Thời gian' },
   { key: 'createdAt', label: 'Thời gian tạo' },
-  { key: 'createdBy', label: 'Người tạo' },
   { key: 'employee', label: 'Nhân viên' },
   { key: 'branch', label: 'Chi nhánh' },
   { key: 'category', label: 'Loại thu chi' },
@@ -115,6 +114,14 @@ export default function CashbookPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
 
   const reload = useCallback(async () => {
     try {
@@ -247,11 +254,34 @@ export default function CashbookPage() {
     .filter(e => (e.type === 'EXPENSE' || e.type === 'chi' || e.type === 'out') && e.status !== 'cancelled')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filteredEntries;
+    return [...filteredEntries].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (['amount'].includes(sortConfig.key)) {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else if (sortConfig.key === 'time') {
+        valA = new Date(a.createdAt || 0).getTime();
+        valB = new Date(b.createdAt || 0).getTime();
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredEntries, sortConfig]);
+
   // Paginated Slices
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredEntries.slice(start, start + pageSize);
-  }, [filteredEntries, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const handleExport = () => {
     exportCSV(
@@ -261,7 +291,6 @@ export default function CashbookPage() {
         { key: 'category', label: 'Loại thu chi' },
         { key: 'partnerName', label: 'Người nộp/nhận' },
         { key: 'amount', label: 'Giá trị' },
-        { key: 'createdBy', label: 'Người tạo' },
         { key: 'status_lbl', label: 'Trạng thái' },
       ],
       filteredEntries.map(e => ({
@@ -627,19 +656,6 @@ export default function CashbookPage() {
 
             <hr className="border-gray-100 my-1" />
 
-            {/* 7. Người tạo */}
-            <div>
-              <span className="text-[13px] font-extrabold text-gray-800 mb-2.5 block">Người tạo</span>
-              <input 
-                type="text" 
-                placeholder="Chọn người tạo" 
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
-                value={creatorQuery}
-                onChange={e => setCreatorQuery(e.target.value)}
-              />
-            </div>
-
-            <hr className="border-gray-100 my-1" />
 
             {/* 8. Đối tượng nộp/nhận */}
             <div>
@@ -684,24 +700,91 @@ export default function CashbookPage() {
                 <tr>
                   <th className="px-4 py-4 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
                   <th className="px-3 py-4 w-10"></th>
-                  {visibleColumns.includes('code') && <th className="px-6 py-4 text-left">Mã phiếu</th>}
-                  {visibleColumns.includes('time') && <th className="px-6 py-4 text-left">Thời gian</th>}
-                  {visibleColumns.includes('createdAt') && <th className="px-6 py-4 text-left">Thời gian tạo</th>}
-                  {visibleColumns.includes('createdBy') && <th className="px-6 py-4 text-left">Người tạo</th>}
-                  {visibleColumns.includes('employee') && <th className="px-6 py-4 text-left">Nhân viên</th>}
-                  {visibleColumns.includes('branch') && <th className="px-6 py-4 text-left">Chi nhánh</th>}
-                  {visibleColumns.includes('category') && <th className="px-6 py-4 text-left">Loại thu chi</th>}
-                  {visibleColumns.includes('bankAccount') && <th className="px-6 py-4 text-left">Tên tài khoản</th>}
-                  {visibleColumns.includes('bankAccountNumber') && <th className="px-6 py-4 text-left">Số tài khoản</th>}
-                  {visibleColumns.includes('partnerCode') && <th className="px-6 py-4 text-left">Mã người nộp/nhận</th>}
-                  {visibleColumns.includes('partnerName') && <th className="px-6 py-4 text-left">Người nộp/nhận</th>}
-                  {visibleColumns.includes('partnerPhone') && <th className="px-6 py-4 text-left">Số điện thoại</th>}
-                  {visibleColumns.includes('partnerAddress') && <th className="px-6 py-4 text-left">Địa chỉ</th>}
-                  {visibleColumns.includes('amount') && <th className="px-6 py-4 text-right">Giá trị</th>}
-                  {visibleColumns.includes('transferContent') && <th className="px-6 py-4 text-left">Nội dung chuyển khoản</th>}
-                  {visibleColumns.includes('note') && <th className="px-6 py-4 text-left">Ghi chú</th>}
-                  {visibleColumns.includes('paymentMethod') && <th className="px-6 py-4 text-left">Loại sổ quỹ</th>}
-                  {visibleColumns.includes('status') && <th className="px-6 py-4 text-left">Trạng thái</th>}
+                  {visibleColumns.includes('code') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
+                      <div className="flex items-center gap-1.5">Mã phiếu {sortConfig.key === 'code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('time') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('time')}>
+                      <div className="flex items-center gap-1.5">Thời gian {sortConfig.key === 'time' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('createdAt') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('createdAt')}>
+                      <div className="flex items-center gap-1.5">Thời gian tạo {sortConfig.key === 'createdAt' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('employee') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('employee')}>
+                      <div className="flex items-center gap-1.5">Nhân viên {sortConfig.key === 'employee' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('branch') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('branch')}>
+                      <div className="flex items-center gap-1.5">Chi nhánh {sortConfig.key === 'branch' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('category') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('category')}>
+                      <div className="flex items-center gap-1.5">Loại thu chi {sortConfig.key === 'category' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('bankAccount') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccount')}>
+                      <div className="flex items-center gap-1.5">Tên tài khoản {sortConfig.key === 'bankAccount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('bankAccountNumber') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccountNumber')}>
+                      <div className="flex items-center gap-1.5">Số tài khoản {sortConfig.key === 'bankAccountNumber' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('partnerCode') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerCode')}>
+                      <div className="flex items-center gap-1.5">Mã người nộp/nhận {sortConfig.key === 'partnerCode' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('partnerName') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerName')}>
+                      <div className="flex items-center gap-1.5">Người nộp/nhận {sortConfig.key === 'partnerName' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('partnerPhone') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerPhone')}>
+                      <div className="flex items-center gap-1.5">Số điện thoại {sortConfig.key === 'partnerPhone' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('partnerAddress') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerAddress')}>
+                      <div className="flex items-center gap-1.5">Địa chỉ {sortConfig.key === 'partnerAddress' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('amount') && (
+                    <th className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('amount')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Giá trị {sortConfig.key === 'amount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('transferContent') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('transferContent')}>
+                      <div className="flex items-center gap-1.5">Nội dung chuyển khoản {sortConfig.key === 'transferContent' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('note') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('note')}>
+                      <div className="flex items-center gap-1.5">Ghi chú {sortConfig.key === 'note' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('paymentMethod') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paymentMethod')}>
+                      <div className="flex items-center gap-1.5">Loại sổ quỹ {sortConfig.key === 'paymentMethod' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('status') && (
+                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                      <div className="flex items-center gap-1.5">Trạng thái {sortConfig.key === 'status' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -744,11 +827,6 @@ export default function CashbookPage() {
                         {visibleColumns.includes('createdAt') && (
                           <td className="px-6 py-4 text-[13px] text-gray-500">
                             {e.createdAt ? new Date(e.createdAt).toLocaleDateString('vi-VN') : ''}
-                          </td>
-                        )}
-                        {visibleColumns.includes('createdBy') && (
-                          <td className="px-6 py-4 text-xs font-bold text-gray-700">
-                            {e.createdBy}
                           </td>
                         )}
                         {visibleColumns.includes('employee') && (
@@ -855,10 +933,6 @@ export default function CashbookPage() {
                                   </div>
 
                                   <p className="text-xs font-bold text-gray-400 mt-1">
-                                    Người tạo: <span className="text-gray-600 font-extrabold">{e.createdBy || 'Admin'}</span>
-                                    <span className="mx-2">|</span>
-                                    Người {isInc ? 'thu' : 'chi'}: <span className="text-gray-600 font-extrabold">{e.createdBy || 'Admin'}</span>
-                                    <span className="mx-2">|</span>
                                     Thời gian: <span className="text-gray-600 font-extrabold">{e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : ''}</span>
                                   </p>
 

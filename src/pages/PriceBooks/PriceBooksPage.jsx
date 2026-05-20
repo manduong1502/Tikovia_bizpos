@@ -81,6 +81,14 @@ export default function PriceBooksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
   const [pricebookName, setPricebookName] = useState('');
@@ -205,10 +213,30 @@ export default function PriceBooksPage() {
     setCurrentPage(1);
   }, [search, searchSku, searchName, filters]);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filteredProducts;
+    return [...filteredProducts].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (['costPrice', 'lastImportPrice', 'sellPrice'].includes(sortConfig.key)) {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredProducts, sortConfig]);
+
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredProducts.slice(start, start + pageSize);
-  }, [filteredProducts, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const shownColumns = ALL_COLUMNS.filter((c) => visibleColumns[c.key]);
 
@@ -503,9 +531,21 @@ export default function PriceBooksPage() {
                 {shownColumns.map((col) => (
                   <th
                     key={col.key}
-                    className={`p-4 font-extrabold ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    onClick={() => handleSort(col.key)}
                   >
-                    {col.label}
+                    <div className={`flex items-center gap-1.5 inline-flex ${col.align === 'right' ? 'flex-row-reverse' : ''}`}>
+                      <span>{col.label}</span>
+                      {sortConfig.key === col.key ? (
+                        <span className="text-primary text-[10px] leading-none flex flex-col">
+                          {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 text-[10px] leading-none flex flex-col opacity-0 group-hover:opacity-100">
+                          ▲
+                        </span>
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -688,7 +728,7 @@ export default function PriceBooksPage() {
 
         {activeTab === 'scope' && (
           <div className="space-y-4 text-sm text-gray-700 font-medium">
-            <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">Phạm vi áp dụng theo chi nhánh / nhóm khách hàng / người tạo giao dịch.</div>
+            <div className="border border-gray-200 rounded-2xl p-5 bg-white shadow-sm">Phạm vi áp dụng theo chi nhánh / nhóm khách hàng.</div>
           </div>
         )}
       </Modal>

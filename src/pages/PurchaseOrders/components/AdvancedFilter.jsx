@@ -4,7 +4,6 @@ import DateFilter from '../../../components/ui/DateFilter';
 export default function AdvancedFilter({
   filters,
   setFilters,
-  createdByOptions,
   receivedByOptions,
   statusOptions,
   sidebarOpen,
@@ -59,21 +58,7 @@ export default function AdvancedFilter({
           />
         </div>
 
-        <hr className="border-gray-100" />
 
-        {/* Created By Filter */}
-        <div>
-          <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
-          <select
-            className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
-            value={filters.createdBy}
-            onChange={e => setFilters(prev => ({ ...prev, createdBy: e.target.value }))}
-          >
-            {createdByOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-
-        <hr className="border-gray-100" />
 
         {/* Received By Filter */}
         <div>

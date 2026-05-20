@@ -182,7 +182,6 @@ export default function ReturnOrderPage() {
         <div className="pos-toolbar-right">
           <button className="pos-toolbar-btn"><Printer size={18} /></button>
           <button className="pos-toolbar-btn"><Eye size={18} /></button>
-          <span className="pos-user-display">Quản trị viên</span>
         </div>
       </div>
 
@@ -257,8 +256,7 @@ export default function ReturnOrderPage() {
         {/* ─── Right Panel ─── */}
         <div className="pos-right-panel narrow">
           <div className="pos-payment-panel">
-            <div className="pos-seller-info">
-              <span className="pos-seller-name"><User size={14} className="inline mr-1"/> Admin</span>
+            <div className="pos-seller-info" style={{ justifyContent: 'flex-end' }}>
               <span className="pos-seller-date">{new Date(returnDate).toLocaleString('vi-VN')}</span>
             </div>
             

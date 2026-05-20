@@ -40,7 +40,7 @@ export default function EndOfDayReportPage() {
 
   const [customerQuery, setCustomerQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [selectedCreator, setSelectedCreator] = useState('');
+
   const [paymentMethod, setPaymentMethod] = useState('');
   const [salesMethod, setSalesMethod] = useState('');
 
@@ -98,10 +98,7 @@ export default function EndOfDayReportPage() {
     if (selectedEmployee && tx.createdBy !== selectedEmployee) {
       return false;
     }
-    // Filter creator
-    if (selectedCreator && tx.createdBy !== selectedCreator) {
-      return false;
-    }
+
     // Filter payment method
     if (paymentMethod && tx.paymentMethod !== paymentMethod) {
       return false;
@@ -471,20 +468,6 @@ export default function EndOfDayReportPage() {
           </select>
         </div>
 
-        {/* Người tạo */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Người tạo</label>
-          <select 
-            value={selectedCreator} 
-            onChange={(e) => setSelectedCreator(e.target.value)}
-            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
-          >
-            <option value="">Chọn người tạo</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.name}>{emp.name}</option>
-            ))}
-          </select>
-        </div>
 
         {/* Phương thức thanh toán */}
         <div className="flex flex-col gap-1.5">

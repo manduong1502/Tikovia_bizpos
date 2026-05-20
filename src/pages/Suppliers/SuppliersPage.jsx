@@ -24,7 +24,6 @@ const ALL_COLUMNS = [
   { key: 'net_purchase', label: 'Tổng mua trừ trả hàng', default: false, align: 'right' },
   { key: 'isActive', label: 'Trạng thái', default: false },
   { key: 'note', label: 'Ghi chú', default: false },
-  { key: 'created_by', label: 'Người tạo', default: false },
   { key: 'created_at', label: 'Ngày tạo', default: false },
 ];
 
@@ -43,6 +42,14 @@ export default function SuppliersPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -341,10 +348,30 @@ export default function SuppliersPage() {
     setCurrentPage(1);
   }, [search, searchCode, searchName, searchPhone, filterGroup, filterDebt]);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filtered;
+    return [...filtered].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (['debt', 'total_spent', 'net_purchase'].includes(sortConfig.key)) {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortConfig]);
+
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const toggleAll = (checked) => {
     if (checked) setSelectedIds(new Set(paginated.map(s => s.id)));
@@ -904,8 +931,23 @@ export default function SuppliersPage() {
                 {ALL_COLUMNS.map(c => {
                   if (!visibleColumns.includes(c.key)) return null;
                   return (
-                    <th key={c.key} className={`p-4 font-extrabold ${c.align === 'right' ? 'text-right' : 'text-left'}`}>
-                      {c.label}
+                    <th 
+                      key={c.key} 
+                      className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      onClick={() => handleSort(c.key)}
+                    >
+                      <div className={`flex items-center gap-1.5 inline-flex ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
+                        <span>{c.label}</span>
+                        {sortConfig.key === c.key ? (
+                          <span className="text-primary text-[10px] leading-none flex flex-col">
+                            {sortConfig.direction === 'asc' ? '▲' : '▼'}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 text-[10px] leading-none flex flex-col opacity-0 group-hover:opacity-100">
+                            ▲
+                          </span>
+                        )}
+                      </div>
                     </th>
                   );
                 })}
@@ -970,9 +1012,6 @@ export default function SuppliersPage() {
                       )}
                       {visibleColumns.includes('note') && (
                         <td className="p-4 text-gray-600 max-w-xs truncate">{s.note || '---'}</td>
-                      )}
-                      {visibleColumns.includes('created_by') && (
-                        <td className="p-4 text-gray-700 font-medium">{s.created_by || 'Admin'}</td>
                       )}
                       {visibleColumns.includes('created_at') && (
                         <td className="p-4 text-gray-500 text-xs">{s.created_at || '2026-05-15'}</td>

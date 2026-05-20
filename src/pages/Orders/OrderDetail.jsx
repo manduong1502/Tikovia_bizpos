@@ -189,9 +189,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
             </div>
 
             {/* Meta Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-4 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
-              <div><span className="text-gray-500 font-medium block mb-1">Người tạo</span><span className="font-bold text-gray-800 truncate block">{o.user_name || 'Admin'}</span></div>
-              <div><span className="text-gray-500 font-medium block mb-1">Người bán</span><span className="font-bold text-gray-800 truncate block">{o.user_name || 'Admin'}</span></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-4 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
               <div><span className="text-gray-500 font-medium block mb-1">Ngày bán</span><span className="font-bold text-gray-800 truncate block">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Kênh bán</span><span className="font-bold text-gray-800 truncate block">Bán trực tiếp</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Bảng giá</span><span className="font-bold text-gray-800 truncate block">Bảng giá chung</span></div>

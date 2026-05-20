@@ -17,7 +17,6 @@ const STATUS_LABEL = { COMPLETED: 'Đã trả', PENDING: 'Phiếu tạm', CANCEL
 
 const ALL_COLUMNS = [
   { key: 'code', label: 'Mã trả hàng', default: true },
-  { key: 'user_name', label: 'Người bán', default: true },
   { key: 'created_at', label: 'Thời gian', default: true },
   { key: 'customer_code', label: 'Mã KH', default: true },
   { key: 'customer_name', label: 'Khách hàng', default: true },
@@ -65,6 +64,14 @@ export default function ReturnsPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
@@ -131,10 +138,30 @@ export default function ReturnsPage() {
 
   useEffect(() => { setCurrentPage(1); }, [search, searchCode, searchCustomer, filters]);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filtered;
+    return [...filtered].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (['total', 'must_pay_customer', 'paid_customer'].includes(sortConfig.key)) {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortConfig]);
+
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const handleToggleStatus = (st) => {
     setFilters(prev => {
@@ -148,7 +175,6 @@ export default function ReturnsPage() {
   const handleExport = () => {
     const data = filtered.map(o => ({
       'Mã trả hàng': o.code,
-      'Người bán': o.user_name,
       'Thời gian': o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
       'Mã KH': o.customer_code,
       'Khách hàng': o.customer_name,
@@ -210,7 +236,6 @@ export default function ReturnsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-8 text-sm">
-                  <div><span className="text-gray-500">Người bán:</span> <span className="font-bold text-gray-800">{o.user_name}</span></div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <span className="text-gray-500">Ngày trả:</span>
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
@@ -444,19 +469,6 @@ export default function ReturnsPage() {
               buttonClassName="w-full justify-between border-gray-200 text-xs py-2 bg-gray-50 hover:bg-gray-100 font-bold text-gray-700 rounded-xl shadow-sm"
             />
           </div>
-
-          <hr className="border-gray-100 my-2" />
-
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
-            <input 
-              type="text"
-              placeholder="Chọn người tạo"
-              value={filters.createdBy}
-              onChange={(e) => setFilters(prev => ({ ...prev, createdBy: e.target.value }))}
-              className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-sm placeholder-gray-400"
-            />
-          </div>
         </div>
 
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
@@ -473,9 +485,46 @@ export default function ReturnsPage() {
                     />
                   </th>
                   <th className="py-3.5 px-4 w-12 text-center"></th>
-                  {ALL_COLUMNS.map(c => visibleColumns.includes(c.key) && (
-                    <th key={c.key} className={`py-3.5 px-4 ${c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : ''}`}>{c.label}</th>
-                  ))}
+                  {visibleColumns.includes('code') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
+                      <div className="flex items-center gap-1.5">Mã trả hàng {sortConfig.key === 'code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('created_at') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('created_at')}>
+                      <div className="flex items-center gap-1.5">Thời gian {sortConfig.key === 'created_at' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('customer_code') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('customer_code')}>
+                      <div className="flex items-center gap-1.5">Mã KH {sortConfig.key === 'customer_code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('customer_name') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('customer_name')}>
+                      <div className="flex items-center gap-1.5">Khách hàng {sortConfig.key === 'customer_name' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('total') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('total')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Tổng tiền hàng {sortConfig.key === 'total' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('must_pay_customer') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('must_pay_customer')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Cần trả khách {sortConfig.key === 'must_pay_customer' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('paid_customer') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paid_customer')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Đã trả khách {sortConfig.key === 'paid_customer' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('status') && (
+                    <th className="py-3.5 px-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                      <div className="flex items-center gap-1.5 justify-center">Trạng thái {sortConfig.key === 'status' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-50">
@@ -501,8 +550,7 @@ export default function ReturnsPage() {
                         <td className="py-3.5 px-4 text-center" onClick={(e) => toggleStar(o.id, e)}>
                           <Star size={16} className={`mx-auto cursor-pointer transition-transform hover:scale-110 ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-gray-400'}`} />
                         </td>
-                        {visibleColumns.includes('code') && <td className="py-3.5 px-4 font-extrabold text-primary">{o.code}</td>}
-                        {visibleColumns.includes('user_name') && <td className="py-3.5 px-4 font-medium text-gray-800">{o.user_name}</td>}
+                        {visibleColumns.includes('code') && <td className="py-3.5 px-4 font-bold text-primary">{o.code}</td>}
                         {visibleColumns.includes('created_at') && (
                           <td className="py-3.5 px-4 font-medium text-gray-600">
                             {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}

@@ -68,6 +68,14 @@ export default function PurchaseReturnsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
+  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+    setSortConfig({ key, direction });
+  };
+
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
   const [expandedId, setExpandedId] = useState(null);
@@ -142,7 +150,6 @@ export default function PurchaseReturnsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-8 text-sm">
-                  <div><span className="text-gray-500">Người tạo:</span> <span className="font-bold text-gray-800">{o.createdBy || 'Võ Thành Huy'}</span></div>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">Người trả:</span>
                     <select
@@ -331,10 +338,30 @@ export default function PurchaseReturnsPage() {
     setCurrentPage(1);
   }, [search, searchCode, searchSupplier, filters]);
 
+  const sortedFiltered = useMemo(() => {
+    if (!sortConfig.key) return filtered;
+    return [...filtered].sort((a, b) => {
+      let valA = a[sortConfig.key];
+      let valB = b[sortConfig.key];
+
+      if (['total', 'discount', 'supplier_must_pay', 'paid'].includes(sortConfig.key)) {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortConfig]);
+
   const paginated = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, currentPage, pageSize]);
+    return sortedFiltered.slice(start, start + pageSize);
+  }, [sortedFiltered, currentPage, pageSize]);
 
   const handleToggleStatus = (st) => {
     setFilters(prev => {
@@ -541,19 +568,6 @@ export default function PurchaseReturnsPage() {
 
           <hr className="border-gray-100 my-2" />
 
-          {/* Created By Filter */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người tạo</span>
-            <input 
-              type="text"
-              placeholder="Chọn người tạo"
-              value={filters.createdBy}
-              onChange={(e) => setFilters(prev => ({ ...prev, createdBy: e.target.value }))}
-              className="w-full py-2 px-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-sm placeholder-gray-400"
-            />
-          </div>
-
-          <hr className="border-gray-100 my-2" />
 
           {/* Received By Filter */}
           <div>
@@ -583,14 +597,46 @@ export default function PurchaseReturnsPage() {
                     />
                   </th>
                   <th className="py-3.5 px-4 w-12 text-center"></th>
-                  {visibleColumns.includes('code') && <th className="py-3.5 px-4">Mã trả hàng nhập</th>}
-                  {visibleColumns.includes('created_at') && <th className="py-3.5 px-4">Thời gian</th>}
-                  {visibleColumns.includes('supplier_name') && <th className="py-3.5 px-4">Nhà cung cấp</th>}
-                  {visibleColumns.includes('total') && <th className="py-3.5 px-4 text-right">Tổng tiền hàng</th>}
-                  {visibleColumns.includes('discount') && <th className="py-3.5 px-4 text-right">Giảm giá</th>}
-                  {visibleColumns.includes('supplier_must_pay') && <th className="py-3.5 px-4 text-right">NCC cần trả</th>}
-                  {visibleColumns.includes('paid') && <th className="py-3.5 px-4 text-right">NCC đã trả</th>}
-                  {visibleColumns.includes('status') && <th className="py-3.5 px-4 text-center">Trạng thái</th>}
+                  {visibleColumns.includes('code') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
+                      <div className="flex items-center gap-1.5">Mã trả hàng nhập {sortConfig.key === 'code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('created_at') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('created_at')}>
+                      <div className="flex items-center gap-1.5">Thời gian {sortConfig.key === 'created_at' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('supplier_name') && (
+                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_name')}>
+                      <div className="flex items-center gap-1.5">Nhà cung cấp {sortConfig.key === 'supplier_name' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('total') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('total')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Tổng tiền hàng {sortConfig.key === 'total' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('discount') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('discount')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">Giảm giá {sortConfig.key === 'discount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('supplier_must_pay') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_must_pay')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">NCC cần trả {sortConfig.key === 'supplier_must_pay' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('paid') && (
+                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paid')}>
+                      <div className="flex items-center gap-1.5 flex-row-reverse">NCC đã trả {sortConfig.key === 'paid' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
+                  {visibleColumns.includes('status') && (
+                    <th className="py-3.5 px-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                      <div className="flex items-center gap-1.5 justify-center">Trạng thái {sortConfig.key === 'status' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-50">
