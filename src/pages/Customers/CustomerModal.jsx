@@ -75,6 +75,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên khách hàng'); return; }
+    if (nameError) { toast.error('Tên khách hàng đã tồn tại'); return; }
     setSaving(true);
     try {
       const data = {

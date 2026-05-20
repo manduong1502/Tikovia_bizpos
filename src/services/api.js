@@ -83,9 +83,9 @@ export const productAPI = {
     return raw;
   }).catch(() => ({ data: FALLBACK_PRODUCTS, total: FALLBACK_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/products/${id}`).then(r => r.data).catch(() => FALLBACK_PRODUCTS.find(p => p.id === Number(id))),
-  create: (data) => api.post('/products', data).then(r => r.data),
-  importExcel: (data) => api.post('/products/import', data).then(r => r.data),
-  update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data),
+  create: (data) => api.post('/products', data).then(r => r.data?.data || r.data),
+  importExcel: (data) => api.post('/products/import', data).then(r => r.data?.data || r.data),
+  update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data?.data || r.data),
   delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
 };
 

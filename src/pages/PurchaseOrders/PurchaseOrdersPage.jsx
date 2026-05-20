@@ -289,9 +289,9 @@ export default function PurchaseOrdersPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-4 font-sans max-w-full overflow-x-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
+      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 flex-none z-10 relative">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
           Nhập hàng
         </h1>
@@ -398,7 +398,7 @@ export default function PurchaseOrdersPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative lg:h-[calc(100vh-144px)]">
+      <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
@@ -414,8 +414,8 @@ export default function PurchaseOrdersPage() {
         />
 
         {/* Main Table Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
-          <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
+        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
+          <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
             <table className="w-full text-sm min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">

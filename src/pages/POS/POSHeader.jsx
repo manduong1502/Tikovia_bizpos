@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import ProductModal from '../Products/ProductModal';
 
 export default function POSHeader() {
-  const { invoices, activeTabId, addTab, removeTab, switchTab, addToCart, products } = usePOS();
+  const { invoices, activeTabId, addTab, removeTab, switchTab, addToCart, addProduct, products } = usePOS();
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   
@@ -162,6 +162,7 @@ export default function POSHeader() {
           onSaved={(newProduct) => {
             setIsProductModalOpen(false);
             if (newProduct) {
+              addProduct(newProduct);
               addToCart(newProduct);
             }
           }} 

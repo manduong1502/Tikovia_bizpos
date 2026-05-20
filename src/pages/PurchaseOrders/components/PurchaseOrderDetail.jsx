@@ -217,9 +217,37 @@ export default function PurchaseOrderDetail({
               </div>
             </div>
           ) : detailTab === 'history' ? (
-            <div className="py-12 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <ClipboardList size={40} className="mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">Các giao dịch thanh toán cho phiếu nhập này sẽ được liệt kê tại đây.</p>
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr className="text-left text-gray-600 font-bold uppercase tracking-wide">
+                      <th className="p-3">Mã phiếu chi</th>
+                      <th className="p-3">Thời gian</th>
+                      <th className="p-3">Phương thức</th>
+                      <th className="p-3 text-right">Giá trị</th>
+                      <th className="p-3 text-center">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium">
+                    {(o.paid_amount || 0) > 0 ? (
+                      <tr className="hover:bg-gray-50/50 transition-colors">
+                        <td className="p-3 text-primary font-bold">{`PC${(o.po_code || '').replace('PN', '') || '0001'}`}</td>
+                        <td className="p-3 text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                        <td className="p-3 text-gray-800">{o.payment_method === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt'}</td>
+                        <td className="p-3 text-right font-bold text-gray-900">{fmt(o.paid_amount)}</td>
+                        <td className="p-3 text-center">
+                          <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Hoàn thành</span>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-gray-400">Không có lịch sử thanh toán</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">

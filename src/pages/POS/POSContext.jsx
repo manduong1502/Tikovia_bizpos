@@ -123,10 +123,14 @@ export function POSProvider({ children }) {
   };
 
   // --- Cart Actions ---
+  const addProduct = (newProduct) => {
+    setProducts(prev => [newProduct, ...prev]);
+  };
+
   const addToCart = (product) => {
+    if (!product) return;
     if (product.stock <= 0) {
-      toast.error('Sản phẩm đã hết hàng!');
-      return;
+      toast.error('Sản phẩm đã hết hàng (Tồn: 0)! Vẫn thêm vào giỏ.');
     }
 
     const cart = currentInvoice.cart;
@@ -213,7 +217,8 @@ export function POSProvider({ children }) {
       clearCurrentInvoice,
       togglePaymentMode,
       saleMode,
-      setSaleMode
+      setSaleMode,
+      addProduct
     }}>
       {children}
     </POSContext.Provider>

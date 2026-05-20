@@ -129,6 +129,9 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
 
   const handleSave = async (createAnother = false) => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên hàng'); return; }
+    if (nameError) { toast.error('Tên hàng hóa đã tồn tại'); return; }
+    if (form.costPrice === '' || form.costPrice === null || form.costPrice === undefined) { toast.error('Vui lòng nhập giá vốn'); return; }
+    if (form.sellPrice === '' || form.sellPrice === null || form.sellPrice === undefined) { toast.error('Vui lòng nhập giá bán'); return; }
     
     setSaving(true);
     try {

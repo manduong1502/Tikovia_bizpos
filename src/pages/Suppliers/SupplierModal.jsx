@@ -65,6 +65,7 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên nhà cung cấp'); return; }
+    if (nameError) { toast.error('Tên nhà cung cấp đã tồn tại'); return; }
     setSaving(true);
     try {
       if (supplier) {

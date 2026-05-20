@@ -22,36 +22,82 @@ export default function PortalPopover({ anchorEl, open, onClose, widthMatch = tr
     if (!open || !anchorEl) return;
 
     const updatePosition = () => {
+      if (!popoverRef.current) return;
+      
       const rect = anchorEl.getBoundingClientRect();
+      const popoverRect = popoverRef.current.getBoundingClientRect();
+      
+      // If the popover hasn't fully rendered its content, use a fallback estimated size
+      const contentHeight = popoverRect.height > 50 ? popoverRect.height : 450;
+      const contentWidth = popoverRect.width > 50 ? popoverRect.width : 300;
+
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
-      let top = rect.bottom + 4;
-      let left = rect.left;
-      
-      // If there's very little space below but a lot above, we might want to flip it
-      // But for simplicity, we just stick to bottom unless explicitly needed
-      if (spaceBelow < 250 && spaceAbove > spaceBelow) {
-        // We can't know exact height easily, so we just use bottom for now.
-        // A robust solution uses ResizeObserver on the popover content.
-      }
+      const spaceRight = window.innerWidth - rect.left;
 
-      setStyle({
+      let newStyle = {
         position: 'fixed',
-        top: top,
-        left: left,
         width: widthMatch ? rect.width : 'auto',
         zIndex: 99999,
-      });
+      };
+
+      const PADDING = 10;
+      // Vertical positioning
+      if (spaceBelow < contentHeight) {
+        if (spaceAbove > contentHeight || spaceAbove > spaceBelow) {
+          // Render above the anchor
+          newStyle.bottom = window.innerHeight - rect.top + 4;
+          newStyle.top = 'auto';
+        } else {
+          // Not enough space above or below, align to bottom of screen
+          newStyle.bottom = PADDING;
+          newStyle.top = 'auto';
+        }
+      } else {
+        // Render below the anchor
+        newStyle.top = rect.bottom + 4;
+        newStyle.bottom = 'auto';
+      }
+
+      // Horizontal positioning (only if we don't force widthMatch)
+      if (!widthMatch) {
+        if (spaceRight < contentWidth && rect.right > contentWidth) {
+          // Align right edge of popover with right edge of anchor
+          newStyle.right = window.innerWidth - rect.right;
+          newStyle.left = 'auto';
+        } else {
+          // Default: align left edges
+          newStyle.left = rect.left;
+          newStyle.right = 'auto';
+        }
+      } else {
+        newStyle.left = rect.left;
+        newStyle.right = 'auto';
+      }
+
+      setStyle(newStyle);
     };
 
     updatePosition();
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
 
+    let observer;
+    if (popoverRef.current) {
+      observer = new ResizeObserver(() => {
+        updatePosition();
+      });
+      observer.observe(popoverRef.current);
+    }
+
+    // Force an update shortly after mount to catch any delayed render sizes
+    const timeoutId = setTimeout(updatePosition, 50);
+
     return () => {
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
+      if (observer) observer.disconnect();
+      clearTimeout(timeoutId);
     };
   }, [open, anchorEl, widthMatch]);
 
