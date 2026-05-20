@@ -43,6 +43,10 @@ api.interceptors.response.use(
   }
 );
 
+// ─── Local State Utils ───
+const loadLocalState = (key, def) => { try { const val = localStorage.getItem('TIKO_' + key); return val ? JSON.parse(val) : def; } catch { return def; } };
+const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key, JSON.stringify(val)); } catch {} };
+
 // ─── Products ───
 const FALLBACK_PRODUCTS = [
   { id: 1, sku: 'SP001', name: 'Coca Cola 330ml', barcode: '8935049500100', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 7000, sellPrice: 10000, stock: 200, minStock: 10, maxStock: 500, unit: 'Lon', direct_sale: true, isActive: true, createdAt: '2026-05-15T07:00:00Z', brand: 'Coca Cola', location: 'Kho A', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
@@ -385,9 +389,6 @@ let FALLBACK_SUPPLIERS = [
   { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 0, net_purchase: 12500000, isActive: true, note: 'Nhà cung cấp uy tín', created_by: 'Admin', created_at: '2026-05-15' },
   { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000, isActive: true, note: 'Giao hàng nhanh', created_by: 'Admin', created_at: '2026-05-15' },
 ];
-
-const loadLocalState = (key, def) => { try { const val = localStorage.getItem('TIKO_' + key); return val ? JSON.parse(val) : def; } catch { return def; } };
-const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key, JSON.stringify(val)); } catch {} };
 
 let LOCAL_ADDED_SUPPLIERS = loadLocalState('ADDED_SUPP', []);
 let LOCAL_UPDATED_SUPPLIERS = loadLocalState('UPD_SUPP', {});
