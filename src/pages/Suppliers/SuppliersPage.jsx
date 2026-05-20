@@ -9,9 +9,12 @@ import {
 import * as XLSX from 'xlsx-js-style';
 import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
-import ExportDebtModal from './ExportDebtModal';
-import AdjustDebtModal from './AdjustDebtModal';
 import PaymentModal from './PaymentModal';
+import AdjustDebtModal from './AdjustDebtModal';
+import ExportDebtModal from './ExportDebtModal';
+import PurchaseOrderDetailModal from '../../components/modals/PurchaseOrderDetailModal';
+import PurchaseReturnDetailModal from '../../components/modals/PurchaseReturnDetailModal';
+import PaymentDetailModal from '../../components/modals/PaymentDetailModal';
 import Pagination from '../../components/common/Pagination';
 import { Pen, DollarSign, Percent } from 'lucide-react';
 
@@ -69,6 +72,8 @@ export default function SuppliersPage() {
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportModalSupplier, setExportModalSupplier] = useState(null);
+  
+  const [selectedTx, setSelectedTx] = useState(null);
 
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustModalSupplier, setAdjustModalSupplier] = useState(null);
@@ -990,16 +995,16 @@ export default function SuppliersPage() {
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {transactions.map((tx, idx) => (
                           <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="p-3 font-bold text-primary">{tx.code}</td>
+                            <td className="p-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: s.name })}>{tx.code}</td>
                             <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {tx.typeName}
                               </span>
                             </td>
                             <td className="p-3 text-gray-500">
                               {tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}
                             </td>
-                            <td className={`p-3 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : 'text-red-600'}`}>
+                            <td className={`p-3 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
                               {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
                             </td>
                             <td className="p-3 text-center">
@@ -1092,10 +1097,14 @@ export default function SuppliersPage() {
                         withDebt.reverse();
                         return withDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-3 font-bold text-primary">{tx.code}</td>
+                          <td className="p-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: s.name })}>{tx.code}</td>
                           <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="p-3">{tx.typeName}</td>
-                          <td className="p-3 text-right font-extrabold">{fmt(Math.abs(tx.total))}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {tx.typeName}
+                            </span>
+                          </td>
+                          <td className={`p-3 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.total))}</td>
                           <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}
@@ -1618,6 +1627,26 @@ export default function SuppliersPage() {
           </div>
         </div>
       )}
+      {/* Transaction Detail Modals */}
+      <PurchaseOrderDetailModal 
+        open={!!selectedTx && selectedTx.type === 'import'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+      <PurchaseReturnDetailModal 
+        open={!!selectedTx && selectedTx.type === 'return'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+      <PaymentDetailModal 
+        open={!!selectedTx && selectedTx.type === 'payment'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+
     </div>
   );
 }

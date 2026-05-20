@@ -10,9 +10,11 @@ import { Pen, DollarSign, Percent } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
-import CustomerExportDebtModal from './CustomerExportDebtModal';
-import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
 import CustomerPaymentModal from './CustomerPaymentModal';
+import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
+import CustomerExportDebtModal from './CustomerExportDebtModal';
+import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
+import PaymentDetailModal from '../../components/modals/PaymentDetailModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
 
@@ -69,6 +71,8 @@ export default function CustomersPage() {
   // Customer debt modal states
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportModalCustomer, setExportModalCustomer] = useState(null);
+
+  const [selectedTx, setSelectedTx] = useState(null);
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustModalCustomer, setAdjustModalCustomer] = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -183,7 +187,7 @@ export default function CustomersPage() {
     try {
       const res = await customerAPI.importExcel({ items: importSummary.validItems });
       toast.success(res?.message || 'Import dữ liệu thành công!', { id: tid });
-      setImportSummaryOpen(false);
+      setImportSummaryOpen(true);
       reload();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi khi import dữ liệu', { id: tid });
@@ -482,38 +486,6 @@ export default function CustomersPage() {
     const baseAmt = Number(c.total_spent || c.totalSpent || 0);
     const dVal = Number(c.debt || c.totalDebt || 0);
     
-    const ordersList = (c.orders && c.orders.length > 0) ? c.orders : (baseAmt > 0 ? [
-      {
-        order_code: `HD000${c.id}01`,
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
-        discount: baseAmt * 0.05,
-        total: baseAmt * 0.6,
-        paid: baseAmt * 0.6,
-        branch: 'Chi nhánh trung tâm',
-      },
-      {
-        order_code: `HD000${c.id}02`,
-        created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'completed',
-        discount: 0,
-        total: baseAmt * 0.4,
-        paid: baseAmt * 0.4 - dVal,
-        branch: 'Chi nhánh trung tâm',
-      }
-    ].filter(o => o.total > 0) : []);
-
-    const debtHistory = dVal > 0 ? [
-      {
-        code: `HD000${c.id}02`,
-        date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
-        type: 'Hóa đơn bán lẻ',
-        value: baseAmt * 0.4,
-        adjustment: dVal,
-        balance: dVal,
-      }
-    ] : [];
-
     // Get orders for this customer
     const custId = c.id;
     const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
@@ -670,7 +642,7 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
                     <span className="text-gray-500 font-bold text-[11px] uppercase tracking-wider mb-1">Tổng hóa đơn</span>
-                    <span className="text-lg font-extrabold text-gray-800">{ordersList.length} hóa đơn</span>
+                    <span className="text-lg font-extrabold text-gray-800">{custOrders.length} hóa đơn</span>
                   </div>
                   <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
                     <span className="text-blue-600 font-bold text-[11px] uppercase tracking-wider mb-1">Tổng tiền mua</span>
@@ -678,7 +650,7 @@ export default function CustomersPage() {
                   </div>
                   <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
                     <span className="text-emerald-600 font-bold text-[11px] uppercase tracking-wider mb-1">Khách đã trả</span>
-                    <span className="text-lg font-extrabold text-emerald-600">{fmt(ordersList.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
+                    <span className="text-lg font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
                   </div>
                   <div className="bg-rose-50/40 border border-rose-100 rounded-xl p-4 shadow-sm flex flex-col justify-center">
                     <span className="text-rose-600 font-bold text-[11px] uppercase tracking-wider mb-1">Còn nợ lại</span>
@@ -686,7 +658,7 @@ export default function CustomersPage() {
                   </div>
                 </div>
 
-                {ordersList.length > 0 ? (
+                {custOrders.length > 0 ? (
                   <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
                     <table className="w-full text-xs min-w-[700px] border-collapse">
                       <thead>
@@ -701,9 +673,9 @@ export default function CustomersPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 font-medium">
-                        {ordersList.map((o, i) => (
+                        {custOrders.map((o, i) => (
                           <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                            <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer">{o.order_code || o.code}</td>
+                            <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer" onClick={() => setSelectedTx({ ...o, type: 'Bán hàng', partnerName: c.name })}>{o.order_code || o.code}</td>
                             <td className="py-3 px-4 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
                             <td className="py-3 px-4 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
                             <td className="py-3 px-4 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
@@ -778,9 +750,8 @@ export default function CustomersPage() {
                     <tbody className="divide-y divide-gray-100 font-medium">
                       {transactionsWithDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-3 font-bold text-primary">{tx.code}</td>
+                          <td className="p-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: c.name })}>{tx.code}</td>
                           <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="p-3">{tx.type}</td>
                           <td className="p-3 text-right font-extrabold">{fmt(tx.total)}</td>
                           <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
@@ -1679,6 +1650,20 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+      {/* Transaction Detail Modals */}
+      <SalesOrderDetailModal 
+        open={!!selectedTx && selectedTx.type === 'Bán hàng'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+      <PaymentDetailModal 
+        open={!!selectedTx && selectedTx.type === 'Thanh toán'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+
     </div>
   );
 }
