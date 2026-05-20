@@ -477,38 +477,7 @@ export default function SuppliersPage() {
       return tx.date >= startDate;
     }).sort((a, b) => a.date - b.date);
 
-    const exportData = [];
-    
-    // Header section (Store Info)
-    exportData.push(['vohuy123', '', '', '', '', '', '', '', '', '', '', '']); // Row 1
-    exportData.push(['Địa chỉ', '', '', '', '', '', '', '', '', '', '', '']); // Row 2
-    exportData.push(['Điện thoại', '+84387564952', '', '', '', '', '', '', '', '', '', '']); // Row 3
-    
-    const formatDate = (date) => {
-      const d = new Date(date);
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-    };
-
-    let dateStr = `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
-    if (timeRange === 'all') dateStr = `Toàn thời gian`;
-
-    // Title & Date (Merged)
-    exportData.push(['', '', '', 'Công nợ chi tiết nhà cung cấp', '', '', '', '', '', '', '', '']); // Row 4
-    exportData.push(['', '', '', dateStr, '', '', '', '', '', '', '', '']); // Row 5
-
-    // Calculate totals for header
-    const totalGhiNo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.total : tx.paid), 0);
-    const totalGhiCo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.paid : tx.total), 0);
-    const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
-
-    // Supplier & Debt Summary Info
-    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', 'Nợ đầu kỳ', noDauKy, '', '']); // Row 6
-    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', 'Phát sinh trong', totalGhiNo, totalGhiCo, '']); // Row 7
-    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '', '']); // Row 8
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Row 9
-    
-    // Table Headers
-    const headerRowIndex = 9; // 0-based, so Row 10
+    // 1. Build headers to know total columns
     const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
     if (columns.detail) {
        if (columns.unit) headerRow.push('ĐVT');
@@ -521,6 +490,42 @@ export default function SuppliersPage() {
        if (columns.note) headerRow.push('Ghi chú');
     }
     headerRow.push('Ghi nợ', 'Ghi có');
+    const totalCols = headerRow.length;
+
+    const createRow = () => new Array(totalCols).fill('');
+
+    const exportData = [];
+    
+    // Header section (Store Info)
+    let row1 = createRow(); row1[0] = 'vohuy123'; exportData.push(row1);
+    let row2 = createRow(); row2[0] = 'Địa chỉ'; exportData.push(row2);
+    let row3 = createRow(); row3[0] = 'Điện thoại'; row3[1] = '+84387564952'; exportData.push(row3);
+    
+    const formatDate = (date) => {
+      const d = new Date(date);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+
+    let dateStr = `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
+    if (timeRange === 'all') dateStr = `Toàn thời gian`;
+
+    // Title & Date (Merged dynamically later)
+    let row4 = createRow(); row4[0] = 'Công nợ chi tiết nhà cung cấp'; exportData.push(row4);
+    let row5 = createRow(); row5[0] = dateStr; exportData.push(row5);
+
+    // Calculate totals for header
+    const totalGhiNo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.total : tx.paid), 0);
+    const totalGhiCo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.paid : tx.total), 0);
+    const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
+
+    // Supplier & Debt Summary Info
+    let row6 = createRow(); row6[0] = 'Tên NCC'; row6[1] = s.name; row6[totalCols - 3] = 'Nợ đầu kỳ'; row6[totalCols - 2] = noDauKy; exportData.push(row6);
+    let row7 = createRow(); row7[0] = 'Mã NCC'; row7[1] = supCode; row7[totalCols - 3] = 'Phát sinh trong'; row7[totalCols - 2] = totalGhiNo; row7[totalCols - 1] = totalGhiCo; exportData.push(row7);
+    let row8 = createRow(); row8[0] = 'Điện thoại'; row8[1] = s.phone || ''; row8[totalCols - 3] = 'Nợ cuối kỳ'; row8[totalCols - 2] = noCuoiKy; exportData.push(row8);
+    exportData.push(createRow()); // Empty Row 9
+    
+    // Table Headers
+    const headerRowIndex = 9; // 0-based, so Row 10
     exportData.push(headerRow);
     
     transactions.forEach(tx => {
@@ -530,18 +535,12 @@ export default function SuppliersPage() {
       const ghiNo = tx.type === 'Nhập hàng' ? tx.total : 0;
       const ghiCo = tx.type === 'Trả hàng nhà cung cấp' ? tx.total : 0;
 
-      const summaryRow = [txTimeStr, tx.code, tx.type];
-      if (columns.detail) {
-         if (columns.unit) summaryRow.push('');
-         if (columns.quantity) summaryRow.push('');
-         if (columns.price) summaryRow.push('');
-         if (columns.discount) summaryRow.push('');
-         summaryRow.push(''); // VAT
-         if (columns.importPrice) summaryRow.push('');
-         if (columns.total) summaryRow.push('');
-         if (columns.note) summaryRow.push('');
-      }
-      summaryRow.push(ghiNo || '', ghiCo || ''); // use empty string if 0, like Image 1? Or 0. The image shows blank for Ghi có in Row 10.
+      const summaryRow = createRow();
+      summaryRow[0] = txTimeStr;
+      summaryRow[1] = tx.code;
+      summaryRow[2] = tx.type;
+      summaryRow[totalCols - 2] = ghiNo || '';
+      summaryRow[totalCols - 1] = ghiCo || '';
       exportData.push(summaryRow);
 
       // Dòng sản phẩm (Item rows)
@@ -550,17 +549,18 @@ export default function SuppliersPage() {
             const sku = it.product_sku || it.product?.sku || it.sku || '';
             const name = it.product_name || it.product?.name || it.name || '';
             
-            const itemRow = ['', sku, name];
-            if (columns.unit) itemRow.push(it.product?.unit || it.unit || 'Cái');
-            if (columns.quantity) itemRow.push(it.quantity || 0);
-            if (columns.price) itemRow.push(it.price || it.unit_price || 0);
-            if (columns.discount) itemRow.push(it.discount || 0);
-            itemRow.push(0); // VAT
-            if (columns.importPrice) itemRow.push(it.returnPrice || it.price || it.unit_price || 0);
-            if (columns.total) itemRow.push(it.total || ((it.price || it.unit_price || 0) * (it.quantity || 0)));
-            if (columns.note) itemRow.push(it.note || '');
-            itemRow.push('', ''); // Ghi nợ, ghi có empty for items
-            
+            const itemRow = createRow();
+            itemRow[1] = sku;
+            itemRow[2] = name;
+            let colIdx = 3;
+            if (columns.unit) itemRow[colIdx++] = it.product?.unit || it.unit || 'Cái';
+            if (columns.quantity) itemRow[colIdx++] = it.quantity || 0;
+            if (columns.price) itemRow[colIdx++] = it.price || it.unit_price || 0;
+            if (columns.discount) itemRow[colIdx++] = it.discount || 0;
+            itemRow[colIdx++] = 0; // VAT
+            if (columns.importPrice) itemRow[colIdx++] = it.returnPrice || it.price || it.unit_price || 0;
+            if (columns.total) itemRow[colIdx++] = it.total || ((it.price || it.unit_price || 0) * (it.quantity || 0));
+            if (columns.note) itemRow[colIdx++] = it.note || '';
             exportData.push(itemRow);
         });
       }
@@ -570,18 +570,13 @@ export default function SuppliersPage() {
         const payCode = tx.type === 'Nhập hàng' ? `PCPN${tx.code.replace('PN', '')}` : `PTTHN${tx.code.replace('THN', '')}`;
         const payGhiNo = tx.type === 'Trả hàng nhà cung cấp' ? tx.paid : 0;
         const payGhiCo = tx.type === 'Nhập hàng' ? tx.paid : 0;
-        const payRow = [txTimeStr, payCode, 'Thanh toán'];
-        if (columns.detail) {
-           if (columns.unit) payRow.push('');
-           if (columns.quantity) payRow.push('');
-           if (columns.price) payRow.push('');
-           if (columns.discount) payRow.push('');
-           payRow.push(''); // VAT
-           if (columns.importPrice) payRow.push('');
-           if (columns.total) payRow.push('');
-           if (columns.note) payRow.push('');
-        }
-        payRow.push(payGhiNo || '', payGhiCo || '');
+        
+        const payRow = createRow();
+        payRow[0] = txTimeStr;
+        payRow[1] = payCode;
+        payRow[2] = 'Thanh toán';
+        payRow[totalCols - 2] = payGhiNo || '';
+        payRow[totalCols - 1] = payGhiCo || '';
         exportData.push(payRow);
       }
     });
@@ -592,19 +587,30 @@ export default function SuppliersPage() {
     }
 
     // Footer
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
-    const footerDate = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
-    exportData.push(['', '', '', '', '', '', '', '', '', '', footerDate, '']);
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
-    exportData.push(['Nhà cung cấp', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
-    exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
+    exportData.push(createRow());
+    let dateRow = createRow();
+    dateRow[totalCols - 2] = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+    exportData.push(dateRow);
+    exportData.push(createRow());
+    
+    let signRow1 = createRow();
+    signRow1[0] = 'Nhà cung cấp';
+    signRow1[Math.floor(totalCols / 2)] = 'Người lập biểu';
+    signRow1[totalCols - 2] = 'TM Công ty';
+    exportData.push(signRow1);
+
+    let signRow2 = createRow();
+    signRow2[0] = '(Ký, họ tên)';
+    signRow2[Math.floor(totalCols / 2)] = '(Ký, họ tên)';
+    signRow2[totalCols - 2] = '(Ký, họ tên)';
+    exportData.push(signRow2);
 
     const ws = XLSX.utils.aoa_to_sheet(exportData);
     
-    // Set column widths dynamically
-    const autoCols = [
-      { wch: 14 }, { wch: 14 }, { wch: 28 } // Time, Code, Name
-    ];
+    const autoCols = [];
+    autoCols.push({ wch: 14 }); // Thời gian
+    autoCols.push({ wch: 14 }); // Mã
+    autoCols.push({ wch: 28 }); // Diễn giải
     if (columns.detail) {
        if (columns.unit) autoCols.push({ wch: 8 });
        if (columns.quantity) autoCols.push({ wch: 8 });
@@ -617,11 +623,10 @@ export default function SuppliersPage() {
     }
     autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
     
-    // Define merges: Title (D4:H4) and Date (D5:H5)
-    // 0-based: Row 3, Cols 3-7. Row 4, Cols 3-7.
+    // Dynamic merges for Title and Date
     const merges = [
-      { s: { r: 3, c: 3 }, e: { r: 3, c: 7 } },
-      { s: { r: 4, c: 3 }, e: { r: 4, c: 7 } }
+      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
+      { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } }
     ];
 
     applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
