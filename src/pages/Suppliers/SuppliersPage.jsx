@@ -467,28 +467,28 @@ export default function SuppliersPage() {
 
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at || po.createdAt), debtIncrease: po.total, debtDecrease: po.paid_amount
+        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: Number(po.paid_amount || 0)
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at || pr.createdAt), debtIncrease: pr.paid || 0, debtDecrease: pr.total
+        date: new Date(pr.created_at || pr.createdAt), debtIncrease: Number(pr.paid || 0), debtDecrease: Number(pr.total || 0)
       })),
       ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
-        date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? cb.amount : 0, debtDecrease: cb.type === 'EXPENSE' ? cb.amount : 0
+        date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
     const transactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
         code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
-        total: po.total, paid: po.paid_amount, items: po.items || [] 
+        total: Number(po.total || 0), paid: Number(po.paid_amount || 0), items: po.items || [] 
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at || pr.createdAt), 
-        total: pr.total, paid: pr.paid || 0, items: pr.items || [] 
+        total: Number(pr.total || 0), paid: Number(pr.paid || 0), items: pr.items || [] 
       })),
       ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
         code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
-        total: cb.type === 'INCOME' ? cb.amount : cb.type === 'EXPENSE' ? cb.amount : 0, 
+        total: cb.type === 'INCOME' ? Number(cb.amount || 0) : cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, 
         paid: 0, items: [], cashbookType: cb.type
       }))
     ].filter(tx => {

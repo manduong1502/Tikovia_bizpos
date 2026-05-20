@@ -1356,7 +1356,7 @@ export default function CustomersPage() {
               date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: Number(o.paid_amount || o.paid || 0)
             })),
             ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
-              date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? cb.amount : 0, debtDecrease: cb.type === 'INCOME' ? cb.amount : 0
+              date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
             }))
           ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
@@ -1367,7 +1367,7 @@ export default function CustomersPage() {
             })),
             ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
               code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
-              total: cb.type === 'EXPENSE' ? cb.amount : cb.type === 'INCOME' ? cb.amount : 0,
+              total: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : cb.type === 'INCOME' ? Number(cb.amount || 0) : 0,
               paid: 0, items: [], cashbookType: cb.type
             }))
           ].filter(tx => {
