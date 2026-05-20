@@ -516,7 +516,7 @@ export default function CustomersPage() {
         (cb.supplierId === custId || 
         (cb.partnerName && cb.partnerName === c.name) ||
         (cb.supplier_code && cb.supplier_code === custCode))
-      ).filter(cb => cb.status === 'completed' && cb.category === 'Thu tiền nợ').map(cb => ({
+      ).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH')).map(cb => ({
         code: cb.code,
         type: 'Thanh toán',
         date: cb.createdAt || cb.created_at || cb.date,
@@ -732,8 +732,26 @@ export default function CustomersPage() {
               <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-[13px]">
                 <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <span className="font-extrabold text-gray-800 text-sm">Nợ cần thu từ khách</span>
-                  <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white font-bold text-gray-700">
-                    <option>Tất cả giao dịch</option>
+                  <select 
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white font-bold text-gray-700"
+                    onChange={(e) => {
+                      const tbody = e.target.closest('.border').querySelector('tbody');
+                      const rows = Array.from(tbody.querySelectorAll('tr'));
+                      const val = e.target.value;
+                      rows.forEach(r => {
+                        if (r.querySelector('td[colspan]')) return;
+                        if (val === 'all') r.style.display = '';
+                        else {
+                          const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
+                          r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
+                        }
+                      });
+                    }}
+                  >
+                    <option value="all">Tất cả giao dịch</option>
+                    <option value="Bán hàng">Bán hàng</option>
+                    <option value="Trả hàng">Trả hàng</option>
+                    <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
                 <div className="overflow-x-auto">
