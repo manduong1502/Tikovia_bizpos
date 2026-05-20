@@ -701,7 +701,7 @@ export default function SuppliersPage() {
         date: po.created_at,
         total: po.total,
         paid: po.paid_amount,
-        debt: po.total - po.paid_amount,
+        debt: Number(po.total || 0) - Number(po.paid_amount || 0),
         status: po.payment_status,
         items: po.items || []
       })),
@@ -711,11 +711,28 @@ export default function SuppliersPage() {
         type: 'return',
         typeName: 'Trả hàng',
         date: pr.created_at,
-        total: -pr.total,
-        paid: -(pr.paid || 0),
-        debt: -(pr.total - (pr.paid || 0)),
+        total: pr.total,
+        paid: pr.paid || 0,
+        debt: -(Number(pr.total || 0) - Number(pr.paid || 0)),
         status: pr.status,
         items: pr.items || []
+      })),
+      ...cashbooks.filter(cb => 
+        cb.partnerType === 'supplier' &&
+        (cb.supplierId === supId || 
+        (cb.partnerName && cb.partnerName === s.name) ||
+        (cb.supplier_code && cb.supplier_code === supCode))
+      ).filter(cb => cb.status === 'completed').map(cb => ({
+        id: cb.id || cb.code,
+        code: cb.code,
+        type: 'payment',
+        typeName: 'Thanh toán',
+        date: cb.createdAt || cb.created_at || cb.date,
+        total: cb.amount,
+        paid: cb.amount,
+        debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+        status: 'completed',
+        items: []
       }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 

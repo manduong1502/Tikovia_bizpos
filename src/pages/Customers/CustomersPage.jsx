@@ -526,18 +526,33 @@ export default function CustomersPage() {
     ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
     // Build transactions for debt tab from real orders
-    const debtTransactions = custOrders.map(o => {
-      const total = Number(o.total || 0);
-      const paid = Number(o.paid_amount || o.paid || 0);
-      return {
-        code: o.order_code || o.code,
-        type: 'Bán hàng',
-        date: o.created_at || o.createdAt,
-        total: total,
-        paid: paid,
-        debt: total - paid,
-      };
-    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const debtTransactions = [
+      ...custOrders.map(o => {
+        const total = Number(o.total || 0);
+        const paid = Number(o.paid_amount || o.paid || 0);
+        return {
+          code: o.order_code || o.code,
+          type: 'Bán hàng',
+          date: o.created_at || o.createdAt,
+          total: total,
+          paid: paid,
+          debt: total - paid,
+        };
+      }),
+      ...cashbooks.filter(cb => 
+        cb.partnerType === 'customer' &&
+        (cb.supplierId === custId || 
+        (cb.partnerName && cb.partnerName === c.name) ||
+        (cb.supplier_code && cb.supplier_code === custCode))
+      ).filter(cb => cb.status === 'completed').map(cb => ({
+        code: cb.code,
+        type: 'Thanh toán',
+        date: cb.createdAt || cb.created_at || cb.date,
+        total: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : Number(cb.amount || 0),
+        paid: cb.amount,
+        debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // Calculate running debt (oldest first)
     const sortedOldFirst = [...debtTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
