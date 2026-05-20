@@ -516,7 +516,7 @@ export default function CustomersPage() {
         (cb.supplierId === custId || 
         (cb.partnerName && cb.partnerName === c.name) ||
         (cb.supplier_code && cb.supplier_code === custCode))
-      ).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH')).map(cb => ({
+      ).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH') && !cb.code?.startsWith('TTM')).map(cb => ({
         code: cb.code,
         type: 'Thanh toán',
         date: cb.createdAt || cb.created_at || cb.date,
