@@ -1366,6 +1366,7 @@ export default function CustomersPage() {
             })),
             ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
               date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
+            }))
           ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
           const tid = toast.loading('Đang chuẩn bị dữ liệu xuất, vui lòng đợi...');
