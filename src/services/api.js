@@ -454,6 +454,18 @@ let LOCAL_UPDATED_PURCHASE_RETURNS = {};
 export const purchaseReturnAPI = {
   getAll: (params) => api.get('/purchase-returns', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(o => {
+      if (!o.supplier_name && !o.supplier) {
+        const sId = Number(o.supplier_id || o.supplierId);
+        if (sId) {
+          const supp = FALLBACK_SUPPLIERS.find(s => s.id === sId);
+          if (supp) {
+            return { ...o, supplier: supp, supplier_name: supp.name };
+          }
+        }
+      }
+      return o;
+    });
     list = list.map(o => LOCAL_UPDATED_PURCHASE_RETURNS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_RETURNS[o.id] } : o);
     const existingCodes = new Set(list.map(o => o.code));
     const toAdd = LOCAL_ADDED_PURCHASE_RETURNS.filter(o => !existingCodes.has(o.code));

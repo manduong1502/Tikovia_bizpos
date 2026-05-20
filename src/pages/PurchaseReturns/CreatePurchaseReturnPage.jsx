@@ -329,11 +329,13 @@ export default function CreatePurchaseReturnPage() {
     toast.success('Đã tải file mẫu Excel thành công');
   };
 
+  const currentDebt = selectedSupplier ? Number(selectedSupplier.debt || selectedSupplier.totalDebt || selectedSupplier.total_debt || 0) : 0;
+
   const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
   const actualDiscount = Number(discountStr.replace(/\D/g, '')) || 0;
   const supplierMustPay = Math.max(0, totalReturnGoods - actualDiscount);
   
-  const actualPaid = paidAmountStr === '' ? supplierMustPay : (Number(paidAmountStr.replace(/\D/g, '')) || 0);
+  const actualPaid = paidAmountStr === '' ? Math.max(0, supplierMustPay - currentDebt) : (Number(paidAmountStr.replace(/\D/g, '')) || 0);
   const debtCalculation = supplierMustPay - actualPaid;
 
   const handleQuantityChange = (id, val) => {
@@ -380,11 +382,18 @@ export default function CreatePurchaseReturnPage() {
       return;
     }
 
+    if (debtCalculation > currentDebt) {
+      toast.error(`Số tiền tính vào công nợ (${fmt(debtCalculation)}) vượt quá nợ hiện tại (${fmt(currentDebt)}). Vui lòng điều chỉnh lại tiền NCC trả.`);
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
         purchaseOrderId: poId ? Number(poId) : null,
+        purchase_order_id: poId ? Number(poId) : null,
         supplierId: Number(selectedSupplier.id),
+        supplier_id: Number(selectedSupplier.id),
         items: validItems.map(it => ({
           productId: it.id,
           quantity: Number(it.return_quantity),
@@ -767,7 +776,7 @@ export default function CreatePurchaseReturnPage() {
                 </div>
                 <input 
                   type="text" 
-                  value={paidAmountStr === '' ? fmt(supplierMustPay) : paidAmountStr}
+                  value={paidAmountStr === '' ? fmt(Math.max(0, supplierMustPay - currentDebt)) : paidAmountStr}
                   onChange={(e) => {
                     const val = e.target.value.replace(/\D/g, '');
                     setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
@@ -777,8 +786,11 @@ export default function CreatePurchaseReturnPage() {
               </div>
 
               <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text- font-bold">Tính vào công nợ</span>
-                <span className="font-extrabold text-gray-900 text-sm">{fmt(debtCalculation)}</span>
+                <span className="text-gray-800 font-bold flex items-center gap-2">
+                  Tính vào công nợ
+                  <span className="text-[10px] text-gray-400 font-normal">(Nợ hiện tại: {fmt(currentDebt)})</span>
+                </span>
+                <span className={`font-extrabold text-sm ${debtCalculation > currentDebt ? 'text-red-500' : 'text-gray-900'}`}>{fmt(debtCalculation)}</span>
               </div>
             </div>
 
