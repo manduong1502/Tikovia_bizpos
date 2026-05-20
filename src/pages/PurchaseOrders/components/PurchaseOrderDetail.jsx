@@ -12,7 +12,8 @@ export default function PurchaseOrderDetail({
   poNotes,
   poReceivedBy,
   handleUpdateReceivedBy,
-  deletePO
+  deletePO,
+  purchaseReturns = []
 }) {
   const [detailTab, setDetailTab] = useState('info');
   const [detailSearchSku, setDetailSearchSku] = useState('');
@@ -250,9 +251,37 @@ export default function PurchaseOrderDetail({
               </div>
             </div>
           ) : (
-            <div className="py-12 flex flex-col items-center justify-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <ClipboardList size={40} className="mb-3 text-gray-300" />
-              <p className="text-xs text-gray-400">Chưa có lịch sử trả hàng cho phiếu nhập này.</p>
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr className="text-left text-gray-600 font-bold uppercase tracking-wide">
+                      <th className="p-3">Mã phiếu trả</th>
+                      <th className="p-3">Thời gian</th>
+                      <th className="p-3 text-right">Tổng tiền trả</th>
+                      <th className="p-3 text-center">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 font-medium">
+                    {purchaseReturns && purchaseReturns.length > 0 ? (
+                      purchaseReturns.map(pr => (
+                        <tr key={pr.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="p-3 text-primary font-bold">{pr.code}</td>
+                          <td className="p-3 text-gray-800">{pr.created_at || pr.createdAt ? new Date(pr.created_at || pr.createdAt).toLocaleString('vi-VN') : ''}</td>
+                          <td className="p-3 text-right font-bold text-gray-900">{fmt(pr.total)}</td>
+                          <td className="p-3 text-center">
+                            <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Đã trả hàng</span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-gray-400">Không có lịch sử trả hàng</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

@@ -415,10 +415,29 @@ export const purchaseOrderAPI = {
   delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
 
-// ─── Purchase Returns ───
+let FALLBACK_PURCHASE_RETURNS = [
+  { id: 1, code: 'THN000001', createdAt: '2026-05-16T15:35:00Z', supplier: { name: 'Công ty Pharmedic' }, total: 0, discount: 0, paid: 0, status: 'COMPLETED' },
+];
+let LOCAL_ADDED_PURCHASE_RETURNS = [];
+let LOCAL_UPDATED_PURCHASE_RETURNS = {};
+
 export const purchaseReturnAPI = {
-  getAll: (params) => api.get('/purchase-returns', { params }).then(r => r.data),
-  getById: (id) => api.get(`/purchase-returns/${id}`).then(r => r.data),
+  getAll: (params) => api.get('/purchase-returns', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(o => LOCAL_UPDATED_PURCHASE_RETURNS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_RETURNS[o.id] } : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_PURCHASE_RETURNS.filter(o => !existingCodes.has(o.code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    let list = FALLBACK_PURCHASE_RETURNS.map(o => LOCAL_UPDATED_PURCHASE_RETURNS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_RETURNS[o.id] } : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_PURCHASE_RETURNS.filter(o => !existingCodes.has(o.code));
+    return [...toAdd, ...list];
+  }),
+  getById: (id) => api.get(`/purchase-returns/${id}`).then(r => r.data).catch(() => {
+    const found = [...LOCAL_ADDED_PURCHASE_RETURNS, ...FALLBACK_PURCHASE_RETURNS].find(o => o.id === Number(id));
+    return found ? (LOCAL_UPDATED_PURCHASE_RETURNS[id] ? { ...found, ...LOCAL_UPDATED_PURCHASE_RETURNS[id] } : found) : null;
+  }),
   create: (data) => api.post('/purchase-returns', data, { hideErrorToast: true }).then(r => {
     const suppId = Number(data.supplierId || data.supplier_id);
     if (suppId) {
@@ -451,7 +470,21 @@ export const purchaseReturnAPI = {
         return s;
       });
     }
-    return { id: Date.now(), code: `THN${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
+    const newReturn = { 
+      id: Date.now(), 
+      code: `THN${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, 
+      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      ...data,
+      total: data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0,
+    };
+    // Fetch supplier info for the return object
+    const supplier = FALLBACK_SUPPLIERS.find(s => s.id === suppId) || { name: 'Nhà cung cấp không xác định' };
+    newReturn.supplier = supplier;
+    newReturn.supplier_name = supplier.name;
+    
+    LOCAL_ADDED_PURCHASE_RETURNS.unshift(newReturn);
+    return newReturn;
   }),
 };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { purchaseOrderAPI, supplierAPI } from '../../services/api';
+import { purchaseOrderAPI, supplierAPI, purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -66,6 +66,7 @@ export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [purchaseReturns, setPurchaseReturns] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
@@ -113,9 +114,10 @@ export default function PurchaseOrdersPage() {
 
   const reload = useCallback(async () => {
     try {
-      const [listRes, supplierRes] = await Promise.all([
+      const [listRes, supplierRes, returnRes] = await Promise.all([
         purchaseOrderAPI.getAll({ limit: 500 }),
         supplierAPI.getAllSimple().catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 500 }).catch(() => []),
       ]);
       const rawList = Array.isArray(listRes) ? listRes : (listRes?.data || []);
       const normalized = rawList.map(normalizePO);
@@ -133,9 +135,13 @@ export default function PurchaseOrdersPage() {
         setOrders(normalized);
       }
       setSuppliers(Array.isArray(supplierRes) ? supplierRes : []);
+      
+      const rawReturns = Array.isArray(returnRes) ? returnRes : (returnRes?.data || []);
+      setPurchaseReturns(rawReturns);
     } catch {
       setOrders([]);
       setSuppliers([]);
+      setPurchaseReturns([]);
     }
   }, []);
 
@@ -518,6 +524,7 @@ export default function PurchaseOrdersPage() {
                         poReceivedBy={poReceivedBy}
                         handleUpdateReceivedBy={handleUpdateReceivedBy}
                         deletePO={deletePO}
+                        purchaseReturns={purchaseReturns.filter(pr => pr.purchaseOrderId === o.id || pr.purchase_order_id === o.id || (pr.purchaseOrder && pr.purchaseOrder.id === o.id))}
                       />
                     )}
                   </>
