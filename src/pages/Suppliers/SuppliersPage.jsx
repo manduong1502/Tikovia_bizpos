@@ -727,7 +727,7 @@ export default function SuppliersPage() {
         (cb.supplierId === supId || 
         (cb.partnerName && cb.partnerName === s.name) ||
         (cb.supplier_code && cb.supplier_code === supCode))
-      ).filter(cb => cb.status === 'completed').map(cb => ({
+      ).filter(cb => cb.status === 'completed' && cb.category === 'Chi tiền trả nợ').map(cb => ({
         id: cb.id || cb.code,
         code: cb.code,
         type: 'payment',
@@ -1104,7 +1104,7 @@ export default function SuppliersPage() {
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`p-3 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.total))}</td>
+                          <td className={`p-3 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
                           <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}

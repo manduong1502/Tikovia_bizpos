@@ -516,7 +516,7 @@ export default function CustomersPage() {
         (cb.supplierId === custId || 
         (cb.partnerName && cb.partnerName === c.name) ||
         (cb.supplier_code && cb.supplier_code === custCode))
-      ).filter(cb => cb.status === 'completed').map(cb => ({
+      ).filter(cb => cb.status === 'completed' && cb.category === 'Thu tiền nợ').map(cb => ({
         code: cb.code,
         type: 'Thanh toán',
         date: cb.createdAt || cb.created_at || cb.date,
@@ -752,7 +752,12 @@ export default function CustomersPage() {
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                           <td className="p-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: c.name })}>{tx.code}</td>
                           <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="p-3 text-right font-extrabold">{fmt(tx.total)}</td>
+                          <td className="p-3">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {tx.type}
+                            </span>
+                          </td>
+                          <td className={`p-3 text-right font-extrabold ${tx.type === 'Thanh toán' ? 'text-green-600' : tx.type === 'Trả hàng' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
                           <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))}
