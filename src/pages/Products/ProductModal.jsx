@@ -41,7 +41,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   
   const [form, setForm] = useState({
     name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
-    sellPrice: '', costPrice: '',
+    sellPrice: '', costPrice: '', unit: 'Cái',
     stock: '', minStock: '0', maxStock: '999999999',
     location: '', weight: '', weightUnit: 'g',
     description: '', note: '', image: '', directSale: true,
@@ -90,6 +90,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
         supplierId: product.supplierId || product.supplier_id || product.supplier?.id || '',
         sellPrice: product.sellPrice || '',
         costPrice: product.costPrice || '',
+        unit: product.unit || 'Cái',
         stock: product.stock || '',
         minStock: product.minStock || '0',
         maxStock: product.maxStock || '999999999',
@@ -105,7 +106,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     } else {
       setForm({ 
         name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
-        sellPrice: '', costPrice: '', stock: '', minStock: '0', maxStock: '999999999', 
+        sellPrice: '', costPrice: '', unit: 'Cái', stock: '', minStock: '0', maxStock: '999999999', 
         location: '', weight: '', weightUnit: 'g', description: '', note: '', image: '', directSale: true 
       });
       setActiveTab('info');
@@ -340,6 +341,19 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                       >
                         <option value="">Chọn nhà cung cấp</option>
                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[13px] text-gray-600 mb-1 block">Đơn vị tính (ĐVT)</label>
+                      <select
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none bg-white"
+                        value={form.unit}
+                        onChange={e => update('unit', e.target.value)}
+                      >
+                        {['Cái', 'Kg', 'Gram', 'Lít', 'Hộp', 'Gói', 'Chai', 'Lon', 'Thùng', 'Bao', 'Bịch', 'Cuộn', 'Tấm', 'Cây', 'Bộ', 'Đôi', 'Con', 'Khác'].map(u => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

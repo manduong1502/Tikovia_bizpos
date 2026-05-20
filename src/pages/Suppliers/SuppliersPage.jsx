@@ -452,8 +452,16 @@ export default function SuppliersPage() {
     }
 
     const transactions = [
-      ...supPOs.map(po => ({ code: po.po_code, type: 'Nhập hàng', date: new Date(po.created_at), items: po.items || [] })),
-      ...supPRs.map(pr => ({ code: pr.code, type: 'Trả hàng nhập', date: new Date(pr.created_at), items: pr.items || [] }))
+      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
+        code: po.po_code, type: 'Nhập hàng', date: new Date(po.created_at), 
+        total: po.total, paid: po.paid_amount, debt: po.total - po.paid_amount,
+        items: po.items || [] 
+      })),
+      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
+        code: pr.code, type: 'Trả hàng nhập', date: new Date(pr.created_at), 
+        total: pr.total, paid: pr.paid || 0, debt: 0,
+        items: pr.items || [] 
+      }))
     ].filter(tx => {
       if (timeRange === 'all') return true;
       if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
@@ -475,10 +483,15 @@ export default function SuppliersPage() {
     let titleStr = `Công nợ chi tiết nhà cung cấp\r\nTừ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
     if (timeRange === 'all') titleStr = `Công nợ chi tiết nhà cung cấp\r\nToàn thời gian`;
 
+    // Calculate totals for header
+    const totalGhiNo = transactions.filter(t => t.type === 'Nhập hàng').reduce((s, t) => s + t.debt, 0);
+    const totalGhiCo = transactions.filter(t => t.type === 'Trả hàng nhập').reduce((s, t) => s + t.total, 0);
+    const noCuoiKy = Number(s.debt || 0);
+
     exportData.push([titleStr, '', '', '', '', '', '', '', '', '', '', '']);
-    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']); // TODO: real values
-    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', 0, 0]);
-    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', s.debt || 0, '']);
+    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']);
+    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, totalGhiCo]);
+    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '']);
     exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
     
     // Table Headers
@@ -488,16 +501,17 @@ export default function SuppliersPage() {
       // Dòng phiếu (Summary row)
       const txTimeStr = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
-      const ghiNo = tx.type === 'Nhập hàng' ? (tx.items.reduce((s, it) => s + (it.total || 0), 0)) : 0;
-      const ghiCo = tx.type === 'Trả hàng nhập' ? (tx.items.reduce((s, it) => s + (it.total || 0), 0)) : 0;
+      // Ghi nợ = debt (total - paid), not total
+      const ghiNo = tx.type === 'Nhập hàng' ? tx.debt : 0;
+      const ghiCo = tx.type === 'Trả hàng nhập' ? tx.total : 0;
 
       exportData.push([txTimeStr, tx.code, tx.type, '', '', '', '', '', '', '', ghiNo, ghiCo]);
 
       // Dòng sản phẩm (Item rows)
-      if (columns.unit || columns.quantity || columns.price || columns.total) { // If any item detail is requested
+      if (columns.unit || columns.quantity || columns.price || columns.total) {
         tx.items.forEach(it => {
-            const sku = it.product?.sku || it.sku || '';
-            const name = it.product?.name || it.name || '';
+            const sku = it.product_sku || it.product?.sku || it.sku || '';
+            const name = it.product_name || it.product?.name || it.name || '';
             const unit = it.product?.unit || it.unit || '';
             const quantity = it.quantity || 0;
             const price = it.price || it.unit_price || 0;
@@ -508,6 +522,12 @@ export default function SuppliersPage() {
             exportData.push(['', sku, name, unit, quantity, price, discount, 0, importPrice, total, '', '']);
         });
       }
+
+      // Dòng thanh toán (Payment row) - only for purchase orders with payment
+      if (tx.type === 'Nhập hàng' && tx.paid > 0) {
+        const payCode = `TTPN${tx.code.replace('PN', '')}`;
+        exportData.push([txTimeStr, payCode, 'Thanh toán', '', '', '', '', '', '', '', '', '']);
+      }
     });
 
     if (transactions.length === 0) {
@@ -515,10 +535,35 @@ export default function SuppliersPage() {
       return;
     }
 
+    // Footer
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    const footerDate = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', footerDate]);
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['Nhà cung cấp', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
+    exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
+
     const ws = XLSX.utils.aoa_to_sheet(exportData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 14 }, // Thời gian
+      { wch: 14 }, // Mã
+      { wch: 28 }, // Diễn giải
+      { wch: 8 },  // ĐVT
+      { wch: 8 },  // SL
+      { wch: 12 }, // Đơn giá
+      { wch: 10 }, // Giảm giá
+      { wch: 8 },  // VAT
+      { wch: 14 }, // Giá nhập/trả
+      { wch: 14 }, // Thành tiền
+      { wch: 14 }, // Ghi nợ
+      { wch: 14 }, // Ghi có
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
-    XLSX.writeFile(wb, `CongNo_${supCode}_${timeRange}.xlsx`);
+    XLSX.writeFile(wb, `CongNoChiTietNhaCungCap_${supCode}.xlsx`);
     toast.success('Đã xuất file công nợ');
   };
 

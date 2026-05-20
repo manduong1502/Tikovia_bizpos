@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { customerAPI } from '../../services/api';
+import { customerAPI, orderAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
+import { Pen, DollarSign, Percent } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
+import CustomerExportDebtModal from './CustomerExportDebtModal';
+import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
+import CustomerPaymentModal from './CustomerPaymentModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
 
@@ -59,6 +63,15 @@ export default function CustomersPage() {
 
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
+  const [orders, setOrders] = useState([]);
+
+  // Customer debt modal states
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportModalCustomer, setExportModalCustomer] = useState(null);
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustModalCustomer, setAdjustModalCustomer] = useState(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalCustomer, setPaymentModalCustomer] = useState(null);
 
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
@@ -223,6 +236,15 @@ export default function CustomersPage() {
         setCustomers(mockCustomers);
       } else {
         setCustomers(rawList);
+      }
+
+      // Load orders for debt tab
+      try {
+        const ordRes = await orderAPI.getAll({ limit: 1000 });
+        const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
+        setOrders(rawOrders);
+      } catch {
+        setOrders([]);
       }
     } catch {
       setCustomers([]);
@@ -483,6 +505,40 @@ export default function CustomersPage() {
       }
     ] : [];
 
+    // Get orders for this customer
+    const custId = c.id;
+    const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
+    const custOrders = orders.filter(o => 
+      o.customerId === custId || 
+      o.customer_id === custId || 
+      o.customer?.id === custId || 
+      o.customer_code === custCode ||
+      o.customer_name === c.name
+    ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
+
+    // Build transactions for debt tab from real orders
+    const debtTransactions = custOrders.map(o => {
+      const total = Number(o.total || 0);
+      const paid = Number(o.paid_amount || o.paid || 0);
+      return {
+        code: o.order_code || o.code,
+        type: 'Bán hàng',
+        date: o.created_at || o.createdAt,
+        total: total,
+        paid: paid,
+        debt: total - paid,
+      };
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Calculate running debt (oldest first)
+    const sortedOldFirst = [...debtTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    let runningDebt = 0;
+    const transactionsWithDebt = sortedOldFirst.map(tx => {
+      runningDebt += tx.debt;
+      return { ...tx, runningDebt };
+    });
+    transactionsWithDebt.reverse();
+
     return (
       <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
@@ -677,72 +733,88 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'debt' && (
-              <div className="flex flex-col gap-4 p-2">
-                {/* Big Debt overview box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
-                  <div className="sm:col-span-2 bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-xl p-5 shadow-sm flex items-center justify-between gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wider">Tổng nợ cần thu hiện tại</span>
-                      <span className={`text-3xl font-black tracking-tight ${dVal > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {fmt(dVal)} đ
-                      </span>
-                    </div>
-                    {dVal > 0 && (
-                      <Button 
-                        variant="primary" 
-                        onClick={() => toast.success('Thanh toán nợ thành công')} 
-                        className="bg-red-500 hover:bg-red-600 border-none font-bold text-xs py-2.5 px-5 shadow-md flex items-center gap-1.5 shrink-0"
-                      >
-                        Thanh toán nợ
-                      </Button>
-                    )}
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-[13px]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                  <span className="font-extrabold text-gray-800 text-sm">Nợ cần thu từ khách</span>
+                  <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white font-bold text-gray-700">
+                    <option>Tất cả giao dịch</option>
+                  </select>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-3">Mã phiếu</th>
+                        <th className="p-3">Thời gian</th>
+                        <th className="p-3">Loại</th>
+                        <th className="p-3 text-right">Giá trị</th>
+                        <th className="p-3 text-right">Dư nợ khách hàng</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      {transactionsWithDebt.map((tx, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="p-3 font-bold text-primary">{tx.code}</td>
+                          <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="p-3">{tx.type}</td>
+                          <td className="p-3 text-right font-extrabold">{fmt(tx.total)}</td>
+                          <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
+                        </tr>
+                      ))}
+                      {transactionsWithDebt.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có giao dịch nào</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExportModalCustomer(c);
+                        setExportModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold"
+                    >
+                      <Download size={14} /> Xuất file công nợ
+                    </Button>
+                    <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
+                      <Download size={14} /> Xuất file
+                    </Button>
                   </div>
-                  <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-col justify-center">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn mức nợ cho phép</span>
-                    <span className="text-base font-extrabold text-gray-800">Không giới hạn</span>
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="primary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPaymentModalCustomer(c);
+                        setPaymentModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <DollarSign size={14} /> Thanh toán
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdjustModalCustomer(c);
+                        setAdjustModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold"
+                    >
+                      <Pen size={14} /> Điều chỉnh
+                    </Button>
+                    <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
+                      <Percent size={14} /> Chiết khấu thanh toán
+                    </Button>
+                    <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
+                      Tạo QR
+                    </Button>
                   </div>
                 </div>
-
-                {dVal > 0 ? (
-                  <div className="flex flex-col gap-3">
-                    <h3 className="text-xs font-extrabold text-gray-800 tracking-tight flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                      Chi tiết các giao dịch phát sinh công nợ
-                    </h3>
-                    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
-                      <table className="w-full text-xs min-w-[700px] border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                            <th className="py-3 px-4">Mã giao dịch</th>
-                            <th className="py-3 px-4">Thời gian</th>
-                            <th className="py-3 px-4">Loại giao dịch</th>
-                            <th className="py-3 px-4 text-right">Giá trị giao dịch</th>
-                            <th className="py-3 px-4 text-right">Điều chỉnh nợ</th>
-                            <th className="py-3 px-4 text-right">Dư nợ sau giao dịch</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 font-medium">
-                          {debtHistory.map((d, i) => (
-                            <tr key={i} className="hover:bg-red-50/10 transition-colors">
-                              <td className="py-3 px-4 text-primary font-bold hover:underline cursor-pointer">{d.code}</td>
-                              <td className="py-3 px-4 text-gray-500">{d.date ? new Date(d.date).toLocaleString('vi-VN') : ''}</td>
-                              <td className="py-3 px-4 text-gray-700">{d.type}</td>
-                              <td className="py-3 px-4 text-right text-gray-800">{fmt(d.value)}</td>
-                              <td className="py-3 px-4 text-right font-extrabold text-red-500">+{fmt(d.adjustment)}</td>
-                              <td className="py-3 px-4 text-right font-extrabold text-red-600">{fmt(d.balance)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-emerald-50/20 border border-emerald-100 rounded-2xl flex flex-col items-center justify-center gap-3">
-                    <span className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-extrabold">✓</span>
-                    <div className="text-sm font-extrabold text-emerald-800">Không có nợ cần thu</div>
-                    <p className="text-xs text-emerald-600 font-medium max-w-sm">Khách hàng này hiện đã thanh toán đầy đủ các giao dịch phát sinh và không còn khoản nợ nào trong hệ thống.</p>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -1244,6 +1316,99 @@ export default function CustomersPage() {
     </div>
 
       <CustomerModal open={modalOpen} onClose={() => setModalOpen(false)} customer={editCustomer} onSaved={reload} />
+
+      <CustomerExportDebtModal 
+        open={exportModalOpen} 
+        onClose={() => { setExportModalOpen(false); setExportModalCustomer(null); }} 
+        onExport={(timeRange, columns) => {
+          const c = exportModalCustomer;
+          if (!c) return;
+          const custId = c.id;
+          const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
+          const custOrders = orders.filter(o => 
+            o.customerId === custId || o.customer_id === custId || o.customer?.id === custId || 
+            o.customer_code === custCode || o.customer_name === c.name
+          ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
+
+          const now = new Date();
+          let startDate = new Date(0), endDate = new Date();
+          if (timeRange === 'today') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          else if (timeRange === 'this_week') { const day = now.getDay() || 7; startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1); }
+          else if (timeRange === 'this_month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          else if (timeRange === 'last_month') { startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); endDate = new Date(now.getFullYear(), now.getMonth(), 0); }
+
+          const transactions = custOrders.map(o => ({
+            code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
+            total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0),
+            debt: Number(o.total || 0) - Number(o.paid_amount || o.paid || 0),
+            items: o.items || []
+          })).filter(tx => {
+            if (timeRange === 'all') return true;
+            if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
+            return tx.date >= startDate;
+          }).sort((a, b) => a.date - b.date);
+
+          const formatDate = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+
+          const totalGhiNo = transactions.reduce((s, t) => s + t.debt, 0);
+          const noCuoiKy = Number(c.debt || c.totalDebt || 0);
+
+          const exportData = [];
+          exportData.push(['Cửa hàng của bạn']);
+          exportData.push(['Địa chỉ cửa hàng']);
+          exportData.push(['Điện thoại', '...']);
+          let titleStr = timeRange === 'all' ? 'Công nợ chi tiết khách hàng\r\nToàn thời gian' : `Công nợ chi tiết khách hàng\r\nTừ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
+          exportData.push([titleStr]);
+          exportData.push(['Tên KH', c.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']);
+          exportData.push(['Mã KH', custCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, 0]);
+          exportData.push(['Điện thoại', c.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '']);
+          exportData.push(['']);
+          exportData.push(['Thời gian', 'Mã', 'Diễn giải', 'ĐVT', 'SL', 'Đơn giá', 'Giảm giá', 'VAT', 'Giá bán', 'Thành tiền', 'Ghi nợ', 'Ghi có']);
+
+          transactions.forEach(tx => {
+            const txTime = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
+            exportData.push([txTime, tx.code, tx.type, '', '', '', '', '', '', '', tx.debt, 0]);
+            if (columns.unit || columns.quantity || columns.price || columns.total) {
+              tx.items.forEach(it => {
+                exportData.push(['', it.product_sku || '', it.product_name || '', it.unit || '', it.quantity || 0, it.unit_price || it.price || 0, it.discount || 0, 0, it.unit_price || it.price || 0, it.total || 0, '', '']);
+              });
+            }
+            if (tx.paid > 0) {
+              exportData.push([txTime, `TTHD${tx.code.replace('HD','')}`, 'Thanh toán', '', '', '', '', '', '', '', '', '']);
+            }
+          });
+
+          if (transactions.length === 0) { toast.error('Không có giao dịch nào'); return; }
+
+          exportData.push(['']);
+          exportData.push(['', '', '', '', '', '', '', '', '', '', '', `Ngày ${now.getDate()} tháng ${now.getMonth()+1} năm ${now.getFullYear()}`]);
+          exportData.push(['']);
+          exportData.push(['Khách hàng', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
+          exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
+
+          const ws = XLSX.utils.aoa_to_sheet(exportData);
+          ws['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
+          XLSX.writeFile(wb, `CongNoChiTietKhachHang_${custCode}.xlsx`);
+          toast.success('Đã xuất file công nợ khách hàng');
+        }}
+      />
+
+      <CustomerAdjustDebtModal 
+        open={adjustModalOpen} 
+        onClose={() => { setAdjustModalOpen(false); setAdjustModalCustomer(null); }}
+        customer={adjustModalCustomer}
+        onSaved={reload}
+      />
+
+      <CustomerPaymentModal 
+        open={paymentModalOpen} 
+        onClose={() => { setPaymentModalOpen(false); setPaymentModalCustomer(null); }}
+        customer={paymentModalCustomer}
+        orders={orders}
+        onSaved={reload}
+      />
 
       {/* Import Summary Modal */}
       {importSummaryOpen && (
