@@ -121,19 +121,7 @@ export default function PurchaseOrdersPage() {
       ]);
       const rawList = Array.isArray(listRes) ? listRes : (listRes?.data || []);
       const normalized = rawList.map(normalizePO);
-      if (normalized.length === 0) {
-        // Fallback mock data chuẩn KiotViet nếu API trả về rỗng
-        const mockPOs = [
-          { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Citigo', total: 4550000, paid_amount: 4550000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-          { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 3200000, paid_amount: 3200000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-          { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 1850000, paid_amount: 1850000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-          { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-          { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-        ].map(normalizePO);
-        setOrders(mockPOs);
-      } else {
-        setOrders(normalized);
-      }
+      setOrders(normalized);
       setSuppliers(Array.isArray(supplierRes) ? supplierRes : []);
       
       const rawReturns = Array.isArray(returnRes) ? returnRes : (returnRes?.data || []);

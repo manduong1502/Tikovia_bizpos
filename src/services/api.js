@@ -372,9 +372,30 @@ export const supplierAPI = {
   }),
 };
 
+let FALLBACK_PURCHASE_ORDERS = [
+  { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Citigo', total: 4550000, paid_amount: 4550000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+  { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 3200000, paid_amount: 3200000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+  { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 1850000, paid_amount: 1850000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+  { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+  { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+];
+let LOCAL_ADDED_PURCHASE_ORDERS = [];
+let LOCAL_UPDATED_PURCHASE_ORDERS = {};
+
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
-  getAll: (params) => api.get('/purchase-orders', { params }).then(r => r.data),
+  getAll: (params) => api.get('/purchase-orders', { params }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+    const existingCodes = new Set(list.map(o => o.code || o.po_code));
+    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    let list = FALLBACK_PURCHASE_ORDERS.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+    const existingCodes = new Set(list.map(o => o.code || o.po_code));
+    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+    return [...toAdd, ...list];
+  }),
   getById: (id) => api.get(`/purchase-orders/${id}`).then(r => r.data),
   create: (data) => api.post('/purchase-orders', data, { hideErrorToast: true }).then(r => {
     const suppId = Number(data.supplierId || data.supplier_id);
@@ -385,8 +406,10 @@ export const purchaseOrderAPI = {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
           const totalSpent = Number(existing.total_spent || 0) + spentAmount;
           const totalReturn = Number(existing.total_return || 0);
-          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
-          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+          const currentDebt = Number(existing.debt || existing.totalDebt || 0);
+          const newDebt = currentDebt + spentAmount - Number(data.paidAmount || data.paid || 0);
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn, debt: newDebt };
+          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn, debt: newDebt };
         }
         return s;
       });
@@ -402,15 +425,22 @@ export const purchaseOrderAPI = {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
           const totalSpent = Number(existing.total_spent || 0) + spentAmount;
           const totalReturn = Number(existing.total_return || 0);
-          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
-          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn };
+          const currentDebt = Number(existing.debt || existing.totalDebt || 0);
+          const newDebt = currentDebt + spentAmount - Number(data.paidAmount || data.paid || 0);
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_spent: totalSpent, net_purchase: totalSpent - totalReturn, debt: newDebt };
+          return { ...s, total_spent: totalSpent, net_purchase: totalSpent - totalReturn, debt: newDebt };
         }
         return s;
       });
     }
-    return { id: Date.now(), code: `PON${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
+    const newPO = { id: Date.now(), code: `PON${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
+    LOCAL_ADDED_PURCHASE_ORDERS.push(newPO);
+    return newPO;
   }),
-  update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data),
+  update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data).catch(() => {
+    LOCAL_UPDATED_PURCHASE_ORDERS[id] = { ...(LOCAL_UPDATED_PURCHASE_ORDERS[id] || {}), ...data };
+    return { id, ...data };
+  }),
   cancel: (id) => api.put(`/purchase-orders/${id}/cancel`).then(r => r.data),
   delete: (id) => api.delete(`/purchase-orders/${id}`).then(r => r.data),
 };
@@ -442,41 +472,68 @@ export const purchaseReturnAPI = {
     const suppId = Number(data.supplierId || data.supplier_id);
     if (suppId) {
       const returnAmount = data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0;
+      const actualDiscount = Number(data.discount || 0);
+      const supplierMustPay = Math.max(0, returnAmount - actualDiscount);
+      const actualPaid = Number(data.paid || 0);
+      const debtCalculation = supplierMustPay - actualPaid;
+
       FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
         if (s.id === suppId) {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
           const totalSpent = Number(existing.total_spent || 0);
           const totalReturn = Number(existing.total_return || 0) + returnAmount;
-          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
-          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+          const currentDebt = Number(existing.debt || existing.totalDebt || 0);
+          const newDebt = currentDebt - debtCalculation;
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn, debt: newDebt };
+          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn, debt: newDebt };
         }
         return s;
       });
+      
+      const poId = Number(data.purchaseOrderId || data.purchase_order_id);
+      if (poId && debtCalculation > 0) {
+         const currentPaidAmount = LOCAL_UPDATED_PURCHASE_ORDERS[poId]?.paid_amount || 0;
+         LOCAL_UPDATED_PURCHASE_ORDERS[poId] = { ...(LOCAL_UPDATED_PURCHASE_ORDERS[poId] || {}), paid_amount: currentPaidAmount + debtCalculation };
+      }
     }
     return r.data;
   }).catch((err) => {
     console.warn("create purchase return API failed, using fallback memory", err);
     const suppId = Number(data.supplierId || data.supplier_id);
+    const returnAmount = data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0;
+    const actualDiscount = Number(data.discount || 0);
+    const supplierMustPay = Math.max(0, returnAmount - actualDiscount);
+    const actualPaid = Number(data.paid || 0);
+    const debtCalculation = supplierMustPay - actualPaid;
+
     if (suppId) {
-      const returnAmount = data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0;
       FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
         if (s.id === suppId) {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
           const totalSpent = Number(existing.total_spent || 0);
           const totalReturn = Number(existing.total_return || 0) + returnAmount;
-          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
-          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn };
+          const currentDebt = Number(existing.debt || existing.totalDebt || 0);
+          const newDebt = currentDebt - debtCalculation;
+          LOCAL_UPDATED_SUPPLIERS[suppId] = { ...existing, total_return: totalReturn, net_purchase: totalSpent - totalReturn, debt: newDebt };
+          return { ...s, total_return: totalReturn, net_purchase: totalSpent - totalReturn, debt: newDebt };
         }
         return s;
       });
     }
+
+    const poId = Number(data.purchaseOrderId || data.purchase_order_id);
+    if (poId && debtCalculation > 0) {
+        const currentPaidAmount = LOCAL_UPDATED_PURCHASE_ORDERS[poId]?.paid_amount || 0;
+        LOCAL_UPDATED_PURCHASE_ORDERS[poId] = { ...(LOCAL_UPDATED_PURCHASE_ORDERS[poId] || {}), paid_amount: currentPaidAmount + debtCalculation };
+    }
+
     const newReturn = { 
       id: Date.now(), 
       code: `THN${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, 
       createdAt: new Date().toISOString(),
       created_at: new Date().toISOString(),
       ...data,
-      total: data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.returnPrice || it.price || 0)), 0) : 0,
+      total: returnAmount,
     };
     // Fetch supplier info for the return object
     const supplier = FALLBACK_SUPPLIERS.find(s => s.id === suppId) || { name: 'Nhà cung cấp không xác định' };

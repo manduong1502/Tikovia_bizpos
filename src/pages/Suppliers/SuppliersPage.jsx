@@ -304,33 +304,8 @@ export default function SuppliersPage() {
         items: Array.isArray(o.items) ? o.items : []
       }));
 
-      if (normalizedPOs.length === 0) {
-        setPurchaseOrders([
-          { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Phân phối ABC', total: 12500000, paid_amount: 11000000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-            { product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 20, unit_price: 85000, discount: 0, total: 1700000 },
-            { product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 72, unit_price: 150000, discount: 0, total: 10800000 }
-          ]},
-          { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Đại lý XYZ', total: 8400000, paid_amount: 8400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-            { product_sku: 'NSTP00019', product_name: 'Thịt ba rọi heo', quantity: 60, unit_price: 140000, discount: 0, total: 8400000 }
-          ]},
-          { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Cổ phần VinaFood', total: 45000000, paid_amount: 40000000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-            { product_sku: 'NSTP00020', product_name: 'Gạo ST25', quantity: 1500, unit_price: 30000, discount: 0, total: 45000000 }
-          ]}
-        ]);
-      } else {
-        setPurchaseOrders(normalizedPOs);
-      }
-
-      if (normalizedPRs.length === 0) {
-        setPurchaseReturns([
-          { id: 1, code: 'THN000001', created_at: '2026-05-16T15:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Phân phối ABC', total: 1305000, discount: 0, supplier_must_pay: 1305000, paid: 1305000, status: 'COMPLETED', createdBy: 'Võ Thành Huy', receivedBy: 'Võ Thành Huy', note: '', items: [
-            { product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 3, cost_price: 85000, return_price: 85000, discount: 0, total: 255000 },
-            { product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 7, cost_price: 150000, return_price: 150000, discount: 0, total: 1050000 }
-          ]}
-        ]);
-      } else {
-        setPurchaseReturns(normalizedPRs);
-      }
+      setPurchaseOrders(normalizedPOs);
+      setPurchaseReturns(normalizedPRs);
     } catch {
       setSuppliers([]);
       setProducts([]);
