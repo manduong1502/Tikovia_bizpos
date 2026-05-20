@@ -9,6 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import { exportCSV } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
+import ExportDebtModal from './ExportDebtModal';
 import Pagination from '../../components/common/Pagination';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
@@ -61,6 +62,9 @@ export default function SuppliersPage() {
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editSupplier, setEditSupplier] = useState(null);
+
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportModalSupplier, setExportModalSupplier] = useState(null);
 
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
@@ -403,6 +407,70 @@ export default function SuppliersPage() {
     );
   };
 
+  const handleExportDebt = (timeRange, columns) => {
+    if (!exportModalSupplier) return;
+    const s = exportModalSupplier;
+    const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
+    const supPOs = purchaseOrders.filter(po => po.supplier_code === supCode || po.supplier_name === s.name);
+    const supPRs = purchaseReturns.filter(pr => pr.supplier_name === s.name || pr.supplier_code === supCode);
+
+    const now = new Date();
+    let startDate = new Date(0);
+    let endDate = new Date();
+    if (timeRange === 'today') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (timeRange === 'this_week') {
+      const day = now.getDay() || 7;
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+    } else if (timeRange === 'this_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeRange === 'last_month') {
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+    }
+
+    const transactions = [
+      ...supPOs.map(po => ({ code: po.po_code, type: 'Nhập hàng', date: new Date(po.created_at), items: po.items || [] })),
+      ...supPRs.map(pr => ({ code: pr.code, type: 'Trả hàng nhập', date: new Date(pr.created_at), items: pr.items || [] }))
+    ].filter(tx => {
+      if (timeRange === 'all') return true;
+      if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
+      return tx.date >= startDate;
+    }).sort((a, b) => a.date - b.date);
+
+    const exportData = [];
+    transactions.forEach(tx => {
+       tx.items.forEach(it => {
+          const row = {
+             'Thời gian': tx.date.toLocaleString('vi-VN'),
+             'Mã': tx.code,
+             'Loại': tx.type,
+             'Ghi nợ': tx.type === 'Nhập hàng' ? (it.total || 0) : 0,
+             'Ghi có': tx.type === 'Trả hàng nhập' ? (it.total || 0) : 0,
+          };
+          if (columns.unit) row['ĐVT'] = it.product?.unit || it.unit || '';
+          if (columns.quantity) row['Số lượng'] = it.quantity || 0;
+          if (columns.price) row['Đơn giá'] = it.price || it.unit_price || 0;
+          if (columns.discount) row['Giảm giá'] = it.discount || 0;
+          if (columns.import_price) row['Giá nhập/trả'] = it.returnPrice || it.price || it.unit_price || 0;
+          if (columns.total) row['Thành tiền'] = it.total || 0;
+          if (columns.note) row['Ghi chú'] = it.note || '';
+          exportData.push(row);
+       });
+    });
+
+    if (exportData.length === 0) {
+      toast.error('Không có giao dịch nào trong khoảng thời gian này');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
+    XLSX.writeFile(wb, `CongNo_${supCode}_${timeRange}.xlsx`);
+    toast.success('Đã xuất file công nợ');
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa nhà cung cấp này?')) return;
     try {
@@ -512,11 +580,19 @@ export default function SuppliersPage() {
                   detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
-                Lịch sử giao dịch
+                Lịch sử nhập/trả hàng
+              </button>
+              <button
+                onClick={() => setDetailTab('debt')}
+                className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                  detailTab === 'debt' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                Nợ cần trả nhà cung cấp
               </button>
             </div>
 
-            {detailTab === 'info' ? (
+            {detailTab === 'info' && (
               <div className="flex flex-col gap-4">
                 {/* Header Info */}
                 <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
@@ -646,8 +722,12 @@ export default function SuppliersPage() {
                     </Button>
                   </div>
                 </div>
+                  </div>
+                </div>
               </div>
-            ) : (
+            )}
+            
+            {detailTab === 'history' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-in text-[13px]">
                 {/* Lịch sử giao dịch */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col">
@@ -735,6 +815,61 @@ export default function SuppliersPage() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {detailTab === 'debt' && (
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-[13px]">
+                <div className="p-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                  <span className="font-extrabold text-gray-800 text-sm">Nợ cần trả nhà cung cấp</span>
+                  <select className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white font-bold text-gray-700">
+                    <option>Tất cả giao dịch</option>
+                  </select>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-3">Mã phiếu</th>
+                        <th className="p-3">Thời gian</th>
+                        <th className="p-3">Loại</th>
+                        <th className="p-3 text-right">Giá trị</th>
+                        <th className="p-3 text-right">Nợ cần trả nhà cung cấp</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      {transactions.map((tx, idx) => {
+                        // Calculate running debt logic... simply showing 0 for now as in mockup
+                        return (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="p-3 font-bold text-primary">{tx.code}</td>
+                          <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="p-3">{tx.typeName}</td>
+                          <td className="p-3 text-right font-extrabold">{fmt(Math.abs(tx.total))}</td>
+                          <td className="p-3 text-right font-extrabold text-red-600">0</td>
+                        </tr>
+                      )})}
+                      {transactions.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có giao dịch nào</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex items-center gap-3">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => {
+                      setExportModalSupplier(s);
+                      setExportModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold"
+                  >
+                    <Download size={14} /> Xuất file công nợ
+                  </Button>
+                  <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
+                    <Download size={14} /> Xuất file
+                  </Button>
                 </div>
               </div>
             )}

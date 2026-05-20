@@ -18,11 +18,9 @@ export default function CreatePurchaseOrderPage() {
 
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [employees, setEmployees] = useState(['Võ Thành Huy', 'Nguyễn Văn A', 'Trần Thị B']);
   
   // States cho đơn nhập hàng
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [selectedEmployee, setSelectedEmployee] = useState('Võ Thành Huy');
   const [importDate, setImportDate] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
@@ -56,23 +54,13 @@ export default function CreatePurchaseOrderPage() {
       const suppList = Array.isArray(suppRes) ? suppRes : [];
       setProducts(prodList);
       setSuppliers(suppList);
-      if (Array.isArray(empRes) && empRes.length > 0) {
-        setEmployees(empRes.map(e => e.name || e.fullName || 'Võ Thành Huy'));
-      }
-
       if (isUpdate && updateId) {
         const poRes = await purchaseOrderAPI.getById(updateId).catch(() => null);
         if (poRes) {
           if (poRes.supplier) setSelectedSupplier(poRes.supplier);
           if (poRes.code || poRes.po_code) setPoCode(poRes.code || poRes.po_code);
           if (poRes.note) {
-            const m = poRes.note.match(/\[Người nhập:\s*([^\]]+)\]/);
-            if (m) {
-              setSelectedEmployee(m[1]);
-              setNote(poRes.note.replace(m[0], '').trim());
-            } else {
-              setNote(poRes.note);
-            }
+            setNote(poRes.note);
           }
           if (poRes.status) setStatus(poRes.status);
           if (poRes.discount) setDiscountStr(String(poRes.discount));
@@ -302,7 +290,6 @@ export default function CreatePurchaseOrderPage() {
         paid: actualPaid,
         note: note || '',
         status: saveStatus, // PENDING | COMPLETED
-        received_by: selectedEmployee,
       };
 
       if (isUpdate && updateId) {
@@ -484,19 +471,11 @@ export default function CreatePurchaseOrderPage() {
         {/* Right Sidebar Area */}
         <div className="w-[360px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-sm overflow-y-auto shrink-0">
           <div className="flex flex-col gap-5">
-            {/* Employee & Date Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <select 
-                className="border border-gray-300 rounded px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm cursor-pointer bg-white"
-                value={selectedEmployee}
-                onChange={e => setSelectedEmployee(e.target.value)}
-              >
-                {employees.map(emp => <option key={emp} value={emp}>{emp}</option>)}
-              </select>
-
+            {/* Date Row */}
+            <div>
               <input 
                 type="datetime-local" 
-                className="border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm bg-white"
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm bg-white"
                 value={importDate}
                 onChange={e => setImportDate(e.target.value)}
               />
