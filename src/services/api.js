@@ -197,9 +197,18 @@ let FALLBACK_SUPPLIERS = [
   { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000, isActive: true, note: 'Giao hàng nhanh', created_by: 'Admin', created_at: '2026-05-15' },
 ];
 
-let LOCAL_ADDED_SUPPLIERS = [];
-let LOCAL_UPDATED_SUPPLIERS = {};
-let LOCAL_DELETED_SUPPLIERS = new Set();
+const loadLocalState = (key, def) => { try { const val = localStorage.getItem('TIKO_' + key); return val ? JSON.parse(val) : def; } catch { return def; } };
+const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key, JSON.stringify(val)); } catch {} };
+
+let LOCAL_ADDED_SUPPLIERS = loadLocalState('ADDED_SUPP', []);
+let LOCAL_UPDATED_SUPPLIERS = loadLocalState('UPD_SUPP', {});
+let LOCAL_DELETED_SUPPLIERS = new Set(loadLocalState('DEL_SUPP', []));
+
+const persistSuppliers = () => {
+  saveLocalState('ADDED_SUPP', LOCAL_ADDED_SUPPLIERS);
+  saveLocalState('UPD_SUPP', LOCAL_UPDATED_SUPPLIERS);
+  saveLocalState('DEL_SUPP', [...LOCAL_DELETED_SUPPLIERS]);
+};
 
 const normalizeSupplier = (s) => {
   if (!s) return s;
@@ -389,8 +398,13 @@ let FALLBACK_PURCHASE_ORDERS = [
   { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
   { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
 ];
-let LOCAL_ADDED_PURCHASE_ORDERS = [];
-let LOCAL_UPDATED_PURCHASE_ORDERS = {};
+let LOCAL_ADDED_PURCHASE_ORDERS = loadLocalState('ADDED_PO', []);
+let LOCAL_UPDATED_PURCHASE_ORDERS = loadLocalState('UPD_PO', {});
+
+const persistPOs = () => {
+  saveLocalState('ADDED_PO', LOCAL_ADDED_PURCHASE_ORDERS);
+  saveLocalState('UPD_PO', LOCAL_UPDATED_PURCHASE_ORDERS);
+};
 
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
@@ -445,10 +459,13 @@ export const purchaseOrderAPI = {
     }
     const newPO = { id: Date.now(), code: `PON${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`, ...data };
     LOCAL_ADDED_PURCHASE_ORDERS.push(newPO);
+    persistSuppliers();
+    persistPOs();
     return newPO;
   }),
   update: (id, data) => api.put(`/purchase-orders/${id}`, data).then(r => r.data).catch(() => {
     LOCAL_UPDATED_PURCHASE_ORDERS[id] = { ...(LOCAL_UPDATED_PURCHASE_ORDERS[id] || {}), ...data };
+    persistPOs();
     return { id, ...data };
   }),
   cancel: (id) => api.put(`/purchase-orders/${id}/cancel`).then(r => r.data),
@@ -458,8 +475,13 @@ export const purchaseOrderAPI = {
 let FALLBACK_PURCHASE_RETURNS = [
   { id: 1, code: 'THN000001', createdAt: '2026-05-16T15:35:00Z', supplier: { name: 'Công ty Pharmedic' }, total: 0, discount: 0, paid: 0, status: 'COMPLETED' },
 ];
-let LOCAL_ADDED_PURCHASE_RETURNS = [];
-let LOCAL_UPDATED_PURCHASE_RETURNS = {};
+let LOCAL_ADDED_PURCHASE_RETURNS = loadLocalState('ADDED_PR', []);
+let LOCAL_UPDATED_PURCHASE_RETURNS = loadLocalState('UPD_PR', {});
+
+const persistPRs = () => {
+  saveLocalState('ADDED_PR', LOCAL_ADDED_PURCHASE_RETURNS);
+  saveLocalState('UPD_PR', LOCAL_UPDATED_PURCHASE_RETURNS);
+};
 
 export const purchaseReturnAPI = {
   getAll: (params) => api.get('/purchase-returns', { params, hideErrorToast: true }).then(r => {
@@ -528,7 +550,10 @@ export const purchaseReturnAPI = {
            supplier_id: suppId,
            supplierId: suppId
          };
+         persistPRs();
       }
+      persistSuppliers();
+      persistPOs();
     }
     return r.data;
   }).catch((err) => {
@@ -569,12 +594,14 @@ export const purchaseReturnAPI = {
       ...data,
       total: returnAmount,
     };
-    // Fetch supplier info for the return object
     const supplier = FALLBACK_SUPPLIERS.find(s => s.id === suppId) || { name: 'Nhà cung cấp không xác định' };
     newReturn.supplier = supplier;
     newReturn.supplier_name = supplier.name;
     
     LOCAL_ADDED_PURCHASE_RETURNS.unshift(newReturn);
+    persistSuppliers();
+    persistPOs();
+    persistPRs();
     return newReturn;
   }),
 };
