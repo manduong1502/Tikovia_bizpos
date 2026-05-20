@@ -213,9 +213,9 @@ const persistSuppliers = () => {
 const normalizeSupplier = (s) => {
   if (!s) return s;
   const item = s.data || s;
-  const totalSpent = Number(item.total_spent || item.totalSpent || 0);
-  const totalReturn = Number(item.total_return || item.totalReturn || 0);
-  const debtVal = Number(item.debt || item.totalDebt || 0);
+  const totalSpent = Number(item.total_spent !== undefined ? item.total_spent : (item.totalSpent || 0));
+  const totalReturn = Number(item.total_return !== undefined ? item.total_return : (item.totalReturn || 0));
+  const debtVal = Number(item.debt !== undefined ? item.debt : (item.totalDebt || 0));
   return {
     ...item,
     total_spent: totalSpent,
@@ -548,7 +548,9 @@ export const purchaseReturnAPI = {
            ...(LOCAL_UPDATED_PURCHASE_RETURNS[r.data.id] || {}),
            ...r.data,
            supplier_id: suppId,
-           supplierId: suppId
+           supplierId: suppId,
+           purchaseOrderId: poId || null,
+           purchase_order_id: poId || null
          };
          persistPRs();
       }
@@ -607,9 +609,29 @@ export const purchaseReturnAPI = {
 };
 
 // ─── Cashbook ───
+let LOCAL_ADDED_CASHBOOKS = loadLocalState('ADDED_CB', []);
+const persistCBs = () => saveLocalState('ADDED_CB', LOCAL_ADDED_CASHBOOKS);
+
 export const cashbookAPI = {
-  getAll: (params) => api.get('/cashbook', { params }).then(r => r.data),
-  create: (data) => api.post('/cashbook', data).then(r => r.data),
+  getAll: (params) => api.get('/cashbook', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_CASHBOOKS.filter(o => !existingCodes.has(o.code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    return [...LOCAL_ADDED_CASHBOOKS];
+  }),
+  create: (data) => api.post('/cashbook', data, { hideErrorToast: true }).then(r => {
+    const newCB = { id: r.data?.id || Date.now(), createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data, ...(r.data || {}) };
+    LOCAL_ADDED_CASHBOOKS.unshift(newCB);
+    persistCBs();
+    return newCB;
+  }).catch(() => {
+    const newCB = { id: Date.now(), createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data };
+    LOCAL_ADDED_CASHBOOKS.unshift(newCB);
+    persistCBs();
+    return newCB;
+  }),
   cancel: (id) => api.put(`/cashbook/${id}/cancel`).then(r => r.data),
   delete: (id) => api.delete(`/cashbook/${id}`).then(r => r.data),
   getPartners: (params) => api.get('/cashbook/partners', { params }).then(r => r.data),

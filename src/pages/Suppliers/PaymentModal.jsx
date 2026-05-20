@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, FileText } from 'lucide-react';
 import Button from '../../components/ui/Button';
-import { supplierAPI } from '../../services/api';
+import { supplierAPI, cashbookAPI } from '../../services/api';
 import api from '../../services/api'; // using default api
 import toast from 'react-hot-toast';
 
@@ -59,7 +59,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
       };
 
       try {
-        await api.post('/cashbook', payload);
+        await cashbookAPI.create(payload);
       } catch(e) {
         // Ignore if cashbook route is not ready
         console.warn('Cashbook API might not exist yet:', e);
