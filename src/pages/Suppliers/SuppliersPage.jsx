@@ -722,8 +722,6 @@ export default function SuppliersPage() {
                     </Button>
                   </div>
                 </div>
-                  </div>
-                </div>
               </div>
             )}
             
