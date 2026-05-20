@@ -6,11 +6,12 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { exportCSV } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
 import ExportDebtModal from './ExportDebtModal';
+import AdjustDebtModal from './AdjustDebtModal';
+import PaymentModal from './PaymentModal';
 import Pagination from '../../components/common/Pagination';
+import { Pen, DollarSign, Percent } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -65,6 +66,12 @@ export default function SuppliersPage() {
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportModalSupplier, setExportModalSupplier] = useState(null);
+
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [adjustModalSupplier, setAdjustModalSupplier] = useState(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalSupplier, setPaymentModalSupplier] = useState(null);
 
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
@@ -439,32 +446,61 @@ export default function SuppliersPage() {
     }).sort((a, b) => a.date - b.date);
 
     const exportData = [];
+    
+    // Header section
+    exportData.push(['Cửa hàng của bạn', '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['Địa chỉ cửa hàng', '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['Điện thoại', '...', '', '', '', '', '', '', '', '', '', '']);
+    
+    const formatDate = (date) => {
+      const d = new Date(date);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    };
+
+    let titleStr = `Công nợ chi tiết nhà cung cấp\r\nTừ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
+    if (timeRange === 'all') titleStr = `Công nợ chi tiết nhà cung cấp\r\nToàn thời gian`;
+
+    exportData.push([titleStr, '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']); // TODO: real values
+    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', 0, 0]);
+    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', s.debt || 0, '']);
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    
+    // Table Headers
+    exportData.push(['Thời gian', 'Mã', 'Diễn giải', 'ĐVT', 'SL', 'Đơn giá', 'Giảm giá', 'VAT', 'Giá nhập/trả', 'Thành tiền', 'Ghi nợ', 'Ghi có']);
+    
     transactions.forEach(tx => {
-       tx.items.forEach(it => {
-          const row = {
-             'Thời gian': tx.date.toLocaleString('vi-VN'),
-             'Mã': tx.code,
-             'Loại': tx.type,
-             'Ghi nợ': tx.type === 'Nhập hàng' ? (it.total || 0) : 0,
-             'Ghi có': tx.type === 'Trả hàng nhập' ? (it.total || 0) : 0,
-          };
-          if (columns.unit) row['ĐVT'] = it.product?.unit || it.unit || '';
-          if (columns.quantity) row['Số lượng'] = it.quantity || 0;
-          if (columns.price) row['Đơn giá'] = it.price || it.unit_price || 0;
-          if (columns.discount) row['Giảm giá'] = it.discount || 0;
-          if (columns.import_price) row['Giá nhập/trả'] = it.returnPrice || it.price || it.unit_price || 0;
-          if (columns.total) row['Thành tiền'] = it.total || 0;
-          if (columns.note) row['Ghi chú'] = it.note || '';
-          exportData.push(row);
-       });
+      // Dòng phiếu (Summary row)
+      const txTimeStr = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
+      
+      const ghiNo = tx.type === 'Nhập hàng' ? (tx.items.reduce((s, it) => s + (it.total || 0), 0)) : 0;
+      const ghiCo = tx.type === 'Trả hàng nhập' ? (tx.items.reduce((s, it) => s + (it.total || 0), 0)) : 0;
+
+      exportData.push([txTimeStr, tx.code, tx.type, '', '', '', '', '', '', '', ghiNo, ghiCo]);
+
+      // Dòng sản phẩm (Item rows)
+      if (columns.unit || columns.quantity || columns.price || columns.total) { // If any item detail is requested
+        tx.items.forEach(it => {
+            const sku = it.product?.sku || it.sku || '';
+            const name = it.product?.name || it.name || '';
+            const unit = it.product?.unit || it.unit || '';
+            const quantity = it.quantity || 0;
+            const price = it.price || it.unit_price || 0;
+            const discount = it.discount || 0;
+            const importPrice = it.returnPrice || it.price || it.unit_price || 0;
+            const total = it.total || 0;
+            
+            exportData.push(['', sku, name, unit, quantity, price, discount, 0, importPrice, total, '', '']);
+        });
+      }
     });
 
-    if (exportData.length === 0) {
+    if (transactions.length === 0) {
       toast.error('Không có giao dịch nào trong khoảng thời gian này');
       return;
     }
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const ws = XLSX.utils.aoa_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
     XLSX.writeFile(wb, `CongNo_${supCode}_${timeRange}.xlsx`);
@@ -854,20 +890,53 @@ export default function SuppliersPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex items-center gap-3">
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => {
-                      setExportModalSupplier(s);
-                      setExportModalOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold"
-                  >
-                    <Download size={14} /> Xuất file công nợ
-                  </Button>
-                  <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
-                    <Download size={14} /> Xuất file
-                  </Button>
+                <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExportModalSupplier(s);
+                        setExportModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold"
+                    >
+                      <Download size={14} /> Xuất file công nợ
+                    </Button>
+                    <Button variant="secondary" className="flex items-center gap-2 px-4 py-2 text-xs font-bold">
+                      <Download size={14} /> Xuất file
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="primary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdjustModalSupplier(s);
+                        setAdjustModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-primary hover:bg-primary-hover text-white"
+                    >
+                      <Pen size={14} /> Điều chỉnh
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPaymentModalSupplier(s);
+                        setPaymentModalOpen(true);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-white shadow-sm border-gray-300"
+                    >
+                      <DollarSign size={14} /> Thanh toán
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-white shadow-sm border-gray-300"
+                    >
+                      <Percent size={14} /> Chiết khấu thanh toán
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1185,6 +1254,30 @@ export default function SuppliersPage() {
       </div>
     </div>
 
+      <ExportDebtModal 
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        onExport={handleExportDebt}
+      />
+      <AdjustDebtModal
+        open={adjustModalOpen}
+        onClose={() => setAdjustModalOpen(false)}
+        supplier={adjustModalSupplier}
+        onSaved={() => {
+          reload();
+          setAdjustModalOpen(false);
+        }}
+      />
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        supplier={paymentModalSupplier}
+        purchaseOrders={purchaseOrders.filter(po => po.supplier_code === (paymentModalSupplier?.code || `NCC${String(paymentModalSupplier?.id).padStart(3, '0')}`) && po.status !== 'CANCELLED' && (po.total - (po.paid || 0)) > 0)}
+        onSaved={() => {
+          reload();
+          setPaymentModalOpen(false);
+        }}
+      />
       <SupplierModal open={modalOpen} onClose={() => setModalOpen(false)} onSaved={reload} supplier={editSupplier} />
 
       {/* Import Summary Modal */}
