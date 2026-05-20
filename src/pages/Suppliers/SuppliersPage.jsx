@@ -452,7 +452,16 @@ export default function SuppliersPage() {
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         date: new Date(pr.created_at || pr.createdAt), debtIncrease: Number(pr.paid || 0), debtDecrease: Number(pr.total || 0)
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+      ...supCashbooks.filter(cb => {
+        if (cb.status !== 'completed') return false;
+        const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
+        const isAuto = supPOs.some(po => {
+           const poTime = new Date(po.created_at || po.createdAt).getTime();
+           const paid = Number(po.paid_amount || po.paid || 0);
+           return paid === Number(cb.amount) && Math.abs(poTime - cbTime) < 5000;
+        });
+        return !isAuto;
+      }).map(cb => ({
         date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
@@ -466,7 +475,16 @@ export default function SuppliersPage() {
         code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at || pr.createdAt), 
         total: Number(pr.total || 0), paid: Number(pr.paid || 0), items: pr.items || [] 
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+      ...supCashbooks.filter(cb => {
+        if (cb.status !== 'completed') return false;
+        const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
+        const isAuto = supPOs.some(po => {
+           const poTime = new Date(po.created_at || po.createdAt).getTime();
+           const paid = Number(po.paid_amount || po.paid || 0);
+           return paid === Number(cb.amount) && Math.abs(poTime - cbTime) < 5000;
+        });
+        return !isAuto;
+      }).map(cb => ({
         code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
         total: cb.type === 'INCOME' ? Number(cb.amount || 0) : cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, 
         paid: 0, items: [], cashbookType: cb.type
@@ -521,7 +539,7 @@ export default function SuppliersPage() {
       return s;
     }, 0);
     const totalGhiCo = transactions.reduce((s, tx) => {
-      if (tx.type === 'Nhập hàng') return s + tx.paid;
+      if (tx.type === 'Nhập hàng') return s + (tx.paid > 0 ? tx.paid : 0);
       if (tx.type === 'Trả hàng nhà cung cấp') return s + tx.total;
       if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
       return s;

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { api, cashbookAPI, customerAPI } from '../../services/api';
+import Button from '../../components/ui/Button';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -51,7 +53,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
       };
 
       try {
-        await api.post('/cashbook', payload);
+        await cashbookAPI.create(payload);
       } catch(e) {
         console.warn('Cashbook API might not exist yet:', e);
       }

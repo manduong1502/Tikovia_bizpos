@@ -156,17 +156,72 @@ const FALLBACK_ORDERS = [
   { id: 2, code: 'HD0002', order_code: 'HD0002', customer_name: 'Lê Văn C', customer_code: 'KH002', user_name: 'Nguyễn Văn A', total: 350000, subtotal: 350000, discount_amount: 0, paid_amount: 350000, payment_method: 'transfer', payment_status: 'completed', status: 'completed', created_at: '2026-05-15T14:15:00Z', items: [{ id: 2, product_name: 'Bột giặt OMO 3kg', product_sku: 'SP006', quantity: 4, unit_price: 85000, total: 340000 }, { id: 3, product_name: 'Coca Cola 330ml', product_sku: 'SP001', quantity: 1, unit_price: 10000, total: 10000 }] },
 ];
 
+let LOCAL_ADDED_ORDERS = loadLocalState('ADDED_ORDERS', []);
+let LOCAL_UPDATED_ORDERS = loadLocalState('UPD_ORDERS', {});
+let LOCAL_DELETED_ORDERS = new Set(loadLocalState('DEL_ORDERS', []));
+
+const persistOrders = () => {
+  saveLocalState('ADDED_ORDERS', LOCAL_ADDED_ORDERS);
+  saveLocalState('UPD_ORDERS', LOCAL_UPDATED_ORDERS);
+  saveLocalState('DEL_ORDERS', [...LOCAL_DELETED_ORDERS]);
+};
+
 export const orderAPI = {
-  getAll: (params) => api.get('/orders', { params }).then(r => {
-    const raw = r.data;
-    if (raw && Array.isArray(raw.data)) {
-      return { ...raw, data: raw.data.map(normalizeOrder) };
+  getAll: (params) => api.get('/orders', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(normalizeOrder);
+    list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+  }).catch(() => {
+    let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+  }),
+  getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true }).then(r => normalizeOrderDetail(r.data)).catch(() => normalizeOrderDetail(FALLBACK_ORDERS.find(o => o.id === Number(id)))),
+  create: (data) => api.post('/orders', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
+    console.warn("create order API failed", err);
+    const newId = Date.now();
+    const custId = data.customer_id || data.customerId;
+    const customer = FALLBACK_CUSTOMERS.find(c => c.id === custId) || { name: 'Khách lẻ', code: '' };
+    const newOrder = {
+      id: newId,
+      code: `HD${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`,
+      order_code: `HD${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`,
+      customer_id: custId,
+      customer_name: customer.name,
+      customer_code: customer.code,
+      ...data,
+      created_at: new Date().toISOString(),
+      status: 'completed',
+    };
+    LOCAL_ADDED_ORDERS = [newOrder, ...LOCAL_ADDED_ORDERS];
+    persistOrders();
+
+    // Auto update customer debt
+    if (custId) {
+      const total = Number(data.total || 0);
+      const paid = Number(data.paid_amount || data.paid || 0);
+      const debtIncrease = total - paid;
+      
+      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
+      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
+      const currentSpent = c ? Number(c.total_spent !== undefined ? c.total_spent : c.totalSpent || 0) : 0;
+
+      LOCAL_UPDATED_CUSTOMERS[custId] = {
+        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
+        debt: currentDebt + debtIncrease,
+        total_spent: currentSpent + total
+      };
+      persistCustomers();
     }
-    if (Array.isArray(raw)) return raw.map(normalizeOrder);
-    return { data: FALLBACK_ORDERS.map(normalizeOrder), total: FALLBACK_ORDERS.length, page: 1, limit: 20, totalPages: 1 };
-  }).catch(() => ({ data: FALLBACK_ORDERS.map(normalizeOrder), total: FALLBACK_ORDERS.length, page: 1, limit: 20, totalPages: 1 })),
-  getById: (id) => api.get(`/orders/${id}`).then(r => normalizeOrderDetail(r.data)).catch(() => normalizeOrderDetail(FALLBACK_ORDERS.find(o => o.id === Number(id)))),
-  create: (data) => api.post('/orders', data).then(r => r.data),
+
+    return newOrder;
+  }),
   importExcel: (data) => api.post('/orders/import', data).then(r => r.data),
   update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
@@ -175,19 +230,153 @@ export const orderAPI = {
   return: (id, data) => api.post(`/orders/${id}/return`, data).then(r => r.data),
 };
 
+let LOCAL_ADDED_RETURNS = loadLocalState('ADDED_RETURNS', []);
+let LOCAL_UPDATED_RETURNS = loadLocalState('UPD_RETURNS', {});
+let LOCAL_DELETED_RETURNS = new Set(loadLocalState('DEL_RETURNS', []));
+
+const persistReturns = () => {
+  saveLocalState('ADDED_RETURNS', LOCAL_ADDED_RETURNS);
+  saveLocalState('UPD_RETURNS', LOCAL_UPDATED_RETURNS);
+  saveLocalState('DEL_RETURNS', [...LOCAL_DELETED_RETURNS]);
+};
+
+const FALLBACK_RETURNS = [];
+
+export const returnAPI = {
+  getAll: (params) => api.get('/returns', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+    return [...toAdd, ...list];
+  }).catch(() => {
+    let list = FALLBACK_RETURNS.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+    const existingCodes = new Set(list.map(o => o.code));
+    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+    return [...toAdd, ...list];
+  }),
+  create: (data) => api.post('/returns', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
+    console.warn("create return API failed", err);
+    const newId = Date.now();
+    const orderId = data.orderId || data.order_id;
+    const order = FALLBACK_ORDERS.find(o => o.id === orderId) || LOCAL_ADDED_ORDERS.find(o => o.id === orderId) || {};
+    const custId = data.customerId || data.customer_id || order.customer_id || order.customerId;
+    const customer = FALLBACK_CUSTOMERS.find(c => c.id === custId) || { name: 'Khách lẻ', code: '' };
+    
+    const newReturn = {
+      id: newId,
+      code: `TH${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`,
+      orderId: orderId,
+      order_id: orderId,
+      customer_id: custId,
+      customer_name: customer.name,
+      customer_code: customer.code,
+      ...data,
+      created_at: new Date().toISOString(),
+      status: 'COMPLETED',
+    };
+    LOCAL_ADDED_RETURNS = [newReturn, ...LOCAL_ADDED_RETURNS];
+    persistReturns();
+
+    // Deduct customer debt
+    if (custId) {
+      const returnTotal = Number(data.total || 0);
+      const paidCustomer = Number(data.paid_customer || data.paidCustomer || data.paid || 0);
+      const debtDecrease = returnTotal - paidCustomer; // amount of debt we wipe out
+      
+      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
+      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
+      const currentSpent = c ? Number(c.total_spent !== undefined ? c.total_spent : c.totalSpent || 0) : 0;
+      const currentReturn = c ? Number(c.total_return !== undefined ? c.total_return : c.totalReturn || 0) : 0;
+
+      LOCAL_UPDATED_CUSTOMERS[custId] = {
+        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
+        debt: Math.max(0, currentDebt - debtDecrease),
+        total_return: currentReturn + returnTotal
+      };
+      persistCustomers();
+    }
+
+    return newReturn;
+  }).then(res => {
+    // Inject orderId if missing
+    if (res && !res.orderId && data.orderId) res.orderId = data.orderId;
+    if (res && !res.order_id && data.orderId) res.order_id = data.orderId;
+    return res;
+  }),
+};
+
 // ─── Customers ───
 const FALLBACK_CUSTOMERS = [
-  { id: 1, code: 'KH001', name: 'Trần Thị B', phone: '0912345678', address: 'Q.1, TP.HCM', total_spent: 1500000, debt: 0 },
-  { id: 2, code: 'KH002', name: 'Lê Văn C', phone: '0923456789', address: 'Q.3, TP.HCM', total_spent: 3200000, debt: 500000 },
-  { id: 3, code: 'KH003', name: 'Phạm Thị D', phone: '0934567890', address: 'Q.7, TP.HCM', total_spent: 800000, debt: 0 },
+  { id: 1, code: 'KH001', name: 'Trần Thị B', phone: '0912345678', address: 'Q.1, TP.HCM', total_spent: 1500000, debt: 0, total_return: 0 },
+  { id: 2, code: 'KH002', name: 'Lê Văn C', phone: '0923456789', address: 'Q.3, TP.HCM', total_spent: 3200000, debt: 500000, total_return: 0 },
+  { id: 3, code: 'KH003', name: 'Phạm Thị D', phone: '0934567890', address: 'Q.7, TP.HCM', total_spent: 800000, debt: 0, total_return: 0 },
 ];
 
+let LOCAL_ADDED_CUSTOMERS = loadLocalState('ADDED_CUST', []);
+let LOCAL_UPDATED_CUSTOMERS = loadLocalState('UPD_CUST', {});
+let LOCAL_DELETED_CUSTOMERS = new Set(loadLocalState('DEL_CUST', []));
+
+const persistCustomers = () => {
+  saveLocalState('ADDED_CUST', LOCAL_ADDED_CUSTOMERS);
+  saveLocalState('UPD_CUST', LOCAL_UPDATED_CUSTOMERS);
+  saveLocalState('DEL_CUST', [...LOCAL_DELETED_CUSTOMERS]);
+};
+
+const normalizeCustomer = (c) => {
+  if (!c) return c;
+  const item = c.data || c;
+  const totalSpent = Number(item.total_spent !== undefined ? item.total_spent : (item.totalSpent || 0));
+  const totalReturn = Number(item.total_return !== undefined ? item.total_return : (item.totalReturn || 0));
+  const debtVal = Number(item.debt !== undefined ? item.debt : (item.totalDebt || 0));
+  return {
+    ...item,
+    total_spent: totalSpent,
+    totalSpent,
+    total_return: totalReturn,
+    totalReturn,
+    debt: debtVal,
+    totalDebt: debtVal,
+  };
+};
+
 export const customerAPI = {
-  getAll: (params) => api.get('/customers', { params }).then(r => r.data).catch(() => ({ data: FALLBACK_CUSTOMERS, total: FALLBACK_CUSTOMERS.length, page: 1, limit: 20, totalPages: 1 })),
-  getById: (id) => api.get(`/customers/${id}`).then(r => r.data).catch(() => FALLBACK_CUSTOMERS.find(c => c.id === Number(id))),
-  create: (data) => api.post('/customers', data).then(r => r.data),
+  getAll: (params) => api.get('/customers', { params, hideErrorToast: true }).then(r => {
+    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list = list.map(normalizeCustomer);
+    list = list.filter(c => c && !LOCAL_DELETED_CUSTOMERS.has(c.id) && !LOCAL_DELETED_CUSTOMERS.has(c.code));
+    list = list.map(c => LOCAL_UPDATED_CUSTOMERS[c.id] ? normalizeCustomer({ ...c, ...LOCAL_UPDATED_CUSTOMERS[c.id] }) : c);
+    const existingCodes = new Set(list.map(c => c.code));
+    const toAdd = LOCAL_ADDED_CUSTOMERS.map(normalizeCustomer).filter(c => c && !existingCodes.has(c.code));
+    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+  }).catch(() => {
+    let list = FALLBACK_CUSTOMERS.map(normalizeCustomer).filter(c => c && !LOCAL_DELETED_CUSTOMERS.has(c.id) && !LOCAL_DELETED_CUSTOMERS.has(c.code));
+    list = list.map(c => LOCAL_UPDATED_CUSTOMERS[c.id] ? normalizeCustomer({ ...c, ...LOCAL_UPDATED_CUSTOMERS[c.id] }) : c);
+    const existingCodes = new Set(list.map(c => c.code));
+    const toAdd = LOCAL_ADDED_CUSTOMERS.map(normalizeCustomer).filter(c => c && !existingCodes.has(c.code));
+    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+  }),
+  getById: (id) => api.get(`/customers/${id}`, { hideErrorToast: true }).then(r => normalizeCustomer(r.data)).catch(() => normalizeCustomer(FALLBACK_CUSTOMERS.find(c => c.id === Number(id)))),
+  create: (data) => api.post('/customers', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
+    console.warn("create customer API failed", err);
+    const newId = Date.now();
+    const newCust = normalizeCustomer({
+      id: newId,
+      code: data.code || `KH${String(Math.floor(Math.random()*1000)).padStart(4, '0')}`,
+      ...data,
+    });
+    LOCAL_ADDED_CUSTOMERS = [newCust, ...LOCAL_ADDED_CUSTOMERS];
+    persistCustomers();
+    return newCust;
+  }),
   importExcel: (data) => api.post('/customers/import', data).then(r => r.data),
-  update: (id, data) => api.put(`/customers/${id}`, data).then(r => r.data),
+  update: (id, data) => api.put(`/customers/${id}`, data, { hideErrorToast: true }).then(r => r.data).catch(() => {
+    LOCAL_UPDATED_CUSTOMERS[id] = { ...(LOCAL_UPDATED_CUSTOMERS[id] || {}), ...data };
+    persistCustomers();
+    return { id, ...data };
+  }),
   delete: (id) => api.delete(`/customers/${id}`).then(r => r.data),
 };
 
@@ -647,13 +836,7 @@ export const inventoryCheckAPI = {
   delete: (id) => api.delete(`/inventory-checks/${id}`).then(r => r.data),
 };
 
-// ─── Returns ───
-export const returnAPI = {
-  getAll: (params) => api.get('/returns', { params }).then(r => r.data),
-  getById: (id) => api.get(`/returns/${id}`).then(r => r.data),
-  create: (data) => api.post('/returns', data).then(r => r.data),
-};
-
+// ─── Returns (Duplicate removed) ───
 // ─── Dashboard ───
 export const dashboardAPI = {
   get: () => api.get('/dashboard').then(r => r.data),

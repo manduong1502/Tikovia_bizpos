@@ -1338,7 +1338,7 @@ export default function CustomersPage() {
       <CustomerExportDebtModal 
         open={exportModalOpen} 
         onClose={() => { setExportModalOpen(false); setExportModalCustomer(null); }} 
-        onExport={(timeRange, columns) => {
+        onExport={async (timeRange, columns) => {
           const c = exportModalCustomer;
           if (!c) return;
           const custId = c.id;
@@ -1366,15 +1366,45 @@ export default function CustomersPage() {
             })),
             ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
               date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
-            }))
           ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
+
+          const tid = toast.loading('Đang chuẩn bị dữ liệu xuất, vui lòng đợi...');
+          
+          try {
+            // Fetch detailed items for orders if they are missing
+            for (let i = 0; i < custOrders.length; i++) {
+              const o = custOrders[i];
+              if (!o.items || o.items.length === 0) {
+                try {
+                  const detail = await orderAPI.getById(o.id);
+                  if (detail && detail.items) {
+                    custOrders[i].items = detail.items;
+                  }
+                } catch(e) {
+                  console.warn(`Lỗi khi lấy chi tiết đơn hàng ${o.code}`);
+                }
+              }
+            }
+          } catch(e) {}
+
+          toast.dismiss(tid);
 
           const transactions = [
             ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
               code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
               total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0), items: o.items || [] 
             })),
-            ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+            ...custCashbooks.filter(cb => {
+              if (cb.status !== 'completed') return false;
+              // Filter out auto-generated cashbooks to avoid double-counting tx.paid
+              const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
+              const isAuto = custOrders.some(o => {
+                 const oTime = new Date(o.created_at || o.createdAt).getTime();
+                 const paid = Number(o.paid_amount || o.paid || 0);
+                 return paid === Number(cb.amount) && Math.abs(oTime - cbTime) < 5000;
+              });
+              return !isAuto;
+            }).map(cb => ({
               code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
               total: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : cb.type === 'INCOME' ? Number(cb.amount || 0) : 0,
               paid: 0, items: [], cashbookType: cb.type
@@ -1388,16 +1418,16 @@ export default function CustomersPage() {
           const formatDate = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 
           const totalGhiNo = transactions.reduce((s, tx) => {
-            if (tx.type === 'Bán hàng') return s + tx.total;
-            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
+            if (tx.type === 'Bán hàng') return s + Number(tx.total || 0);
+            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? Number(tx.total || 0) : 0);
             return s;
           }, 0);
           const totalGhiCo = transactions.reduce((s, tx) => {
-            if (tx.type === 'Bán hàng') return s + tx.paid;
-            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? tx.total : 0);
+            if (tx.type === 'Bán hàng') return s + (Number(tx.paid || 0) > 0 ? Number(tx.paid || 0) : 0);
+            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? Number(tx.total || 0) : 0);
             return s;
           }, 0);
-          const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
+          const noCuoiKy = Number(noDauKy) + Number(totalGhiNo) - Number(totalGhiCo);
 
           // 1. Build headers to know total columns
           const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
