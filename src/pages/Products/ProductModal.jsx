@@ -37,6 +37,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   const [activeTab, setActiveTab] = useState('info'); // info | desc
   const [existingNames, setExistingNames] = useState([]);
   const [nameError, setNameError] = useState('');
+  const [errors, setErrors] = useState({});
   
   const [form, setForm] = useState({
     name: '', sku: '', categoryId: '', brandId: '', supplierId: '',
@@ -111,7 +112,10 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     }
   }, [product, open]);
 
-  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
+  const update = (key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    if (errors[key]) setErrors(prev => ({ ...prev, [key]: false }));
+  };
 
   const handleNameBlur = () => {
     const val = form.name.trim().toLowerCase();
@@ -128,10 +132,22 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   };
 
   const handleSave = async (createAnother = false) => {
-    if (!form.name.trim()) { toast.error('Vui lòng nhập tên hàng'); return; }
+    const newErrors = {};
+    if (!form.name.trim()) newErrors.name = true;
+    if (form.costPrice === '' || form.costPrice === null || form.costPrice === undefined) newErrors.costPrice = true;
+    if (form.sellPrice === '' || form.sellPrice === null || form.sellPrice === undefined) newErrors.sellPrice = true;
+    if (form.stock === '' || form.stock === null || form.stock === undefined || Number(form.stock) === 0) newErrors.stock = true;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (newErrors.name) toast.error('Vui lòng nhập tên hàng');
+      else if (newErrors.costPrice) toast.error('Vui lòng nhập giá vốn');
+      else if (newErrors.sellPrice) toast.error('Vui lòng nhập giá bán');
+      else if (newErrors.stock) toast.error('Vui lòng nhập số lượng tồn kho (khác 0)');
+      return;
+    }
     if (nameError) { toast.error('Tên hàng hóa đã tồn tại'); return; }
-    if (form.costPrice === '' || form.costPrice === null || form.costPrice === undefined) { toast.error('Vui lòng nhập giá vốn'); return; }
-    if (form.sellPrice === '' || form.sellPrice === null || form.sellPrice === undefined) { toast.error('Vui lòng nhập giá bán'); return; }
     
     setSaving(true);
     try {
@@ -282,7 +298,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Tên hàng <span className="text-red-500">*</span></label>
                       <input 
-                        className={`w-full border rounded px-3 py-2 text-[14px] outline-none transition-colors ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`} 
+                        className={`w-full border rounded px-3 py-2 text-[14px] outline-none transition-colors ${nameError || errors.name ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`} 
                         value={form.name} 
                         onChange={e => { update('name', e.target.value); setNameError(''); }} 
                         onBlur={handleNameBlur}
@@ -331,14 +347,14 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Giá vốn</label>
-                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right font-medium" value={form.costPrice} onChange={e => update('costPrice', e.target.value)} placeholder="0" />
+                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.costPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.costPrice} onChange={e => update('costPrice', e.target.value)} placeholder="0" />
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[13px] text-gray-600">Giá bán</label>
                         <button className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"><Info size={12}/> Thiết lập giá</button>
                       </div>
-                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right font-medium" value={form.sellPrice} onChange={e => update('sellPrice', e.target.value)} placeholder="0" />
+                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.sellPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.sellPrice} onChange={e => update('sellPrice', e.target.value)} placeholder="0" />
                     </div>
                   </div>
                 </Accordion>
@@ -347,7 +363,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Tồn kho</label>
-                      <input type="number" className="w-full border-b border-gray-300 px-1 py-1 text-[14px] focus:border-blue-500 outline-none text-right" value={form.stock} onChange={e => update('stock', e.target.value)} placeholder="0" />
+                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right transition-colors ${errors.stock ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.stock} onChange={e => update('stock', e.target.value)} placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Định mức tồn thấp nhất</label>
