@@ -225,6 +225,11 @@ const normalizeSupplier = (s) => {
 export const supplierAPI = {
   getAll: (params) => api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list.forEach(item => {
+      if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
+        FALLBACK_SUPPLIERS.push(item);
+      }
+    });
     list = list.map(normalizeSupplier);
     list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
     list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
@@ -240,6 +245,11 @@ export const supplierAPI = {
   }),
   getAllSimple: () => api.get('/suppliers', { hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    list.forEach(item => {
+      if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
+        FALLBACK_SUPPLIERS.push(item);
+      }
+    });
     list = list.map(normalizeSupplier);
     list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
     list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
@@ -454,6 +464,10 @@ let LOCAL_UPDATED_PURCHASE_RETURNS = {};
 export const purchaseReturnAPI = {
   getAll: (params) => api.get('/purchase-returns', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    
+    // Merge updates first so we have supplier_id if we injected it on create
+    list = list.map(o => LOCAL_UPDATED_PURCHASE_RETURNS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_RETURNS[o.id] } : o);
+    
     list = list.map(o => {
       if (!o.supplier_name && !o.supplier) {
         const sId = Number(o.supplier_id || o.supplierId);
@@ -466,7 +480,7 @@ export const purchaseReturnAPI = {
       }
       return o;
     });
-    list = list.map(o => LOCAL_UPDATED_PURCHASE_RETURNS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_RETURNS[o.id] } : o);
+
     const existingCodes = new Set(list.map(o => o.code));
     const toAdd = LOCAL_ADDED_PURCHASE_RETURNS.filter(o => !existingCodes.has(o.code));
     return [...toAdd, ...list];
@@ -506,6 +520,14 @@ export const purchaseReturnAPI = {
       if (poId && debtCalculation > 0) {
          const currentPaidAmount = LOCAL_UPDATED_PURCHASE_ORDERS[poId]?.paid_amount || 0;
          LOCAL_UPDATED_PURCHASE_ORDERS[poId] = { ...(LOCAL_UPDATED_PURCHASE_ORDERS[poId] || {}), paid_amount: currentPaidAmount + debtCalculation };
+      }
+      if (r.data?.id) {
+         LOCAL_UPDATED_PURCHASE_RETURNS[r.data.id] = {
+           ...(LOCAL_UPDATED_PURCHASE_RETURNS[r.data.id] || {}),
+           ...r.data,
+           supplier_id: suppId,
+           supplierId: suppId
+         };
       }
     }
     return r.data;
