@@ -173,7 +173,12 @@ export default function ReturnsPage() {
   };
 
   const handleExport = () => {
-    const data = filtered.map(o => ({
+    const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
+    if (dataToExport.length === 0) {
+      toast.error('Không có dữ liệu để xuất');
+      return;
+    }
+    const data = dataToExport.map(o => ({
       'Mã trả hàng': o.code,
       'Thời gian': o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
       'Mã KH': o.customer_code,

@@ -685,7 +685,7 @@ export default function ProductsPage() {
                   <Download size={16} /> Tải file mẫu
                 </Button>
 
-                <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+                <Button variant="secondary" onClick={() => exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered)} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
                   <Download size={16} /> Xuất file
                 </Button>
 

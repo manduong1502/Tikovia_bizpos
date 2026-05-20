@@ -7,8 +7,8 @@ import {
   Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { exportCSV } from '../../utils/exportCSV';
+import * as XLSX from 'xlsx-js-style';
+import { exportCSV, applyExcelStyles } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
 import CustomerExportDebtModal from './CustomerExportDebtModal';
 import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
@@ -443,12 +443,14 @@ export default function CustomersPage() {
   };
 
   const handleExport = () => {
-    if (filtered.length === 0) {
+    const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
+    
+    if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
     exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng bán'],
-      filtered.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || c.totalDebt || 0, c.total_spent || c.totalSpent || 0])
+      dataToExport.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || c.totalDebt || 0, c.total_spent || c.totalSpent || 0])
     );
   };
 
@@ -1341,7 +1343,7 @@ export default function CustomersPage() {
             code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
             total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0),
             debt: Number(o.total || 0) - Number(o.paid_amount || o.paid || 0),
-            items: o.items || []
+            items: o.items || [] // Make sure orderAPI returns items
           })).filter(tx => {
             if (timeRange === 'all') return true;
             if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
@@ -1363,18 +1365,72 @@ export default function CustomersPage() {
           exportData.push(['Mã KH', custCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, 0]);
           exportData.push(['Điện thoại', c.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '']);
           exportData.push(['']);
-          exportData.push(['Thời gian', 'Mã', 'Diễn giải', 'ĐVT', 'SL', 'Đơn giá', 'Giảm giá', 'VAT', 'Giá bán', 'Thành tiền', 'Ghi nợ', 'Ghi có']);
+          
+          // Build dynamic headers
+          const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
+          if (columns.detail) {
+             if (columns.unit) headerRow.push('ĐVT');
+             if (columns.quantity) headerRow.push('SL');
+             if (columns.price) headerRow.push('Đơn giá');
+             if (columns.discount) headerRow.push('Giảm giá');
+             headerRow.push('VAT');
+             if (columns.importPrice) headerRow.push('Giá bán');
+             if (columns.total) headerRow.push('Thành tiền');
+             if (columns.note) headerRow.push('Ghi chú');
+          }
+          headerRow.push('Ghi nợ', 'Ghi có');
+          exportData.push(headerRow);
 
           transactions.forEach(tx => {
             const txTime = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
-            exportData.push([txTime, tx.code, tx.type, '', '', '', '', '', '', '', tx.debt, 0]);
-            if (columns.unit || columns.quantity || columns.price || columns.total) {
+            
+            // Build summary row
+            const summaryRow = [txTime, tx.code, tx.type];
+            if (columns.detail) {
+               if (columns.unit) summaryRow.push('');
+               if (columns.quantity) summaryRow.push('');
+               if (columns.price) summaryRow.push('');
+               if (columns.discount) summaryRow.push('');
+               summaryRow.push(''); // VAT
+               if (columns.importPrice) summaryRow.push('');
+               if (columns.total) summaryRow.push('');
+               if (columns.note) summaryRow.push('');
+            }
+            summaryRow.push(tx.debt, 0); // Ghi nợ, Ghi có
+            exportData.push(summaryRow);
+            
+            // Build item rows
+            if (columns.detail) {
               tx.items.forEach(it => {
-                exportData.push(['', it.product_sku || '', it.product_name || '', it.unit || '', it.quantity || 0, it.unit_price || it.price || 0, it.discount || 0, 0, it.unit_price || it.price || 0, it.total || 0, '', '']);
+                const itemRow = ['', it.product_sku || it.sku || '', it.product_name || it.name || ''];
+                if (columns.unit) itemRow.push(it.unit || 'Cái');
+                if (columns.quantity) itemRow.push(it.quantity || 0);
+                if (columns.price) itemRow.push(it.unit_price || it.price || 0);
+                if (columns.discount) itemRow.push(it.discount || 0);
+                itemRow.push(0); // VAT
+                if (columns.importPrice) itemRow.push(it.unit_price || it.price || 0);
+                if (columns.total) itemRow.push(it.total || ((it.unit_price || it.price || 0) * (it.quantity || 0)));
+                if (columns.note) itemRow.push(it.note || '');
+                itemRow.push('', ''); // Ghi nợ, Ghi có empty for items
+                exportData.push(itemRow);
               });
             }
+            
+            // Payment row
             if (tx.paid > 0) {
-              exportData.push([txTime, `TTHD${tx.code.replace('HD','')}`, 'Thanh toán', '', '', '', '', '', '', '', '', '']);
+              const payRow = [txTime, `TTHD${tx.code.replace('HD','')}`, 'Thanh toán'];
+              if (columns.detail) {
+                 if (columns.unit) payRow.push('');
+                 if (columns.quantity) payRow.push('');
+                 if (columns.price) payRow.push('');
+                 if (columns.discount) payRow.push('');
+                 payRow.push(''); // VAT
+                 if (columns.importPrice) payRow.push('');
+                 if (columns.total) payRow.push('');
+                 if (columns.note) payRow.push('');
+              }
+              payRow.push('', ''); // Ghi nợ, Ghi có empty
+              exportData.push(payRow);
             }
           });
 
@@ -1387,7 +1443,24 @@ export default function CustomersPage() {
           exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
 
           const ws = XLSX.utils.aoa_to_sheet(exportData);
-          ws['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+          
+          const autoCols = [
+            { wch: 14 }, { wch: 14 }, { wch: 28 } // Time, Code, Name
+          ];
+          if (columns.detail) {
+             if (columns.unit) autoCols.push({ wch: 8 });
+             if (columns.quantity) autoCols.push({ wch: 8 });
+             if (columns.price) autoCols.push({ wch: 12 });
+             if (columns.discount) autoCols.push({ wch: 10 });
+             autoCols.push({ wch: 8 }); // VAT
+             if (columns.importPrice) autoCols.push({ wch: 14 });
+             if (columns.total) autoCols.push({ wch: 14 });
+             if (columns.note) autoCols.push({ wch: 14 });
+          }
+          autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+          
+          applyExcelStyles(ws, autoCols);
+          
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
           XLSX.writeFile(wb, `CongNoChiTietKhachHang_${custCode}.xlsx`);

@@ -246,12 +246,13 @@ export default function PurchaseOrdersPage() {
   };
 
   const handleExport = () => {
-    if (filtered.length === 0) {
+    const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
+    if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
     exportCSV('phieu_nhap_hang', ['Mã nhập hàng', 'Thời gian', 'Mã NCC', 'Nhà cung cấp', 'Cần trả NCC', 'Đã trả NCC', 'Trạng thái'],
-      filtered.map(o => [o.po_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.supplier_code, o.supplier_name, o.total, o.paid_amount, PAY_LABEL[o.payment_status] || o.payment_status])
+      dataToExport.map(o => [o.po_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.supplier_code, o.supplier_name, o.total, o.paid_amount, PAY_LABEL[o.payment_status] || o.payment_status])
     );
   };
 

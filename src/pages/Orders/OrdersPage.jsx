@@ -356,12 +356,13 @@ export default function OrdersPage() {
   };
 
   const handleExport = () => {
-    if (filtered.length === 0) {
+    const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
+    if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
     exportCSV('hoa_don', ['Mã hóa đơn', 'Thời gian', 'Khách hàng', 'Tổng tiền', 'Giảm giá', 'Khách trả'],
-      filtered.map(o => [o.order_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.customer_name || 'Khách lẻ', o.total || 0, o.discount_amount || 0, o.paid_amount || 0])
+      dataToExport.map(o => [o.order_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.customer_name || 'Khách lẻ', o.total || 0, o.discount_amount || 0, o.paid_amount || 0])
     );
   };
 

@@ -6,8 +6,8 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
-import { exportCSV } from '../../utils/exportCSV';
+import * as XLSX from 'xlsx-js-style';
+import { exportCSV, applyExcelStyles } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
 import ExportDebtModal from './ExportDebtModal';
 import AdjustDebtModal from './AdjustDebtModal';
@@ -411,12 +411,14 @@ export default function SuppliersPage() {
   };
 
   const handleExport = () => {
-    if (filtered.length === 0) {
+    const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
+    
+    if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
     exportCSV('nha_cung_cap', ['Mã NCC', 'Tên nhà cung cấp', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng mua'],
-      filtered.map(s => [s.code || `NCC${String(s.id).padStart(3, '0')}`, s.name, s.phone || '', s.email || '', s.address || '', s.debt || 0, s.total_spent || 0])
+      dataToExport.map(s => [s.code || `NCC${String(s.id).padStart(3, '0')}`, s.name, s.phone || '', s.email || '', s.address || '', s.debt || 0, s.total_spent || 0])
     );
   };
 
@@ -495,38 +497,78 @@ export default function SuppliersPage() {
     exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
     
     // Table Headers
-    exportData.push(['Thời gian', 'Mã', 'Diễn giải', 'ĐVT', 'SL', 'Đơn giá', 'Giảm giá', 'VAT', 'Giá nhập/trả', 'Thành tiền', 'Ghi nợ', 'Ghi có']);
+    const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
+    if (columns.detail) {
+       if (columns.unit) headerRow.push('ĐVT');
+       if (columns.quantity) headerRow.push('SL');
+       if (columns.price) headerRow.push('Đơn giá');
+       if (columns.discount) headerRow.push('Giảm giá');
+       headerRow.push('VAT');
+       if (columns.importPrice) headerRow.push('Giá nhập/trả');
+       if (columns.total) headerRow.push('Thành tiền');
+       if (columns.note) headerRow.push('Ghi chú');
+    }
+    headerRow.push('Ghi nợ', 'Ghi có');
+    exportData.push(headerRow);
     
     transactions.forEach(tx => {
       // Dòng phiếu (Summary row)
       const txTimeStr = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
-      // Ghi nợ = debt (total - paid), not total
       const ghiNo = tx.type === 'Nhập hàng' ? tx.debt : 0;
       const ghiCo = tx.type === 'Trả hàng nhập' ? tx.total : 0;
 
-      exportData.push([txTimeStr, tx.code, tx.type, '', '', '', '', '', '', '', ghiNo, ghiCo]);
+      const summaryRow = [txTimeStr, tx.code, tx.type];
+      if (columns.detail) {
+         if (columns.unit) summaryRow.push('');
+         if (columns.quantity) summaryRow.push('');
+         if (columns.price) summaryRow.push('');
+         if (columns.discount) summaryRow.push('');
+         summaryRow.push(''); // VAT
+         if (columns.importPrice) summaryRow.push('');
+         if (columns.total) summaryRow.push('');
+         if (columns.note) summaryRow.push('');
+      }
+      summaryRow.push(ghiNo, ghiCo);
+      exportData.push(summaryRow);
 
       // Dòng sản phẩm (Item rows)
-      if (columns.unit || columns.quantity || columns.price || columns.total) {
+      if (columns.detail) {
         tx.items.forEach(it => {
             const sku = it.product_sku || it.product?.sku || it.sku || '';
             const name = it.product_name || it.product?.name || it.name || '';
-            const unit = it.product?.unit || it.unit || '';
-            const quantity = it.quantity || 0;
-            const price = it.price || it.unit_price || 0;
-            const discount = it.discount || 0;
-            const importPrice = it.returnPrice || it.price || it.unit_price || 0;
-            const total = it.total || 0;
             
-            exportData.push(['', sku, name, unit, quantity, price, discount, 0, importPrice, total, '', '']);
+            const itemRow = ['', sku, name];
+            if (columns.unit) itemRow.push(it.product?.unit || it.unit || 'Cái');
+            if (columns.quantity) itemRow.push(it.quantity || 0);
+            if (columns.price) itemRow.push(it.price || it.unit_price || 0);
+            if (columns.discount) itemRow.push(it.discount || 0);
+            itemRow.push(0); // VAT
+            if (columns.importPrice) itemRow.push(it.returnPrice || it.price || it.unit_price || 0);
+            if (columns.total) itemRow.push(it.total || 0);
+            if (columns.note) itemRow.push(it.note || '');
+            itemRow.push('', ''); // Ghi nợ, ghi có empty for items
+            
+            exportData.push(itemRow);
         });
       }
 
-      // Dòng thanh toán (Payment row) - only for purchase orders with payment
+      // Dòng thanh toán (Payment row)
       if (tx.type === 'Nhập hàng' && tx.paid > 0) {
         const payCode = `TTPN${tx.code.replace('PN', '')}`;
-        exportData.push([txTimeStr, payCode, 'Thanh toán', '', '', '', '', '', '', '', '', '']);
+        const payRow = [txTimeStr, payCode, 'Thanh toán'];
+        if (columns.detail) {
+           if (columns.unit) payRow.push('');
+           if (columns.quantity) payRow.push('');
+           if (columns.price) payRow.push('');
+           if (columns.discount) payRow.push('');
+           payRow.push(''); // VAT
+           if (columns.importPrice) payRow.push('');
+           if (columns.total) payRow.push('');
+           if (columns.note) payRow.push('');
+        }
+        payRow.push('', ''); // Ghi nợ, ghi có empty
+        exportData.push(payRow);
       }
     });
 
@@ -536,30 +578,32 @@ export default function SuppliersPage() {
     }
 
     // Footer
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['']);
     const footerDate = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
     exportData.push(['', '', '', '', '', '', '', '', '', '', '', footerDate]);
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    exportData.push(['']);
     exportData.push(['Nhà cung cấp', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
     exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
 
     const ws = XLSX.utils.aoa_to_sheet(exportData);
     
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 14 }, // Thời gian
-      { wch: 14 }, // Mã
-      { wch: 28 }, // Diễn giải
-      { wch: 8 },  // ĐVT
-      { wch: 8 },  // SL
-      { wch: 12 }, // Đơn giá
-      { wch: 10 }, // Giảm giá
-      { wch: 8 },  // VAT
-      { wch: 14 }, // Giá nhập/trả
-      { wch: 14 }, // Thành tiền
-      { wch: 14 }, // Ghi nợ
-      { wch: 14 }, // Ghi có
+    // Set column widths dynamically
+    const autoCols = [
+      { wch: 14 }, { wch: 14 }, { wch: 28 } // Time, Code, Name
     ];
+    if (columns.detail) {
+       if (columns.unit) autoCols.push({ wch: 8 });
+       if (columns.quantity) autoCols.push({ wch: 8 });
+       if (columns.price) autoCols.push({ wch: 12 });
+       if (columns.discount) autoCols.push({ wch: 10 });
+       autoCols.push({ wch: 8 }); // VAT
+       if (columns.importPrice) autoCols.push({ wch: 14 });
+       if (columns.total) autoCols.push({ wch: 14 });
+       if (columns.note) autoCols.push({ wch: 14 });
+    }
+    autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+    
+    applyExcelStyles(ws, autoCols);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
