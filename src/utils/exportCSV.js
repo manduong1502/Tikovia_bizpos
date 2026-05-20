@@ -17,7 +17,6 @@ export function applyExcelStyles(worksheet, autoCols = []) {
       
       const isHeader = R === 0 || (worksheet[cellRef].v && String(worksheet[cellRef].v).includes('Công nợ chi tiết'));
       
-      // Do not overwrite completely if we just want to add borders
       worksheet[cellRef].s = {
         ...(worksheet[cellRef].s || {}),
         font: {
@@ -32,6 +31,129 @@ export function applyExcelStyles(worksheet, autoCols = []) {
           right: { style: "thin", color: { auto: 1 } }
         }
       };
+    }
+  }
+
+  if (autoCols.length > 0) {
+    worksheet['!cols'] = autoCols;
+  }
+}
+
+export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, merges = []) {
+  const range = XLSX.utils.decode_range(worksheet['!ref']);
+  
+  // Set merges
+  if (merges.length > 0) {
+    worksheet['!merges'] = merges;
+  }
+
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = {c:C, r:R};
+      const cellRef = XLSX.utils.encode_cell(cellAddress);
+      if (!worksheet[cellRef]) continue;
+      
+      let cellStyle = {
+        font: { name: 'Arial', sz: 10 },
+        alignment: { vertical: 'center' }
+      };
+
+      const val = worksheet[cellRef].v;
+
+      // Title formatting
+      if (typeof val === 'string' && val.includes('Công nợ chi tiết')) {
+        cellStyle.font = { name: 'Arial', sz: 14, bold: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+      // Date range formatting
+      if (typeof val === 'string' && val.includes('Từ ngày')) {
+        cellStyle.font = { name: 'Arial', sz: 11, bold: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
+      }
+      
+      // Store/Customer Info formatting
+      if (R < headerRowIndex && C === 0) {
+        cellStyle.font.bold = true;
+      }
+      
+      // Debt Summary formatting
+      if (R >= headerRowIndex - 4 && R < headerRowIndex && C === 8) { // Column I (Nợ đầu kỳ, etc)
+        cellStyle.font.bold = true;
+      }
+
+      // Table Header formatting
+      if (R === headerRowIndex) {
+        cellStyle.font.bold = true;
+        cellStyle.alignment.horizontal = 'center';
+        cellStyle.border = {
+          top: { style: "thin", color: { auto: 1 } },
+          bottom: { style: "thin", color: { auto: 1 } },
+          left: { style: "thin", color: { auto: 1 } },
+          right: { style: "thin", color: { auto: 1 } }
+        };
+      }
+
+      // Table Data formatting
+      if (R > headerRowIndex && R <= range.e.r - 4) {
+        const isItemRow = C > 2 && C < 10 && val !== ''; // Check if it's an item row (has data in item cols)
+        const isSummaryRow = C <= 2 && val !== '';
+        
+        cellStyle.border = {
+          left: { style: "thin", color: { auto: 1 } },
+          right: { style: "thin", color: { auto: 1 } }
+        };
+
+        if (isItemRow || (R > headerRowIndex && worksheet[XLSX.utils.encode_cell({c:3, r:R})]?.v !== '')) {
+           // It's an item row
+           cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
+        } else {
+           // It's a summary row or empty
+           if (val !== '' && C <= 2) {
+             cellStyle.border.top = { style: "thin", color: { auto: 1 } };
+           }
+        }
+        
+        // Final bottom border for the table
+        if (R === range.e.r - 4) {
+          cellStyle.border.bottom = { style: "thin", color: { auto: 1 } };
+        }
+        
+        // Alignment
+        if (C === 0 || C === 1) cellStyle.alignment.horizontal = 'center';
+        if (C >= 4 && C <= 11) cellStyle.alignment.horizontal = 'right'; // Number columns
+      }
+
+      // Footer formatting
+      if (R >= range.e.r - 3) {
+        if (R === range.e.r - 3 && C === 10) { // Ngày tháng năm
+          cellStyle.alignment.horizontal = 'center';
+          cellStyle.font.italic = true;
+        }
+        if (R === range.e.r - 1) { // Người lập biểu
+          cellStyle.font.bold = true;
+          cellStyle.alignment.horizontal = 'center';
+        }
+        if (R === range.e.r) { // Ký tên
+          cellStyle.font.italic = true;
+          cellStyle.alignment.horizontal = 'center';
+        }
+      }
+
+      worksheet[cellRef].s = cellStyle;
+    }
+  }
+
+  // Draw full borders for the table outer box to be safe
+  for (let R = headerRowIndex; R <= range.e.r - 4; ++R) {
+    for (let C = 0; C <= 11; ++C) {
+      const cellRef = XLSX.utils.encode_cell({c:C, r:R});
+      if (!worksheet[cellRef]) worksheet[cellRef] = { v: '', t: 's' };
+      worksheet[cellRef].s = worksheet[cellRef].s || {};
+      worksheet[cellRef].s.border = worksheet[cellRef].s.border || {};
+      
+      if (C === 0) worksheet[cellRef].s.border.left = { style: "thin", color: { auto: 1 } };
+      if (C === 11) worksheet[cellRef].s.border.right = { style: "thin", color: { auto: 1 } };
+      if (R === range.e.r - 4) worksheet[cellRef].s.border.bottom = { style: "thin", color: { auto: 1 } };
     }
   }
 

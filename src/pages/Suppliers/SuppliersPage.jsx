@@ -7,7 +7,7 @@ import {
   Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
-import { exportCSV, applyExcelStyles } from '../../utils/exportCSV';
+import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
 import SupplierModal from './SupplierModal';
 import ExportDebtModal from './ExportDebtModal';
 import AdjustDebtModal from './AdjustDebtModal';
@@ -472,31 +472,36 @@ export default function SuppliersPage() {
 
     const exportData = [];
     
-    // Header section
-    exportData.push(['Cửa hàng của bạn', '', '', '', '', '', '', '', '', '', '', '']);
-    exportData.push(['Địa chỉ cửa hàng', '', '', '', '', '', '', '', '', '', '', '']);
-    exportData.push(['Điện thoại', '...', '', '', '', '', '', '', '', '', '', '']);
+    // Header section (Store Info)
+    exportData.push(['vohuy123', '', '', '', '', '', '', '', '', '', '', '']); // Row 1
+    exportData.push(['Địa chỉ', '', '', '', '', '', '', '', '', '', '', '']); // Row 2
+    exportData.push(['Điện thoại', '+84387564952', '', '', '', '', '', '', '', '', '', '']); // Row 3
     
     const formatDate = (date) => {
       const d = new Date(date);
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     };
 
-    let titleStr = `Công nợ chi tiết nhà cung cấp\r\nTừ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
-    if (timeRange === 'all') titleStr = `Công nợ chi tiết nhà cung cấp\r\nToàn thời gian`;
+    let dateStr = `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
+    if (timeRange === 'all') dateStr = `Toàn thời gian`;
+
+    // Title & Date (Merged)
+    exportData.push(['', '', '', 'Công nợ chi tiết nhà cung cấp', '', '', '', '', '', '', '', '']); // Row 4
+    exportData.push(['', '', '', dateStr, '', '', '', '', '', '', '', '']); // Row 5
 
     // Calculate totals for header
     const totalGhiNo = transactions.filter(t => t.type === 'Nhập hàng').reduce((s, t) => s + t.debt, 0);
     const totalGhiCo = transactions.filter(t => t.type === 'Trả hàng nhập').reduce((s, t) => s + t.total, 0);
     const noCuoiKy = Number(s.debt || 0);
 
-    exportData.push([titleStr, '', '', '', '', '', '', '', '', '', '', '']);
-    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']);
-    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, totalGhiCo]);
-    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '']);
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+    // Supplier & Debt Summary Info
+    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '', '']); // Row 6
+    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, totalGhiCo, '']); // Row 7
+    exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '', '']); // Row 8
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Row 9
     
     // Table Headers
+    const headerRowIndex = 9; // 0-based, so Row 10
     const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
     if (columns.detail) {
        if (columns.unit) headerRow.push('ĐVT');
@@ -513,7 +518,7 @@ export default function SuppliersPage() {
     
     transactions.forEach(tx => {
       // Dòng phiếu (Summary row)
-      const txTimeStr = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
+      const txTimeStr = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
       const ghiNo = tx.type === 'Nhập hàng' ? tx.debt : 0;
       const ghiCo = tx.type === 'Trả hàng nhập' ? tx.total : 0;
@@ -578,10 +583,10 @@ export default function SuppliersPage() {
     }
 
     // Footer
-    exportData.push(['']);
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
     const footerDate = `Ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
-    exportData.push(['', '', '', '', '', '', '', '', '', '', '', footerDate]);
-    exportData.push(['']);
+    exportData.push(['', '', '', '', '', '', '', '', '', '', footerDate, '']);
+    exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
     exportData.push(['Nhà cung cấp', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
     exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
 
@@ -603,7 +608,14 @@ export default function SuppliersPage() {
     }
     autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
     
-    applyExcelStyles(ws, autoCols);
+    // Define merges: Title (D4:H4) and Date (D5:H5)
+    // 0-based: Row 3, Cols 3-7. Row 4, Cols 3-7.
+    const merges = [
+      { s: { r: 3, c: 3 }, e: { r: 3, c: 7 } },
+      { s: { r: 4, c: 3 }, e: { r: 4, c: 7 } }
+    ];
+
+    applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CongNo');

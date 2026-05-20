@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
-import { exportCSV, applyExcelStyles } from '../../utils/exportCSV';
+import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
 import CustomerModal from './CustomerModal';
 import CustomerExportDebtModal from './CustomerExportDebtModal';
 import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
@@ -1356,17 +1356,28 @@ export default function CustomersPage() {
           const noCuoiKy = Number(c.debt || c.totalDebt || 0);
 
           const exportData = [];
-          exportData.push(['Cửa hàng của bạn']);
-          exportData.push(['Địa chỉ cửa hàng']);
-          exportData.push(['Điện thoại', '...']);
-          let titleStr = timeRange === 'all' ? 'Công nợ chi tiết khách hàng\r\nToàn thời gian' : `Công nợ chi tiết khách hàng\r\nTừ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
-          exportData.push([titleStr]);
-          exportData.push(['Tên KH', c.name, '', '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '']);
-          exportData.push(['Mã KH', custCode, '', '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, 0]);
-          exportData.push(['Điện thoại', c.phone || '', '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '']);
-          exportData.push(['']);
           
-          // Build dynamic headers
+          // Header section (Store Info)
+          exportData.push(['vohuy123', '', '', '', '', '', '', '', '', '', '', '']); // Row 1
+          exportData.push(['Chi nhánh', 'Chi nhánh trung tâm', '', '', '', '', '', '', '', '', '', '']); // Row 2
+          exportData.push(['Địa chỉ', '', '', '', '', '', '', '', '', '', '', '']); // Row 3
+          exportData.push(['Điện thoại', '+84387564952', '', '', '', '', '', '', '', '', '', '']); // Row 4
+          
+          let dateStr = `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
+          if (timeRange === 'all') dateStr = `Toàn thời gian`;
+
+          // Title & Date (Merged)
+          exportData.push(['', '', '', 'Công nợ chi tiết khách hàng', '', '', '', '', '', '', '', '']); // Row 5
+          exportData.push(['', '', '', dateStr, '', '', '', '', '', '', '', '']); // Row 6
+
+          // Customer & Debt Summary Info
+          exportData.push(['Khách hàng', c.name, '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '', '']); // Row 7
+          exportData.push(['Mã KH', custCode, '', '', '', '', '', '', 'Phát sinh trong kỳ', 0, totalGhiNo, '']); // Row 8 - Note: for customers, debt increases (Phát sinh) are positive
+          exportData.push(['Điện thoại', c.phone || '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '', '']); // Row 9
+          exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Row 10
+          
+          // Table Headers
+          const headerRowIndex = 10; // 0-based, so Row 11
           const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
           if (columns.detail) {
              if (columns.unit) headerRow.push('ĐVT');
@@ -1374,7 +1385,7 @@ export default function CustomersPage() {
              if (columns.price) headerRow.push('Đơn giá');
              if (columns.discount) headerRow.push('Giảm giá');
              headerRow.push('VAT');
-             if (columns.importPrice) headerRow.push('Giá bán');
+             if (columns.importPrice) headerRow.push('Giá bán/trả');
              if (columns.total) headerRow.push('Thành tiền');
              if (columns.note) headerRow.push('Ghi chú');
           }
@@ -1382,7 +1393,7 @@ export default function CustomersPage() {
           exportData.push(headerRow);
 
           transactions.forEach(tx => {
-            const txTime = `${formatDate(tx.date)}\r\n      ${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
+            const txTime = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
             
             // Build summary row
             const summaryRow = [txTime, tx.code, tx.type];
@@ -1436,9 +1447,9 @@ export default function CustomersPage() {
 
           if (transactions.length === 0) { toast.error('Không có giao dịch nào'); return; }
 
-          exportData.push(['']);
-          exportData.push(['', '', '', '', '', '', '', '', '', '', '', `Ngày ${now.getDate()} tháng ${now.getMonth()+1} năm ${now.getFullYear()}`]);
-          exportData.push(['']);
+          exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
+          exportData.push(['', '', '', '', '', '', '', '', '', '', `Ngày ${now.getDate()} tháng ${now.getMonth()+1} năm ${now.getFullYear()}`, '']);
+          exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']);
           exportData.push(['Khách hàng', '', '', '', '', 'Người lập biểu', '', '', '', '', 'TM Công ty', '']);
           exportData.push(['(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '', '', '', '', '(Ký, họ tên)', '']);
 
@@ -1459,7 +1470,14 @@ export default function CustomersPage() {
           }
           autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
           
-          applyExcelStyles(ws, autoCols);
+          // Define merges: Title (D5:H5) and Date (D6:H6)
+          // 0-based: Row 4, Cols 3-7. Row 5, Cols 3-7.
+          const merges = [
+            { s: { r: 4, c: 3 }, e: { r: 4, c: 7 } },
+            { s: { r: 5, c: 3 }, e: { r: 5, c: 7 } }
+          ];
+
+          applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
           
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, 'CongNo');

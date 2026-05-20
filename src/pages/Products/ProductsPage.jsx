@@ -609,7 +609,7 @@ export default function ProductsPage() {
                 Đã chọn {selected.size}
                 <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-red-500 cursor-pointer bg-transparent border-none p-0.5 transition-colors"><X size={16} /></button>
               </span>
-              <Button variant="secondary" onClick={() => exportProducts(filtered)} className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm">
+              <Button variant="secondary" onClick={() => exportProducts(filtered.filter(p => selected.has(p.id)))} className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm">
                 <Download size={16} /> Xuất file
               </Button>
               <Button variant="secondary" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }} className="flex items-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm">
