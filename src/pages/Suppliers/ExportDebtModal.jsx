@@ -6,6 +6,7 @@ export default function ExportDebtModal({ open, onClose, onExport }) {
   const [timeRange, setTimeRange] = useState('all'); // all, today, this_week, this_month, last_month, etc.
   
   const [columns, setColumns] = useState({
+    detail: true, // Chi tiết từng hàng giao dịch
     unit: true, // ĐVT
     quantity: true, // Số lượng
     price: true, // Đơn giá

@@ -4,7 +4,14 @@ import { X } from 'lucide-react';
 export default function CustomerExportDebtModal({ open, onClose, onExport }) {
   const [timeRange, setTimeRange] = useState('all');
   const [columns, setColumns] = useState({
-    detail: true, unit: true, quantity: true, price: true, discount: true, importPrice: true, total: true, note: true,
+    detail: true,
+    unit: true,
+    quantity: true,
+    price: true,
+    discount: true,
+    importPrice: true,
+    total: true,
+    note: true
   });
 
   if (!open) return null;

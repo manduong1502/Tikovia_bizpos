@@ -32,7 +32,30 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
       return;
     }
     try {
-      const { customerAPI } = await import('../../services/api');
+      const { customerAPI, default: api } = await import('../../services/api');
+      
+      const cashbookCode = `PTM${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 100)}`;
+      const payload = {
+        code: cashbookCode,
+        type: 'INCOME',
+        amount: val,
+        category: 'Thu tiền nợ',
+        partnerType: 'customer',
+        supplierId: customer.id, // using supplierId as partner id for now due to backend structure
+        partnerName: customer.name,
+        paymentMethod: payMethod,
+        isAccounting: true,
+        status: 'completed',
+        branch: 'Chi nhánh trung tâm',
+        note: note || `Thu tiền nợ từ khách hàng ${customer.name}`,
+      };
+
+      try {
+        await api.post('/cashbook', payload);
+      } catch(e) {
+        console.warn('Cashbook API might not exist yet:', e);
+      }
+
       await customerAPI.update(customer.id, { debt: Math.max(0, currentDebt - val) });
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
       onSaved?.();

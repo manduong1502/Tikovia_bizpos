@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { customerAPI, orderAPI } from '../../services/api';
+import { customerAPI, orderAPI, cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -64,6 +64,7 @@ export default function CustomersPage() {
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
   const [orders, setOrders] = useState([]);
+  const [cashbooks, setCashbooks] = useState([]);
 
   // Customer debt modal states
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -240,11 +241,17 @@ export default function CustomersPage() {
 
       // Load orders for debt tab
       try {
-        const ordRes = await orderAPI.getAll({ limit: 1000 });
+        const [ordRes, cbRes] = await Promise.all([
+          orderAPI.getAll({ limit: 1000 }).catch(() => ({ data: [] })),
+          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] }))
+        ]);
         const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
         setOrders(rawOrders);
+        const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
+        setCashbooks(rawCBs);
       } catch {
         setOrders([]);
+        setCashbooks([]);
       }
     } catch {
       setCustomers([]);
@@ -1332,6 +1339,11 @@ export default function CustomersPage() {
             o.customer_code === custCode || o.customer_name === c.name
           ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
+          const custCashbooks = cashbooks.filter(cb => 
+            cb.partnerType === 'customer' && 
+            (cb.supplierId === c.id || (cb.partnerName && cb.partnerName === c.name))
+          );
+
           const now = new Date();
           let startDate = new Date(0), endDate = new Date();
           if (timeRange === 'today') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1339,28 +1351,43 @@ export default function CustomersPage() {
           else if (timeRange === 'this_month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           else if (timeRange === 'last_month') { startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); endDate = new Date(now.getFullYear(), now.getMonth(), 0); }
 
-          const noDauKy = custOrders
-            .filter(o => o.status !== 'CANCELLED')
-            .map(o => ({ date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: Number(o.paid_amount || o.paid || 0) }))
-            .filter(tx => tx.date < startDate)
-            .reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
+          const noDauKy = [
+            ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
+              date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: Number(o.paid_amount || o.paid || 0)
+            })),
+            ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+              date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? cb.amount : 0, debtDecrease: cb.type === 'INCOME' ? cb.amount : 0
+            }))
+          ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
-          const transactions = custOrders
-            .filter(o => o.status !== 'CANCELLED')
-            .map(o => ({
+          const transactions = [
+            ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
               code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
-              total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0),
-              items: o.items || [] 
-            })).filter(tx => {
-              if (timeRange === 'all') return true;
-              if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
-              return tx.date >= startDate;
-            }).sort((a, b) => a.date - b.date);
+              total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0), items: o.items || [] 
+            })),
+            ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+              code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
+              total: cb.type === 'EXPENSE' ? cb.amount : cb.type === 'INCOME' ? cb.amount : 0,
+              paid: 0, items: [], cashbookType: cb.type
+            }))
+          ].filter(tx => {
+            if (timeRange === 'all') return true;
+            if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
+            return tx.date >= startDate;
+          }).sort((a, b) => a.date - b.date);
 
           const formatDate = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 
-          const totalGhiNo = transactions.reduce((s, tx) => s + tx.total, 0);
-          const totalGhiCo = transactions.reduce((s, tx) => s + tx.paid, 0);
+          const totalGhiNo = transactions.reduce((s, tx) => {
+            if (tx.type === 'Bán hàng') return s + tx.total;
+            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
+            return s;
+          }, 0);
+          const totalGhiCo = transactions.reduce((s, tx) => {
+            if (tx.type === 'Bán hàng') return s + tx.paid;
+            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? tx.total : 0);
+            return s;
+          }, 0);
           const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
 
           // 1. Build headers to know total columns
@@ -1408,8 +1435,15 @@ export default function CustomersPage() {
           transactions.forEach(tx => {
             const txTime = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
             
-            const ghiNo = tx.total;
-            const ghiCo = 0;
+            let ghiNo = 0;
+            let ghiCo = 0;
+            if (tx.type === 'Bán hàng') {
+              ghiNo = tx.total;
+              ghiCo = tx.paid;
+            } else if (tx.type === 'Thanh toán') {
+              ghiNo = tx.cashbookType === 'EXPENSE' ? tx.total : 0;
+              ghiCo = tx.cashbookType === 'INCOME' ? tx.total : 0;
+            }
 
             const summaryRow = createRow();
             summaryRow[0] = txTime;
@@ -1420,7 +1454,7 @@ export default function CustomersPage() {
             exportData.push(summaryRow);
             
             // Build item rows
-            if (columns.detail) {
+            if (columns.detail && tx.items && tx.items.length > 0) {
               tx.items.forEach(it => {
                 const itemRow = createRow();
                 itemRow[1] = it.product_sku || it.sku || '';
@@ -1436,21 +1470,6 @@ export default function CustomersPage() {
                 if (columns.note) itemRow[colIdx++] = it.note || '';
                 exportData.push(itemRow);
               });
-            }
-            
-            // Payment row
-            if (tx.paid > 0) {
-              const payCode = `TTHD${tx.code.replace('HD','')}`;
-              const payGhiNo = 0;
-              const payGhiCo = tx.paid;
-              
-              const payRow = createRow();
-              payRow[0] = txTime;
-              payRow[1] = payCode;
-              payRow[2] = 'Thanh toán';
-              payRow[totalCols - 2] = payGhiNo || '';
-              payRow[totalCols - 1] = payGhiCo || '';
-              exportData.push(payRow);
             }
           });
 

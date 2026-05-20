@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI } from '../../services/api';
+import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -36,6 +36,7 @@ export default function SuppliersPage() {
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);
+  const [cashbooks, setCashbooks] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
@@ -231,13 +232,18 @@ export default function SuppliersPage() {
 
   const reload = useCallback(async () => {
     try {
-      const [supRes, prodRes, poRes, prRes] = await Promise.all([
+      const [supRes, prodRes, poRes, prRes, cbRes] = await Promise.all([
         supplierAPI.getAll({ limit: 500 }),
         productAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
         purchaseReturnAPI.getAll({ limit: 500 }).catch(() => []),
+        cashbookAPI.getAll({ partnerType: 'supplier' }).catch(() => [])
       ]);
       const rawList = Array.isArray(supRes) ? supRes : (supRes?.data || []);
+      
+      const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
+      setCashbooks(rawCBs);
+      
       if (rawList.length === 0) {
         const mockSuppliers = [
           { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 1305000, net_purchase: 11195000 },
@@ -453,23 +459,37 @@ export default function SuppliersPage() {
       endDate = new Date(now.getFullYear(), now.getMonth(), 0);
     }
 
+    const supCashbooks = cashbooks.filter(cb => 
+      cb.supplierId === supId || 
+      (cb.partnerName && cb.partnerName === s.name) ||
+      (cb.supplier_code && cb.supplier_code === supCode)
+    );
+
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at), debtIncrease: po.total, debtDecrease: po.paid_amount
+        date: new Date(po.created_at || po.createdAt), debtIncrease: po.total, debtDecrease: po.paid_amount
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at), debtIncrease: pr.paid || 0, debtDecrease: pr.total
+        date: new Date(pr.created_at || pr.createdAt), debtIncrease: pr.paid || 0, debtDecrease: pr.total
+      })),
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+        date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? cb.amount : 0, debtDecrease: cb.type === 'EXPENSE' ? cb.amount : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
     const transactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        code: po.po_code, type: 'Nhập hàng', date: new Date(po.created_at), 
+        code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
         total: po.total, paid: po.paid_amount, items: po.items || [] 
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at), 
+        code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at || pr.createdAt), 
         total: pr.total, paid: pr.paid || 0, items: pr.items || [] 
+      })),
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+        code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
+        total: cb.type === 'INCOME' ? cb.amount : cb.type === 'EXPENSE' ? cb.amount : 0, 
+        paid: 0, items: [], cashbookType: cb.type
       }))
     ].filter(tx => {
       if (timeRange === 'all') return true;
@@ -514,8 +534,18 @@ export default function SuppliersPage() {
     let row5 = createRow(); row5[0] = dateStr; exportData.push(row5);
 
     // Calculate totals for header
-    const totalGhiNo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.total : tx.paid), 0);
-    const totalGhiCo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.paid : tx.total), 0);
+    const totalGhiNo = transactions.reduce((s, tx) => {
+      if (tx.type === 'Nhập hàng') return s + tx.total;
+      if (tx.type === 'Trả hàng nhà cung cấp') return s + tx.paid;
+      if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? tx.total : 0);
+      return s;
+    }, 0);
+    const totalGhiCo = transactions.reduce((s, tx) => {
+      if (tx.type === 'Nhập hàng') return s + tx.paid;
+      if (tx.type === 'Trả hàng nhà cung cấp') return s + tx.total;
+      if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
+      return s;
+    }, 0);
     const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
 
     // Supplier & Debt Summary Info
@@ -532,8 +562,18 @@ export default function SuppliersPage() {
       // Dòng phiếu (Summary row)
       const txTimeStr = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
-      const ghiNo = tx.type === 'Nhập hàng' ? tx.total : 0;
-      const ghiCo = tx.type === 'Trả hàng nhà cung cấp' ? tx.total : 0;
+      let ghiNo = 0;
+      let ghiCo = 0;
+      if (tx.type === 'Nhập hàng') {
+        ghiNo = tx.total;
+        ghiCo = tx.paid;
+      } else if (tx.type === 'Trả hàng nhà cung cấp') {
+        ghiNo = tx.paid;
+        ghiCo = tx.total;
+      } else if (tx.type === 'Thanh toán') {
+        ghiNo = tx.cashbookType === 'INCOME' ? tx.total : 0;
+        ghiCo = tx.cashbookType === 'EXPENSE' ? tx.total : 0;
+      }
 
       const summaryRow = createRow();
       summaryRow[0] = txTimeStr;
@@ -544,7 +584,7 @@ export default function SuppliersPage() {
       exportData.push(summaryRow);
 
       // Dòng sản phẩm (Item rows)
-      if (columns.detail) {
+      if (columns.detail && tx.items && tx.items.length > 0) {
         tx.items.forEach(it => {
             const sku = it.product_sku || it.product?.sku || it.sku || '';
             const name = it.product_name || it.product?.name || it.name || '';
@@ -563,21 +603,6 @@ export default function SuppliersPage() {
             if (columns.note) itemRow[colIdx++] = it.note || '';
             exportData.push(itemRow);
         });
-      }
-
-      // Dòng thanh toán (Payment row)
-      if (tx.paid > 0) {
-        const payCode = tx.type === 'Nhập hàng' ? `PCPN${tx.code.replace('PN', '')}` : `PTTHN${tx.code.replace('THN', '')}`;
-        const payGhiNo = tx.type === 'Trả hàng nhà cung cấp' ? tx.paid : 0;
-        const payGhiCo = tx.type === 'Nhập hàng' ? tx.paid : 0;
-        
-        const payRow = createRow();
-        payRow[0] = txTimeStr;
-        payRow[1] = payCode;
-        payRow[2] = 'Thanh toán';
-        payRow[totalCols - 2] = payGhiNo || '';
-        payRow[totalCols - 1] = payGhiCo || '';
-        exportData.push(payRow);
       }
     });
 
