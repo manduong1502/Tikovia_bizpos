@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,7 +24,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
     full: 'max-w-[90vw]',
   }[size] || 'max-w-lg';
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -73,4 +74,6 @@ export default function Modal({ open, onClose, title, children, footer, size = '
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, document.body);
 }
