@@ -453,16 +453,23 @@ export default function SuppliersPage() {
       endDate = new Date(now.getFullYear(), now.getMonth(), 0);
     }
 
+    const noDauKy = [
+      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
+        date: new Date(po.created_at), debtIncrease: po.total, debtDecrease: po.paid_amount
+      })),
+      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
+        date: new Date(pr.created_at), debtIncrease: pr.paid || 0, debtDecrease: pr.total
+      }))
+    ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
+
     const transactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
         code: po.po_code, type: 'Nhập hàng', date: new Date(po.created_at), 
-        total: po.total, paid: po.paid_amount, debt: po.total - po.paid_amount,
-        items: po.items || [] 
+        total: po.total, paid: po.paid_amount, items: po.items || [] 
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        code: pr.code, type: 'Trả hàng nhập', date: new Date(pr.created_at), 
-        total: pr.total, paid: pr.paid || 0, debt: 0,
-        items: pr.items || [] 
+        code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at), 
+        total: pr.total, paid: pr.paid || 0, items: pr.items || [] 
       }))
     ].filter(tx => {
       if (timeRange === 'all') return true;
@@ -490,13 +497,13 @@ export default function SuppliersPage() {
     exportData.push(['', '', '', dateStr, '', '', '', '', '', '', '', '']); // Row 5
 
     // Calculate totals for header
-    const totalGhiNo = transactions.filter(t => t.type === 'Nhập hàng').reduce((s, t) => s + t.debt, 0);
-    const totalGhiCo = transactions.filter(t => t.type === 'Trả hàng nhập').reduce((s, t) => s + t.total, 0);
-    const noCuoiKy = Number(s.debt || 0);
+    const totalGhiNo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.total : tx.paid), 0);
+    const totalGhiCo = transactions.reduce((s, tx) => s + (tx.type === 'Nhập hàng' ? tx.paid : tx.total), 0);
+    const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
 
     // Supplier & Debt Summary Info
-    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '', '']); // Row 6
-    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', 'Phát sinh trong kỳ', totalGhiNo, totalGhiCo, '']); // Row 7
+    exportData.push(['Tên NCC', s.name, '', '', '', '', '', '', 'Nợ đầu kỳ', noDauKy, '', '']); // Row 6
+    exportData.push(['Mã NCC', supCode, '', '', '', '', '', '', 'Phát sinh trong', totalGhiNo, totalGhiCo, '']); // Row 7
     exportData.push(['Điện thoại', s.phone || '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '', '']); // Row 8
     exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Row 9
     
@@ -520,8 +527,8 @@ export default function SuppliersPage() {
       // Dòng phiếu (Summary row)
       const txTimeStr = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
-      const ghiNo = tx.type === 'Nhập hàng' ? tx.debt : 0;
-      const ghiCo = tx.type === 'Trả hàng nhập' ? tx.total : 0;
+      const ghiNo = tx.type === 'Nhập hàng' ? tx.total : 0;
+      const ghiCo = tx.type === 'Trả hàng nhà cung cấp' ? tx.total : 0;
 
       const summaryRow = [txTimeStr, tx.code, tx.type];
       if (columns.detail) {
@@ -534,7 +541,7 @@ export default function SuppliersPage() {
          if (columns.total) summaryRow.push('');
          if (columns.note) summaryRow.push('');
       }
-      summaryRow.push(ghiNo, ghiCo);
+      summaryRow.push(ghiNo || '', ghiCo || ''); // use empty string if 0, like Image 1? Or 0. The image shows blank for Ghi có in Row 10.
       exportData.push(summaryRow);
 
       // Dòng sản phẩm (Item rows)
@@ -550,7 +557,7 @@ export default function SuppliersPage() {
             if (columns.discount) itemRow.push(it.discount || 0);
             itemRow.push(0); // VAT
             if (columns.importPrice) itemRow.push(it.returnPrice || it.price || it.unit_price || 0);
-            if (columns.total) itemRow.push(it.total || 0);
+            if (columns.total) itemRow.push(it.total || ((it.price || it.unit_price || 0) * (it.quantity || 0)));
             if (columns.note) itemRow.push(it.note || '');
             itemRow.push('', ''); // Ghi nợ, ghi có empty for items
             
@@ -559,8 +566,10 @@ export default function SuppliersPage() {
       }
 
       // Dòng thanh toán (Payment row)
-      if (tx.type === 'Nhập hàng' && tx.paid > 0) {
-        const payCode = `TTPN${tx.code.replace('PN', '')}`;
+      if (tx.paid > 0) {
+        const payCode = tx.type === 'Nhập hàng' ? `PCPN${tx.code.replace('PN', '')}` : `PTTHN${tx.code.replace('THN', '')}`;
+        const payGhiNo = tx.type === 'Trả hàng nhà cung cấp' ? tx.paid : 0;
+        const payGhiCo = tx.type === 'Nhập hàng' ? tx.paid : 0;
         const payRow = [txTimeStr, payCode, 'Thanh toán'];
         if (columns.detail) {
            if (columns.unit) payRow.push('');
@@ -572,7 +581,7 @@ export default function SuppliersPage() {
            if (columns.total) payRow.push('');
            if (columns.note) payRow.push('');
         }
-        payRow.push('', ''); // Ghi nợ, ghi có empty
+        payRow.push(payGhiNo || '', payGhiCo || '');
         exportData.push(payRow);
       }
     });

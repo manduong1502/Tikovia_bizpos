@@ -1339,21 +1339,29 @@ export default function CustomersPage() {
           else if (timeRange === 'this_month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           else if (timeRange === 'last_month') { startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); endDate = new Date(now.getFullYear(), now.getMonth(), 0); }
 
-          const transactions = custOrders.map(o => ({
-            code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
-            total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0),
-            debt: Number(o.total || 0) - Number(o.paid_amount || o.paid || 0),
-            items: o.items || [] // Make sure orderAPI returns items
-          })).filter(tx => {
-            if (timeRange === 'all') return true;
-            if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
-            return tx.date >= startDate;
-          }).sort((a, b) => a.date - b.date);
+          const noDauKy = custOrders
+            .filter(o => o.status !== 'CANCELLED')
+            .map(o => ({ date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: Number(o.paid_amount || o.paid || 0) }))
+            .filter(tx => tx.date < startDate)
+            .reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
+
+          const transactions = custOrders
+            .filter(o => o.status !== 'CANCELLED')
+            .map(o => ({
+              code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
+              total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0),
+              items: o.items || [] 
+            })).filter(tx => {
+              if (timeRange === 'all') return true;
+              if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
+              return tx.date >= startDate;
+            }).sort((a, b) => a.date - b.date);
 
           const formatDate = (d) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 
-          const totalGhiNo = transactions.reduce((s, t) => s + t.debt, 0);
-          const noCuoiKy = Number(c.debt || c.totalDebt || 0);
+          const totalGhiNo = transactions.reduce((s, tx) => s + tx.total, 0);
+          const totalGhiCo = transactions.reduce((s, tx) => s + tx.paid, 0);
+          const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
 
           const exportData = [];
           
@@ -1371,8 +1379,8 @@ export default function CustomersPage() {
           exportData.push(['', '', '', dateStr, '', '', '', '', '', '', '', '']); // Row 6
 
           // Customer & Debt Summary Info
-          exportData.push(['Khách hàng', c.name, '', '', '', '', '', '', 'Nợ đầu kỳ', 0, '', '']); // Row 7
-          exportData.push(['Mã KH', custCode, '', '', '', '', '', '', 'Phát sinh trong kỳ', 0, totalGhiNo, '']); // Row 8 - Note: for customers, debt increases (Phát sinh) are positive
+          exportData.push(['Khách hàng', c.name, '', '', '', '', '', '', 'Nợ đầu kỳ', noDauKy, '', '']); // Row 7
+          exportData.push(['Mã KH', custCode, '', '', '', '', '', '', 'Phát sinh trong', totalGhiNo, totalGhiCo, '']); // Row 8
           exportData.push(['Điện thoại', c.phone || '', '', '', '', '', '', '', 'Nợ cuối kỳ', noCuoiKy, '', '']); // Row 9
           exportData.push(['', '', '', '', '', '', '', '', '', '', '', '']); // Row 10
           
@@ -1395,6 +1403,9 @@ export default function CustomersPage() {
           transactions.forEach(tx => {
             const txTime = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
             
+            const ghiNo = tx.total;
+            const ghiCo = 0;
+
             // Build summary row
             const summaryRow = [txTime, tx.code, tx.type];
             if (columns.detail) {
@@ -1407,7 +1418,7 @@ export default function CustomersPage() {
                if (columns.total) summaryRow.push('');
                if (columns.note) summaryRow.push('');
             }
-            summaryRow.push(tx.debt, 0); // Ghi nợ, Ghi có
+            summaryRow.push(ghiNo || '', ghiCo || ''); // Ghi nợ, Ghi có
             exportData.push(summaryRow);
             
             // Build item rows
@@ -1429,7 +1440,10 @@ export default function CustomersPage() {
             
             // Payment row
             if (tx.paid > 0) {
-              const payRow = [txTime, `TTHD${tx.code.replace('HD','')}`, 'Thanh toán'];
+              const payCode = `TTHD${tx.code.replace('HD','')}`;
+              const payGhiNo = 0;
+              const payGhiCo = tx.paid;
+              const payRow = [txTime, payCode, 'Thanh toán'];
               if (columns.detail) {
                  if (columns.unit) payRow.push('');
                  if (columns.quantity) payRow.push('');
@@ -1440,7 +1454,7 @@ export default function CustomersPage() {
                  if (columns.total) payRow.push('');
                  if (columns.note) payRow.push('');
               }
-              payRow.push('', ''); // Ghi nợ, Ghi có empty
+              payRow.push(payGhiNo || '', payGhiCo || ''); // Ghi nợ, Ghi có
               exportData.push(payRow);
             }
           });

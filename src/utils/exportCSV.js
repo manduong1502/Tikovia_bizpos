@@ -66,7 +66,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
       // Date range formatting
-      if (typeof val === 'string' && val.includes('Từ ngày')) {
+      if (typeof val === 'string' && (val.includes('Từ ngày') || val.includes('Toàn thời gian'))) {
         cellStyle.font = { name: 'Arial', sz: 11, bold: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
