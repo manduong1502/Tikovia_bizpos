@@ -252,13 +252,15 @@ export default function SuppliersPage() {
       const normalizedPOs = rawPOs.map(o => ({
         ...o,
         id: o.id,
+        supplierId: o.supplierId || o.supplier_id || o.supplier?.id || null,
         po_code: o.po_code || o.code || '',
         created_at: o.created_at || o.createdAt || null,
         supplier_code: o.supplier_code || o.supplier?.code || '',
         supplier_name: o.supplier_name || o.supplier?.name || '',
         total: Number(o.total || 0),
-        paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || o.total || 0),
+        paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || 0),
         payment_status: o.payment_status || o.paymentStatus || (o.status === 'PENDING' ? 'partial' : 'paid'),
+        status: o.status || 'COMPLETED',
         items: Array.isArray(o.items) ? o.items.map(it => ({
           ...it,
           product_sku: it.product_sku || it.product?.sku || '',
@@ -274,8 +276,10 @@ export default function SuppliersPage() {
       const normalizedPRs = rawPRs.map(o => ({
         ...o,
         id: o.id,
+        supplierId: o.supplierId || o.supplier_id || o.supplier?.id || null,
         code: o.code || '',
         created_at: o.createdAt || o.created_at || null,
+        supplier_code: o.supplier_code || o.supplier?.code || '',
         supplier_name: o.supplier?.name || o.supplier_name || '',
         total: Number(o.total || 0),
         discount: Number(o.discount || 0),
@@ -418,8 +422,17 @@ export default function SuppliersPage() {
     if (!exportModalSupplier) return;
     const s = exportModalSupplier;
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
-    const supPOs = purchaseOrders.filter(po => po.supplier_code === supCode || po.supplier_name === s.name);
-    const supPRs = purchaseReturns.filter(pr => pr.supplier_name === s.name || pr.supplier_code === supCode);
+    const supId = s.id;
+    const supPOs = purchaseOrders.filter(po => 
+      po.supplierId === supId || 
+      (po.supplier_code && po.supplier_code === supCode) || 
+      (po.supplier_name && po.supplier_name === s.name)
+    );
+    const supPRs = purchaseReturns.filter(pr => 
+      pr.supplierId === supId || 
+      (pr.supplier_code && pr.supplier_code === supCode) || 
+      (pr.supplier_name && pr.supplier_name === s.name)
+    );
 
     const now = new Date();
     let startDate = new Date(0);
@@ -523,27 +536,42 @@ export default function SuppliersPage() {
 
   const renderDetail = (s) => {
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
-    const supPOs = purchaseOrders.filter(po => po.supplier_code === supCode || po.supplier_name === s.name);
-    const supPRs = purchaseReturns.filter(pr => pr.supplier_name === s.name || pr.supplier_code === supCode);
+    const supId = s.id;
+    
+    // Match by supplierId OR supplier_code OR supplier_name
+    const supPOs = purchaseOrders.filter(po => 
+      po.supplierId === supId || 
+      (po.supplier_code && po.supplier_code === supCode) || 
+      (po.supplier_name && po.supplier_name === s.name)
+    );
+    const supPRs = purchaseReturns.filter(pr => 
+      pr.supplierId === supId || 
+      (pr.supplier_code && pr.supplier_code === supCode) || 
+      (pr.supplier_name && pr.supplier_name === s.name)
+    );
 
     const transactions = [
-      ...supPOs.map(po => ({
+      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({
         id: po.id,
         code: po.po_code,
         type: 'import',
         typeName: 'Nhập hàng',
         date: po.created_at,
         total: po.total,
+        paid: po.paid_amount,
+        debt: po.total - po.paid_amount,
         status: po.payment_status,
         items: po.items || []
       })),
-      ...supPRs.map(pr => ({
+      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({
         id: pr.id,
         code: pr.code,
         type: 'return',
         typeName: 'Trả hàng',
         date: pr.created_at,
         total: -pr.total,
+        paid: -(pr.paid || 0),
+        debt: -(pr.total - (pr.paid || 0)),
         status: pr.status,
         items: pr.items || []
       }))
@@ -585,7 +613,12 @@ export default function SuppliersPage() {
 
     const statsList = Object.values(itemStats).filter(it => it.qty > 0 || it.amount > 0);
 
-    const supProducts = products.filter(p => p.supplier_id === s.id || p.supplier?.code === s.code || (s.code === 'NCC001' && p.id <= 5)) || [];
+    const supProducts = products.filter(p => 
+      p.supplierId === supId || 
+      p.supplier_id === supId || 
+      p.supplier?.id === supId || 
+      p.supplier?.code === supCode
+    ) || [];
     const items = supProducts.filter(p => {
       if (detailSearchSku && !(p.sku || '').toLowerCase().includes(detailSearchSku.toLowerCase())) return false;
       if (detailSearchName && !(p.name || '').toLowerCase().includes(detailSearchName.toLowerCase())) return false;
@@ -873,17 +906,25 @@ export default function SuppliersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
-                      {transactions.map((tx, idx) => {
-                        // Calculate running debt logic... simply showing 0 for now as in mockup
-                        return (
+                      {(() => {
+                        // Calculate running debt: reverse list (oldest first), accumulate, then reverse back
+                        const sortedOldFirst = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+                        let runningDebt = 0;
+                        const withDebt = sortedOldFirst.map(tx => {
+                          runningDebt += tx.debt;
+                          return { ...tx, runningDebt };
+                        });
+                        // Show newest first
+                        withDebt.reverse();
+                        return withDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                           <td className="p-3 font-bold text-primary">{tx.code}</td>
                           <td className="p-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
                           <td className="p-3">{tx.typeName}</td>
                           <td className="p-3 text-right font-extrabold">{fmt(Math.abs(tx.total))}</td>
-                          <td className="p-3 text-right font-extrabold text-red-600">0</td>
+                          <td className="p-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
-                      )})}
+                      ))})()}
                       {transactions.length === 0 && (
                         <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có giao dịch nào</td></tr>
                       )}
