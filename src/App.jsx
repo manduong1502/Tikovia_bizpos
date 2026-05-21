@@ -116,6 +116,7 @@ function App() {
           <Route path="/purchase-returns/create" element={<Suspense fallback={<PageLoader />}><CreatePurchaseReturnPage /></Suspense>} />
 
           <Route path="/returns" element={<Suspense fallback={<PageLoader />}><ReturnsPage /></Suspense>} />
+          <Route path="/returns/new" element={<Suspense fallback={<PageLoader />}><ReturnOrderPage /></Suspense>} />
           <Route path="/returns/new/:orderId" element={<Suspense fallback={<PageLoader />}><ReturnOrderPage /></Suspense>} />
 
           <Route path="/invoices" element={<Suspense fallback={<PageLoader />}><OrdersPage /></Suspense>} />

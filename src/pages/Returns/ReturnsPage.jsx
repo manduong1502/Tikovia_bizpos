@@ -389,7 +389,7 @@ export default function ReturnsPage() {
               )}
             </div>
             
-            <Button variant="primary" onClick={() => window.open('/pos', '_blank')} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0">
+            <Button variant="primary" onClick={() => navigate('/returns/new')} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0">
               <Plus size={18} /> <span className="hidden sm:inline">Trả hàng</span>
             </Button>
           </div>
