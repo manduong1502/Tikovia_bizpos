@@ -17,11 +17,9 @@ export default function CreatePurchaseReturnPage() {
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [employees, setEmployees] = useState(['Võ Thành Huy', 'Nguyễn Văn A', 'Trần Thị B']);
   
   const [po, setPo] = useState(null);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [selectedEmployee, setSelectedEmployee] = useState('Võ Thành Huy');
   const [returnDate, setReturnDate] = useState(() => {
     const now = new Date();
     return now.toISOString().slice(0, 16);
@@ -51,7 +49,6 @@ export default function CreatePurchaseReturnPage() {
       const [prodRes, suppRes, empRes, poListRes] = await Promise.all([
         productAPI.getAll().catch(() => []),
         supplierAPI.getAllSimple().catch(() => []),
-        employeeAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
       ]);
       const prodList = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
@@ -59,9 +56,6 @@ export default function CreatePurchaseReturnPage() {
       setProducts(prodList);
       setSuppliers(suppList);
       setPurchaseOrders(Array.isArray(poListRes) ? poListRes : (poListRes?.data || []));
-      if (Array.isArray(empRes) && empRes.length > 0) {
-        setEmployees(empRes.map(e => e.name || e.fullName || 'Võ Thành Huy'));
-      }
 
       if (poId) {
         const poRes = await purchaseOrderAPI.getById(poId).catch(() => null);
@@ -406,8 +400,6 @@ export default function CreatePurchaseReturnPage() {
         discount: actualDiscount,
         note: note || '',
         status: saveStatus,
-        receivedBy: selectedEmployee,
-        createdBy: selectedEmployee,
       };
 
       const res = await purchaseReturnAPI.create(payload);
@@ -597,19 +589,7 @@ export default function CreatePurchaseReturnPage() {
         <div className="w-[380px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-lg z-10 shrink-0 overflow-y-auto">
           <div className="space-y-5">
             {/* Employee & Date */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
-                <select 
-                  value={selectedEmployee} 
-                  onChange={(e) => setSelectedEmployee(e.target.value)}
-                  className="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-300 rounded text-xs font-bold text-gray-800 focus:outline-none focus:border-primary appearance-none shadow-sm cursor-pointer"
-                >
-                  {employees.map(emp => (
-                    <option key={emp} value={emp}>{emp}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-2.5 text-gray-400 pointer-events-none text-xs">▼</div>
-              </div>
+            <div className="flex items-center gap-3 justify-end">
               <input 
                 type="datetime-local" 
                 value={returnDate} 
