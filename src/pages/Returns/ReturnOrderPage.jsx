@@ -30,6 +30,8 @@ export default function ReturnOrderPage() {
   const [orders, setOrders] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
+  const [customerFocused, setCustomerFocused] = useState(false);
+  const [orderFocused, setOrderFocused] = useState(false);
 
   const loadInitialData = async () => {
     try {
@@ -94,26 +96,33 @@ export default function ReturnOrderPage() {
   }, [orderId]);
 
   const filteredCustomers = useMemo(() => {
-    if (!customerSearch.trim()) return [];
-    const q = customerSearch.toLowerCase();
-    return customers.filter(c => 
-      (c.name || '').toLowerCase().includes(q) || 
-      (c.code || '').toLowerCase().includes(q) ||
-      (c.phone || '').toLowerCase().includes(q)
-    ).slice(0, 6);
-  }, [customerSearch, customers]);
+    let list = customers;
+    const q = customerSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter(c => 
+        (c.name || '').toLowerCase().includes(q) || 
+        (c.code || '').toLowerCase().includes(q) ||
+        (c.phone || '').toLowerCase().includes(q)
+      );
+    } else if (!customerFocused) {
+      return [];
+    }
+    return list.slice(0, 6);
+  }, [customerSearch, customers, customerFocused]);
 
   const filteredOrders = useMemo(() => {
-    if (!orderSearch.trim()) return [];
-    const q = orderSearch.toLowerCase();
-    return orders.filter(o => {
-      // If a customer is selected, only show their orders
-      if (customer && customer.id) {
-         if (o.customer_id !== customer.id && o.customerId !== customer.id) return false;
-      }
-      return (o.order_code || o.code || '').toLowerCase().includes(q);
-    }).slice(0, 6);
-  }, [orderSearch, orders, customer]);
+    let list = orders;
+    if (customer && customer.id) {
+       list = list.filter(o => o.customer_id === customer.id || o.customerId === customer.id);
+    }
+    const q = orderSearch.trim().toLowerCase();
+    if (q) {
+      list = list.filter(o => (o.order_code || o.code || '').toLowerCase().includes(q));
+    } else if (!customer && !orderFocused) {
+      return [];
+    }
+    return list.slice(0, 6);
+  }, [orderSearch, orders, customer, orderFocused]);
 
   const handleSelectCustomer = (c) => {
     setCustomer(c);
@@ -365,6 +374,8 @@ export default function ReturnOrderPage() {
                       className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
                       value={customerSearch}
                       onChange={e => setCustomerSearch(e.target.value)}
+                      onFocus={() => setCustomerFocused(true)}
+                      onBlur={() => setTimeout(() => setCustomerFocused(false), 200)}
                     />
                     <button 
                       onClick={handleCreateCustomer}
@@ -376,7 +387,7 @@ export default function ReturnOrderPage() {
                   </div>
                 )}
 
-                {!customer && filteredCustomers.length > 0 && (
+                {!customer && (customerFocused || customerSearch) && filteredCustomers.length > 0 && (
                   <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
                     {filteredCustomers.map(c => (
                       <div 
@@ -404,7 +415,6 @@ export default function ReturnOrderPage() {
                       onClick={() => {
                         setOrder(null);
                         setItems([]);
-                        setCustomer(null);
                       }} 
                       className="p-1.5 hover:bg-emerald-100 rounded-xl cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
                       title="Bỏ chọn hóa đơn"
@@ -421,11 +431,13 @@ export default function ReturnOrderPage() {
                       className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
                       value={orderSearch}
                       onChange={e => setOrderSearch(e.target.value)}
+                      onFocus={() => setOrderFocused(true)}
+                      onBlur={() => setTimeout(() => setOrderFocused(false), 200)}
                     />
                   </div>
                 )}
 
-                {!order && filteredOrders.length > 0 && (
+                {!order && (orderFocused || orderSearch || customer) && filteredOrders.length > 0 && (
                   <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
                     {filteredOrders.map(o => (
                       <div 
