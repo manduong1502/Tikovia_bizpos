@@ -128,7 +128,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       const invoiceHTML = `
         <style>
-          .inv-wrap { width: 75mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding-top: 10px; }
+          .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
           .inv-logo-container { text-align: center; margin-bottom: 5px; }
           .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
           .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
@@ -148,7 +148,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
           @media print {
             @page { margin: 0; }
             body { margin: 0; padding: 0; }
-            .inv-wrap { padding-top: 5mm; }
+            .inv-wrap { padding: 5mm 4mm 0 4mm; width: 70mm; margin: 0 auto; }
           }
         </style>
         <div class="inv-wrap">
