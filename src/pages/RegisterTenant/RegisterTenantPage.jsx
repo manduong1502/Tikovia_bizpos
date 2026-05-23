@@ -28,15 +28,19 @@ export default function RegisterTenantPage() {
     // Check if host is an IP address
     const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host);
     if (isIP) {
-      return port ? `localhost:${port}` : 'tikovia.vn';
+      return port ? `localhost:${port}` : 'bizpos.tikovia.vn';
+    }
+
+    // List of system base domains (without tenant subdomains)
+    const baseSystemDomains = ['bizpos.tikovia.vn', 'localhost'];
+    if (baseSystemDomains.includes(host)) {
+      return port ? `${host}:${port}` : host;
     }
 
     const parts = host.split('.');
     let baseHost = host;
     if (parts.length > 1) {
-      if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== '127' && !parts[0].includes('localhost')) {
-        baseHost = parts.slice(1).join('.');
-      }
+      baseHost = parts.slice(1).join('.');
     }
     return port ? `${baseHost}:${port}` : baseHost;
   };
@@ -136,16 +140,20 @@ export default function RegisterTenantPage() {
     // Check if host is an IP address
     const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host);
     if (isIP) {
-      const targetHost = port ? `localhost:${port}` : 'tikovia.vn';
+      const targetHost = port ? `localhost:${port}` : 'bizpos.tikovia.vn';
       return `${protocol}//${sub}.${targetHost}/login`;
+    }
+
+    // List of system base domains (without tenant subdomains)
+    const baseSystemDomains = ['bizpos.tikovia.vn', 'localhost'];
+    if (baseSystemDomains.includes(host)) {
+      return `${protocol}//${sub}.${host}${port ? `:${port}` : ''}/login`;
     }
 
     const parts = host.split('.');
     let baseHost = host;
     if (parts.length > 1) {
-      if (parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== '127' && !parts[0].includes('localhost')) {
-        baseHost = parts.slice(1).join('.');
-      }
+      baseHost = parts.slice(1).join('.');
     }
     const finalHost = `${sub}.${baseHost}`;
     return `${protocol}//${finalHost}${port ? `:${port}` : ''}/login`;
