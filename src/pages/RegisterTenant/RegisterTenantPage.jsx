@@ -24,6 +24,13 @@ export default function RegisterTenantPage() {
   const getDomainSuffix = () => {
     const host = window.location.hostname;
     const port = window.location.port;
+
+    // Check if host is an IP address
+    const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host);
+    if (isIP) {
+      return port ? `localhost:${port}` : 'tikovia.vn';
+    }
+
     const parts = host.split('.');
     let baseHost = host;
     if (parts.length > 1) {
@@ -125,6 +132,14 @@ export default function RegisterTenantPage() {
     const protocol = window.location.protocol;
     const host = window.location.hostname;
     const port = window.location.port;
+
+    // Check if host is an IP address
+    const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host);
+    if (isIP) {
+      const targetHost = port ? `localhost:${port}` : 'tikovia.vn';
+      return `${protocol}//${sub}.${targetHost}/login`;
+    }
+
     const parts = host.split('.');
     let baseHost = host;
     if (parts.length > 1) {

@@ -2,14 +2,29 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 export const getSubdomain = () => {
-  const hostname = window.location.hostname; // e.g. "vietstore.localhost" or "vietstore.tikobia.vn"
+  const hostname = window.location.hostname;
+  
+  // Check if hostname is an IP address (IPv4)
+  const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
+  if (isIP) {
+    return localStorage.getItem('tenant_subdomain') || 'demo';
+  }
+
   const parts = hostname.split('.');
-  if (parts.length > 1) {
+  
+  // For local development e.g. "store.localhost"
+  if (parts.length === 2 && parts[1] === 'localhost') {
+    return parts[0].toLowerCase();
+  }
+
+  // For production domains e.g. "store.tikovia.vn" (3 parts)
+  if (parts.length > 2) {
     const sub = parts[0].toLowerCase();
-    if (sub !== 'www' && sub !== 'localhost' && sub !== '127') {
+    if (sub !== 'www') {
       return sub;
     }
   }
+
   return localStorage.getItem('tenant_subdomain') || 'demo';
 };
 
