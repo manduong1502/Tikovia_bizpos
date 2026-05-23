@@ -1,16 +1,34 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+export const getSubdomain = () => {
+  const hostname = window.location.hostname; // e.g. "vietstore.localhost" or "vietstore.tikobia.vn"
+  const parts = hostname.split('.');
+  if (parts.length > 1) {
+    const sub = parts[0].toLowerCase();
+    if (sub !== 'www' && sub !== 'localhost' && sub !== '127') {
+      return sub;
+    }
+  }
+  return localStorage.getItem('tenant_subdomain') || 'demo';
+};
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://api.tikovia.vn/api',
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ─── Request Interceptor: auto-attach token ───
+// ─── Request Interceptor: auto-attach token & tenant subdomain ───
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  const subdomain = getSubdomain();
+  if (subdomain) {
+    config.headers['X-Tenant-Subdomain'] = subdomain;
+  }
+
   return config;
 });
 

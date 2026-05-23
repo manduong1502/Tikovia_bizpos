@@ -8,6 +8,7 @@ import { useAppStore } from './stores/appStore';
 
 // ─── Lazy loaded pages ───
 const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
+const RegisterTenantPage = lazy(() => import('./pages/RegisterTenant/RegisterTenantPage'));
 const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
 const ProductsPage = lazy(() => import('./pages/Products/ProductsPage'));
 const OrdersPage = lazy(() => import('./pages/Orders/OrdersPage'));
@@ -88,6 +89,13 @@ function App() {
         <Route path="/login" element={
           <GuestRoute>
             <Suspense fallback={<PageLoader />}><LoginPage /></Suspense>
+          </GuestRoute>
+        } />
+
+        {/* Trang đăng ký gian hàng: chỉ cho phép nếu chưa login */}
+        <Route path="/register-tenant" element={
+          <GuestRoute>
+            <Suspense fallback={<PageLoader />}><RegisterTenantPage /></Suspense>
           </GuestRoute>
         } />
 
