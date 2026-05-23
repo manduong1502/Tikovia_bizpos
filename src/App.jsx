@@ -33,6 +33,9 @@ const CreatePurchaseReturnPage = lazy(() => import('./pages/PurchaseReturns/Crea
 const ReturnsPage = lazy(() => import('./pages/Returns/ReturnsPage'));
 const ReturnOrderPage = lazy(() => import('./pages/Returns/ReturnOrderPage'));
 
+const SystemLogin = lazy(() => import('./pages/SystemAdmin/SystemLogin'));
+const SystemDashboard = lazy(() => import('./pages/SystemAdmin/SystemDashboard'));
+
 function PageLoader() {
   return (
     <div className="flex items-center justify-center h-[40vh]">
@@ -55,6 +58,23 @@ function GuestRoute({ children }) {
   const token = localStorage.getItem('token');
   if (token) {
     return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
+// ─── Bảo vệ route Super Admin ───
+function SuperAdminProtectedRoute({ children }) {
+  const token = localStorage.getItem('super_admin_token');
+  if (!token) {
+    return <Navigate to="/system-admin/login" replace />;
+  }
+  return children;
+}
+
+function SuperAdminGuestRoute({ children }) {
+  const token = localStorage.getItem('super_admin_token');
+  if (token) {
+    return <Navigate to="/system-admin" replace />;
   }
   return children;
 }
@@ -97,6 +117,19 @@ function App() {
           <GuestRoute>
             <Suspense fallback={<PageLoader />}><RegisterTenantPage /></Suspense>
           </GuestRoute>
+        } />
+
+        {/* Super Admin Routes */}
+        <Route path="/system-admin/login" element={
+          <SuperAdminGuestRoute>
+            <Suspense fallback={<PageLoader />}><SystemLogin /></Suspense>
+          </SuperAdminGuestRoute>
+        } />
+
+        <Route path="/system-admin" element={
+          <SuperAdminProtectedRoute>
+            <Suspense fallback={<PageLoader />}><SystemDashboard /></Suspense>
+          </SuperAdminProtectedRoute>
         } />
 
         {/* Màn hình bán hàng (POS): Full screen, yêu cầu đăng nhập */}

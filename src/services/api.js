@@ -36,8 +36,15 @@ export const api = axios.create({
 
 // ─── Request Interceptor: auto-attach token & tenant subdomain ───
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const isSystemRoute = config.url?.includes('/system-login') || config.url?.includes('/system-me') || config.url?.includes('/tenants');
+  const superAdminToken = localStorage.getItem('super_admin_token');
+
+  if (isSystemRoute && superAdminToken) {
+    config.headers.Authorization = `Bearer ${superAdminToken}`;
+  } else {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+  }
 
   const subdomain = getSubdomain();
   if (subdomain) {
@@ -55,8 +62,14 @@ api.interceptors.response.use(
     const message = error.response?.data?.message || error.message;
 
     if (status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (window.location.pathname.startsWith('/system-admin')) {
+        localStorage.removeItem('super_admin_token');
+        localStorage.removeItem('super_admin_user');
+        window.location.href = '/system-admin/login';
+      } else {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
       return Promise.reject(error);
     }
 
