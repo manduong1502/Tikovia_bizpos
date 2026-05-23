@@ -2,7 +2,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 export const getSubdomain = () => {
-  const hostname = window.location.hostname;
+  const hostname = window.location.hostname.toLowerCase();
   
   // Check if hostname is an IP address (IPv4)
   const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
@@ -10,19 +10,28 @@ export const getSubdomain = () => {
     return localStorage.getItem('tenant_subdomain') || 'demo';
   }
 
+  // Base landing hosts do not have tenant subdomains -> fall back to default 'demo'
+  if (hostname === 'localhost' || hostname === 'bizpos.tikovia.vn' || hostname === 'www.bizpos.tikovia.vn') {
+    return 'demo';
+  }
+
   const parts = hostname.split('.');
   
   // For local development e.g. "store.localhost"
   if (parts.length === 2 && parts[1] === 'localhost') {
-    return parts[0].toLowerCase();
+    return parts[0];
   }
 
-  // For production domains e.g. "store.tikovia.vn" (3 parts)
-  if (parts.length > 2) {
-    const sub = parts[0].toLowerCase();
-    if (sub !== 'www') {
-      return sub;
-    }
+  // e.g. "store.bizpos.tikovia.vn"
+  if (hostname.endsWith('.bizpos.tikovia.vn')) {
+    const sub = parts[0];
+    if (sub !== 'www') return sub;
+  }
+
+  // e.g. "store.tikovia.vn" (3 parts)
+  if (hostname.endsWith('.tikovia.vn') && parts.length === 3) {
+    const sub = parts[0];
+    if (sub !== 'www' && sub !== 'bizpos') return sub;
   }
 
   return localStorage.getItem('tenant_subdomain') || 'demo';

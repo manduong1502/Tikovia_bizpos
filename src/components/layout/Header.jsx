@@ -1,7 +1,31 @@
-import { Link } from 'react-router-dom';
-import { Truck, HelpCircle, MessageSquare, Bell, Settings, Menu, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Truck, HelpCircle, MessageSquare, Bell, Settings, Menu, X, LogOut } from 'lucide-react';
 
 export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    toast.success('Đăng xuất thành công');
+    navigate('/login');
+  };
+
   return (
     <header className="h-14 bg-white/80 backdrop-blur-md flex items-center px-3 sm:px-6 border-b border-gray-100 sticky top-0 z-[100] shadow-sm max-w-full">
       <div className="flex items-center gap-2 sm:gap-3 mr-4 sm:mr-8 cursor-pointer no-underline group">
@@ -42,12 +66,33 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
           <Settings size={20} />
         </button>
         
-        <div className="flex items-center gap-2 sm:gap-2.5 cursor-pointer ml-1 sm:ml-2 hover:bg-gray-50 p-1 sm:p-1.5 rounded-xl transition-colors">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-cyan-600 flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-sm">A</div>
-          <div className="hidden sm:flex flex-col items-start pr-1">
-            <span className="text-[13px] text-gray-800 font-bold leading-tight">Admin</span>
-            <span className="text-[11px] text-gray-400 font-medium">Quản lý</span>
+        {/* User Profile Dropdown */}
+        <div ref={dropdownRef} className="relative">
+          <div 
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer ml-1 sm:ml-2 hover:bg-gray-50 p-1 sm:p-1.5 rounded-xl transition-colors select-none"
+          >
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-cyan-600 flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-sm">A</div>
+            <div className="hidden sm:flex flex-col items-start pr-1">
+              <span className="text-[13px] text-gray-800 font-bold leading-tight">Admin</span>
+              <span className="text-[11px] text-gray-400 font-medium">Quản lý</span>
+            </div>
           </div>
+
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-1 z-[110] animate-fadeIn">
+              <div className="px-4 py-2 border-b border-gray-50">
+                <p className="text-xs text-gray-400 font-medium">Tài khoản</p>
+                <p className="text-[13px] font-bold text-gray-800">Admin</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2 border-none bg-transparent cursor-pointer font-semibold"
+              >
+                <LogOut size={16} /> Đăng xuất
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
