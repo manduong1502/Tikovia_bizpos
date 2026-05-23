@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, User, Mail, Lock, ShieldCheck, ArrowRight, ArrowLeft, Check, CheckCircle } from 'lucide-react';
+import { Store, User, Mail, Lock, ShieldCheck, ArrowRight, ArrowLeft, Check, CheckCircle, MapPin, Phone } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api from '../../services/api';
@@ -16,7 +16,10 @@ export default function RegisterTenantPage() {
   // Form State
   const [tenantName, setTenantName] = useState('');
   const [subdomain, setSubdomain] = useState('');
+  const [area, setArea] = useState('');
+  
   const [adminFullName, setAdminFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -60,6 +63,10 @@ export default function RegisterTenantPage() {
       setError('Địa chỉ truy cập chỉ được chứa chữ thường không dấu, số và dấu gạch ngang (-) và không chứa khoảng trắng');
       return false;
     }
+    if (!area.trim()) {
+      setError('Vui lòng nhập khu vực hoạt động');
+      return false;
+    }
     setError('');
     return true;
   };
@@ -67,6 +74,14 @@ export default function RegisterTenantPage() {
   const validateStep2 = () => {
     if (!adminFullName.trim()) {
       setError('Vui lòng nhập họ và tên');
+      return false;
+    }
+    if (!phone.trim()) {
+      setError('Vui lòng nhập số điện thoại liên hệ');
+      return false;
+    }
+    if (phone.trim().length < 10) {
+      setError('Số điện thoại liên hệ tối thiểu phải có 10 chữ số');
       return false;
     }
     if (!adminUsername.trim()) {
@@ -116,6 +131,8 @@ export default function RegisterTenantPage() {
       const response = await api.post('/auth/register-tenant', {
         tenantName,
         subdomain: subdomain.toLowerCase().trim(),
+        phone: phone.trim(),
+        area: area.trim(),
         adminUsername: adminUsername.trim(),
         adminPassword,
         adminFullName: adminFullName.trim(),
@@ -245,6 +262,20 @@ export default function RegisterTenantPage() {
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
+                  Khu vực (Tỉnh / Thành phố, Quận / Huyện)
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  icon={<MapPin size={18} />}
+                  required
+                />
+              </div>
+
               <div className="pt-2">
                 <Button
                   type="submit"
@@ -262,7 +293,7 @@ export default function RegisterTenantPage() {
             <form onSubmit={handleRegister} className="space-y-6 animate-page-in">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
-                  Họ và tên người quản lý
+                  Họ và tên người đại diện
                 </label>
                 <Input
                   type="text"
@@ -270,6 +301,20 @@ export default function RegisterTenantPage() {
                   value={adminFullName}
                   onChange={(e) => setAdminFullName(e.target.value)}
                   icon={<User size={18} />}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
+                  Số điện thoại liên hệ
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="Ví dụ: 0912345678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                  icon={<Phone size={18} />}
                   required
                 />
               </div>
