@@ -42,14 +42,23 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/login', { username, password });
-      if (res.data.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        if (target === 'pos') {
-          navigate('/pos');
-        } else {
-          navigate('/dashboard');
+      if (username === 'tikovia') {
+        const res = await api.post('/auth/system-login', { username, password });
+        if (res.data.token) {
+          localStorage.setItem('super_admin_token', res.data.token);
+          localStorage.setItem('super_admin_user', JSON.stringify(res.data.user));
+          navigate('/system-admin');
+        }
+      } else {
+        const res = await api.post('/auth/login', { username, password });
+        if (res.data.token) {
+          localStorage.setItem('token', res.data.token);
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+          if (target === 'pos') {
+            navigate('/pos');
+          } else {
+            navigate('/dashboard');
+          }
         }
       }
     } catch (err) {
