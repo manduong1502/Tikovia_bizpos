@@ -139,7 +139,6 @@ export function POSProvider({ children }) {
     if (existing) {
       if (existing.quantity >= product.stock) {
         toast.error('Vượt quá số lượng tồn kho!');
-        return;
       }
       updateCurrentInvoice({
         cart: cart.map(item => 
@@ -170,7 +169,6 @@ export function POSProvider({ children }) {
 
     if (!isNaN(num) && num > item.product.stock) {
       toast.error('Vượt quá số lượng tồn kho!');
-      val = item.product.stock;
     }
 
     updateCurrentInvoice({

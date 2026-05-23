@@ -43,7 +43,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
         amount: val,
         category: 'Thu tiền nợ',
         partnerType: 'customer',
-        supplierId: customer.id, // using supplierId as partner id for now due to backend structure
+        customerId: customer.id,
         partnerName: customer.name,
         paymentMethod: payMethod,
         isAccounting: true,
