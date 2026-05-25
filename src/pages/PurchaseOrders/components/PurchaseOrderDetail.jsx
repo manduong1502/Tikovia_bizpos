@@ -34,7 +34,7 @@ export default function PurchaseOrderDetail({
   const currentReceivedBy = poReceivedBy[o.id] ?? o.received_by;
 
   return (
-    <tr className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
+    <tr id={`detail-${o.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
       <td colSpan={visibleColumns.length + 2} className="p-0">
         <div className="p-3">
           {/* Top Tabs */}

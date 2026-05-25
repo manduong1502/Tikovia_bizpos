@@ -20,6 +20,32 @@ import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../uti
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const scrollRowIntoView = (id) => {
+  setTimeout(() => {
+    const rowEl = document.getElementById(`row-${id}`);
+    if (rowEl) {
+      const scrollContainer = rowEl.closest('.overflow-y-auto');
+      if (scrollContainer) {
+        const headerHeight = scrollContainer.querySelector('thead')?.offsetHeight || 40;
+        let offsetTop = 0;
+        let parent = rowEl;
+        while (parent && parent !== scrollContainer) {
+          offsetTop += parent.offsetTop;
+          parent = parent.offsetParent;
+        }
+        const targetScrollTop = offsetTop - headerHeight;
+        scrollContainer.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      } else {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, 100);
+};
+
+
 const ALL_COLUMNS = [
   { key: 'code', label: 'Mã KH', default: true },
   { key: 'name', label: 'Tên khách hàng', default: true },
@@ -844,36 +870,36 @@ export default function CustomersPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 flex-none z-10 relative">
-        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+        <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Khách hàng
         </h1>
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 w-full">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 w-full">
           {/* Row 1: Search + Primary Actions */}
           <div className="flex items-center gap-2 w-full lg:w-auto flex-1">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              className="lg:hidden p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
               title="Bộ lọc tìm kiếm"
             >
-              <Filter size={18} />
+              <Filter size={16} />
             </button>
             <div className="relative flex-1 sm:w-80">
-              <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Tìm khách hàng"
-                className="w-full pl-10 pr-10 py-2 sm:py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+                className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
-                className={`absolute right-2.5 top-1.5 sm:top-2 p-1 sm:p-1.5 rounded-lg transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
+                className={`absolute right-2 top-1.5 p-0.5 rounded transition-colors cursor-pointer ${searchOpen ? 'bg-primary text-white' : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'}`}
                 title="Tìm kiếm nâng cao"
               >
-                <SlidersHorizontal size={16} />
+                <SlidersHorizontal size={14} />
               </button>
 
               {/* Advanced Search Popover */}
@@ -943,32 +969,32 @@ export default function CustomersPage() {
               )}
             </div>
 
-            <Button variant="primary" onClick={() => { setEditCustomer(null); setModalOpen(true); }} className="flex items-center justify-center gap-1 sm:gap-2 shadow-md bg-primary hover:bg-primary-hover font-bold p-2 sm:py-2.5 sm:px-5 rounded-xl text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
-              <Plus size={18} /> <span className="hidden sm:inline">Thêm khách hàng</span>
+            <Button variant="primary" onClick={() => { setEditCustomer(null); setModalOpen(true); }} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap shrink-0 cursor-pointer">
+              <Plus size={16} /> <span className="hidden sm:inline">Thêm khách hàng</span>
             </Button>
 
-            <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center justify-center gap-1 sm:gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold p-2 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap shrink-0 cursor-pointer">
-              <Upload size={16} /> <span className="hidden sm:inline">Nhập file</span>
+            <Button variant="secondary" onClick={() => { const input = document.createElement('input'); input.type='file'; input.accept='.csv,.xlsx'; input.onchange = handleImportExcel; input.click(); }} className="flex items-center justify-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs whitespace-nowrap shrink-0 cursor-pointer">
+              <Upload size={14} /> <span className="hidden sm:inline">Nhập file</span>
             </Button>
           </div>
 
           {/* Row 2: Secondary Actions & Column selection */}
           <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
-            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
-              <Download size={16} /> Tải file mẫu
+            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
+              <Download size={14} /> Tải file mẫu
             </Button>
 
-            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
-              <Download size={16} /> Xuất file
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
+              <Download size={14} /> Xuất file
             </Button>
 
             {/* Column Visibility Menu */}
             <div className="relative" ref={columnMenuRef}>
               <button
                 onClick={() => setShowColumnMenu(!showColumnMenu)}
-                className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+                className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
               >
-                <Columns3 size={18} />
+                <Columns3 size={16} />
               </button>
 
               {showColumnMenu && (
@@ -1261,7 +1287,14 @@ export default function CustomersPage() {
                   <>
                     <tr
                       key={c.id}
-                      onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                      id={`row-${c.id}`}
+                      onClick={() => {
+                        const nextId = isExpanded ? null : c.id;
+                        setExpandedId(nextId);
+                        if (nextId) {
+                          scrollRowIntoView(nextId);
+                        }
+                      }}
                       className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
                     >
                       <td className="p-4 text-center" onClick={e => e.stopPropagation()}>

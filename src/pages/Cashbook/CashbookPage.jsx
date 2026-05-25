@@ -13,6 +13,31 @@ import CashbookModal from './CashbookModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
+const scrollRowIntoView = (id) => {
+  setTimeout(() => {
+    const rowEl = document.getElementById(`row-${id}`);
+    if (rowEl) {
+      const scrollContainer = rowEl.closest('.overflow-y-auto');
+      if (scrollContainer) {
+        const headerHeight = scrollContainer.querySelector('thead')?.offsetHeight || 40;
+        let offsetTop = 0;
+        let parent = rowEl;
+        while (parent && parent !== scrollContainer) {
+          offsetTop += parent.offsetTop;
+          parent = parent.offsetParent;
+        }
+        const targetScrollTop = offsetTop - headerHeight;
+        scrollContainer.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
+        });
+      } else {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, 100);
+};
+
 const ALL_COLUMNS = [
   { key: 'code', label: 'Mã phiếu' },
   { key: 'time', label: 'Thời gian' },
@@ -344,31 +369,31 @@ export default function CashbookPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
+    <div className="flex flex-col gap-2 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
       {/* Top Search and Action bar */}
-      <div className="flex flex-col gap-3 mb-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 w-full">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 max-w-full">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 w-full">
           <div className="flex items-center gap-2 flex-1 w-full lg:w-auto">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+              className="lg:hidden p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
               title="Bộ lọc tìm kiếm"
             >
-              <Filter size={18} />
+              <Filter size={16} />
             </button>
             <div className="relative flex-1 max-w-md">
-              <Search size={16} className="absolute left-3.5 top-3 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Theo mã phiếu, người nộp/nhận..."
-                className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
+                className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
               {search && (
                 <button 
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 text-xs font-bold bg-transparent border-none cursor-pointer"
+                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 text-xs font-bold bg-transparent border-none cursor-pointer"
                 >
                   X
                 </button>
@@ -379,30 +404,30 @@ export default function CashbookPage() {
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button 
               onClick={() => openModal('thu')} 
-              className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold border border-primary text-primary hover:bg-primary/5 rounded-xl transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-primary text-primary hover:bg-primary/5 rounded-lg transition-all shadow-sm cursor-pointer"
             >
-              <Plus size={16} /> Phiếu thu
+              <Plus size={14} /> Phiếu thu
             </button>
             <button 
               onClick={() => openModal('chi')} 
-              className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-semibold border border-primary text-primary hover:bg-primary/5 rounded-xl transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-primary text-primary hover:bg-primary/5 rounded-lg transition-all shadow-sm cursor-pointer"
             >
-              <Plus size={16} /> Phiếu chi
+              <Plus size={14} /> Phiếu chi
             </button>
             <button 
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 rounded-xl transition-all shadow-sm cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-all shadow-sm cursor-pointer"
             >
-              <Download size={16} /> Xuất file
+              <Download size={14} /> Xuất file
             </button>
 
             {/* Column visibility menu matching illustration */}
             <div className="relative" ref={columnMenuRef}>
               <button
                 onClick={() => setShowColumnMenu(!showColumnMenu)}
-                className="p-2 sm:p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+                className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
               >
-                <SlidersHorizontal size={18} />
+                <SlidersHorizontal size={16} />
               </button>
 
               {showColumnMenu && (
@@ -452,25 +477,25 @@ export default function CashbookPage() {
       </div>
 
       {/* Aggregate Statistics Header */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col items-end pr-4 border-r border-gray-100">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Quỹ đầu kỳ</span>
-          <span className="text-sm sm:text-lg font-extrabold text-gray-500 tracking-tight">0</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2 bg-white p-2 sm:p-3 rounded-xl border border-gray-100 shadow-sm">
+        <div className="flex flex-col items-end pr-2 border-r border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Quỹ đầu kỳ</span>
+          <span className="text-xs sm:text-sm font-extrabold text-gray-500 tracking-tight">0</span>
         </div>
-        <div className="flex flex-col items-end pr-4 lg:border-r border-gray-100">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tổng thu</span>
-          <span className="text-sm sm:text-lg font-extrabold text-green-600 tracking-tight">+{fmt(totalIn)}</span>
+        <div className="flex flex-col items-end pr-2 lg:border-r border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tổng thu</span>
+          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">+{fmt(totalIn)}</span>
         </div>
-        <div className="flex flex-col items-end pr-4 border-r border-gray-100">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tổng chi</span>
-          <span className="text-sm sm:text-lg font-extrabold text-red-500 tracking-tight">-{fmt(totalOut)}</span>
+        <div className="flex flex-col items-end pr-2 border-r border-gray-100">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tổng chi</span>
+          <span className="text-xs sm:text-sm font-extrabold text-red-500 tracking-tight">-{fmt(totalOut)}</span>
         </div>
         <div className="flex flex-col items-end">
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Tồn quỹ</span>
-            <Info size={12} className="text-gray-400 cursor-pointer" title="Tổng thực tế tồn trong két" />
+          <div className="flex items-center gap-1 mb-0.5">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tồn quỹ</span>
+            <Info size={10} className="text-gray-400 cursor-pointer" title="Tổng thực tế tồn trong két" />
           </div>
-          <span className="text-sm sm:text-lg font-extrabold text-green-600 tracking-tight">{fmt(totalIn - totalOut)}</span>
+          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">{fmt(totalIn - totalOut)}</span>
         </div>
       </div>
 
@@ -481,7 +506,7 @@ export default function CashbookPage() {
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-12 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[100px] lg:h-[calc(100vh-140px)] lg:w-[260px] lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-4`}>
+        <div className={`fixed top-12 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[90px] lg:h-[calc(100vh-130px)] lg:w-[260px] lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-4`}>
           <div className="flex items-center justify-between lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -694,7 +719,7 @@ export default function CashbookPage() {
 
         {/* Main List Table Area */}
         <div className="flex-1 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col overflow-hidden max-w-full w-full min-h-[500px]">
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] custom-scrollbar max-w-full w-full">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-220px)] custom-scrollbar max-w-full w-full">
             <table className="w-full text-xs border-collapse min-w-[800px] border-collapse">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm text-[11px] text-gray-500 uppercase border-b border-gray-100 font-extrabold tracking-wider">
                 <tr>
@@ -797,7 +822,14 @@ export default function CashbookPage() {
                     <React.Fragment key={e.id || i}>
                       {/* Standard Row */}
                       <tr 
-                        onClick={() => setExpandedId(isExpanded ? null : e.id)}
+                        id={`row-${e.id}`}
+                        onClick={() => {
+                          const nextExpandedId = isExpanded ? null : e.id;
+                          setExpandedId(nextExpandedId);
+                          if (nextExpandedId !== null) {
+                            scrollRowIntoView(e.id);
+                          }
+                        }}
                         className={`hover:bg-blue-50/20 transition-all cursor-pointer border-b border-gray-50 ${isExpanded ? 'bg-blue-50/30' : ''}`}
                       >
                         <td className="px-4 py-4 w-12 text-center" onClick={ev => ev.stopPropagation()}>
@@ -905,7 +937,7 @@ export default function CashbookPage() {
 
                       {/* Row Expander Detail Panel */}
                       {isExpanded && (
-                        <tr className="bg-gray-50/60 transition-all">
+                        <tr id={`detail-${e.id}`} className="bg-gray-50/60 transition-all">
                           <td colSpan={2 + visibleColumns.length} className="p-0 border-b border-blue-100">
                             <div className="p-6 bg-gradient-to-b from-blue-50/10 to-transparent border-x-2 border-primary/20">
                               {/* Details Tab Menu */}
