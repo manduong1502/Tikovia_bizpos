@@ -138,7 +138,6 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     if (!form.categoryId) newErrors.categoryId = true;
     if (form.costPrice === '' || form.costPrice === null || form.costPrice === undefined) newErrors.costPrice = true;
     if (form.sellPrice === '' || form.sellPrice === null || form.sellPrice === undefined) newErrors.sellPrice = true;
-    if (form.stock === '' || form.stock === null || form.stock === undefined || Number(form.stock) === 0) newErrors.stock = true;
 
     setErrors(newErrors);
 
@@ -147,7 +146,6 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
       else if (newErrors.categoryId) toast.error('Vui lòng chọn nhóm hàng');
       else if (newErrors.costPrice) toast.error('Vui lòng nhập giá vốn');
       else if (newErrors.sellPrice) toast.error('Vui lòng nhập giá bán');
-      else if (newErrors.stock) toast.error('Vui lòng nhập số lượng tồn kho (khác 0)');
       return;
     }
     if (nameError) { toast.error('Tên hàng hóa đã tồn tại'); return; }

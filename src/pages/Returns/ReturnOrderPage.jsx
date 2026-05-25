@@ -154,7 +154,7 @@ export default function ReturnOrderPage() {
 
   const currentDebt = customer ? Number(customer.debt || customer.totalDebt || customer.total_debt || 0) : 0;
 
-  const totalReturnGoods = items.reduce((acc, it) => acc + (it.return_quantity * it.return_price), 0);
+  const totalReturnGoods = items.reduce((acc, it) => acc + ((parseFloat(it.return_quantity) || 0) * it.return_price), 0);
   const returnFee = Number(discountStr.replace(/\D/g, '')) || 0; 
   const customerMustReceive = Math.max(0, totalReturnGoods - returnFee);
   
@@ -164,7 +164,18 @@ export default function ReturnOrderPage() {
   const handleQuantityChange = (id, val) => {
     setItems(prev => prev.map(it => {
       if (it.id === id) {
-        const num = val === '' ? 0 : Math.min(it.max_quantity, Math.max(0, Number(val) || 0));
+        const sanitized = val.replace(/[^0-9.,]/g, '').replace(',', '.');
+        return { ...it, return_quantity: sanitized };
+      }
+      return it;
+    }));
+  };
+
+  const handleQuantityBlur = (id, val) => {
+    setItems(prev => prev.map(it => {
+      if (it.id === id) {
+        let num = parseFloat(val) || 0;
+        num = Math.min(it.max_quantity, Math.max(0, num));
         return { ...it, return_quantity: num };
       }
       return it;
@@ -194,14 +205,9 @@ export default function ReturnOrderPage() {
   };
 
   const handleSaveReturn = async () => {
-    const validItems = items.filter(it => it.return_quantity > 0);
+    const validItems = items.filter(it => (parseFloat(it.return_quantity) || 0) > 0);
     if (validItems.length === 0) {
       toast.error('Vui lòng chọn ít nhất 1 sản phẩm có số lượng trả > 0');
-      return;
-    }
-
-    if (debtCalculation > currentDebt) {
-      toast.error(`Số tiền tính vào công nợ (${fmt(debtCalculation)}) vượt quá nợ hiện tại (${fmt(currentDebt)}). Vui lòng điều chỉnh lại.`);
       return;
     }
 
@@ -304,9 +310,10 @@ export default function ReturnOrderPage() {
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <input 
-                            type="number"
+                            type="text"
                             value={it.return_quantity}
                             onChange={(e) => handleQuantityChange(it.id, e.target.value)}
+                            onBlur={(e) => handleQuantityBlur(it.id, e.target.value)}
                             className="w-16 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
                           />
                           <span className="text-gray-400 font-medium">/{it.max_quantity}</span>
@@ -321,7 +328,7 @@ export default function ReturnOrderPage() {
                         />
                       </td>
                       <td className="py-3 px-4 text-right font-extrabold text-primary text-sm">
-                        {fmt(it.return_quantity * it.return_price)}
+                        {fmt((parseFloat(it.return_quantity) || 0) * it.return_price)}
                       </td>
                     </tr>
                   ))}

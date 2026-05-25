@@ -24,7 +24,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const customerRef = currentInvoice?.customer;
   useEffect(() => {
     if (customerRef && (customerRef.totalDebt || customerRef.debt || 0) > 0) {
-      setOverpayMode('pay_debt');
+      setOverpayMode('debt');
     } else {
       setOverpayMode('change');
     }
@@ -83,12 +83,15 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
 
     try {
-      const maxPayable = total + (customer?.totalDebt || customer?.debt || 0);
+      const oldDebtVal = customer ? Number(customer.totalDebt || customer.debt || 0) : 0;
+      const activeOverpayMode = paidAmount < total ? 'debt' : overpayMode;
       let finalPaid = total;
-      if (isDebt) {
+      if (paidAmount < total) {
         finalPaid = paidAmount;
-      } else if (overpayMode === 'pay_debt' && (customer?.totalDebt || customer?.debt || 0) > 0) {
-        finalPaid = Math.min(paidAmount, maxPayable);
+      } else if (activeOverpayMode === 'debt') {
+        finalPaid = Math.min(paidAmount, total + oldDebtVal);
+      } else {
+        finalPaid = total;
       }
 
       const orderData = {
@@ -399,13 +402,18 @@ export default function POSPaymentPanel({ forceShow = false }) {
                   value="change" 
                   checked={paidAmount >= total && overpayMode === 'change'}
                   onChange={() => {
-                    if (paidAmount < total) setPaidAmountStr(total.toString());
                     setOverpayMode('change');
                   }} 
                 />
                 <span>Tiền thừa trả khách</span>
                 <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
-                  {changeAmount >= 0 && overpayMode === 'change' ? new Intl.NumberFormat('vi-VN').format(changeAmount) : 0}
+                  {new Intl.NumberFormat('vi-VN').format(
+                    paidAmount >= total 
+                      ? (overpayMode === 'change' 
+                          ? (paidAmount - total) 
+                          : Math.max(0, (paidAmount - total) - (customer ? Number(customer.totalDebt || customer.debt || 0) : 0)))
+                      : 0
+                  )}
                 </span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
@@ -413,37 +421,27 @@ export default function POSPaymentPanel({ forceShow = false }) {
                   type="radio" 
                   name="pay-change-mode" 
                   value="debt" 
-                  checked={paidAmount < total}
-                  onChange={() => setPaidAmountStr('0')} 
+                  checked={paidAmount < total || overpayMode === 'debt'}
+                  onChange={() => {
+                    setOverpayMode('debt');
+                  }} 
                 />
                 <span>Tính vào công nợ</span>
                 <span style={{ marginLeft: 'auto', fontWeight: '600', color: '#e53935' }}>
-                  {changeAmount < 0 ? new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount)) : 0}
+                  {new Intl.NumberFormat('vi-VN').format(
+                    paidAmount < total 
+                      ? (total - paidAmount) 
+                      : (overpayMode === 'debt' 
+                          ? Math.max(0, (customer ? Number(customer.totalDebt || customer.debt || 0) : 0) - (paidAmount - total))
+                          : (customer ? Number(customer.totalDebt || customer.debt || 0) : 0))
+                  )}
                 </span>
               </label>
-              {customer && (customer.totalDebt || 0) > 0 && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
-                  <input 
-                    type="radio" 
-                    name="pay-change-mode" 
-                    value="pay_debt" 
-                    checked={paidAmount > total && overpayMode === 'pay_debt'}
-                    onChange={() => {
-                      if (paidAmount <= total) setPaidAmountStr((total + customer.totalDebt).toString());
-                      setOverpayMode('pay_debt');
-                    }} 
-                  />
-                  <span>Trừ nợ cũ</span>
-                  <span style={{ marginLeft: 'auto', fontWeight: '600', color: '#1a73e8' }}>
-                    {changeAmount > 0 && overpayMode === 'pay_debt' ? new Intl.NumberFormat('vi-VN').format(Math.min(changeAmount, customer.totalDebt)) : 0}
-                  </span>
-                </label>
-              )}
-              {customer && (customer.totalDebt || 0) > 0 && overpayMode === 'pay_debt' && changeAmount > customer.totalDebt && (
+              {paidAmount >= total && overpayMode === 'debt' && customer && (customer.totalDebt || 0) > 0 && (paidAmount - total) > customer.totalDebt && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'default', padding: '4px 0', opacity: 0.8 }}>
-                  <span style={{ marginLeft: '24px' }}>Tiền thừa trả khách:</span>
+                  <span style={{ marginLeft: '24px', color: '#666' }}>Tiền thừa trả khách:</span>
                   <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
-                    {new Intl.NumberFormat('vi-VN').format(changeAmount - customer.totalDebt)}
+                    {new Intl.NumberFormat('vi-VN').format((paidAmount - total) - customer.totalDebt)}
                   </span>
                 </label>
               )}

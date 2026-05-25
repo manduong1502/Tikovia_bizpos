@@ -129,17 +129,11 @@ export function POSProvider({ children }) {
 
   const addToCart = (product) => {
     if (!product) return;
-    if (product.stock <= 0) {
-      toast.error('Sản phẩm đã hết hàng (Tồn: 0)! Vẫn thêm vào giỏ.');
-    }
 
     const cart = currentInvoice.cart;
     const existing = cart.find(item => item.product.id === product.id);
 
     if (existing) {
-      if (existing.quantity >= product.stock) {
-        toast.error('Vượt quá số lượng tồn kho!');
-      }
       updateCurrentInvoice({
         cart: cart.map(item => 
           item.product.id === product.id 
@@ -165,11 +159,6 @@ export function POSProvider({ children }) {
     if (!item) return;
 
     let val = newQuantity;
-    const num = parseFloat(val);
-
-    if (!isNaN(num) && num > item.product.stock) {
-      toast.error('Vượt quá số lượng tồn kho!');
-    }
 
     updateCurrentInvoice({
       cart: currentInvoice.cart.map(i => 
