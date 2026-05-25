@@ -451,11 +451,11 @@ export default function OrdersPage() {
 
           {/* Row 2: Secondary Actions & Column selection */}
           <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
-            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+            <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
               <Download size={16} /> Tải file mẫu
             </Button>
 
-            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
               <Download size={16} /> Xuất file
             </Button>
 
@@ -515,7 +515,7 @@ export default function OrdersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
@@ -757,11 +757,11 @@ export default function OrdersPage() {
                       <tbody className="divide-y divide-gray-100 bg-white font-medium">
                         {importSummary.validItems.map((it, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/80">
-                            <td className="py-2 px-4 font-bold text-primary">{it.order_code}</td>
-                            <td className="py-2 px-4 text-gray-800 font-bold">{it.customer_name} {it.customer_code ? `(${it.customer_code})` : ''}</td>
-                            <td className="py-2 px-4 text-right font-extrabold text-gray-900">{fmt(it.total)}</td>
-                            <td className="py-2 px-4 text-right text-gray-600">{fmt(it.discount_amount)}</td>
-                            <td className="py-2 px-4 text-right font-extrabold text-emerald-600">{fmt(it.paid_amount)}</td>
+                            <td className="py-1 px-3.5 font-bold text-primary">{it.order_code}</td>
+                            <td className="py-1 px-3.5 text-gray-800 font-bold">{it.customer_name} {it.customer_code ? `(${it.customer_code})` : ''}</td>
+                            <td className="py-1 px-3.5 text-right font-extrabold text-gray-900">{fmt(it.total)}</td>
+                            <td className="py-1 px-3.5 text-right text-gray-600">{fmt(it.discount_amount)}</td>
+                            <td className="py-1 px-3.5 text-right font-extrabold text-emerald-600">{fmt(it.paid_amount)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -781,17 +781,17 @@ export default function OrdersPage() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-rose-50/80 text-rose-800 font-bold border-b border-rose-200 sticky top-0">
-                          <th className="py-2 px-4 w-20 text-center">Dòng Excel</th>
-                          <th className="py-2 px-4 w-32">Mã hóa đơn</th>
-                          <th className="py-2 px-4 flex-1">Chi tiết lỗi / Nguyên nhân</th>
+                          <th className="py-1 px-3.5 w-20 text-center">Dòng Excel</th>
+                          <th className="py-1 px-3.5 w-32">Mã hóa đơn</th>
+                          <th className="py-1 px-3.5 flex-1">Chi tiết lỗi / Nguyên nhân</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-rose-100 bg-white font-medium">
                         {importSummary.invalidItems.map((err, i) => (
                           <tr key={i} className="hover:bg-rose-50/30 text-rose-900">
-                            <td className="py-2 px-4 text-center font-bold text-rose-700">#{err.row}</td>
-                            <td className="py-2 px-4 font-bold">{err.sku}</td>
-                            <td className="py-2 px-4 flex items-center gap-1.5 text-rose-600">
+                            <td className="py-1 px-3.5 text-center font-bold text-rose-700">#{err.row}</td>
+                            <td className="py-1 px-3.5 font-bold">{err.sku}</td>
+                            <td className="py-1 px-3.5 flex items-center gap-1.5 text-rose-600">
                               <AlertCircle size={14} className="shrink-0" />
                               <span>{err.reason}</span>
                             </td>

@@ -36,12 +36,12 @@ export default function PurchaseOrderDetail({
   return (
     <tr className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
       <td colSpan={visibleColumns.length + 2} className="p-0">
-        <div className="p-6">
+        <div className="p-3">
           {/* Top Tabs */}
-          <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
+          <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
             <button
               onClick={() => setDetailTab('info')}
-              className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -49,7 +49,7 @@ export default function PurchaseOrderDetail({
             </button>
             <button
               onClick={() => setDetailTab('history')}
-              className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -57,7 +57,7 @@ export default function PurchaseOrderDetail({
             </button>
             <button
               onClick={() => setDetailTab('returns')}
-              className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'returns' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -68,14 +68,14 @@ export default function PurchaseOrderDetail({
           {detailTab === 'info' ? (
             <div className="flex flex-col gap-4">
               {/* Header Info */}
-              <div className="flex flex-wrap items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100 gap-4">
+              <div className="flex flex-wrap items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs gap-4">
                 <div className="flex items-center gap-4">
-                  <span className="text-xl font-extrabold text-gray-800 tracking-tight">{o.po_code}</span>
-                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${PAY_BADGE[o.payment_status]}`}>
+                  <span className="text-sm font-bold text-gray-800 tracking-tight">{o.po_code}</span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${PAY_BADGE[o.payment_status]}`}>
                     {PAY_LABEL[o.payment_status]}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-8 text-sm">
+                <div className="flex flex-wrap items-center gap-4 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">Người nhập:</span>
                     <select
@@ -96,16 +96,16 @@ export default function PurchaseOrderDetail({
 
               {/* Action Buttons */}
               <div className="flex flex-wrap justify-end gap-2 my-2">
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-3 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Printer size={15} className="text-gray-500" /> In mã vạch
                 </Button>
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-3 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Copy size={15} className="text-gray-500" /> Sao chép
                 </Button>
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-3 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Printer size={15} className="text-gray-500" /> In đơn
                 </Button>
-                <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-2 px-3 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold shadow-sm">
+                <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-2.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold shadow-sm">
                   <XCircle size={15} /> Hủy phiếu
                 </Button>
               </div>

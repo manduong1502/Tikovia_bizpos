@@ -425,7 +425,7 @@ export default function PriceBooksPage() {
 
           {/* Row 2: Secondary Actions & Column selection */}
           <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
-            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
               <Download size={16} /> Xuất file
             </Button>
 
@@ -640,7 +640,7 @@ export default function PriceBooksPage() {
       >
         <div className="mb-6 flex border-b border-gray-200 gap-4 px-2">
           <button
-            className={`py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`py-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
             onClick={() => setActiveTab('info')}
@@ -648,7 +648,7 @@ export default function PriceBooksPage() {
             Thông tin
           </button>
           <button
-            className={`py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`py-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'scope' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
             onClick={() => setActiveTab('scope')}

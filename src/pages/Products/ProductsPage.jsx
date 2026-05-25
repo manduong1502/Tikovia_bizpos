@@ -452,14 +452,14 @@ export default function ProductsPage() {
     return (
       <tr key={`detail-${p.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-6">
+          <div className="p-1.5 px-3">
             {/* Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
+            <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
               {tabs.map(t => (
                 <button
                   key={t.key}
                   onClick={(e) => { e.stopPropagation(); setDetailTab(t.key); }}
-                  className={`py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                     detailTab === t.key
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -472,34 +472,34 @@ export default function ProductsPage() {
 
             {/* Tab content */}
             {detailTab === 'info' && (
-              <div className="flex gap-8 pb-4 items-start">
-                <div className="w-[140px] h-[140px] bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm overflow-hidden">
-                  {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={48} />}
+              <div className="flex gap-8 pb-2 items-start">
+                <div className="w-[80px] h-[80px] bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm overflow-hidden">
+                  {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={32} />}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-6">
+                  <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs mb-6">
                     <div className="flex items-center gap-4">
-                      <span className="text-xl font-extrabold text-gray-800 tracking-tight">{p.name}</span>
-                      <span className="px-3 py-1 text-xs font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                      <span className="text-sm font-bold text-gray-800 tracking-tight">{p.name}</span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                         {p.sku || ''}
                       </span>
                       <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
                         Đang kinh doanh
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-primary bg-white px-3 py-1.5 rounded-lg border border-blue-200 shadow-sm">
+                    <span className="text-xs font-bold text-primary bg-white px-2 py-1 text-[10px] rounded-lg border border-blue-200 shadow-sm">
                       Chi nhánh trung tâm
                     </span>
                   </div>
 
-                  <div className="text-xs text-gray-500 mb-4 font-medium">Nhóm hàng: <span className="text-primary font-bold">{catName(p.categoryId)}</span></div>
-                  <div className="flex gap-2.5 mb-6 flex-wrap">
-                    <span className="px-3 py-1.5 bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Hàng hóa thường</span>
-                    <span className="px-3 py-1.5 bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Bán trực tiếp</span>
-                    <span className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
+                  <div className="text-xs text-gray-500 mb-2 font-medium">Nhóm hàng: <span className="text-primary font-bold">{catName(p.categoryId)}</span></div>
+                  <div className="flex gap-1.5 mb-3 flex-wrap">
+                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Hàng hóa thường</span>
+                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Bán trực tiếp</span>
+                    <span className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-4 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
@@ -530,32 +530,32 @@ export default function ProductsPage() {
             )}
             {detailTab === 'stock_card' && (
               <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 overflow-x-auto max-w-full">
-                <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
+                <ClipboardList size={32} className="mx-auto mb-3 text-gray-300" />
                 Không tìm thấy thẻ kho nào phù hợp
               </div>
             )}
             {detailTab === 'inventory' && (
-              <div className="border border-gray-200 rounded-xl overflow-x-auto bg-white shadow-sm max-w-full w-full">
-                <table className="w-full text-xs min-w-[600px]">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-40 overflow-y-auto">
+                <table className="w-full text-[11px] border-collapse min-w-[600px]">
                   <thead>
                     <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                      <th className="p-3 pl-4">Chi nhánh</th>
-                      <th className="p-3 text-right">Tồn kho</th>
-                      <th className="p-3 text-right">KH đặt</th>
-                      <th className="p-3 text-left pl-6">Dự kiến hết hàng</th>
-                      <th className="p-3 text-left">Trạng thái</th>
+                      <th className="p-1.5 px-3 pl-4">Chi nhánh</th>
+                      <th className="p-1.5 px-3 text-right">Tồn kho</th>
+                      <th className="p-1.5 px-3 text-right">KH đặt</th>
+                      <th className="p-1.5 px-3 text-left pl-6">Dự kiến hết hàng</th>
+                      <th className="p-1.5 px-3 text-left">Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
-                      <td className="p-3 pl-4">Tổng cộng</td>
+                      <td className="p-1.5 px-3 pl-4">Tổng cộng</td>
                       <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
                       <td className="text-right p-3 text-primary font-extrabold">0</td>
                       <td></td>
                       <td></td>
                     </tr>
                     <tr className="hover:bg-blue-50/30 transition-colors">
-                      <td className="p-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
+                      <td className="p-1.5 px-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
                       <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
                       <td className="text-right p-3 text-gray-400 font-bold">0</td>
                       <td className="p-3 pl-6 text-gray-400">---</td>
@@ -567,20 +567,20 @@ export default function ProductsPage() {
             )}
 
             {/* Action bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-6 mt-6" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-3 mt-3" onClick={e => e.stopPropagation()}>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Trash2 size={14} /> Xóa
                 </Button>
-                <Button variant="secondary" onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Copy size={14} /> Sao chép
                 </Button>
-                <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Tag size={14} /> In tem mã
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-4 sm:px-6 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
+                <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
                   <Edit size={14} /> Chỉnh sửa
                 </Button>
                 <Button variant="secondary" className="p-2 shadow-sm flex-none">
@@ -681,11 +681,11 @@ export default function ProductsPage() {
 
               {/* Row 2: Secondary Actions & Column selection */}
               <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
-                <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+                <Button variant="secondary" onClick={handleDownloadSample} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
                   <Download size={16} /> Tải file mẫu
                 </Button>
 
-                <Button variant="secondary" onClick={() => exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered)} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+                <Button variant="secondary" onClick={() => exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered)} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
                   <Download size={16} /> Xuất file
                 </Button>
 
@@ -750,7 +750,7 @@ export default function ProductsPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="p-4 w-12 text-center">
@@ -862,7 +862,7 @@ export default function ProductsPage() {
               {pageItems.length === 0 && (
                 <tr>
                   <td colSpan={visibleColumns.length + 3} className="p-12 text-center text-gray-400 font-medium">
-                    <Package size={48} className="mx-auto mb-3 text-gray-300" />
+                    <Package size={32} className="mx-auto mb-3 text-gray-300" />
                     Không tìm thấy hàng hóa nào phù hợp với bộ lọc
                   </td>
                 </tr>
@@ -878,7 +878,7 @@ export default function ProductsPage() {
               <select
                 value={perPage}
                 onChange={(e) => { setPerPage(+e.target.value); setPage(1); }}
-                className="border border-gray-300 rounded px-3 py-1.5 text-xs font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"
+                className="border border-gray-300 rounded px-2 py-1 text-[10px] text-xs font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm bg-white cursor-pointer"
               >
                 {[15, 30, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
@@ -976,12 +976,12 @@ export default function ProductsPage() {
                       <tbody className="divide-y divide-gray-100 bg-white font-medium">
                         {importSummary.validItems.map((it, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/80">
-                            <td className="py-2 px-4 font-bold text-gray-900">{it.sku || '[Tự động tạo]'}</td>
-                            <td className="py-2 px-4 text-gray-800 font-bold">{it.name}</td>
-                            <td className="py-2 px-4 text-center text-gray-600">{it.unit}</td>
-                            <td className="py-2 px-4 text-right font-extrabold text-primary">{fmt(it.sellPrice)}</td>
-                            <td className="py-2 px-4 text-right text-gray-700">{fmt(it.costPrice)}</td>
-                            <td className="py-2 px-4 text-right font-bold text-green-700">{it.stock}</td>
+                            <td className="py-1 px-3.5 font-bold text-gray-900">{it.sku || '[Tự động tạo]'}</td>
+                            <td className="py-1 px-3.5 text-gray-800 font-bold">{it.name}</td>
+                            <td className="py-1 px-3.5 text-center text-gray-600">{it.unit}</td>
+                            <td className="py-1 px-3.5 text-right font-extrabold text-primary">{fmt(it.sellPrice)}</td>
+                            <td className="py-1 px-3.5 text-right text-gray-700">{fmt(it.costPrice)}</td>
+                            <td className="py-1 px-3.5 text-right font-bold text-green-700">{it.stock}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1001,17 +1001,17 @@ export default function ProductsPage() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-rose-50/80 text-rose-800 font-bold border-b border-rose-200 sticky top-0">
-                          <th className="py-2 px-4 w-20 text-center">Dòng Excel</th>
-                          <th className="py-2 px-4 w-32">Mã hàng (SKU)</th>
-                          <th className="py-2 px-4 flex-1">Chi tiết lỗi / Nguyên nhân</th>
+                          <th className="py-1 px-3.5 w-20 text-center">Dòng Excel</th>
+                          <th className="py-1 px-3.5 w-32">Mã hàng (SKU)</th>
+                          <th className="py-1 px-3.5 flex-1">Chi tiết lỗi / Nguyên nhân</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-rose-100 bg-white font-medium">
                         {importSummary.invalidItems.map((err, i) => (
                           <tr key={i} className="hover:bg-rose-50/30 text-rose-900">
-                            <td className="py-2 px-4 text-center font-bold text-rose-700">#{err.row}</td>
-                            <td className="py-2 px-4 font-bold">{err.sku}</td>
-                            <td className="py-2 px-4 flex items-center gap-1.5 text-rose-600">
+                            <td className="py-1 px-3.5 text-center font-bold text-rose-700">#{err.row}</td>
+                            <td className="py-1 px-3.5 font-bold">{err.sku}</td>
+                            <td className="py-1 px-3.5 flex items-center gap-1.5 text-rose-600">
                               <AlertCircle size={14} className="shrink-0" />
                               <span>{err.reason}</span>
                             </td>

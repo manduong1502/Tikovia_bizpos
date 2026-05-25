@@ -695,7 +695,7 @@ export default function CashbookPage() {
         {/* Main List Table Area */}
         <div className="flex-1 bg-white border border-gray-100 rounded-2xl shadow-sm flex flex-col overflow-hidden max-w-full w-full min-h-[500px]">
           <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)] custom-scrollbar max-w-full w-full">
-            <table className="w-full text-sm min-w-[800px] border-collapse">
+            <table className="w-full text-xs border-collapse min-w-[800px] border-collapse">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm text-[11px] text-gray-500 uppercase border-b border-gray-100 font-extrabold tracking-wider">
                 <tr>
                   <th className="px-4 py-4 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
@@ -909,7 +909,7 @@ export default function CashbookPage() {
                           <td colSpan={2 + visibleColumns.length} className="p-0 border-b border-blue-100">
                             <div className="p-6 bg-gradient-to-b from-blue-50/10 to-transparent border-x-2 border-primary/20">
                               {/* Details Tab Menu */}
-                              <div className="flex gap-4 border-b border-gray-200 mb-6 px-2">
+                              <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
                                 <span className="font-bold text-sm text-primary border-b-2 border-primary pb-2.5 cursor-pointer">
                                   Thông tin
                                 </span>

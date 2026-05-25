@@ -716,7 +716,7 @@ export default function CreatePurchaseReturnPage() {
                 type="text" 
                 disabled 
                 placeholder="Mã phiếu tự động" 
-                className="w-full py-2 px-3.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
+                className="w-full py-1 px-2.5.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
               />
             </div>
 
@@ -768,7 +768,7 @@ export default function CreatePurchaseReturnPage() {
                     const val = e.target.value.replace(/\D/g, '');
                     setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
                   }}
-                  className="w-32 py-2 px-3 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
+                  className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
                 />
               </div>
 
@@ -872,12 +872,12 @@ export default function CreatePurchaseReturnPage() {
                       <tbody className="divide-y divide-gray-100 bg-white font-medium">
                         {importSummary.validItems.map((it) => (
                           <tr key={it.id} className="hover:bg-gray-50/80">
-                            <td className="py-2 px-4 font-bold text-gray-900">{it.sku}</td>
-                            <td className="py-2 px-4 text-gray-800">{it.name}</td>
-                            <td className="py-2 px-4 text-center text-gray-600">{it.unit}</td>
-                            <td className="py-2 px-4 text-right font-extrabold text-primary">{it.return_quantity}</td>
-                            <td className="py-2 px-4 text-right text-gray-700">{fmt(it.return_price)}</td>
-                            <td className="py-2 px-4 text-gray-500 italic truncate max-w-xs">{it.note || '-'}</td>
+                            <td className="py-1 px-3.5 font-bold text-gray-900">{it.sku}</td>
+                            <td className="py-1 px-3.5 text-gray-800">{it.name}</td>
+                            <td className="py-1 px-3.5 text-center text-gray-600">{it.unit}</td>
+                            <td className="py-1 px-3.5 text-right font-extrabold text-primary">{it.return_quantity}</td>
+                            <td className="py-1 px-3.5 text-right text-gray-700">{fmt(it.return_price)}</td>
+                            <td className="py-1 px-3.5 text-gray-500 italic truncate max-w-xs">{it.note || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -897,17 +897,17 @@ export default function CreatePurchaseReturnPage() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-rose-50/80 text-rose-800 font-bold border-b border-rose-200 sticky top-0">
-                          <th className="py-2 px-4 w-20 text-center">Dòng Excel</th>
-                          <th className="py-2 px-4 w-32">Mã hàng (SKU)</th>
-                          <th className="py-2 px-4 flex-1">Chi tiết lỗi / Nguyên nhân</th>
+                          <th className="py-1 px-3.5 w-20 text-center">Dòng Excel</th>
+                          <th className="py-1 px-3.5 w-32">Mã hàng (SKU)</th>
+                          <th className="py-1 px-3.5 flex-1">Chi tiết lỗi / Nguyên nhân</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-rose-100 bg-white font-medium">
                         {importSummary.invalidItems.map((err, i) => (
                           <tr key={i} className="hover:bg-rose-50/30 text-rose-900">
-                            <td className="py-2 px-4 text-center font-bold text-rose-700">#{err.row}</td>
-                            <td className="py-2 px-4 font-bold">{err.sku}</td>
-                            <td className="py-2 px-4 flex items-center gap-1.5 text-rose-600">
+                            <td className="py-1 px-3.5 text-center font-bold text-rose-700">#{err.row}</td>
+                            <td className="py-1 px-3.5 font-bold">{err.sku}</td>
+                            <td className="py-1 px-3.5 flex items-center gap-1.5 text-rose-600">
                               <AlertCircle size={14} className="shrink-0" />
                               <span>{err.reason}</span>
                             </td>

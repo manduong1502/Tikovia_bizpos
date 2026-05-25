@@ -468,7 +468,7 @@ export default function ReturnOrderPage() {
                 type="text" 
                 disabled 
                 placeholder="Mã phiếu tự động" 
-                className="w-full py-2 px-3.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
+                className="w-full py-1 px-2.5.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
               />
             </div>
 
@@ -520,7 +520,7 @@ export default function ReturnOrderPage() {
                     const val = e.target.value.replace(/\D/g, '');
                     setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
                   }}
-                  className="w-32 py-2 px-3 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
+                  className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
                 />
               </div>
 
@@ -541,7 +541,7 @@ export default function ReturnOrderPage() {
                 onChange={e => setNote(e.target.value)}
                 rows={2}
                 placeholder="Ghi chú phiếu trả hàng..."
-                className="w-full py-2 px-3 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner resize-none"
+                className="w-full py-1 px-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner resize-none"
               />
             </div>
           </div>

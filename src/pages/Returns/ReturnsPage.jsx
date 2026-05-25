@@ -230,17 +230,17 @@ export default function ReturnsPage() {
     return (
       <tr key={`detail-${o.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in text-[13px]">
         <td colSpan={visibleColumns.length + 2} className="p-0">
-          <div className="p-6">
+          <div className="p-1.5 px-3">
             <div className="flex flex-col gap-4">
               {/* Header Info */}
-              <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
                 <div className="flex items-center gap-4">
-                  <span className="text-xl font-extrabold text-gray-800 tracking-tight">{o.code}</span>
-                  <span className={`px-3 py-1 text-xs font-bold rounded-full ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
+                  <span className="text-sm font-bold text-gray-800 tracking-tight">{o.code}</span>
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
                     {STATUS_LABEL[o.status] || o.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-8 text-sm">
+                <div className="flex items-center gap-4 text-xs">
                   <div className="flex items-center gap-2 text-gray-600">
                     <span className="text-gray-500">Ngày trả:</span>
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
@@ -251,7 +251,7 @@ export default function ReturnsPage() {
               </div>
 
               {/* Items Table Section */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+              <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-h-40 overflow-y-auto">
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50 gap-4">
                   <div className="flex items-center gap-4 flex-1">
                     <div className="relative w-64">
@@ -277,14 +277,14 @@ export default function ReturnsPage() {
                   </div>
                 </div>
 
-                <table className="w-full text-xs">
+                <table className="w-full text-[11px] border-collapse">
                   <thead>
                     <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                      <th className="p-3">Mã hàng</th>
-                      <th className="p-3">Tên hàng</th>
-                      <th className="p-3 text-right">Số lượng</th>
-                      <th className="p-3 text-right">Đơn giá</th>
-                      <th className="p-3 text-right">Thành tiền</th>
+                      <th className="p-1.5 px-3">Mã hàng</th>
+                      <th className="p-1.5 px-3">Tên hàng</th>
+                      <th className="p-1.5 px-3 text-right">Số lượng</th>
+                      <th className="p-1.5 px-3 text-right">Đơn giá</th>
+                      <th className="p-1.5 px-3 text-right">Thành tiền</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
@@ -292,9 +292,9 @@ export default function ReturnsPage() {
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                         <td className="p-3 text-primary font-bold">{it.product_sku}</td>
                         <td className="p-3 text-gray-800">{it.product_name}</td>
-                        <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
-                        <td className="p-3 text-right text-gray-600">{fmt(it.price)}</td>
-                        <td className="p-3 text-right text-primary font-bold">{fmt(it.total)}</td>
+                        <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
+                        <td className="p-1.5 px-3 text-right text-gray-600">{fmt(it.price)}</td>
+                        <td className="p-1.5 px-3 text-right text-primary font-bold">{fmt(it.total)}</td>
                       </tr>
                     ))}
                     {items.length === 0 && (
@@ -309,23 +309,23 @@ export default function ReturnsPage() {
                 <div className="col-span-2">
                   <textarea
                     placeholder="Ghi chú..."
-                    className="w-full h-32 border border-gray-300 rounded-xl p-4 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                    className="w-full h-12 sm:h-16 border border-gray-300 rounded-lg p-2 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                     value={currentNote}
                     onChange={(e) => setReturnNotes(prev => ({ ...prev, [o.id]: e.target.value }))}
                   />
                 </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-3 text-xs shadow-sm">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1.5 text-[11px] shadow-sm">
                   <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Số lượng mặt hàng</span><span className="font-bold text-gray-800">{items.length}</span></div>
                   <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tiền hàng ({totalQty})</span><span className="font-bold text-gray-800">{fmt(subtotal)}</span></div>
-                  <div className="flex justify-between items-center text-sm border-t border-gray-200 pt-3"><span className="font-bold text-gray-800">Khách cần trả</span><span className="font-extrabold text-primary">{fmt(o.must_pay_customer)}</span></div>
+                  <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Khách cần trả</span><span className="font-extrabold text-primary">{fmt(o.must_pay_customer)}</span></div>
                   <div className="flex justify-between items-center text-sm"><span className="font-bold text-gray-800">Khách đã trả</span><span className="font-extrabold text-green-600">{fmt(o.paid_customer)}</span></div>
                 </div>
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="flex items-center justify-end border-t border-gray-200 pt-6 mt-2">
+              <div className="flex items-center justify-end border-t border-gray-200 pt-3 mt-1.5">
                 <div className="flex items-center gap-3">
-                  <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-2 px-4 shadow-sm font-bold border-none cursor-pointer">
+                  <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold border-none cursor-pointer">
                     <Save size={14} /> Lưu
                   </Button>
                 </div>
@@ -395,7 +395,7 @@ export default function ReturnsPage() {
           </div>
 
           <div className="flex items-center gap-2 w-full lg:w-auto flex-wrap justify-start lg:justify-end pt-1 lg:pt-0 border-t border-gray-100 lg:border-none mt-1 lg:mt-0">
-            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2 px-3 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
+            <Button variant="secondary" onClick={handleExport} className="flex items-center gap-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1 px-2.5 sm:py-2.5 sm:px-4 rounded-xl shadow-sm text-xs sm:text-sm whitespace-nowrap cursor-pointer">
               <Download size={16} /> Xuất file
             </Button>
 

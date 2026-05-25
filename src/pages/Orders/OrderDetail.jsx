@@ -175,10 +175,10 @@ export default function OrderDetail({ order, onReload, onClose }) {
         {tab === 'info' ? (
           <div className="flex flex-col gap-4 max-w-full">
             {/* Header Info */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                <span className="text-lg sm:text-xl font-extrabold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
-                <span className="px-3 py-1 text-xs font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                   {o.order_code}
                 </span>
                 <Badge status={o.payment_status || o.status} />
@@ -189,14 +189,14 @@ export default function OrderDetail({ order, onReload, onClose }) {
             </div>
 
             {/* Meta Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-4 p-4 sm:p-6 bg-gray-50/50 rounded-xl border border-gray-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-4 p-2 sm:p-2.5 bg-gray-50/50 rounded-lg border border-gray-200 text-[11px]">
               <div><span className="text-gray-500 font-medium block mb-1">Ngày bán</span><span className="font-bold text-gray-800 truncate block">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Kênh bán</span><span className="font-bold text-gray-800 truncate block">Bán trực tiếp</span></div>
               <div><span className="text-gray-500 font-medium block mb-1">Bảng giá</span><span className="font-bold text-gray-800 truncate block">Bảng giá chung</span></div>
             </div>
 
             {/* Items Table Section */}
-            <div className="border border-gray-200 rounded-xl overflow-x-auto bg-white shadow-sm max-w-full w-full">
+            <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-40 overflow-y-auto">
               {items.length > 0 ? (
                 <table className="w-full text-xs min-w-[700px]">
                   <thead>
@@ -238,30 +238,30 @@ export default function OrderDetail({ order, onReload, onClose }) {
                 <textarea
                   data-oid={o.id}
                   placeholder="Ghi chú..."
-                  className="w-full h-24 sm:h-32 border border-gray-300 rounded-xl p-4 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                  className="w-full h-12 sm:h-16 border border-gray-300 rounded-lg p-2 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                   defaultValue={o.note || ''}
                 />
               </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5 flex flex-col gap-3 text-xs shadow-sm">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1.5 text-[11px] shadow-sm">
                 <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tiền hàng ({items.reduce((s, it) => s + (it.quantity || 0), 0)})</span><span className="font-bold text-gray-800">{fmt(o.subtotal || o.total)}</span></div>
                 <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Giảm giá hóa đơn</span><span className="font-bold text-gray-800">{fmt(o.discount_amount)}</span></div>
-                <div className="flex justify-between items-center text-sm border-t border-gray-200 pt-3"><span className="font-bold text-gray-800">Khách cần trả</span><span className="font-extrabold text-primary">{fmt(o.total)}</span></div>
+                <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Khách cần trả</span><span className="font-extrabold text-primary">{fmt(o.total)}</span></div>
                 <div className="flex justify-between items-center text-sm"><span className="font-bold text-gray-800">Khách đã trả</span><span className="font-extrabold text-green-600">{fmt(o.paid_amount)}</span></div>
               </div>
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-6 mt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-3 mt-1.5">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 {o.status !== 'cancelled' && (
-                  <Button variant="danger" onClick={handleCancel} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                  <Button variant="danger" onClick={handleCancel} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                     <Trash2 size={14} /> Hủy
                   </Button>
                 )}
-                <Button variant="secondary" onClick={handleCopy} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={handleCopy} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Copy size={14} /> Sao chép
                 </Button>
-                <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Download size={14} /> Xuất file
                 </Button>
               </div>
@@ -270,19 +270,19 @@ export default function OrderDetail({ order, onReload, onClose }) {
                 <Button
                   variant="primary"
                   onClick={() => navigate('/pos', { state: { editOrder: { id: o.id, code: o.order_code, items: items, customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, note: o.note } } })}
-                  className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-4 sm:px-6 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap"
+                  className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap"
                 >
                   <Pencil size={14} /> Chỉnh sửa
                 </Button>
-                <Button variant="secondary" onClick={handleSaveNote} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={handleSaveNote} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Save size={14} /> Lưu
                 </Button>
                 {o.status !== 'cancelled' && (
-                  <Button variant="secondary" onClick={handleReturn} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                  <Button variant="secondary" onClick={handleReturn} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                     <RotateCcw size={14} /> Trả hàng
                   </Button>
                 )}
-                <Button variant="secondary" onClick={handlePrint} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-2 px-3 sm:px-4 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={handlePrint} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Printer size={14} /> In
                 </Button>
                 <Button variant="secondary" className="p-2 shadow-sm flex-none">
