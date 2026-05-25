@@ -104,6 +104,31 @@ export default function CustomersPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentModalCustomer, setPaymentModalCustomer] = useState(null);
 
+  const handleOpenOrder = async (orderId, partnerName, defaultData = null) => {
+    if (!orderId) {
+      if (defaultData) setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
+      return;
+    }
+    const tid = toast.loading('Đang tải chi tiết hóa đơn...');
+    try {
+      const detail = await orderAPI.getById(orderId);
+      setSelectedTx({
+        ...detail,
+        type: 'Bán hàng',
+        partnerName: partnerName
+      });
+    } catch (err) {
+      console.error(err);
+      if (defaultData) {
+        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
+      } else {
+        toast.error('Không thể tải chi tiết hóa đơn');
+      }
+    } finally {
+      toast.dismiss(tid);
+    }
+  };
+
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -529,6 +554,7 @@ export default function CustomersPage() {
         const total = Number(o.total || 0);
         const paid = Number(o.paid_amount || o.paid || 0);
         return {
+          id: o.id,
           code: o.order_code || o.code,
           type: 'Bán hàng',
           date: o.created_at || o.createdAt,
@@ -701,7 +727,7 @@ export default function CustomersPage() {
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {custOrders.map((o, i) => (
                           <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                            <td className="py-1 px-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => setSelectedTx({ ...o, type: 'Bán hàng', partnerName: c.name })}>{o.order_code || o.code}</td>
+                            <td className="py-1 px-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => handleOpenOrder(o.id, c.name, o)}>{o.order_code || o.code}</td>
                             <td className="py-1 px-3 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
                             <td className="py-1 px-3 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
                             <td className="py-1 px-3 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
@@ -794,7 +820,13 @@ export default function CustomersPage() {
                     <tbody className="divide-y divide-gray-100 font-medium">
                       {transactionsWithDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: c.name })}>{tx.code}</td>
+                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
+                            if (tx.type === 'Bán hàng') {
+                              handleOpenOrder(tx.id, c.name, tx);
+                            } else {
+                              setSelectedTx({ ...tx, partnerName: c.name });
+                            }
+                          }}>{tx.code}</td>
                           <td className="p-1.5 px-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
                           <td className="p-1.5 px-3">
                             <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
@@ -1405,18 +1437,16 @@ export default function CustomersPage() {
           const tid = toast.loading('Đang chuẩn bị dữ liệu xuất, vui lòng đợi...');
           
           try {
-            // Fetch detailed items for orders if they are missing
+            // Fetch detailed items for all orders to ensure no missing products
             for (let i = 0; i < custOrders.length; i++) {
               const o = custOrders[i];
-              if (!o.items || o.items.length === 0) {
-                try {
-                  const detail = await orderAPI.getById(o.id);
-                  if (detail && detail.items) {
-                    custOrders[i].items = detail.items;
-                  }
-                } catch(e) {
-                  console.warn(`Lỗi khi lấy chi tiết đơn hàng ${o.code}`);
+              try {
+                const detail = await orderAPI.getById(o.id);
+                if (detail && detail.items) {
+                  custOrders[i].items = detail.items;
                 }
+              } catch(e) {
+                console.warn(`Lỗi khi lấy chi tiết đơn hàng ${o.code}`);
               }
             }
           } catch(e) {}

@@ -95,22 +95,26 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 
       // Table Data formatting
       if (R > headerRowIndex && R <= range.e.r - 4) {
-        const isItemRow = C > 2 && C < 10 && val !== ''; // Check if it's an item row (has data in item cols)
-        const isSummaryRow = C <= 2 && val !== '';
+        // A row is a transaction header row if Column A (Thời gian) is not empty
+        const timeCell = worksheet[XLSX.utils.encode_cell({c:0, r:R})];
+        const isTxRow = timeCell && timeCell.v !== '' && timeCell.v !== undefined;
         
         cellStyle.border = {
           left: { style: "thin", color: { auto: 1 } },
           right: { style: "thin", color: { auto: 1 } }
         };
 
-        if (isItemRow || (R > headerRowIndex && worksheet[XLSX.utils.encode_cell({c:3, r:R})]?.v !== '')) {
-           // It's an item row
-           cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
+        if (isTxRow) {
+          cellStyle.font.bold = true;
+          cellStyle.border.top = { style: "thin", color: { auto: 1 } };
+          cellStyle.border.bottom = { style: "thin", color: { auto: 1 } };
+          cellStyle.fill = {
+            patternType: "solid",
+            fgColor: { rgb: "F9FAFB" }
+          };
         } else {
-           // It's a summary row or empty
-           if (val !== '' && C <= 2) {
-             cellStyle.border.top = { style: "thin", color: { auto: 1 } };
-           }
+          cellStyle.font.bold = false;
+          cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
         }
         
         // Final bottom border for the table

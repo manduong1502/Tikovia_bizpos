@@ -101,6 +101,49 @@ export default function SuppliersPage() {
   
   const [selectedTx, setSelectedTx] = useState(null);
 
+  const handleOpenTransaction = async (tx, partnerName) => {
+    if (!tx || !tx.id) {
+      setSelectedTx(tx ? { ...tx, partnerName } : null);
+      return;
+    }
+    const tid = toast.loading('Đang tải chi tiết giao dịch...');
+    try {
+      let detail = null;
+      if (tx.type === 'import') {
+        detail = await purchaseOrderAPI.getById(tx.id);
+        setSelectedTx({
+          ...detail,
+          type: 'import',
+          partnerName: partnerName
+        });
+      } else if (tx.type === 'return') {
+        detail = await purchaseReturnAPI.getById(tx.id);
+        // Ensure return items have SKU and product name
+        const detailItems = (detail?.items || []).map(it => {
+          const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+          return {
+            ...it,
+            product_sku: it.product_sku || it.sku || prod?.sku || '',
+            product_name: it.product_name || it.name || prod?.name || '',
+          };
+        });
+        setSelectedTx({
+          ...detail,
+          items: detailItems,
+          type: 'return',
+          partnerName: partnerName
+        });
+      } else {
+        setSelectedTx({ ...tx, partnerName });
+      }
+    } catch (err) {
+      console.error(err);
+      setSelectedTx({ ...tx, partnerName });
+    } finally {
+      toast.dismiss(tid);
+    }
+  };
+
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustModalSupplier, setAdjustModalSupplier] = useState(null);
 
@@ -434,7 +477,7 @@ export default function SuppliersPage() {
     );
   };
 
-  const handleExportDebt = (timeRange, columns) => {
+  const handleExportDebt = async (timeRange, columns) => {
     if (!exportModalSupplier) return;
     const s = exportModalSupplier;
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
@@ -449,6 +492,45 @@ export default function SuppliersPage() {
       (pr.supplier_code && pr.supplier_code === supCode) || 
       (pr.supplier_name && pr.supplier_name === s.name)
     );
+
+    const tid = toast.loading('Đang chuẩn bị dữ liệu xuất, vui lòng đợi...');
+
+    try {
+      // Fetch detailed items for purchase orders
+      for (let i = 0; i < supPOs.length; i++) {
+        try {
+          const detail = await purchaseOrderAPI.getById(supPOs[i].id);
+          if (detail) {
+            supPOs[i].items = detail.items || [];
+          }
+        } catch (e) {
+          console.warn(`Lỗi khi lấy chi tiết đơn nhập ${supPOs[i].po_code}`, e);
+        }
+      }
+
+      // Fetch detailed items for purchase returns and fill product details
+      for (let i = 0; i < supPRs.length; i++) {
+        try {
+          const detail = await purchaseReturnAPI.getById(supPRs[i].id);
+          if (detail) {
+            supPRs[i].items = (detail.items || []).map(it => {
+              const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+              return {
+                ...it,
+                product_sku: it.product_sku || it.sku || prod?.sku || '',
+                product_name: it.product_name || it.name || prod?.name || '',
+              };
+            });
+          }
+        } catch (e) {
+          console.warn(`Lỗi khi lấy chi tiết đơn trả ${supPRs[i].code}`, e);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      toast.dismiss(tid);
+    }
 
     const now = new Date();
     let startDate = new Date(0);
@@ -498,7 +580,7 @@ export default function SuppliersPage() {
         total: Number(po.total || 0), paid: Number(po.paid_amount || 0), items: po.items || [] 
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        code: pr.code, type: 'Trả hàng nhà cung cấp', date: new Date(pr.created_at || pr.createdAt), 
+        code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
         total: Number(pr.total || 0), paid: Number(pr.paid || 0), items: pr.items || [] 
       })),
       ...supCashbooks.filter(cb => {
@@ -560,13 +642,13 @@ export default function SuppliersPage() {
     // Calculate totals for header
     const totalGhiNo = transactions.reduce((s, tx) => {
       if (tx.type === 'Nhập hàng') return s + tx.total;
-      if (tx.type === 'Trả hàng nhà cung cấp') return s + tx.paid;
+      if (tx.type === 'Trả hàng') return s + tx.paid;
       if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? tx.total : 0);
       return s;
     }, 0);
     const totalGhiCo = transactions.reduce((s, tx) => {
       if (tx.type === 'Nhập hàng') return s + (tx.paid > 0 ? tx.paid : 0);
-      if (tx.type === 'Trả hàng nhà cung cấp') return s + tx.total;
+      if (tx.type === 'Trả hàng') return s + tx.total;
       if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
       return s;
     }, 0);
@@ -591,7 +673,7 @@ export default function SuppliersPage() {
       if (tx.type === 'Nhập hàng') {
         ghiNo = tx.total;
         ghiCo = tx.paid;
-      } else if (tx.type === 'Trả hàng nhà cung cấp') {
+      } else if (tx.type === 'Trả hàng') {
         ghiNo = tx.paid;
         ghiCo = tx.total;
       } else if (tx.type === 'Thanh toán') {
@@ -1014,7 +1096,7 @@ export default function SuppliersPage() {
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {transactions.map((tx, idx) => (
                           <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: s.name })}>{tx.code}</td>
+                            <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
                             <td className="p-1.5 px-3">
                               <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {tx.typeName}
@@ -1134,7 +1216,7 @@ export default function SuppliersPage() {
                         withDebt.reverse();
                         return withDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => setSelectedTx({ ...tx, partnerName: s.name })}>{tx.code}</td>
+                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
                           <td className="p-1.5 px-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
                           <td className="p-1.5 px-3">
                             <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
