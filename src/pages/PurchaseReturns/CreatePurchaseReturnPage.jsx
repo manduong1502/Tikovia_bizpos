@@ -46,7 +46,7 @@ export default function CreatePurchaseReturnPage() {
 
   const loadData = async () => {
     try {
-      const [prodRes, suppRes, empRes, poListRes] = await Promise.all([
+      const [prodRes, suppRes, poListRes] = await Promise.all([
         productAPI.getAll().catch(() => []),
         supplierAPI.getAllSimple().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
@@ -114,10 +114,15 @@ export default function CreatePurchaseReturnPage() {
   const filteredPOs = useMemo(() => {
     if (!poSearch.trim()) return [];
     const q = poSearch.toLowerCase();
-    return purchaseOrders.filter(o => 
-      (o.po_code || o.code || '').toLowerCase().includes(q)
-    ).slice(0, 6);
-  }, [poSearch, purchaseOrders]);
+    return purchaseOrders.filter(o => {
+      if (selectedSupplier) {
+        const suppId = Number(selectedSupplier.id);
+        const poSuppId = Number(o.supplierId || o.supplier_id || o.supplier?.id);
+        if (poSuppId && poSuppId !== suppId) return false;
+      }
+      return (o.po_code || o.code || '').toLowerCase().includes(q);
+    }).slice(0, 6);
+  }, [poSearch, purchaseOrders, selectedSupplier]);
 
   const handleSelectPO = async (poItem) => {
     setPoSearch('');
