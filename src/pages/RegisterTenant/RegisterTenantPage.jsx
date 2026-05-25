@@ -80,24 +80,36 @@ export default function RegisterTenantPage() {
       setError('Vui lòng nhập số điện thoại liên hệ');
       return false;
     }
+    if (!/^[0-9]+$/.test(phone.trim())) {
+      setError('Số điện thoại liên hệ chỉ được chứa các chữ số');
+      return false;
+    }
     if (phone.trim().length < 10) {
       setError('Số điện thoại liên hệ tối thiểu phải có 10 chữ số');
-      return false;
-    }
-    if (!adminUsername.trim()) {
-      setError('Vui lòng nhập tên đăng nhập');
-      return false;
-    }
-    if (adminUsername.length < 3) {
-      setError('Tên đăng nhập tối thiểu phải có 3 ký tự');
       return false;
     }
     if (!adminPassword) {
       setError('Vui lòng nhập mật khẩu');
       return false;
     }
-    if (adminPassword.length < 6) {
-      setError('Mật khẩu tối thiểu phải có 6 ký tự');
+    if (adminPassword.length < 8) {
+      setError('Mật khẩu tối thiểu phải từ 8 ký tự trở lên');
+      return false;
+    }
+    if (!/[A-Z]/.test(adminPassword)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ cái viết hoa');
+      return false;
+    }
+    if (!/[a-z]/.test(adminPassword)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ cái thường');
+      return false;
+    }
+    if (!/[0-9]/.test(adminPassword)) {
+      setError('Mật khẩu phải chứa ít nhất 1 chữ số');
+      return false;
+    }
+    if (!/[^a-zA-Z0-9]/.test(adminPassword)) {
+      setError('Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (ví dụ: @, $, !, %, *, ?, &)');
       return false;
     }
     if (adminEmail && !/\S+@\S+\.\S+/.test(adminEmail)) {
@@ -133,7 +145,7 @@ export default function RegisterTenantPage() {
         subdomain: subdomain.toLowerCase().trim(),
         phone: phone.trim(),
         area: area.trim(),
-        adminUsername: adminUsername.trim(),
+        adminUsername: phone.trim(), // Phone number is used as username
         adminPassword,
         adminFullName: adminFullName.trim(),
         adminEmail: adminEmail ? adminEmail.trim() : null,
@@ -317,6 +329,9 @@ export default function RegisterTenantPage() {
                   icon={<Phone size={18} />}
                   required
                 />
+                <p className="mt-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+                  * Số điện thoại này sẽ được tự động sử dụng làm Tên đăng nhập (Username) quản trị cửa hàng.
+                </p>
               </div>
 
               <div>
@@ -334,25 +349,11 @@ export default function RegisterTenantPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
-                  Tên tài khoản quản trị
-                </label>
-                <Input
-                  type="text"
-                  placeholder="Tên đăng nhập (ví dụ: admin)"
-                  value={adminUsername}
-                  onChange={(e) => setAdminUsername(e.target.value)}
-                  icon={<User size={18} />}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
                   Mật khẩu đăng nhập
                 </label>
                 <Input
                   type="password"
-                  placeholder="Tối thiểu 6 ký tự"
+                  placeholder="Tối thiểu 8 ký tự, có chữ hoa, thường, số và ký tự đặc biệt"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   icon={<Lock size={18} />}
@@ -411,7 +412,7 @@ export default function RegisterTenantPage() {
                   </a>
                 </div>
                 <div className="text-sm text-gray-700 dark:text-gray-300">
-                  👤 Tài khoản Admin: <span className="font-semibold text-gray-900 dark:text-white">{adminUsername}</span>
+                  👤 Tài khoản Admin (Số điện thoại): <span className="font-semibold text-gray-900 dark:text-white">{phone}</span>
                 </div>
               </div>
 
