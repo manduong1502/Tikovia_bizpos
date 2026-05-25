@@ -19,6 +19,27 @@ export default function LoginPage() {
   const currentSubdomain = getSubdomain();
 
   useEffect(() => {
+    // Check if there is a token in the URL query parameters (SSO from base domain)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      localStorage.setItem('token', urlToken);
+      const fetchUserData = async () => {
+        try {
+          const res = await api.get('/auth/me');
+          localStorage.setItem('user', JSON.stringify(res.data));
+          toast.success('Đăng nhập thành công!');
+          navigate('/dashboard');
+        } catch (e) {
+          console.error(e);
+          localStorage.removeItem('token');
+          setError('Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
+        }
+      };
+      fetchUserData();
+      return;
+    }
+
     const checkTenant = async () => {
       try {
         const res = await api.get('/auth/tenant', { hideErrorToast: true });
@@ -30,7 +51,7 @@ export default function LoginPage() {
       }
     };
     checkTenant();
-  }, [currentSubdomain]);
+  }, [currentSubdomain, navigate]);
 
   const handleLogin = async (e, target = 'dashboard') => {
     if (e) e.preventDefault();
@@ -52,6 +73,23 @@ export default function LoginPage() {
       } else {
         const res = await api.post('/auth/login', { username, password });
         if (res.data.token) {
+          const tenantSubdomain = res.data.tenant?.subdomain;
+          const hostname = window.location.hostname.toLowerCase();
+          const port = window.location.port;
+
+          // If the user logs in from the main base domain (e.g. bizpos.tikovia.vn or localhost),
+          // we redirect them to their specific tenant subdomain.
+          const isBaseDomain = hostname === 'bizpos.tikovia.vn' || hostname === 'localhost';
+
+          if (isBaseDomain && tenantSubdomain) {
+            const targetHost = hostname === 'localhost' 
+              ? `${tenantSubdomain}.localhost${port ? `:${port}` : ''}`
+              : `${tenantSubdomain}.bizpos.tikovia.vn`;
+            
+            window.location.href = `http://${targetHost}/login?token=${res.data.token}`;
+            return;
+          }
+
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           if (target === 'pos') {
