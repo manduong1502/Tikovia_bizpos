@@ -933,12 +933,12 @@ export default function SuppliersPage() {
     return (
       <tr key={`detail-${s.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-3">
+          <div className="p-4 bg-gray-50/10">
             {/* Top Tabs */}
-            <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
+            <div className="flex gap-4 border-b border-gray-200 mb-4 px-2">
               <button
                 onClick={() => setDetailTab('info')}
-                className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -946,7 +946,7 @@ export default function SuppliersPage() {
               </button>
               <button
                 onClick={() => setDetailTab('history')}
-                className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -954,7 +954,7 @@ export default function SuppliersPage() {
               </button>
               <button
                 onClick={() => setDetailTab('debt')}
-                className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'debt' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -963,16 +963,16 @@ export default function SuppliersPage() {
             </div>
 
             {detailTab === 'info' && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {/* Header Info */}
-                <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
+                <div className="flex items-center justify-between bg-blue-50/50 p-3 px-4 rounded-lg border border-blue-100 text-xs sm:text-sm">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-gray-800 tracking-tight">{s.name}</span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                    <span className="text-base font-extrabold text-gray-800 tracking-tight">{s.name}</span>
+                    <span className="px-2 py-0.5 text-xs font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                       {s.code || `NCC${String(s.id).padStart(3, '0')}`}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-4 text-xs sm:text-sm">
                     <div><span className="text-gray-500">Điện thoại:</span> <span className="font-bold text-gray-800">{s.phone || '---'}</span></div>
                     <div><span className="text-gray-500">Email:</span> <span className="font-bold text-gray-800">{s.email || '---'}</span></div>
                     <div><span className="text-gray-500">Địa chỉ:</span> <span className="font-bold text-gray-800">{s.address || '---'}</span></div>
@@ -980,8 +980,8 @@ export default function SuppliersPage() {
                 </div>
 
                 {/* Items Table Section */}
-                <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-40 overflow-y-auto">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2 border-b border-gray-200 bg-gray-50/50 gap-2 min-w-[700px]">
+                <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-56 overflow-y-auto">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 border-b border-gray-200 bg-gray-50/50 gap-2 min-w-[700px]">
                     <div className="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
                       <div className="relative w-full sm:w-48">
                         <Search size={12} className="absolute left-2.5 top-2 text-gray-400" />
@@ -1004,31 +1004,31 @@ export default function SuppliersPage() {
                         />
                       </div>
                     </div>
-                    <a href="/pricebook" target="_blank" className="text-primary text-[11px] font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                    <a href="/pricebook" target="_blank" className="text-primary text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer">
                       <Tag size={12} /> Thiết lập giá
                     </a>
                   </div>
 
-                  <table className="w-full text-[11px] min-w-[700px] border-collapse">
+                  <table className="w-full text-xs min-w-[700px] border-collapse">
                     <thead>
                       <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                        <th className="p-1.5 px-3">Mã hàng</th>
-                        <th className="p-1.5 px-3">Tên hàng</th>
-                        <th className="p-1.5 px-3 text-right">Giá vốn</th>
-                        <th className="p-1.5 px-3 text-right">Giá bán</th>
-                        <th className="p-1.5 px-3 text-right">Tồn kho</th>
-                        <th className="p-1.5 w-12 text-center"></th>
+                        <th className="py-2.5 px-3.5">Mã hàng</th>
+                        <th className="py-2.5 px-3.5">Tên hàng</th>
+                        <th className="py-2.5 px-3.5 text-right">Giá vốn</th>
+                        <th className="py-2.5 px-3.5 text-right">Giá bán</th>
+                        <th className="py-2.5 px-3.5 text-right">Tồn kho</th>
+                        <th className="py-2.5 w-12 text-center"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
                       {items.map((p, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-1.5 px-3 text-primary font-bold">{p.sku}</td>
-                          <td className="p-1.5 px-3 text-gray-800">{p.name}</td>
-                          <td className="p-1.5 px-3 text-right text-gray-600">{fmt(p.cost_price || p.costPrice || 0)}</td>
-                          <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{fmt(p.sell_price || p.sellPrice || 0)}</td>
-                          <td className="p-1.5 px-3 text-right text-primary font-bold">{fmt(p.stock || p.stock_quantity || 0)}</td>
-                          <td className="p-1.5 text-center">
+                          <td className="py-2 px-3.5 text-primary font-bold">{p.sku}</td>
+                          <td className="py-2 px-3.5 text-gray-800">{p.name}</td>
+                          <td className="py-2 px-3.5 text-right text-gray-600">{fmt(p.cost_price || p.costPrice || 0)}</td>
+                          <td className="py-2 px-3.5 text-right text-gray-800 font-bold">{fmt(p.sell_price || p.sellPrice || 0)}</td>
+                          <td className="py-2 px-3.5 text-right text-primary font-bold">{fmt(p.stock || p.stock_quantity || 0)}</td>
+                          <td className="py-2 text-center">
                             <button className="p-0.5 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition-colors cursor-pointer border-none bg-transparent">
                               <Eye size={12} />
                             </button>
@@ -1043,51 +1043,51 @@ export default function SuppliersPage() {
                 </div>
 
                 {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-start text-xs mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-start text-xs mt-1">
                   <div className="sm:col-span-2">
                     <textarea
                       placeholder="Ghi chú..."
-                      className="w-full h-12 sm:h-16 border border-gray-300 rounded-lg p-2 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                      className="w-full h-16 sm:h-20 border border-gray-300 rounded-lg p-2.5 text-xs sm:text-sm text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                       value={currentNote}
                       onChange={(e) => setSupNotes(prev => ({ ...prev, [s.id]: e.target.value }))}
                     />
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1 text-[11px] shadow-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-1.5 text-xs shadow-sm">
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Số lượng mặt hàng</span><span className="font-bold text-gray-800">{items.length}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tồn kho</span><span className="font-bold text-gray-800">{fmt(totalStock)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng mua</span><span className="font-bold text-gray-800">{fmt(s.total_spent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(s.debt || 0)}</span></div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(s.debt || 0)}</span></div>
                   </div>
                 </div>
 
                 {/* Bottom Action Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1.5">
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="danger" onClick={() => handleDelete(s.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="danger" onClick={() => handleDelete(s.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Trash2 size={13} /> Xóa NCC
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Copy size={13} /> Sao chép
                     </Button>
-                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Download size={13} /> Xuất file
                     </Button>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="primary" onClick={() => { setEditSupplier(s); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
+                    <Button variant="primary" onClick={() => { setEditSupplier(s); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-4 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
                       <Edit size={13} /> Chỉnh sửa
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Save size={13} /> Lưu
                     </Button>
-                    <Button variant="secondary" onClick={() => { setPaymentModalSupplier(s); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => { setPaymentModalSupplier(s); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                       Thanh toán nợ
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Printer size={13} /> In
                     </Button>
-                    <Button variant="secondary" className="p-1 shadow-sm flex-none">
+                    <Button variant="secondary" className="p-1.5 shadow-sm flex-none">
                       <MoreHorizontal size={13} />
                     </Button>
                   </div>
@@ -1096,41 +1096,41 @@ export default function SuppliersPage() {
             )}
             
             {detailTab === 'history' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 animate-fade-in text-[11px]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in text-xs">
                 {/* Lịch sử giao dịch */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-48 overflow-y-auto">
-                  <div className="p-2 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
-                    <span className="font-extrabold text-gray-800 text-xs">Lịch sử giao dịch nhập/trả</span>
-                    <span className="px-2 py-0.5 text-[10px] bg-primary/10 text-primary font-bold rounded-full">{transactions.length} giao dịch</span>
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-56 overflow-y-auto">
+                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+                    <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Lịch sử giao dịch nhập/trả</span>
+                    <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary font-bold rounded-full">{transactions.length} giao dịch</span>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-[11px]">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[29px] bg-white z-10">
-                          <th className="p-1.5 px-3">Mã đơn</th>
-                          <th className="p-1.5 px-3">Loại</th>
-                          <th className="p-1.5 px-3">Thời gian</th>
-                          <th className="p-1.5 px-3 text-right">Giá trị</th>
-                          <th className="p-1.5 px-3 text-center">Trạng thái</th>
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[31px] bg-white z-10">
+                          <th className="py-2.5 px-3.5">Mã đơn</th>
+                          <th className="py-2.5 px-3.5">Loại</th>
+                          <th className="py-2.5 px-3.5">Thời gian</th>
+                          <th className="py-2.5 px-3.5 text-right">Giá trị</th>
+                          <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {transactions.map((tx, idx) => (
                           <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
-                            <td className="p-1.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
+                            <td className="py-2 px-3.5">
+                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {tx.typeName}
                               </span>
                             </td>
-                            <td className="p-1.5 px-3 text-gray-500">
+                            <td className="py-2 px-3.5 text-gray-500">
                               {tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}
                             </td>
-                            <td className={`p-1.5 px-3 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
+                            <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
                               {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
                             </td>
-                            <td className="p-1.5 px-3 text-center">
-                              <span className={`inline-block py-0.5 px-2 rounded-full text-[9px] font-bold ${
+                            <td className="py-2 px-3.5 text-center">
+                              <span className={`inline-block py-0.5 px-2 rounded-full text-[10px] font-bold ${
                                 tx.status === 'paid' || tx.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
                                 tx.status === 'partial' || tx.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-red-100 text-red-600'
@@ -1151,30 +1151,30 @@ export default function SuppliersPage() {
                 </div>
 
                 {/* Thống kê hàng nhập */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-48 overflow-y-auto">
-                  <div className="p-2 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
-                    <span className="font-extrabold text-gray-800 text-xs">Thống kê hàng đã nhập từ NCC này</span>
-                    <span className="px-2 py-0.5 text-[10px] bg-green-100 text-green-700 font-bold rounded-full">
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-56 overflow-y-auto">
+                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+                    <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Thống kê hàng đã nhập từ NCC này</span>
+                    <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 font-bold rounded-full">
                       {statsList.reduce((sum, it) => sum + it.qty, 0)} sản phẩm
                     </span>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-[11px]">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[29px] bg-white z-10">
-                          <th className="p-1.5 px-3">Mã hàng</th>
-                          <th className="p-1.5 px-3">Tên hàng</th>
-                          <th className="p-1.5 px-3 text-right">Tổng số lượng đã nhập</th>
-                          <th className="p-1.5 px-3 text-right">Tổng giá trị đã nhập</th>
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[31px] bg-white z-10">
+                          <th className="py-2.5 px-3.5">Mã hàng</th>
+                          <th className="py-2.5 px-3.5">Tên hàng</th>
+                          <th className="py-2.5 px-3.5 text-right">Tổng số lượng đã nhập</th>
+                          <th className="py-2.5 px-3.5 text-right">Tổng giá trị đã nhập</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {statsList.map((stat, idx) => (
                           <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="p-1.5 px-3 font-bold text-gray-700">{stat.sku}</td>
-                            <td className="p-1.5 px-3 text-gray-800 font-bold">{stat.name}</td>
-                            <td className="p-1.5 px-3 text-right font-extrabold text-primary">{fmt(stat.qty)}</td>
-                            <td className="p-1.5 px-3 text-right font-extrabold text-emerald-600">{fmt(stat.amount)}</td>
+                            <td className="py-2 px-3.5 font-bold text-gray-700">{stat.sku}</td>
+                            <td className="py-2 px-3.5 text-gray-800 font-bold">{stat.name}</td>
+                            <td className="py-2 px-3.5 text-right font-extrabold text-primary">{fmt(stat.qty)}</td>
+                            <td className="py-2 px-3.5 text-right font-extrabold text-emerald-600">{fmt(stat.amount)}</td>
                           </tr>
                         ))}
                         {statsList.length === 0 && (
@@ -1188,11 +1188,11 @@ export default function SuppliersPage() {
             )}
 
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-[11px] max-h-64 overflow-y-auto">
-                <div className="p-2 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
-                  <span className="font-extrabold text-gray-800 text-xs">Nợ cần trả nhà cung cấp</span>
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72 overflow-y-auto">
+                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+                  <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần trả nhà cung cấp</span>
                   <select 
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-[11px] outline-none bg-white font-bold text-gray-700"
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
                     onChange={(e) => {
                       const tbody = e.target.closest('.border').querySelector('tbody');
                       const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -1213,15 +1213,15 @@ export default function SuppliersPage() {
                     <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
-                <div className="overflow-x-auto max-h-48">
-                  <table className="w-full text-[11px]">
+                <div className="overflow-x-auto max-h-56">
+                  <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                        <th className="p-1.5 px-3">Mã phiếu</th>
-                        <th className="p-1.5 px-3">Thời gian</th>
-                        <th className="p-1.5 px-3">Loại</th>
-                        <th className="p-1.5 px-3 text-right">Giá trị</th>
-                        <th className="p-1.5 px-3 text-right">Nợ cần trả nhà cung cấp</th>
+                        <th className="py-2.5 px-3.5">Mã phiếu</th>
+                        <th className="py-2.5 px-3.5">Thời gian</th>
+                        <th className="py-2.5 px-3.5">Loại</th>
+                        <th className="py-2.5 px-3.5 text-right">Giá trị</th>
+                        <th className="py-2.5 px-3.5 text-right">Nợ cần trả nhà cung cấp</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
@@ -1237,15 +1237,15 @@ export default function SuppliersPage() {
                         withDebt.reverse();
                         return withDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
-                          <td className="p-1.5 px-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="p-1.5 px-3">
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                          <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
+                          <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="py-2 px-3.5">
+                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`p-1.5 px-3 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
-                          <td className="p-1.5 px-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
+                          <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}
                       {transactions.length === 0 && (
@@ -1254,7 +1254,7 @@ export default function SuppliersPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="p-2 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
                     <Button 
                       variant="secondary" 
@@ -1263,11 +1263,11 @@ export default function SuppliersPage() {
                         setExportModalSupplier(s);
                         setExportModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
                     >
                       <Download size={13} /> Xuất file công nợ
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold">
+                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
                       <Download size={13} /> Xuất file
                     </Button>
                   </div>
@@ -1279,7 +1279,7 @@ export default function SuppliersPage() {
                         setAdjustModalSupplier(s);
                         setAdjustModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-primary hover:bg-primary-hover text-white border-none"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-primary hover:bg-primary-hover text-white border-none"
                     >
                       <Pen size={13} /> Điều chỉnh
                     </Button>
@@ -1290,13 +1290,13 @@ export default function SuppliersPage() {
                         setPaymentModalSupplier(s);
                         setPaymentModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-white shadow-sm border-gray-300"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white shadow-sm border-gray-300"
                     >
                       <DollarSign size={13} /> Thanh toán
                     </Button>
                     <Button 
                       variant="secondary" 
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-white shadow-sm border-gray-300"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white shadow-sm border-gray-300"
                     >
                       <Percent size={13} /> Chiết khấu
                     </Button>

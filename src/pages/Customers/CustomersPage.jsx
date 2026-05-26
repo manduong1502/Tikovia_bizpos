@@ -599,9 +599,9 @@ export default function CustomersPage() {
     return (
       <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-3">
+          <div className="p-4 bg-gray-50/10">
             {/* Top Tabs */}
-            <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
+            <div className="flex gap-4 border-b border-gray-200 mb-4 px-2">
               {[
                 { key: 'info', label: 'Thông tin' },
                 { key: 'history', label: 'Lịch sử mua hàng' },
@@ -611,7 +611,7 @@ export default function CustomersPage() {
                 <button
                   key={t.key}
                   onClick={() => setDetailTab(t.key)}
-                  className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
                     detailTab === t.key ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                   }`}
                 >
@@ -621,16 +621,16 @@ export default function CustomersPage() {
             </div>
 
             {detailTab === 'info' && (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 {/* Header Info */}
-                <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
+                <div className="flex items-center justify-between bg-blue-50/50 p-3 px-4 rounded-lg border border-blue-100 text-xs sm:text-sm">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-gray-800 tracking-tight">{c.name}</span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                    <span className="text-base font-extrabold text-gray-800 tracking-tight">{c.name}</span>
+                    <span className="px-2 py-0.5 text-xs font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                       {code}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-4 text-xs sm:text-sm">
                     <div><span className="text-gray-500">Điện thoại:</span> <span className="font-bold text-gray-800">{c.phone || '---'}</span></div>
                     <div><span className="text-gray-500">Email:</span> <span className="font-bold text-gray-800">{c.email || '---'}</span></div>
                     <div><span className="text-gray-500">Địa chỉ:</span> <span className="font-bold text-gray-800">{c.address || '---'}</span></div>
@@ -638,58 +638,58 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 sm:p-2.5 bg-gray-50/50 rounded-lg border border-gray-200 text-[11px]">
-                  <div><span className="text-gray-500 font-medium block">Nhóm khách hàng</span><span className="font-bold text-gray-800 truncate block">Khách hàng chung</span></div>
-                  <div><span className="text-gray-500 font-medium block">Loại khách hàng</span><span className="font-bold text-gray-800 truncate block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
-                  <div><span className="text-gray-500 font-medium block">Giới tính</span><span className="font-bold text-gray-800 truncate block">{c.gender || '---'}</span></div>
-                  <div><span className="text-gray-500 font-medium block">Ngày sinh</span><span className="font-bold text-gray-800 truncate block">---</span></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 sm:p-4 bg-gray-50/50 rounded-lg border border-gray-200 text-xs">
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Nhóm khách hàng</span><span className="font-bold text-gray-800 truncate block">Khách hàng chung</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Loại khách hàng</span><span className="font-bold text-gray-800 truncate block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Giới tính</span><span className="font-bold text-gray-800 truncate block">{c.gender || '---'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Ngày sinh</span><span className="font-bold text-gray-800 truncate block">---</span></div>
                 </div>
 
                 {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 items-start text-xs mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-start text-xs mt-1">
                   <div className="sm:col-span-2">
                     <textarea
                       placeholder="Ghi chú..."
-                      className="w-full h-12 sm:h-16 border border-gray-300 rounded-lg p-2 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                      className="w-full h-16 sm:h-20 border border-gray-300 rounded-lg p-2.5 text-xs sm:text-sm text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                       value={currentNote}
                       onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
                     />
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1 text-[11px] shadow-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-1.5 text-xs shadow-sm">
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán trừ trả hàng</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(c.debt || c.totalDebt || 0)}</span></div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(c.debt || c.totalDebt || 0)}</span></div>
                   </div>
                 </div>
 
                 {/* Bottom Action Bar */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1.5">
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="danger" onClick={() => handleDelete(c.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="danger" onClick={() => handleDelete(c.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Trash2 size={13} /> Xóa khách hàng
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Copy size={13} /> Sao chép
                     </Button>
-                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Download size={13} /> Xuất file
                     </Button>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
+                    <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-4 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
                       <Edit size={13} /> Chỉnh sửa
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Save size={13} /> Lưu
                     </Button>
-                    <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                       Thanh toán nợ
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Printer size={13} /> In
                     </Button>
-                    <Button variant="secondary" className="p-1 shadow-sm flex-none">
+                    <Button variant="secondary" className="p-1.5 shadow-sm flex-none">
                       <MoreHorizontal size={13} />
                     </Button>
                   </div>
@@ -698,52 +698,52 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'history' && (
-              <div className="flex flex-col gap-2 p-1">
+              <div className="flex flex-col gap-3 p-1">
                 {/* Micro metrics */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-2 shadow-sm flex flex-col justify-center">
-                    <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng hóa đơn</span>
-                    <span className="text-sm font-extrabold text-gray-800">{custOrders.length} hóa đơn</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                    <span className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng hóa đơn</span>
+                    <span className="text-sm sm:text-base font-extrabold text-gray-800">{custOrders.length} hóa đơn</span>
                   </div>
-                  <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-2 shadow-sm flex flex-col justify-center">
-                    <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
-                    <span className="text-sm font-extrabold text-primary">{fmt(baseAmt)}</span>
+                  <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                    <span className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
+                    <span className="text-sm sm:text-base font-extrabold text-primary">{fmt(baseAmt)}</span>
                   </div>
-                  <div className="bg-emerald-50/40 border border-emerald-100 rounded-lg p-2 shadow-sm flex flex-col justify-center">
-                    <span className="text-emerald-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Khách đã trả</span>
-                    <span className="text-sm font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
+                  <div className="bg-emerald-50/40 border border-emerald-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                    <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider mb-0.5">Khách đã trả</span>
+                    <span className="text-sm sm:text-base font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
                   </div>
-                  <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-2 shadow-sm flex flex-col justify-center">
-                    <span className="text-rose-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Còn nợ lại</span>
-                    <span className={`text-sm font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
+                  <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                    <span className="text-rose-600 font-bold text-xs uppercase tracking-wider mb-0.5">Còn nợ lại</span>
+                    <span className={`text-sm sm:text-base font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
                   </div>
                 </div>
 
                 {custOrders.length > 0 ? (
-                  <div className="border border-gray-200 rounded-lg overflow-x-auto shadow-sm bg-white max-h-48 overflow-y-auto">
-                    <table className="w-full text-[11px] min-w-[700px] border-collapse">
+                  <div className="border border-gray-200 rounded-lg overflow-x-auto shadow-sm bg-white max-h-56 overflow-y-auto">
+                    <table className="w-full text-xs min-w-[700px] border-collapse">
                       <thead>
                         <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                          <th className="py-1.5 px-3">Mã hóa đơn</th>
-                          <th className="py-1.5 px-3">Thời gian</th>
-                          <th className="py-1.5 px-3">Chi nhánh</th>
-                          <th className="py-1.5 px-3 text-right">Giảm giá</th>
-                          <th className="py-1.5 px-3 text-right">Tổng tiền</th>
-                          <th className="py-1.5 px-3 text-right">Khách đã trả</th>
-                          <th className="py-1.5 px-3 text-center">Trạng thái</th>
+                          <th className="py-2.5 px-3.5">Mã hóa đơn</th>
+                          <th className="py-2.5 px-3.5">Thời gian</th>
+                          <th className="py-2.5 px-3.5">Chi nhánh</th>
+                          <th className="py-2.5 px-3.5 text-right">Giảm giá</th>
+                          <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
+                          <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
+                          <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {custOrders.map((o, i) => (
                           <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                            <td className="py-1 px-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => handleOpenOrder(o.id, c.name, o)}>{o.order_code || o.code}</td>
-                            <td className="py-1 px-3 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
-                            <td className="py-1 px-3 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
-                            <td className="py-1 px-3 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
-                            <td className="py-1 px-3 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
-                            <td className="py-1 px-3 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
-                            <td className="py-1 px-3 text-center">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold ${o.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            <td className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer" onClick={() => handleOpenOrder(o.id, c.name, o)}>{o.order_code || o.code}</td>
+                            <td className="py-2 px-3.5 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
+                            <td className="py-2 px-3.5 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
+                            <td className="py-2 px-3.5 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
+                            <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
+                            <td className="py-2 px-3.5 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
+                            <td className="py-2 px-3.5 text-center">
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                 {o.status === 'CANCELLED' ? 'Đã hủy' : 'Hoàn thành'}
                               </span>
                             </td>
@@ -762,25 +762,25 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'address' && (
-              <div className="flex flex-col gap-2 p-1 text-[11px]">
+              <div className="flex flex-col gap-3 p-1 text-xs">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-[11px] font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                     Danh sách địa chỉ giao hàng của khách
                   </h3>
-                  <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-[11px] text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
+                  <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-lg p-3 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
-                    <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-lg p-4 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
+                    <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
                       Mặc định
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px]">A</span>
+                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
                       <span className="text-xs font-extrabold text-gray-800">{c.name}</span>
                     </div>
-                    <div className="text-[11px] text-gray-500 font-medium flex flex-col gap-0.5 pl-6">
+                    <div className="text-xs text-gray-500 font-medium flex flex-col gap-0.5 pl-7">
                       <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
                       <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
                     </div>
@@ -790,11 +790,11 @@ export default function CustomersPage() {
             )}
 
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-[11px] max-h-64 overflow-y-auto">
-                <div className="p-2 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                  <span className="font-extrabold text-gray-800 text-xs">Nợ cần thu từ khách</span>
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72 overflow-y-auto">
+                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                  <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
                   <select 
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-[11px] outline-none bg-white font-bold text-gray-700"
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
                     onChange={(e) => {
                       const tbody = e.target.closest('.border').querySelector('tbody');
                       const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -803,8 +803,8 @@ export default function CustomersPage() {
                         if (r.querySelector('td[colspan]')) return;
                         if (val === 'all') r.style.display = '';
                         else {
-                          const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
-                          r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
+                           const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
+                           r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
                         }
                       });
                     }}
@@ -815,35 +815,35 @@ export default function CustomersPage() {
                     <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
-                <div className="overflow-x-auto max-h-48">
-                  <table className="w-full text-[11px]">
+                <div className="overflow-x-auto max-h-56">
+                  <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                        <th className="p-1.5 px-3">Mã phiếu</th>
-                        <th className="p-1.5 px-3">Thời gian</th>
-                        <th className="p-1.5 px-3">Loại</th>
-                        <th className="p-1.5 px-3 text-right">Giá trị</th>
-                        <th className="p-1.5 px-3 text-right">Dư nợ khách hàng</th>
+                        <th className="py-2.5 px-3.5">Mã phiếu</th>
+                        <th className="py-2.5 px-3.5">Thời gian</th>
+                        <th className="py-2.5 px-3.5">Loại</th>
+                        <th className="py-2.5 px-3.5 text-right">Giá trị</th>
+                        <th className="py-2.5 px-3.5 text-right">Dư nợ khách hàng</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
                       {transactionsWithDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-1.5 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
+                          <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
                             if (tx.type === 'Bán hàng') {
                               handleOpenOrder(tx.id, c.name, tx);
                             } else {
                               setSelectedTx({ ...tx, partnerName: c.name });
                             }
                           }}>{tx.code}</td>
-                          <td className="p-1.5 px-3 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="p-1.5 px-3">
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                          <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="py-2 px-3.5">
+                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                               {tx.type}
                             </span>
                           </td>
-                          <td className={`p-1.5 px-3 text-right font-extrabold ${tx.type === 'Thanh toán' ? 'text-green-600' : tx.type === 'Trả hàng' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
-                          <td className="p-1.5 px-3 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'Thanh toán' ? 'text-green-600' : tx.type === 'Trả hàng' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
+                          <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))}
                       {transactionsWithDebt.length === 0 && (
@@ -852,7 +852,7 @@ export default function CustomersPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="p-2 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
                     <Button 
                       variant="secondary" 
@@ -861,11 +861,11 @@ export default function CustomersPage() {
                         setExportModalCustomer(c);
                         setExportModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
                     >
                       <Download size={13} /> Xuất file công nợ
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold">
+                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
                       <Download size={13} /> Xuất file
                     </Button>
                   </div>
@@ -877,7 +877,7 @@ export default function CustomersPage() {
                         setPaymentModalCustomer(c);
                         setPaymentModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                     >
                       <DollarSign size={13} /> Thanh toán
                     </Button>
@@ -888,14 +888,14 @@ export default function CustomersPage() {
                         setAdjustModalCustomer(c);
                         setAdjustModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
                     >
                       <Pen size={13} /> Điều chỉnh
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold">
+                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
                       <Percent size={13} /> Chiết khấu
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold">
+                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
                       Tạo QR
                     </Button>
                   </div>
@@ -1280,10 +1280,10 @@ export default function CustomersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-xs sm:text-sm min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
+                <th className="py-2.5 px-3 w-12 text-center">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -1291,13 +1291,13 @@ export default function CustomersPage() {
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>
-                <th className="p-4 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
+                <th className="py-2.5 px-3 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
                 {ALL_COLUMNS.map(c => {
                   if (!visibleColumns.includes(c.key)) return null;
                   return (
                     <th 
                       key={c.key} 
-                      className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      className={`py-2.5 px-3 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
                       onClick={() => handleSort(c.key)}
                     >
                       <div className={`flex items-center gap-1.5 inline-flex ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
@@ -1315,7 +1315,7 @@ export default function CustomersPage() {
                     </th>
                   );
                 })}
-                <th className="p-4 text-center w-24 font-extrabold">Thao tác</th>
+                <th className="py-2.5 px-3 text-center w-24 font-extrabold">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
@@ -1338,7 +1338,7 @@ export default function CustomersPage() {
                       }}
                       className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
                     >
-                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -1346,32 +1346,32 @@ export default function CustomersPage() {
                           onChange={(e) => toggleOne(c.id, e.target.checked)}
                         />
                       </td>
-                      <td className="p-4 text-center" onClick={e => toggleStar(e, c.id)}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => toggleStar(e, c.id)}>
                         <Star size={16} className={`mx-auto cursor-pointer transition-colors ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-amber-300'}`} />
                       </td>
 
                       {visibleColumns.includes('code') && (
-                        <td className="p-4 font-bold text-primary">{c.code || `KH${String(c.id).padStart(6, '0')}`}</td>
+                        <td className="py-2.5 px-3 font-bold text-primary">{c.code || `KH${String(c.id).padStart(6, '0')}`}</td>
                       )}
                       {visibleColumns.includes('name') && (
-                        <td className="p-4 font-bold text-gray-800">{c.name}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-800">{c.name}</td>
                       )}
                       {visibleColumns.includes('phone') && (
-                        <td className="p-4 text-gray-700">{c.phone || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{c.phone || '---'}</td>
                       )}
                       {visibleColumns.includes('email') && (
-                        <td className="p-4 text-gray-700">{c.email || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{c.email || '---'}</td>
                       )}
                       {visibleColumns.includes('address') && (
-                        <td className="p-4 text-gray-700">{c.address || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{c.address || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
-                        <td className={`p-4 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>
+                        <td className={`py-2.5 px-3 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>
                       )}
                       {visibleColumns.includes('total_spent') && (
-                        <td className="p-4 text-right font-extrabold text-primary">{fmt(c.total_spent || c.totalSpent || 0)}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(c.total_spent || c.totalSpent || 0)}</td>
                       )}
-                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="p-1.5 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa"><Edit size={15} className="text-gray-400 hover:text-primary" /></button>
                           <button onClick={() => handleDelete(c.id)} className="p-1.5 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" title="Xóa"><Trash2 size={15} className="text-gray-400 hover:text-red-50" /></button>
