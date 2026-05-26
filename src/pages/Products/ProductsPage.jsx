@@ -442,10 +442,8 @@ export default function ProductsPage() {
       setProducts(prev => prev.filter(p => p.id !== id));
       setExpandedId(null);
       toast.success('Xóa sản phẩm thành công');
-    } catch {
-      setProducts(prev => prev.filter(p => p.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa sản phẩm thành công');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa sản phẩm');
     }
   };
 
@@ -466,6 +464,20 @@ export default function ProductsPage() {
       location: '',
     });
     setPage(1);
+  };
+
+  const handleCreateCategory = async () => {
+    const name = window.prompt('Nhập tên nhóm hàng mới:');
+    if (name && name.trim()) {
+      const tid = toast.loading('Đang tạo nhóm hàng...');
+      try {
+        await categoryAPI.create({ name: name.trim() });
+        await fetchProducts();
+        toast.success('Đã tạo nhóm hàng mới', { id: tid });
+      } catch (err) {
+        toast.error(err.response?.data?.message || err.message || 'Lỗi khi tạo nhóm hàng', { id: tid });
+      }
+    }
   };
 
   const renderDetail = (p) => {
@@ -534,7 +546,8 @@ export default function ProductsPage() {
                       ['Định mức tồn', '0 - 10'],
                       ['Giá vốn', fmt(p.costPrice || 0)],
                       ['Giá bán', fmt(p.sellPrice)],
-                      ['Thương hiệu', p.brand || 'Chưa có'],
+                      ['Thương hiệu', p.brand?.name || p.brand || 'Chưa có'],
+                      ['Nhà cung cấp', p.supplier?.name || p.supplier_name || 'Chưa có'],
                       ['Vị trí', p.location || 'Chưa có'],
                     ].map(([label, val]) => (
                       <div key={label}>
@@ -610,9 +623,25 @@ export default function ProductsPage() {
                 <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
                   <Edit size={14} /> Chỉnh sửa
                 </Button>
-                <Button variant="secondary" className="p-2 shadow-sm flex-none">
-                  <MoreHorizontal size={14} />
-                </Button>
+                 <Button 
+                   variant="secondary" 
+                   className="p-2 shadow-sm flex-none"
+                   onClick={async (e) => {
+                     e.stopPropagation();
+                     const nextSale = p.direct_sale === false ? true : false;
+                     const tid = toast.loading('Đang cập nhật trạng thái...');
+                     try {
+                       await productAPI.update(p.id, { directSale: nextSale });
+                       setProducts(prev => prev.map(item => item.id === p.id ? { ...item, direct_sale: nextSale, directSale: nextSale } : item));
+                       toast.success(nextSale ? 'Đã cho phép bán trực tiếp' : 'Đã ngừng bán trực tiếp', { id: tid });
+                     } catch (err) {
+                       toast.error('Cập nhật trạng thái thất bại', { id: tid });
+                     }
+                   }}
+                   title="Bật/Tắt bán trực tiếp"
+                 >
+                   <SlidersHorizontal size={14} />
+                 </Button>
               </div>
             </div>
           </div>
@@ -771,6 +800,7 @@ export default function ProductsPage() {
             suppliers={suppliers}
             filters={filters}
             onFilterChange={handleFilterChange}
+            onCreateCategory={handleCreateCategory}
           />
         </div>
 

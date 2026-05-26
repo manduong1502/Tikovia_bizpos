@@ -68,6 +68,21 @@ function normalizeProduct(p) {
   };
 }
 
+const loadLocalPricebooks = () => {
+  try {
+    const val = localStorage.getItem('TIKO_PRICEBOOKS');
+    return val ? JSON.parse(val) : [{ id: 1, name: 'Bảng giá chung' }];
+  } catch {
+    return [{ id: 1, name: 'Bảng giá chung' }];
+  }
+};
+
+const saveLocalPricebooks = (list) => {
+  try {
+    localStorage.setItem('TIKO_PRICEBOOKS', JSON.stringify(list));
+  } catch {}
+};
+
 export default function PriceBooksPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -92,7 +107,9 @@ export default function PriceBooksPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('info');
   const [pricebookName, setPricebookName] = useState('');
-  const [pricebooks, setPricebooks] = useState([{ id: 1, name: 'Bảng giá chung' }]);
+  const [pricebooks, setPricebooks] = useState(loadLocalPricebooks);
+  const [pricebookStart, setPricebookStart] = useState('15/05/2026 14:09');
+  const [pricebookEnd, setPricebookEnd] = useState('15/05/2027 14:09');
 
   const [filters, setFilters] = useState({
     selectedCategories: new Set(),
@@ -278,19 +295,35 @@ export default function PriceBooksPage() {
         }
 
         const mapUpdate = new Map(updates.map((u) => [u.sku.toLowerCase(), u.price]));
-        let changed = 0;
+        const updatedProducts = products.map((p) => {
+          const key = String(p.sku || '').toLowerCase();
+          if (!mapUpdate.has(key)) return null;
+          const newPrice = mapUpdate.get(key);
+          return { id: p.id, sellPrice: newPrice };
+        }).filter(Boolean);
 
-        setProducts((prev) =>
-          prev.map((p) => {
-            const key = String(p.sku || '').toLowerCase();
-            if (!mapUpdate.has(key)) return p;
-            changed += 1;
-            const newPrice = mapUpdate.get(key);
-            return { ...p, sellPrice: newPrice, sell_price: newPrice };
-          })
-        );
+        if (updatedProducts.length === 0) {
+          toast.error('Không tìm thấy sản phẩm trùng khớp nào trong hệ thống');
+          return;
+        }
 
-        toast.success(`Import thành công. Cập nhật ${changed} sản phẩm.`);
+        const tid = toast.loading(`Đang đồng bộ ${updatedProducts.length} mức giá mới lên hệ thống...`);
+        try {
+          for (const item of updatedProducts) {
+            await productAPI.update(item.id, { sellPrice: item.sellPrice, sell_price: item.sellPrice });
+          }
+          setProducts((prev) =>
+            prev.map((p) => {
+              const key = String(p.sku || '').toLowerCase();
+              if (!mapUpdate.has(key)) return p;
+              const newPrice = mapUpdate.get(key);
+              return { ...p, sellPrice: newPrice, sell_price: newPrice };
+            })
+          );
+          toast.success(`Import thành công. Đã cập nhật giá cho ${updatedProducts.length} sản phẩm.`, { id: tid });
+        } catch (err) {
+          toast.error('Đồng bộ giá lên hệ thống thất bại. Vui lòng thử lại.', { id: tid });
+        }
       } catch (e) {
         toast.error('Lỗi khi import file');
       }
@@ -351,10 +384,43 @@ export default function PriceBooksPage() {
       return;
     }
 
-    setPricebooks((prev) => [...prev, { id: Date.now(), name }]);
+    const nextBooks = [...pricebooks, { id: Date.now(), name, startDate: pricebookStart, endDate: pricebookEnd }];
+    setPricebooks(nextBooks);
+    saveLocalPricebooks(nextBooks);
     setPricebookName('');
     setModalOpen(false);
     toast.success('Tạo bảng giá thành công');
+  };
+
+  const handleCreateCategory = async () => {
+    const name = window.prompt('Nhập tên nhóm hàng mới:');
+    if (name && name.trim()) {
+      const tid = toast.loading('Đang tạo nhóm hàng...');
+      try {
+        await categoryAPI.create({ name: name.trim() });
+        const c = await categoryAPI.getAll().catch(() => []);
+        let cats = [];
+        if (c && c.roots) {
+          const flatten = (list, prefix = '') => {
+            let res = [];
+            for (let item of list) {
+              res.push({ ...item, name: prefix + item.name });
+              if (item.children && item.children.length > 0) {
+                res = res.concat(flatten(item.children, prefix + '— '));
+              }
+            }
+            return res;
+          };
+          cats = flatten(c.roots);
+        } else if (Array.isArray(c)) {
+          cats = c;
+        }
+        setCategories(cats);
+        toast.success('Đã tạo nhóm hàng mới', { id: tid });
+      } catch (err) {
+        toast.error(err.response?.data?.message || err.message || 'Lỗi khi tạo nhóm hàng', { id: tid });
+      }
+    }
   };
 
   return (
@@ -477,11 +543,10 @@ export default function PriceBooksPage() {
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
           <div className="w-64 shrink-0 flex flex-col gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
-            {/* Nhóm hàng */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
-                <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
+                <button type="button" onClick={handleCreateCategory} className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
               </div>
               <CategoryFilter
                 categories={categories}
@@ -688,12 +753,12 @@ export default function PriceBooksPage() {
                     <div className="w-full sm:w-24 text-xs font-bold text-gray-600">Hiệu lực</div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                       <div className="flex items-center justify-between border border-gray-200 rounded-xl px-3.5 py-2 bg-white shadow-sm w-full sm:w-auto">
-                        <input type="text" defaultValue="15/05/2026 14:09" className="text-xs font-bold outline-none w-32 text-gray-800" />
+                        <input type="text" value={pricebookStart} onChange={e => setPricebookStart(e.target.value)} className="text-xs font-bold outline-none w-32 text-gray-800" />
                         <div className="flex items-center gap-2 text-gray-400"><Info size={14} /><HelpCircle size={14} /></div>
                       </div>
                       <span className="text-gray-500 text-xs font-bold self-center sm:self-auto">đến</span>
                       <div className="flex items-center justify-between border border-gray-200 rounded-xl px-3.5 py-2 bg-white shadow-sm w-full sm:w-auto">
-                        <input type="text" defaultValue="15/05/2027 14:09" className="text-xs font-bold outline-none w-32 text-gray-800" />
+                        <input type="text" value={pricebookEnd} onChange={e => setPricebookEnd(e.target.value)} className="text-xs font-bold outline-none w-32 text-gray-800" />
                         <div className="flex items-center gap-2 text-gray-400"><Info size={14} /><HelpCircle size={14} /></div>
                       </div>
                     </div>

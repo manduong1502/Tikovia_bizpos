@@ -412,7 +412,11 @@ export default function CategoriesPage() {
                 <div>
                   <span className="text-gray-500 font-medium block mb-1">Ngày tạo</span>
                   <span className="text-gray-800 font-medium">
-                    {selectedCat.createdAt ? new Date(selectedCat.createdAt).toLocaleDateString('vi-VN') : '—'}
+                    {(() => {
+                      if (!selectedCat.createdAt) return '—';
+                      const d = new Date(selectedCat.createdAt);
+                      return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('vi-VN');
+                    })()}
                   </span>
                 </div>
               </div>

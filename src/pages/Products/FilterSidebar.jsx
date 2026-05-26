@@ -24,7 +24,7 @@ const STATUS_OPTIONS = [
 
 export default function FilterSidebar({
   categories, products, suppliers,
-  filters, onFilterChange,
+  filters, onFilterChange, onCreateCategory,
 }) {
   const { selectedCategories, filterStock, dateExpected, dateCreated, productType, status } = filters;
 
@@ -34,7 +34,7 @@ export default function FilterSidebar({
       <div>
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
-          <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
+          <button type="button" onClick={onCreateCategory} className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
         </div>
         <CategoryFilter
           categories={categories}

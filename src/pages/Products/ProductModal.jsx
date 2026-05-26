@@ -211,6 +211,14 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     }
   };
 
+  const handleCreateLocation = () => {
+    const loc = window.prompt('Nhập vị trí mới (ví dụ: Kệ A1, Dãy 2):');
+    if (loc && loc.trim()) {
+      update('location', loc.trim());
+      toast.success('Đã thiết lập vị trí mới');
+    }
+  };
+
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -366,7 +374,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[13px] text-gray-600">Giá bán</label>
-                        <button className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"><Info size={12}/> Thiết lập giá</button>
+                        <button type="button" onClick={() => toast('Vui lòng vào trang Thiết lập giá ở menu bên trái để cấu hình chi tiết nhiều bảng giá.', { icon: 'ℹ️' })} className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"><Info size={12}/> Thiết lập giá</button>
                       </div>
                       <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.sellPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.sellPrice} onChange={e => update('sellPrice', e.target.value)} placeholder="0" />
                     </div>
@@ -395,7 +403,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
                     <div>
                       <div className="flex justify-between mb-1">
                         <label className="text-[13px] text-gray-600">Vị trí</label>
-                        <button className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
+                        <button type="button" onClick={handleCreateLocation} className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
                       </div>
                       <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 text-[14px] focus:border-blue-500 outline-none" value={form.location} onChange={e => update('location', e.target.value)} placeholder="Chọn vị trí" />
                     </div>
