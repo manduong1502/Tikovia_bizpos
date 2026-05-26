@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePOS } from './POSContext';
 import { Search, User, X, MapPin, Package, Edit2, Truck, ChevronDown, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,41 +13,67 @@ export default function POSDeliveryPanel() {
   const [activeTab, setActiveTab] = useState('self'); // 'kiotviet' or 'self'
   const [codEnabled, setCodEnabled] = useState(true);
 
+  const [receiverName, setReceiverName] = useState('');
+  const [receiverPhone, setReceiverPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
   const cart = currentInvoice?.cart || [];
   const customer = currentInvoice?.customer;
   const subtotal = cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0);
   const discountAmount = Math.round(subtotal * (currentInvoice?.discount || 0) / 100);
   const total = subtotal - discountAmount;
 
+  useEffect(() => {
+    setReceiverName(customer?.name || '');
+    setReceiverPhone(customer?.phone || '');
+    setDeliveryAddress(customer?.address || '');
+  }, [customer]);
+
   const handleSubmit = async () => {
     if (cart.length === 0) {
       toast.error('Chưa có sản phẩm trong đơn hàng');
       return;
     }
+    if (!receiverName.trim()) {
+      toast.error('Vui lòng nhập tên người nhận');
+      return;
+    }
+    if (!receiverPhone.trim()) {
+      toast.error('Vui lòng nhập số điện thoại người nhận');
+      return;
+    }
+    if (!deliveryAddress.trim()) {
+      toast.error('Vui lòng nhập địa chỉ giao hàng chi tiết');
+      return;
+    }
     
-    // In a real app, we would validate customer and delivery info here
     try {
       const orderData = {
         customerId: customer?.id || null,
         items: cart.map(i => ({
-          productId: i.product.id,
-          quantity: i.quantity,
-          unitPrice: i.price,
-          discount: i.discount
+          productId: Number(i.product.id),
+          quantity: Number(i.quantity),
+          price: Number(i.price),
+          discount: Number(i.discount || 0)
         })),
-        paymentMethod: 'COD', // Delivery usually defaults to COD
-        discountPercent: currentInvoice.discount || 0,
-        discountAmount: discountAmount,
-        paidAmount: 0, // Unpaid until delivered
-        note: currentInvoice.note,
-        status: 'SHIPPING' // Custom status for delivery
+        paymentMethod: 'CASH', // Delivery COD is CASH
+        discount: Number(discountAmount || 0),
+        paid: 0, // Unpaid until delivered
+        note: currentInvoice.note || '',
+        status: 'SHIPPING',
+        deliveryAddress: deliveryAddress,
+        receiverName: receiverName,
+        receiverPhone: receiverPhone,
+        driverId: '',
+        driverName: 'Chưa gán',
+        deliveryStatus: 'ASSIGNED'
       };
 
-      const res = await api.post('/orders', orderData);
+      await api.post('/orders', orderData);
       
       toast.success('Tạo đơn giao hàng thành công!');
       clearCurrentInvoice();
-      navigate('/orders');
+      navigate('/invoices');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn giao hàng');
@@ -87,9 +113,27 @@ export default function POSDeliveryPanel() {
           </div>
         )}
         
-        <input type="text" className="pos-input" placeholder="Người nhận" defaultValue={customer?.name || ''} />
-        <input type="text" className="pos-input" placeholder="Số điện thoại" defaultValue={customer?.phone || ''} />
-        <input type="text" className="pos-input" placeholder="Địa chỉ chi tiết" />
+        <input 
+          type="text" 
+          className="pos-input" 
+          placeholder="Người nhận" 
+          value={receiverName} 
+          onChange={(e) => setReceiverName(e.target.value)} 
+        />
+        <input 
+          type="text" 
+          className="pos-input" 
+          placeholder="Số điện thoại" 
+          value={receiverPhone} 
+          onChange={(e) => setReceiverPhone(e.target.value)} 
+        />
+        <input 
+          type="text" 
+          className="pos-input" 
+          placeholder="Địa chỉ chi tiết" 
+          value={deliveryAddress} 
+          onChange={(e) => setDeliveryAddress(e.target.value)} 
+        />
         <select className="pos-select"><option>Tỉnh/Thành phố</option></select>
         <select className="pos-select"><option>Quận/Huyện</option></select>
         <select className="pos-select"><option>Phường/Xã</option></select>

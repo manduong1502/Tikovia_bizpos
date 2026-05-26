@@ -157,6 +157,12 @@ function normalizeOrder(o) {
     payment_status: o.payment_status || (o.status === 'COMPLETED' ? 'completed' : o.status?.toLowerCase()),
     status: o.status?.toLowerCase?.() || o.status,
     return_code: (o.returns && o.returns.length > 0) ? o.returns.map(r => r.code).join(', ') : '---',
+    delivery_status: o.deliveryStatus || o.delivery_status || null,
+    driver_name: o.driverName || o.driver_name || null,
+    driver_id: o.driverId || o.driver_id || null,
+    delivery_address: o.deliveryAddress || o.delivery_address || null,
+    receiver_name: o.receiverName || o.receiver_name || null,
+    receiver_phone: o.receiverPhone || o.receiver_phone || null,
   };
 }
 

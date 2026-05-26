@@ -204,6 +204,45 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               <div><span className="text-gray-500 font-medium block mb-1">Bảng giá</span><span className="font-bold text-gray-800 truncate block">Bảng giá chung</span></div>
             </div>
 
+            {o.delivery_status && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 bg-blue-50/30 rounded-lg border border-blue-100 text-[11px]">
+                <div>
+                  <span className="text-gray-500 font-medium block mb-1">Người nhận</span>
+                  <span className="font-bold text-gray-800 block truncate">{o.receiver_name || o.customer_name || 'Khách lẻ'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block mb-1">Số điện thoại nhận</span>
+                  <span className="font-bold text-gray-800 block truncate">{o.receiver_phone || '---'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block mb-1">Tài xế giao hàng</span>
+                  <span className="font-bold text-primary block truncate">{o.driver_name || 'Chưa gán'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block mb-1">Trạng thái giao nhận</span>
+                  <span className={`px-2 py-0.5 rounded font-bold ${
+                    o.delivery_status === 'DELIVERED' ? 'bg-green-100 text-green-700 border border-green-200' :
+                    o.delivery_status === 'DELIVERING' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                    o.delivery_status === 'ARRIVED' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                    o.delivery_status === 'CANCELED' ? 'bg-red-100 text-red-700 border border-red-200' :
+                    'bg-yellow-100 text-yellow-700 border border-yellow-200'
+                  }`}>
+                    {o.delivery_status === 'DELIVERED' ? 'Đã giao' :
+                     o.delivery_status === 'DELIVERING' ? 'Đang giao' :
+                     o.delivery_status === 'ARRIVED' ? 'Đã đến' :
+                     o.delivery_status === 'CANCELED' ? 'Đã hủy' :
+                     'Chờ nhận'}
+                  </span>
+                </div>
+                {o.delivery_address && (
+                  <div className="col-span-2 sm:col-span-4 mt-1 border-t border-blue-50/50 pt-2">
+                    <span className="text-gray-500 font-medium block mb-1">Địa chỉ nhận hàng</span>
+                    <span className="font-bold text-gray-800 block">{o.delivery_address}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Items Table Section */}
             <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-40 overflow-y-auto">
               {items.length > 0 ? (
