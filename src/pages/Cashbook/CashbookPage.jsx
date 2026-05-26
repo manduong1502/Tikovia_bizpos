@@ -723,90 +723,90 @@ export default function CashbookPage() {
             <table className="w-full text-xs border-collapse min-w-[800px] border-collapse">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm text-[11px] text-gray-500 uppercase border-b border-gray-100 font-extrabold tracking-wider">
                 <tr>
-                  <th className="px-4 py-4 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
-                  <th className="px-3 py-4 w-10"></th>
+                  <th className="py-2.5 px-3 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
+                  <th className="py-2.5 px-3 w-10"></th>
                   {visibleColumns.includes('code') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
                       <div className="flex items-center gap-1.5">Mã phiếu {sortConfig.key === 'code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('time') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('time')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('time')}>
                       <div className="flex items-center gap-1.5">Thời gian {sortConfig.key === 'time' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('createdAt') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('createdAt')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('createdAt')}>
                       <div className="flex items-center gap-1.5">Thời gian tạo {sortConfig.key === 'createdAt' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('employee') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('employee')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('employee')}>
                       <div className="flex items-center gap-1.5">Nhân viên {sortConfig.key === 'employee' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('branch') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('branch')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('branch')}>
                       <div className="flex items-center gap-1.5">Chi nhánh {sortConfig.key === 'branch' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('category') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('category')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('category')}>
                       <div className="flex items-center gap-1.5">Loại thu chi {sortConfig.key === 'category' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('bankAccount') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccount')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccount')}>
                       <div className="flex items-center gap-1.5">Tên tài khoản {sortConfig.key === 'bankAccount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('bankAccountNumber') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccountNumber')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('bankAccountNumber')}>
                       <div className="flex items-center gap-1.5">Số tài khoản {sortConfig.key === 'bankAccountNumber' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('partnerCode') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerCode')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerCode')}>
                       <div className="flex items-center gap-1.5">Mã người nộp/nhận {sortConfig.key === 'partnerCode' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('partnerName') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerName')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerName')}>
                       <div className="flex items-center gap-1.5">Người nộp/nhận {sortConfig.key === 'partnerName' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('partnerPhone') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerPhone')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerPhone')}>
                       <div className="flex items-center gap-1.5">Số điện thoại {sortConfig.key === 'partnerPhone' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('partnerAddress') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerAddress')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('partnerAddress')}>
                       <div className="flex items-center gap-1.5">Địa chỉ {sortConfig.key === 'partnerAddress' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('amount') && (
-                    <th className="px-6 py-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('amount')}>
+                    <th className="py-2.5 px-3 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('amount')}>
                       <div className="flex items-center gap-1.5 flex-row-reverse">Giá trị {sortConfig.key === 'amount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('transferContent') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('transferContent')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('transferContent')}>
                       <div className="flex items-center gap-1.5">Nội dung chuyển khoản {sortConfig.key === 'transferContent' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('note') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('note')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('note')}>
                       <div className="flex items-center gap-1.5">Ghi chú {sortConfig.key === 'note' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('paymentMethod') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paymentMethod')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paymentMethod')}>
                       <div className="flex items-center gap-1.5">Loại sổ quỹ {sortConfig.key === 'paymentMethod' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('status') && (
-                    <th className="px-6 py-4 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                    <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
                       <div className="flex items-center gap-1.5">Trạng thái {sortConfig.key === 'status' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
@@ -832,10 +832,10 @@ export default function CashbookPage() {
                         }}
                         className={`hover:bg-blue-50/20 transition-all cursor-pointer border-b border-gray-50 ${isExpanded ? 'bg-blue-50/30' : ''}`}
                       >
-                        <td className="px-4 py-4 w-12 text-center" onClick={ev => ev.stopPropagation()}>
+                        <td className="py-2.5 px-3 w-12 text-center" onClick={ev => ev.stopPropagation()}>
                           <input type="checkbox" className="rounded border-gray-300" />
                         </td>
-                        <td className="px-3 py-4 w-10 text-center">
+                        <td className="py-2.5 px-3 w-10 text-center">
                           <button 
                             onClick={(ev) => toggleStar(e.id, ev)} 
                             className="bg-transparent border-none cursor-pointer"
@@ -847,87 +847,87 @@ export default function CashbookPage() {
                           </button>
                         </td>
                         {visibleColumns.includes('code') && (
-                          <td className={`px-6 py-4 font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-primary'}`}>
+                          <td className={`py-2.5 px-3 font-bold ${isCancelled ? 'text-gray-400 line-through' : 'text-primary'}`}>
                             {e.code}
                           </td>
                         )}
                         {visibleColumns.includes('time') && (
-                          <td className="px-6 py-4 text-[13px] text-gray-500 font-semibold">
+                          <td className="py-2.5 px-3 text-[13px] text-gray-500 font-semibold">
                             {e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : ''}
                           </td>
                         )}
                         {visibleColumns.includes('createdAt') && (
-                          <td className="px-6 py-4 text-[13px] text-gray-500">
+                          <td className="py-2.5 px-3 text-[13px] text-gray-500">
                             {e.createdAt ? new Date(e.createdAt).toLocaleDateString('vi-VN') : ''}
                           </td>
                         )}
                         {visibleColumns.includes('employee') && (
-                          <td className="px-6 py-4 text-xs text-gray-600">
+                          <td className="py-2.5 px-3 text-xs text-gray-600">
                             {e.createdBy}
                           </td>
                         )}
                         {visibleColumns.includes('branch') && (
-                          <td className="px-6 py-4 text-xs text-gray-600">
+                          <td className="py-2.5 px-3 text-xs text-gray-600">
                             {e.branch || 'Chi nhánh trung tâm'}
                           </td>
                         )}
                         {visibleColumns.includes('category') && (
-                          <td className="px-6 py-4 text-gray-600 font-semibold text-[13px]">
+                          <td className="py-2.5 px-3 text-gray-600 font-semibold text-[13px]">
                             {e.category}
                           </td>
                         )}
                         {visibleColumns.includes('bankAccount') && (
-                          <td className="px-6 py-4 text-xs text-gray-600">
+                          <td className="py-2.5 px-3 text-xs text-gray-600">
                             {e.paymentMethod === 'bank' ? 'Techcombank - 1903xxx' : '—'}
                           </td>
                         )}
                         {visibleColumns.includes('bankAccountNumber') && (
-                          <td className="px-6 py-4 text-xs text-gray-600">
+                          <td className="py-2.5 px-3 text-xs text-gray-600">
                             {e.paymentMethod === 'bank' ? '1903555222000' : '—'}
                           </td>
                         )}
                         {visibleColumns.includes('partnerCode') && (
-                          <td className="px-6 py-4 text-xs text-gray-600 font-bold">
+                          <td className="py-2.5 px-3 text-xs text-gray-600 font-bold">
                             {e.partnerType === 'customer' ? 'KH0001' : (e.partnerType === 'supplier' ? 'NCC0001' : '—')}
                           </td>
                         )}
                         {visibleColumns.includes('partnerName') && (
-                          <td className="px-6 py-4 font-bold text-gray-800 text-[13px]">
+                          <td className="py-2.5 px-3 font-bold text-gray-800 text-[13px]">
                             {e.partnerName}
                           </td>
                         )}
                         {visibleColumns.includes('partnerPhone') && (
-                          <td className="px-6 py-4 text-xs text-gray-600">
+                          <td className="py-2.5 px-3 text-xs text-gray-600">
                             {e.partnerPhone || '—'}
                           </td>
                         )}
                         {visibleColumns.includes('partnerAddress') && (
-                          <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate">
+                          <td className="py-2.5 px-3 text-xs text-gray-500 max-w-xs truncate">
                             {e.partnerAddress || '—'}
                           </td>
                         )}
                         {visibleColumns.includes('amount') && (
-                          <td className={`px-6 py-4 text-right font-black text-[13px] ${isCancelled ? 'text-gray-400 line-through' : (isInc ? 'text-green-600' : 'text-red-500')}`}>
+                          <td className={`py-2.5 px-3 text-right font-black text-[13px] ${isCancelled ? 'text-gray-400 line-through' : (isInc ? 'text-green-600' : 'text-red-500')}`}>
                             {isCancelled ? '' : (isInc ? '+' : '-')}{fmt(e.amount)}
                           </td>
                         )}
                         {visibleColumns.includes('transferContent') && (
-                          <td className="px-6 py-4 text-xs text-gray-500">
+                          <td className="py-2.5 px-3 text-xs text-gray-500">
                             {e.paymentMethod === 'bank' ? `Chuyển khoản ${e.code}` : '—'}
                           </td>
                         )}
                         {visibleColumns.includes('note') && (
-                          <td className="px-6 py-4 text-xs text-gray-500 max-w-xs truncate italic">
+                          <td className="py-2.5 px-3 text-xs text-gray-500 max-w-xs truncate italic">
                             {e.note || '—'}
                           </td>
                         )}
                         {visibleColumns.includes('paymentMethod') && (
-                          <td className="px-6 py-4 text-xs font-semibold text-gray-600">
+                          <td className="py-2.5 px-3 text-xs font-semibold text-gray-600">
                             {getPaymentMethodLabel(e.paymentMethod)}
                           </td>
                         )}
                         {visibleColumns.includes('status') && (
-                          <td className="px-6 py-4">
+                          <td className="py-2.5 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${isCancelled ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
                               {isCancelled ? 'Đã hủy' : 'Đã thanh toán'}
                             </span>

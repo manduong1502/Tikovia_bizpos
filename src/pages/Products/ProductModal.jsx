@@ -268,15 +268,15 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
       <div className="flex flex-col h-[calc(85vh-160px)] bg-gray-50 -mx-6 -mt-4 -mb-4">
         
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-white px-6">
+        <div className="flex border-b border-gray-200 bg-white px-6 gap-3">
           <button 
-            className={`px-4 py-3 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 py-1.5 text-xs font-bold border-b-2 transition-colors ${activeTab === 'info' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('info')}
           >
             Thông tin
           </button>
           <button 
-            className={`px-4 py-3 text-[14px] font-medium border-b-2 transition-colors ${activeTab === 'desc' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+            className={`px-2 py-1.5 text-xs font-bold border-b-2 transition-colors ${activeTab === 'desc' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             onClick={() => setActiveTab('desc')}
           >
             Mô tả

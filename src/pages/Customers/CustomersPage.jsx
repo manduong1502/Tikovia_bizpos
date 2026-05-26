@@ -611,7 +611,7 @@ export default function CustomersPage() {
                 <button
                   key={t.key}
                   onClick={() => setDetailTab(t.key)}
-                  className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-1.5 px-0.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                     detailTab === t.key ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                   }`}
                 >

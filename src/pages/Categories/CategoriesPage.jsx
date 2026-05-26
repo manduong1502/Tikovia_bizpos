@@ -173,9 +173,9 @@ export default function CategoriesPage() {
     return (
       <div key={cat.id}>
         <div
-          className={`group flex items-center gap-2.5 px-4 py-3 cursor-pointer border-b border-gray-50 transition-all duration-150
+          className={`group flex items-center gap-2.5 py-2.5 px-3 cursor-pointer border-b border-gray-50 transition-all duration-150
             ${isSelected ? 'bg-blue-50/80 border-l-[3px] border-l-primary' : 'hover:bg-gray-50/80 border-l-[3px] border-l-transparent'}`}
-          style={{ paddingLeft: `${16 + level * 28}px` }}
+          style={{ paddingLeft: `${12 + level * 28}px` }}
           onClick={() => { setSelectedId(cat.id); if (hasKids) toggle(cat.id); }}
         >
           {/* Expand/Collapse Arrow */}
@@ -330,7 +330,7 @@ export default function CategoriesPage() {
             </div>
 
             {/* Table Header */}
-            <div className="flex items-center px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+            <div className="flex items-center py-2.5 px-3 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
               <span className="flex-1 pl-14">Tên nhóm hàng</span>
               <span className="w-[80px] text-center">Sản phẩm</span>
               <span className="w-[100px] text-center">Nhóm con</span>

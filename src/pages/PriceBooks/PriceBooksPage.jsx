@@ -525,13 +525,13 @@ export default function PriceBooksPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
           <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 {shownColumns.map((col) => (
                   <th
                     key={col.key}
-                    className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                    className={`py-2.5 px-3 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${col.align === 'right' ? 'text-right' : 'text-left'}`}
                     onClick={() => handleSort(col.key)}
                   >
                     <div className={`flex items-center gap-1.5 inline-flex ${col.align === 'right' ? 'flex-row-reverse' : ''}`}>
@@ -550,49 +550,49 @@ export default function PriceBooksPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 font-medium">
+            <tbody className="divide-y divide-gray-100 font-medium text-xs">
               {paginated.map((p) => (
                 <tr key={p.id} className="hover:bg-blue-50/30 transition-colors font-medium">
                   {shownColumns.map((col) => {
                     if (col.key === 'sku') {
                       return (
-                        <td key={col.key} className="p-4 text-primary font-bold">
+                        <td key={col.key} className="py-2.5 px-3 text-primary font-bold">
                           {p.sku || `SP${p.id}`}
                         </td>
                       );
                     }
                     if (col.key === 'name') {
                       return (
-                        <td key={col.key} className="p-4 font-bold text-gray-800">
+                        <td key={col.key} className="py-2.5 px-3 font-bold text-gray-800">
                           {p.name}
                         </td>
                       );
                     }
                     if (col.key === 'costPrice') {
                       return (
-                        <td key={col.key} className="p-4 text-right text-gray-600">
+                        <td key={col.key} className="py-2.5 px-3 text-right text-gray-600">
                           {fmt(p.costPrice)}
                         </td>
                       );
                     }
                     if (col.key === 'lastImportPrice') {
                       return (
-                        <td key={col.key} className="p-4 text-right text-gray-600">
+                        <td key={col.key} className="py-2.5 px-3 text-right text-gray-600">
                           {fmt(p.lastImportPrice)}
                         </td>
                       );
                     }
                     if (col.key === 'sellPrice') {
                       return (
-                        <td key={col.key} className="p-4 text-right">
+                        <td key={col.key} className="py-2.5 px-3 text-right">
                           <input
                             type="text"
-                            className="w-32 border border-gray-200 rounded-xl px-3 py-1.5 text-right text-sm font-bold text-gray-800 focus:border-primary outline-none focus:ring-1 focus:ring-primary shadow-sm bg-white transition-all float-right"
+                            className="w-32 border border-gray-200 rounded-xl px-3 py-1.5 text-right text-xs font-bold text-gray-800 focus:border-primary outline-none focus:ring-1 focus:ring-primary shadow-sm bg-white transition-all float-right"
                             defaultValue={fmt(p.sellPrice)}
                             onBlur={(e) => {
                               const newVal = e.target.value;
                               if (newVal !== fmt(p.sellPrice)) {
-                                handlePriceChange(p.id, newVal);
+                                  handlePriceChange(p.id, newVal);
                               }
                             }}
                           />
@@ -640,7 +640,7 @@ export default function PriceBooksPage() {
       >
         <div className="mb-6 flex border-b border-gray-200 gap-4 px-2">
           <button
-            className={`py-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
             onClick={() => setActiveTab('info')}
@@ -648,7 +648,7 @@ export default function PriceBooksPage() {
             Thông tin
           </button>
           <button
-            className={`py-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+            className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'scope' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
             onClick={() => setActiveTab('scope')}

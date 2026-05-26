@@ -938,7 +938,7 @@ export default function SuppliersPage() {
             <div className="flex gap-4 border-b border-gray-200 mb-4 px-2">
               <button
                 onClick={() => setDetailTab('info')}
-                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-1.5 px-0.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -946,7 +946,7 @@ export default function SuppliersPage() {
               </button>
               <button
                 onClick={() => setDetailTab('history')}
-                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-1.5 px-0.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -954,7 +954,7 @@ export default function SuppliersPage() {
               </button>
               <button
                 onClick={() => setDetailTab('debt')}
-                className={`py-2 px-1 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                className={`py-1.5 px-0.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                   detailTab === 'debt' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -1485,7 +1485,7 @@ export default function SuppliersPage() {
             <table className="w-full text-sm min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
+                <th className="py-2.5 px-3 w-12 text-center">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -1493,13 +1493,13 @@ export default function SuppliersPage() {
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>
-                <th className="p-4 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
+                <th className="py-2.5 px-3 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
                 {ALL_COLUMNS.map(c => {
                   if (!visibleColumns.includes(c.key)) return null;
                   return (
                     <th 
                       key={c.key} 
-                      className={`p-4 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      className={`py-2.5 px-3 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
                       onClick={() => handleSort(c.key)}
                     >
                       <div className={`flex items-center gap-1.5 inline-flex ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
@@ -1517,7 +1517,7 @@ export default function SuppliersPage() {
                     </th>
                   );
                 })}
-                <th className="p-4 text-center w-24 font-extrabold">Thao tác</th>
+                <th className="py-2.5 px-3 text-center w-24 font-extrabold">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
@@ -1540,7 +1540,7 @@ export default function SuppliersPage() {
                       }}
                       className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
                     >
-                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -1548,48 +1548,48 @@ export default function SuppliersPage() {
                           onChange={(e) => toggleOne(s.id, e.target.checked)}
                         />
                       </td>
-                      <td className="p-4 text-center" onClick={e => toggleStar(e, s.id)}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => toggleStar(e, s.id)}>
                         <Star size={16} className={`mx-auto cursor-pointer transition-colors ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-amber-300'}`} />
                       </td>
 
                       {visibleColumns.includes('code') && (
-                        <td className="p-4 font-bold text-primary">{s.code || `NCC${String(s.id).padStart(3, '0')}`}</td>
+                        <td className="py-2.5 px-3 font-bold text-primary">{s.code || `NCC${String(s.id).padStart(3, '0')}`}</td>
                       )}
                       {visibleColumns.includes('name') && (
-                        <td className="p-4 font-bold text-gray-800">{s.name}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-800">{s.name}</td>
                       )}
                       {visibleColumns.includes('phone') && (
-                        <td className="p-4 text-gray-700">{s.phone || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{s.phone || '---'}</td>
                       )}
                       {visibleColumns.includes('email') && (
-                        <td className="p-4 text-gray-700">{s.email || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{s.email || '---'}</td>
                       )}
                       {visibleColumns.includes('address') && (
-                        <td className="p-4 text-gray-700">{s.address || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{s.address || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
-                        <td className={`p-4 text-right font-extrabold ${(s.debt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
+                        <td className={`py-2.5 px-3 text-right font-extrabold ${(s.debt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
                       )}
                       {visibleColumns.includes('total_spent') && (
-                        <td className="p-4 text-right font-extrabold text-primary">{fmt(s.total_spent || 0)}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(s.total_spent || 0)}</td>
                       )}
                       {visibleColumns.includes('net_purchase') && (
-                        <td className="p-4 text-right font-extrabold text-emerald-600">{fmt(s.net_purchase ?? s.total_spent ?? 0)}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-emerald-600">{fmt(s.net_purchase ?? s.total_spent ?? 0)}</td>
                       )}
                       {visibleColumns.includes('isActive') && (
-                        <td className="p-4 text-center">
+                        <td className="py-2.5 px-3 text-center">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${s.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                             {s.isActive !== false ? 'Hoạt động' : 'Ngừng hoạt động'}
                           </span>
                         </td>
                       )}
                       {visibleColumns.includes('note') && (
-                        <td className="p-4 text-gray-600 max-w-xs truncate">{s.note || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-600 max-w-xs truncate">{s.note || '---'}</td>
                       )}
                       {visibleColumns.includes('created_at') && (
-                        <td className="p-4 text-gray-500 text-xs">{s.created_at || '2026-05-15'}</td>
+                        <td className="py-2.5 px-3 text-gray-500 text-xs">{s.created_at || '2026-05-15'}</td>
                       )}
-                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => { setEditSupplier(s); setModalOpen(true); }} className="p-1.5 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa"><Edit size={15} className="text-gray-400 hover:text-primary" /></button>
                           <button onClick={() => handleDelete(s.id)} className="p-1.5 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" title="Xóa"><Trash2 size={15} className="text-gray-400 hover:text-red-500" /></button>

@@ -41,7 +41,7 @@ export default function PurchaseOrderDetail({
           <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
             <button
               onClick={() => setDetailTab('info')}
-              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -49,7 +49,7 @@ export default function PurchaseOrderDetail({
             </button>
             <button
               onClick={() => setDetailTab('history')}
-              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -57,7 +57,7 @@ export default function PurchaseOrderDetail({
             </button>
             <button
               onClick={() => setDetailTab('returns')}
-              className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 detailTab === 'returns' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >

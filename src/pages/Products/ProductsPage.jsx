@@ -486,7 +486,7 @@ export default function ProductsPage() {
                 <button
                   key={t.key}
                   onClick={(e) => { e.stopPropagation(); setDetailTab(t.key); }}
-                  className={`py-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                     detailTab === t.key
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -780,7 +780,7 @@ export default function ProductsPage() {
             <table className="w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                <th className="p-4 w-12 text-center">
+                <th className="py-2.5 px-3 w-12 text-center">
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -788,14 +788,14 @@ export default function ProductsPage() {
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>
-                <th className="p-4 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
-                <th className="p-4 w-14"></th>
+                <th className="py-2.5 px-3 w-12 text-center"><Star size={16} className="text-gray-400 mx-auto" /></th>
+                <th className="py-2.5 px-3 w-14"></th>
                 {ALL_COLUMNS.map(c => {
                   if (!visibleColumns.includes(c.key)) return null;
                   return (
                     <th
                       key={c.key}
-                      className={`p-4 font-extrabold cursor-pointer select-none hover:text-primary transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      className={`py-2.5 px-3 font-extrabold cursor-pointer select-none hover:text-primary transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
                       onClick={() => handleSort(c.key)}
                     >
                       {c.label} <SortArrow col={c.key} />
@@ -812,8 +812,8 @@ export default function ProductsPage() {
                 {visibleColumns.includes('name') && <td></td>}
                 {visibleColumns.includes('sellPrice') && <td></td>}
                 {visibleColumns.includes('costPrice') && <td></td>}
-                {visibleColumns.includes('stock') && <td className="p-4 text-right text-primary font-extrabold">{fmtStock(totalStock)}</td>}
-                {visibleColumns.includes('reserved') && <td className="p-4 text-right text-primary font-extrabold">0</td>}
+                {visibleColumns.includes('stock') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmtStock(totalStock)}</td>}
+                {visibleColumns.includes('reserved') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">0</td>}
                 {visibleColumns.includes('created_at') && <td></td>}
                 {visibleColumns.includes('expected_out') && <td></td>}
               </tr>
@@ -837,7 +837,7 @@ export default function ProductsPage() {
                       }}
                       className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
                     >
-                      <td className="p-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
@@ -845,35 +845,35 @@ export default function ProductsPage() {
                           onChange={(e) => toggleOne(p.id, e.target.checked)}
                         />
                       </td>
-                      <td className="p-4 text-center" onClick={e => toggleStar(e, p.id)}>
+                      <td className="py-2.5 px-3 text-center" onClick={e => toggleStar(e, p.id)}>
                         <Star size={16} className={`mx-auto cursor-pointer transition-colors ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-amber-300'}`} />
                       </td>
-                      <td className="p-4">
+                      <td className="py-2.5 px-3">
                         <div className="w-10 h-10 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 shadow-sm overflow-hidden">
                           {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={20} />}
                         </div>
                       </td>
 
                       {visibleColumns.includes('sku') && (
-                        <td className="p-4 font-bold text-primary">{p.sku || ''}</td>
+                        <td className="py-2.5 px-3 font-bold text-primary">{p.sku || ''}</td>
                       )}
                       {visibleColumns.includes('name') && (
-                        <td className="p-4 font-bold text-gray-800">{p.name}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-800">{p.name}</td>
                       )}
                       {visibleColumns.includes('sellPrice') && (
-                        <td className="p-4 text-right font-extrabold text-gray-800">{fmt(p.sellPrice)}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-gray-800">{fmt(p.sellPrice)}</td>
                       )}
                       {visibleColumns.includes('costPrice') && (
-                        <td className="p-4 text-right text-gray-600">{fmt(p.costPrice || 0)}</td>
+                        <td className="py-2.5 px-3 text-right text-gray-600">{fmt(p.costPrice || 0)}</td>
                       )}
                       {visibleColumns.includes('stock') && (
-                        <td className="p-4 text-right font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
                       )}
                       {visibleColumns.includes('reserved') && (
-                        <td className="p-4 text-right text-gray-500">0</td>
+                        <td className="py-2.5 px-3 text-right text-gray-500">0</td>
                       )}
                       {visibleColumns.includes('created_at') && (
-                        <td className="p-4 text-xs text-gray-500">
+                        <td className="py-2.5 px-3 text-xs text-gray-500">
                           {(() => {
                             const created = parseFlexibleDate(p.created_at || p.createdAt || p.createdDate);
                             return created
@@ -883,7 +883,7 @@ export default function ProductsPage() {
                         </td>
                       )}
                       {visibleColumns.includes('expected_out') && (
-                        <td className="p-4 text-xs text-gray-400">---</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-400">---</td>
                       )}
                     </tr>
 

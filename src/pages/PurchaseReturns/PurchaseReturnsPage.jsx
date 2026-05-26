@@ -619,7 +619,7 @@ export default function PurchaseReturnsPage() {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-12 text-center">
+                  <th className="py-2.5 px-3 w-12 text-center">
                     <input 
                       type="checkbox" 
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}
@@ -627,44 +627,44 @@ export default function PurchaseReturnsPage() {
                       className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                     />
                   </th>
-                  <th className="py-3.5 px-4 w-12 text-center"></th>
+                  <th className="py-2.5 px-3 w-12 text-center"></th>
                   {visibleColumns.includes('code') && (
-                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
+                    <th className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
                       <div className="flex items-center gap-1.5">Mã trả hàng nhập {sortConfig.key === 'code' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('created_at') && (
-                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('created_at')}>
+                    <th className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('created_at')}>
                       <div className="flex items-center gap-1.5">Thời gian {sortConfig.key === 'created_at' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('supplier_name') && (
-                    <th className="py-3.5 px-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_name')}>
+                    <th className="py-2.5 px-3 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_name')}>
                       <div className="flex items-center gap-1.5">Nhà cung cấp {sortConfig.key === 'supplier_name' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('total') && (
-                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('total')}>
+                    <th className="py-2.5 px-3 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('total')}>
                       <div className="flex items-center gap-1.5 flex-row-reverse">Tổng tiền hàng {sortConfig.key === 'total' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('discount') && (
-                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('discount')}>
+                    <th className="py-2.5 px-3 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('discount')}>
                       <div className="flex items-center gap-1.5 flex-row-reverse">Giảm giá {sortConfig.key === 'discount' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('supplier_must_pay') && (
-                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_must_pay')}>
+                    <th className="py-2.5 px-3 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('supplier_must_pay')}>
                       <div className="flex items-center gap-1.5 flex-row-reverse">NCC cần trả {sortConfig.key === 'supplier_must_pay' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('paid') && (
-                    <th className="py-3.5 px-4 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paid')}>
+                    <th className="py-2.5 px-3 text-right cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('paid')}>
                       <div className="flex items-center gap-1.5 flex-row-reverse">NCC đã trả {sortConfig.key === 'paid' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
                   {visibleColumns.includes('status') && (
-                    <th className="py-3.5 px-4 text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                    <th className="py-2.5 px-3 text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
                       <div className="flex items-center gap-1.5 justify-center">Trạng thái {sortConfig.key === 'status' && <span className="text-primary text-[10px] leading-none flex flex-col">{sortConfig.direction === 'asc' ? '▲' : '▼'}</span>}</div>
                     </th>
                   )}
@@ -689,7 +689,7 @@ export default function PurchaseReturnsPage() {
                         }}
                         className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
                       >
-                        <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                           <input 
                             type="checkbox" 
                             checked={isSelected}
@@ -697,22 +697,22 @@ export default function PurchaseReturnsPage() {
                             className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                           />
                         </td>
-                        <td className="py-3.5 px-4 text-center" onClick={(e) => toggleStar(o.id, e)}>
+                        <td className="py-2.5 px-3 text-center" onClick={(e) => toggleStar(o.id, e)}>
                           <Star size={16} className={`mx-auto cursor-pointer transition-transform hover:scale-110 ${isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300 hover:text-gray-400'}`} />
                         </td>
-                        {visibleColumns.includes('code') && <td className="py-3.5 px-4 font-extrabold text-primary">{o.code}</td>}
+                        {visibleColumns.includes('code') && <td className="py-2.5 px-3 font-extrabold text-primary">{o.code}</td>}
                         {visibleColumns.includes('created_at') && (
-                          <td className="py-3.5 px-4 font-medium text-gray-600">
+                          <td className="py-2.5 px-3 font-medium text-gray-600">
                             {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
                           </td>
                         )}
-                        {visibleColumns.includes('supplier_name') && <td className="py-3.5 px-4 font-bold text-gray-800">{o.supplier_name}</td>}
-                        {visibleColumns.includes('total') && <td className="py-3.5 px-4 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
-                        {visibleColumns.includes('discount') && <td className="py-3.5 px-4 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
-                        {visibleColumns.includes('supplier_must_pay') && <td className="py-3.5 px-4 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}
-                        {visibleColumns.includes('paid') && <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600">{fmt(o.paid)}</td>}
+                        {visibleColumns.includes('supplier_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.supplier_name}</td>}
+                        {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
+                        {visibleColumns.includes('discount') && <td className="py-2.5 px-3 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
+                        {visibleColumns.includes('supplier_must_pay') && <td className="py-2.5 px-3 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}
+                        {visibleColumns.includes('paid') && <td className="py-2.5 px-3 text-right font-extrabold text-emerald-600">{fmt(o.paid)}</td>}
                         {visibleColumns.includes('status') && (
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-2.5 px-3 text-center">
                             <span className={`inline-block py-1 px-2.5 rounded-full text-[11px] ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
                               {STATUS_LABEL[o.status] || o.status}
                             </span>

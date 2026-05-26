@@ -120,12 +120,12 @@ export default function InventoryCheckPage() {
           <table className="w-full text-sm min-w-[700px]">
             <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100 font-bold tracking-wider">
               <tr>
-                <th className="px-4 py-3.5 text-left">Mã phiếu</th>
-                <th className="px-4 py-3.5 text-left">Thời gian</th>
-                <th className="px-4 py-3.5 text-right">Số SP</th>
-                <th className="px-4 py-3.5 text-right">SL tăng</th>
-                <th className="px-4 py-3.5 text-right">SL giảm</th>
-                <th className="px-4 py-3.5 text-left">Trạng thái</th>
+                <th className="py-2.5 px-3 text-left">Mã phiếu</th>
+                <th className="py-2.5 px-3 text-left">Thời gian</th>
+                <th className="py-2.5 px-3 text-right">Số SP</th>
+                <th className="py-2.5 px-3 text-right">SL tăng</th>
+                <th className="py-2.5 px-3 text-right">SL giảm</th>
+                <th className="py-2.5 px-3 text-left">Trạng thái</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -142,12 +142,12 @@ export default function InventoryCheckPage() {
                 
                 return (
                   <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-primary">{c.code}</td>
-                    <td className="px-4 py-3.5 text-[13px] text-gray-500 font-medium">{c.createdAt ? new Date(c.createdAt).toLocaleString('vi-VN') : ''}</td>
-                    <td className="px-4 py-3.5 text-right font-medium text-gray-700">{total_items}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-green-600">{total_increase > 0 ? `+${total_increase}` : '0'}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-red-500">{total_decrease > 0 ? `-${total_decrease}` : '0'}</td>
-                    <td className="px-4 py-3.5"><span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${STATUS_BADGE[c.status?.toLowerCase()] || 'bg-gray-100 text-gray-500'}`}>{STATUS_LABEL[c.status?.toLowerCase()] || c.status}</span></td>
+                    <td className="py-2.5 px-3 font-bold text-primary">{c.code}</td>
+                    <td className="py-2.5 px-3 text-[13px] text-gray-500 font-medium">{c.createdAt ? new Date(c.createdAt).toLocaleString('vi-VN') : ''}</td>
+                    <td className="py-2.5 px-3 text-right font-medium text-gray-700">{total_items}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-green-600">{total_increase > 0 ? `+${total_increase}` : '0'}</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-red-500">{total_decrease > 0 ? `-${total_decrease}` : '0'}</td>
+                    <td className="py-2.5 px-3"><span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${STATUS_BADGE[c.status?.toLowerCase()] || 'bg-gray-100 text-gray-500'}`}>{STATUS_LABEL[c.status?.toLowerCase()] || c.status}</span></td>
                   </tr>
                 );
               })}

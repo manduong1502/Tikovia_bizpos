@@ -149,27 +149,27 @@ export default function EmployeesPage() {
           <table className="w-full text-sm min-w-[700px]">
             <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100 font-bold tracking-wider">
               <tr>
-                <th className="px-4 py-3.5 text-left">Mã NV</th>
-                <th className="px-4 py-3.5 text-left">Tên nhân viên</th>
-                <th className="px-4 py-3.5 text-left">Điện thoại</th>
-                <th className="px-4 py-3.5 text-left">Chi nhánh</th>
-                <th className="px-4 py-3.5 text-left">Trạng thái</th>
-                <th className="px-4 py-3.5 text-center w-[100px]">Thao tác</th>
+                <th className="py-2.5 px-3 text-left">Mã NV</th>
+                <th className="py-2.5 px-3 text-left">Tên nhân viên</th>
+                <th className="py-2.5 px-3 text-left">Điện thoại</th>
+                <th className="py-2.5 px-3 text-left">Chi nhánh</th>
+                <th className="py-2.5 px-3 text-left">Trạng thái</th>
+                <th className="py-2.5 px-3 text-center w-[100px]">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filtered.map(e => (
                 <tr key={e.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3.5 font-bold text-primary">{e.code || `NV${String(e.id).padStart(4, '0')}`}</td>
-                  <td className="px-4 py-3.5 font-bold text-gray-800">{e.name || e.full_name}</td>
-                  <td className="px-4 py-3.5 text-gray-600 font-medium">{e.phone || ''}</td>
-                  <td className="px-4 py-3.5 font-medium text-gray-700">Chi nhánh trung tâm</td>
-                  <td className="px-4 py-3.5">
+                  <td className="py-2.5 px-3 font-bold text-primary">{e.code || `NV${String(e.id).padStart(4, '0')}`}</td>
+                  <td className="py-2.5 px-3 font-bold text-gray-800">{e.name || e.full_name}</td>
+                  <td className="py-2.5 px-3 text-gray-600 font-medium">{e.phone || ''}</td>
+                  <td className="py-2.5 px-3 font-medium text-gray-700">Chi nhánh trung tâm</td>
+                  <td className="py-2.5 px-3">
                     <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold ${e.status === 'inactive' ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'}`}>
                       {e.status === 'inactive' ? 'Đã nghỉ' : 'Đang làm'}
                     </span>
                   </td>
-                  <td className="px-4 py-3.5 text-center">
+                  <td className="py-2.5 px-3 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <button onClick={() => { setEditEmployee(e); setModalOpen(true); }} className="p-1.5 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa"><Edit size={15} className="text-gray-400 hover:text-primary" /></button>
                       <button onClick={() => handleDelete(e)} className="p-1.5 hover:bg-red-50 rounded-lg cursor-pointer transition-colors" title="Xóa"><Trash2 size={15} className="text-gray-400 hover:text-red-500" /></button>
