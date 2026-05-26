@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, FileText } from 'lucide-react';
 import Button from '../../components/ui/Button';
-import { supplierAPI, cashbookAPI } from '../../services/api';
+import { supplierAPI, cashbookAPI, purchaseOrderAPI } from '../../services/api';
 import api from '../../services/api'; // using default api
 import toast from 'react-hot-toast';
 
@@ -15,6 +15,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
   const [note, setNote] = useState('');
   const [allocate, setAllocate] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [allocations, setAllocations] = useState({});
 
   useEffect(() => {
     if (open && supplier) {
@@ -23,8 +24,45 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
       const now = new Date();
       setPaymentDate(now.toISOString().slice(0, 16));
       setAllocate(true);
+      setAllocations({});
     }
   }, [open, supplier]);
+
+  // Auto-allocate when amount changes or allocate is toggled
+  useEffect(() => {
+    if (open && supplier && allocate) {
+      let remaining = Number(amount || 0);
+      const newAlloc = {};
+      purchaseOrders.forEach(po => {
+        const poDebt = po.total - (po.paid_amount || po.paid || 0);
+        if (remaining > 0 && poDebt > 0) {
+          const alloc = Math.min(remaining, poDebt);
+          newAlloc[po.id] = alloc;
+          remaining -= alloc;
+        } else {
+          newAlloc[po.id] = 0;
+        }
+      });
+      setAllocations(newAlloc);
+    } else {
+      setAllocations({});
+    }
+  }, [amount, allocate, purchaseOrders, open, supplier]);
+
+  const handleAllocationChange = (poId, value) => {
+    let num = Number(value.replace(/[^0-9.-]+/g, '')) || 0;
+    const po = purchaseOrders.find(p => p.id === poId);
+    if (!po) return;
+    const poDebt = po.total - (po.paid_amount || po.paid || 0);
+    if (num < 0) num = 0;
+    if (num > poDebt) num = poDebt;
+
+    const newAlloc = { ...allocations, [poId]: num };
+    setAllocations(newAlloc);
+
+    const newTotal = Object.values(newAlloc).reduce((sum, val) => sum + val, 0);
+    setAmount(newTotal > 0 ? String(newTotal) : '');
+  };
 
   if (!open || !supplier) return null;
 
@@ -32,7 +70,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
   const payAmount = Number(amount || 0);
   const remainingDebt = currentDebt - payAmount;
 
-  const handleSave = async () => {
+  const handleSave = async (shouldPrint = false) => {
     if (!payAmount || payAmount <= 0) {
       toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
@@ -40,38 +78,108 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
 
     setLoading(true);
     try {
-      // Create cashbook entry
-      const cashbookCode = `PTM${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 100)}`;
-      
-      const payload = {
-        code: cashbookCode,
-        type: 'EXPENSE',
-        amount: payAmount,
-        category: 'Chi tiền trả nợ',
-        partnerType: 'supplier',
-        supplierId: supplier.id,
-        partnerName: supplier.name,
-        paymentMethod: paymentMethod,
-        isAccounting: true,
-        status: 'completed',
-        branch: 'Chi nhánh trung tâm',
-        note: note || `Thanh toán nợ cho nhà cung cấp ${supplier.name}`,
-      };
+      let allocatedSum = 0;
 
-      try {
-        await cashbookAPI.create(payload);
-      } catch(e) {
-        // Ignore if cashbook route is not ready
-        console.warn('Cashbook API might not exist yet:', e);
+      // Update allocated purchase orders first
+      if (allocate && purchaseOrders.length > 0) {
+        for (const po of purchaseOrders) {
+          const alloc = Number(allocations[po.id] || 0);
+          if (alloc > 0) {
+            allocatedSum += alloc;
+            const newPaid = (po.paid_amount || po.paid || 0) + alloc;
+            await purchaseOrderAPI.update(po.id, {
+              ...po,
+              paid: newPaid,
+              status: newPaid >= po.total ? 'COMPLETED' : po.status
+            });
+          }
+        }
       }
 
-      // Update supplier debt
+      // Calculate the unallocated remainder
+      const unallocatedAmount = payAmount - allocatedSum;
+      const cashbookCode = `PTM${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 100)}`;
+
+      // Create a cashbook entry for the payment
+      // If we are online, the backend updates to purchase orders will automatically generate cashbook entries for those POs.
+      // So we only manually create a cashbook entry for the unallocated portion.
+      if (unallocatedAmount > 0 || !allocate) {
+        const payload = {
+          code: cashbookCode,
+          type: 'EXPENSE',
+          amount: allocate ? unallocatedAmount : payAmount,
+          category: 'Chi tiền trả nợ',
+          partnerType: 'supplier',
+          supplierId: supplier.id,
+          partnerName: supplier.name,
+          paymentMethod: paymentMethod,
+          isAccounting: true,
+          status: 'completed',
+          branch: 'Chi nhánh trung tâm',
+          note: note || `Thanh toán nợ cho nhà cung cấp ${supplier.name}`,
+        };
+        try {
+          await cashbookAPI.create(payload);
+        } catch(e) {
+          console.warn('Cashbook API might not exist yet:', e);
+        }
+      }
+
+      // Update supplier debt to the exact final debt amount absolutely.
+      // This is safe in both online and offline modes since it overwrites the absolute debt value.
       await supplierAPI.update(supplier.id, {
+        ...supplier,
         debt: currentDebt - payAmount
       });
 
       toast.success('Thanh toán thành công');
       onSaved();
+
+      if (shouldPrint) {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>Phiếu chi - ${cashbookCode}</title>
+                <style>
+                  body { font-family: sans-serif; padding: 20px; color: #333; }
+                  h2 { border-bottom: 2px solid #ef4444; padding-bottom: 8px; color: #b91c1c; text-align: center; }
+                  .info-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                  .info-table td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+                  .info-table td.label { font-weight: bold; background-color: #f9fafb; width: 30%; }
+                  .signatures { display: flex; justify-content: space-between; margin-top: 50px; }
+                  .signature-box { text-align: center; width: 45%; }
+                </style>
+              </head>
+              <body>
+                <h2>PHIẾU CHI</h2>
+                <div style="text-align: center; margin-bottom: 20px;">Mã phiếu: ${cashbookCode} | Ngày chi: ${new Date(paymentDate || new Date()).toLocaleString('vi-VN')}</div>
+                <table class="info-table">
+                  <tr><td class="label">Người nhận</td><td>${supplier.name}</td></tr>
+                  <tr><td class="label">Địa chỉ</td><td>${supplier.address || '---'}</td></tr>
+                  <tr><td class="label">Số tiền</td><td><strong>${fmt(payAmount)} VNĐ</strong></td></tr>
+                  <tr><td class="label">Phương thức</td><td>${paymentMethod === 'cash' ? 'Tiền mặt' : paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Thẻ tín dụng'}</td></tr>
+                  <tr><td class="label">Lý do chi</td><td>${note || `Thanh toán nợ cho nhà cung cấp ${supplier.name}`}</td></tr>
+                  <tr><td class="label">Người lập phiếu</td><td>${createdBy}</td></tr>
+                </table>
+                <div class="signatures">
+                  <div class="signature-box">
+                    <strong>Người nhận</strong><br/>(Ký, họ tên)
+                  </div>
+                  <div class="signature-box">
+                    <strong>Thủ quỹ</strong><br/>(Ký, họ tên)
+                  </div>
+                </div>
+                <script>
+                  window.onload = function() { window.print(); window.close(); }
+                </script>
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+        }
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi khi thanh toán');
     } finally {
@@ -193,18 +301,36 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {purchaseOrders.length > 0 ? purchaseOrders.map((po, idx) => {
-                      const poDebt = po.total - (po.paid || 0);
+                      const poDebt = po.total - (po.paid_amount || po.paid || 0);
+                      const allocVal = allocations[po.id] || 0;
+                      const remainingPoDebt = poDebt - allocVal;
                       return (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-3 text-primary font-bold">{po.code || po.po_code}</td>
-                        <td className="p-3 text-gray-500">{new Date(po.createdAt || po.created_at).toLocaleString('vi-VN')}</td>
+                        <td className="p-3 text-primary font-bold">{po.po_code || po.code}</td>
+                        <td className="p-3 text-gray-500">
+                          {po.created_at || po.createdAt
+                            ? new Date(po.created_at || po.createdAt).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : '---'}
+                        </td>
                         <td className="p-3 text-right">{fmt(po.total)}</td>
-                        <td className="p-3 text-right">{fmt(po.paid || 0)}</td>
+                        <td className="p-3 text-right">{fmt(po.paid_amount || po.paid || 0)}</td>
                         <td className="p-3 text-right text-gray-800 font-bold">{fmt(poDebt)}</td>
                         <td className="p-3 text-right">
-                          <input type="text" className="w-20 border border-gray-300 rounded px-2 py-1 text-xs text-right focus:border-primary outline-none" placeholder="0" />
+                          <input
+                            type="text"
+                            className="w-24 border border-gray-300 rounded px-2 py-1 text-xs text-right focus:border-primary outline-none font-bold text-primary bg-blue-50/30"
+                            value={allocVal > 0 ? fmt(allocVal) : ''}
+                            onChange={(e) => handleAllocationChange(po.id, e.target.value)}
+                            placeholder="0"
+                          />
                         </td>
-                        <td className="p-3 text-right font-bold text-red-600">{fmt(poDebt)}</td>
+                        <td className="p-3 text-right font-bold text-red-600">{fmt(remainingPoDebt)}</td>
                       </tr>
                     )}) : (
                       <tr>
@@ -230,10 +356,10 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
           <Button variant="secondary" onClick={onClose} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-white cursor-pointer hover:bg-gray-50 border-gray-200">
             Bỏ qua
           </Button>
-          <Button variant="secondary" className="px-6 py-2.5 rounded-xl text-sm font-bold bg-white cursor-pointer hover:bg-gray-50 border-gray-200">
+          <Button variant="secondary" onClick={() => handleSave(true)} disabled={loading} className="px-6 py-2.5 rounded-xl text-sm font-bold bg-white cursor-pointer hover:bg-gray-50 border-gray-200">
             Tạo phiếu chi & In
           </Button>
-          <Button variant="primary" onClick={handleSave} disabled={loading} className="px-8 py-2.5 rounded-xl text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer border-none bg-blue-600 hover:bg-blue-700 text-white">
+          <Button variant="primary" onClick={() => handleSave(false)} disabled={loading} className="px-8 py-2.5 rounded-xl text-sm font-extrabold shadow-md hover:shadow-lg transition-all cursor-pointer border-none bg-blue-600 hover:bg-blue-700 text-white">
             {loading ? 'Đang lưu...' : 'Tạo phiếu chi'}
           </Button>
         </div>

@@ -299,14 +299,18 @@ export default function PurchaseOrdersPage() {
     if (!confirm('Bạn có chắc muốn hủy phiếu nhập này?')) return;
     try {
       await purchaseOrderAPI.cancel(id);
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled' } : o));
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled', payment_status: 'unpaid' } : o));
       setExpandedId(null);
       toast.success('Hủy phiếu nhập thành công');
-    } catch {
-      // Fallback mock cancel
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled' } : o));
-      setExpandedId(null);
-      toast.success('Hủy phiếu nhập thành công');
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || err.message || '';
+      if (!err.response) {
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'cancelled', payment_status: 'unpaid' } : o));
+        setExpandedId(null);
+        toast.success('Hủy phiếu nhập thành công');
+      } else {
+        toast.error(`Hủy phiếu nhập thất bại: ${serverMsg}`);
+      }
     }
   };
 

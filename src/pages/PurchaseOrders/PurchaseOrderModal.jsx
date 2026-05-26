@@ -67,7 +67,9 @@ export default function PurchaseOrderModal({ open, onClose, onSaved }) {
       toast.success(`Tạo phiếu nhập thành công! Mã: ${r.po_code}`);
       onSaved?.();
       onClose();
-    } catch {} finally { setSaving(false); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi tạo phiếu nhập');
+    } finally { setSaving(false); }
   };
 
   return (

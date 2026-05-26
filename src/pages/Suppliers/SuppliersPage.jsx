@@ -790,12 +790,54 @@ export default function SuppliersPage() {
       setSuppliers(prev => prev.filter(s => s.id !== id));
       setExpandedId(null);
       toast.success('Xóa nhà cung cấp thành công');
-    } catch {
-      setSuppliers(prev => prev.filter(s => s.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa nhà cung cấp thành công');
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || err.message || 'Lỗi khi xóa nhà cung cấp';
+      toast.error(`Xóa nhà cung cấp thất bại: ${serverMsg}`);
     }
   };
+
+  const handleCopySupplier = (s) => {
+    const text = `Mã NCC: ${s.code || `NCC${String(s.id).padStart(3, '0')}`}\nTên NCC: ${s.name}\nSĐT: ${s.phone || '---'}\nEmail: ${s.email || '---'}\nĐịa chỉ: ${s.address || '---'}\nNợ hiện tại: ${fmt(s.debt || 0)}`;
+    navigator.clipboard.writeText(text);
+    toast.success('Đã sao chép thông tin nhà cung cấp');
+  };
+
+  const handlePrintSupplier = (s) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Thông tin nhà cung cấp - ${s.code || `NCC${String(s.id).padStart(3, '0')}`}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #333; }
+            h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 8px; color: #1e3a8a; }
+            .info-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .info-table td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+            .info-table td.label { font-weight: bold; background-color: #f9fafb; width: 30%; }
+          </style>
+        </head>
+        <body>
+          <h2>THÔNG TIN NHÀ CUNG CẤP</h2>
+          <table class="info-table">
+            <tr><td class="label">Mã NCC</td><td>${s.code || `NCC${String(s.id).padStart(3, '0')}`}</td></tr>
+            <tr><td class="label">Tên nhà cung cấp</td><td>${s.name}</td></tr>
+            <tr><td class="label">Điện thoại</td><td>${s.phone || '---'}</td></tr>
+            <tr><td class="label">Email</td><td>${s.email || '---'}</td></tr>
+            <tr><td class="label">Địa chỉ</td><td>${s.address || '---'}</td></tr>
+            <tr><td class="label">Nợ hiện tại</td><td>${fmt(s.debt || 0)} VNĐ</td></tr>
+            <tr><td class="label">Tổng mua</td><td>${fmt(s.total_spent || 0)} VNĐ</td></tr>
+            <tr><td class="label">Ghi chú</td><td>${s.note || '---'}</td></tr>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
 
   const renderDetail = (s) => {
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
@@ -1066,7 +1108,7 @@ export default function SuppliersPage() {
                     <Button variant="danger" onClick={() => handleDelete(s.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Trash2 size={13} /> Xóa NCC
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => handleCopySupplier(s)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Copy size={13} /> Sao chép
                     </Button>
                     <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
@@ -1078,16 +1120,43 @@ export default function SuppliersPage() {
                     <Button variant="primary" onClick={() => { setEditSupplier(s); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-4 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
                       <Edit size={13} /> Chỉnh sửa
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
+                    <Button
+                      variant="secondary"
+                      onClick={async () => {
+                        const noteText = supNotes[s.id] ?? s.note ?? '';
+                        try {
+                          await supplierAPI.update(s.id, { ...s, note: noteText });
+                          toast.success('Lưu thông tin thành công');
+                          reload();
+                        } catch (err) {
+                          toast.error(err.response?.data?.message || err.message || 'Lỗi khi lưu thông tin');
+                        }
+                      }}
+                      className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap"
+                    >
                       <Save size={13} /> Lưu
                     </Button>
                     <Button variant="secondary" onClick={() => { setPaymentModalSupplier(s); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                       Thanh toán nợ
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => handlePrintSupplier(s)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Printer size={13} /> In
                     </Button>
-                    <Button variant="secondary" className="p-1.5 shadow-sm flex-none">
+                    <Button
+                      variant="secondary"
+                      onClick={async () => {
+                        const nextActive = s.isActive === false ? true : false;
+                        try {
+                          await supplierAPI.update(s.id, { ...s, isActive: nextActive });
+                          toast.success(`Đã ${nextActive ? 'cho phép hoạt động' : 'ngừng hoạt động'} nhà cung cấp`);
+                          reload();
+                        } catch (err) {
+                          toast.error(err.response?.data?.message || err.message || 'Lỗi khi cập nhật trạng thái');
+                        }
+                      }}
+                      title={s.isActive === false ? "Cho phép hoạt động" : "Ngừng hoạt động"}
+                      className="p-1.5 shadow-sm flex-none"
+                    >
                       <MoreHorizontal size={13} />
                     </Button>
                   </div>
@@ -1643,7 +1712,7 @@ export default function SuppliersPage() {
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         supplier={paymentModalSupplier}
-        purchaseOrders={purchaseOrders.filter(po => po.supplier_code === (paymentModalSupplier?.code || `NCC${String(paymentModalSupplier?.id).padStart(3, '0')}`) && po.status !== 'CANCELLED' && (po.total - (po.paid || 0)) > 0)}
+        purchaseOrders={purchaseOrders.filter(po => po.supplier_code === (paymentModalSupplier?.code || `NCC${String(paymentModalSupplier?.id).padStart(3, '0')}`) && po.status !== 'CANCELLED' && (po.total - (po.paid_amount || po.paid || 0)) > 0)}
         onSaved={() => {
           reload();
           setPaymentModalOpen(false);

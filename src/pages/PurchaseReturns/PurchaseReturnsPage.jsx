@@ -137,14 +137,26 @@ export default function PurchaseReturnsPage() {
     if (!confirm('Bạn có chắc muốn hủy phiếu trả hàng này?')) return;
     try {
       await purchaseReturnAPI.delete(id);
-      setReturns(prev => prev.filter(o => o.id !== id));
+      setReturns(prev => prev.map(o => o.id === id ? { ...o, status: 'CANCELLED' } : o));
       setExpandedId(null);
       toast.success('Hủy phiếu trả hàng thành công');
-    } catch {
-      setReturns(prev => prev.filter(o => o.id !== id));
-      setExpandedId(null);
-      toast.success('Hủy phiếu trả hàng thành công');
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || err.message || '';
+      if (!err.response) {
+        setReturns(prev => prev.map(o => o.id === id ? { ...o, status: 'CANCELLED' } : o));
+        setExpandedId(null);
+        toast.success('Hủy phiếu trả hàng thành công');
+      } else {
+        toast.error(`Hủy phiếu trả hàng thất bại: ${serverMsg}`);
+      }
     }
+  };
+
+  const handleCopyPR = (o) => {
+    const itemLines = o.items?.map(it => `- ${it.product_sku}: ${it.product_name} x ${it.quantity} (Đơn giá trả: ${fmt(it.return_price)})`).join('\n') || '';
+    const text = `Mã phiếu trả: ${o.code}\nThời gian: ${o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}\nNhà cung cấp: ${o.supplier_name}\nNCC cần trả: ${fmt(o.supplier_must_pay)} đ\nNCC đã trả: ${fmt(o.paid)} đ\nChi tiết hàng hóa:\n${itemLines}`;
+    navigator.clipboard.writeText(text);
+    toast.success('Đã sao chép thông tin phiếu trả hàng nhập');
   };
 
   const renderDetail = (o) => {
@@ -286,16 +298,33 @@ export default function PurchaseReturnsPage() {
                   <Button variant="danger" onClick={() => deletePR(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
                     <Trash2 size={14} /> Hủy
                   </Button>
-                  <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
+                  <Button variant="secondary" onClick={() => handleCopyPR(o)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
                     <Copy size={14} /> Sao chép
                   </Button>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Button variant="secondary" onClick={() => toast.success('Lưu phiếu thành công')} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold border-none cursor-pointer">
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      const noteText = prNotes[o.id] ?? o.note ?? '';
+                      try {
+                        await purchaseReturnAPI.update(o.id, { ...o, note: noteText });
+                        toast.success('Lưu phiếu thành công');
+                        reload();
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || err.message || 'Lỗi khi lưu phiếu');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold border-none cursor-pointer"
+                  >
                     <Save size={14} /> Lưu
                   </Button>
-                  <Button variant="secondary" className="p-2 shadow-sm border-none cursor-pointer">
+                  <Button
+                    variant="secondary"
+                    onClick={() => alert(`Thông tin phiếu trả hàng nhập:\nMã phiếu: ${o.code}\nNgười trả: ${prReceivedBy[o.id] ?? o.receivedBy}\nTrạng thái: ${STATUS_LABEL[o.status] || o.status}`)}
+                    className="p-2 shadow-sm border-none cursor-pointer"
+                  >
                     <MoreHorizontal size={14} />
                   </Button>
                 </div>

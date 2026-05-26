@@ -308,6 +308,89 @@ export default function CreatePurchaseOrderPage() {
     }
   };
 
+  const handlePrintDraftPO = () => {
+    if (items.length === 0) {
+      toast.error('Vui lòng thêm sản phẩm trước khi in');
+      return;
+    }
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Bản nháp phiếu nhập hàng</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #333; }
+            h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 8px; color: #1e3a8a; text-align: center; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .items-table th, .items-table td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            .items-table th { background-color: #f3f4f6; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h2>PHIẾU NHẬP HÀNG (BẢN NHÁP)</h2>
+          <div style="margin-bottom: 10px;">Nhà cung cấp: <strong>${selectedSupplier?.name || 'Chưa chọn'}</strong></div>
+          <div style="margin-bottom: 10px;">Ngày lập: ${new Date(importDate).toLocaleString('vi-VN')}</div>
+          
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Mã hàng</th>
+                <th>Tên hàng</th>
+                <th class="text-right">SL</th>
+                <th class="text-right">Giá</th>
+                <th class="text-right">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => `
+                <tr>
+                  <td>${it.sku}</td>
+                  <td>${it.name}</td>
+                  <td class="text-right">${it.quantity}</td>
+                  <td class="text-right">${fmt(it.unit_price)}</td>
+                  <td class="text-right">${fmt(it.quantity * it.unit_price - it.discount)}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="4" class="text-right">Cần trả NCC:</td>
+                <td class="text-right" style="color: #1d4ed8;">${fmt(needToPay)} đ</td>
+              </tr>
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F3') {
+        e.preventDefault();
+        const input = document.querySelector('input[placeholder*="Tìm hàng hóa"]');
+        input?.focus();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        const input = document.querySelector('input[placeholder*="Tìm nhà cung cấp"]');
+        input?.focus();
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        const input = document.querySelector('input[placeholder*="Tiền trả nhà cung cấp"]');
+        input?.focus();
+      } else if (e.key === 'F9') {
+        e.preventDefault();
+        handleSaveOrder('COMPLETED');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [products, selectedSupplier, items, needToPay, paidAmountStr, note, status]);
+
   return (
     <div className="flex flex-col h-[calc(100vh-90px)] -m-5 bg-gray-100 font-sans">
       {/* Top Action Header */}
@@ -315,7 +398,7 @@ export default function CreatePurchaseOrderPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/purchase-orders')}
-            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
           >
             <ArrowLeft size={20} /> Nhập hàng
           </button>
@@ -331,12 +414,26 @@ export default function CreatePurchaseOrderPage() {
                 value={productSearch}
                 onChange={e => setProductSearch(e.target.value)}
               />
-              <button className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer" title="Quét mã vạch">
+              <button
+                onClick={() => {
+                  const bc = window.prompt('Nhập hoặc quét mã vạch sản phẩm:');
+                  if (!bc) return;
+                  const matched = products.find(p => p.barcode === bc || p.sku === bc);
+                  if (matched) {
+                    handleAddProduct(matched);
+                    toast.success(`Đã thêm ${matched.name}`);
+                  } else {
+                    toast.error('Không tìm thấy sản phẩm có mã vạch/SKU này');
+                  }
+                }}
+                className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer border-none bg-transparent"
+                title="Quét mã vạch"
+              >
                 <Scan size={18} />
               </button>
               <button 
                 onClick={() => setProductModalOpen(true)}
-                className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors border-none bg-transparent"
                 title="Thêm hàng hóa mới"
               >
                 <Plus size={18} />
@@ -366,9 +463,9 @@ export default function CreatePurchaseOrderPage() {
 
         {/* Right Utility Icons */}
         <div className="flex items-center gap-2 text-gray-600">
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors" title="In phiếu"><Printer size={18} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors" title="Ẩn/hiện cột"><Eye size={18} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
+          <button onClick={handlePrintDraftPO} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
+          <button onClick={() => toast.success('Cột SKU, Tên, ĐVT, Số lượng, Đơn giá, Giảm giá, Thành tiền đang hiển thị mặc định')} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="Ẩn/hiện cột"><Eye size={18} /></button>
+          <button onClick={() => alert('Phím tắt hỗ trợ:\n- F3: Tìm hàng hóa\n- F4: Tìm nhà cung cấp\n- F8: Tiền trả nhà cung cấp\n- F9: Hoàn thành')} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
         </div>
       </div>
 

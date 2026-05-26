@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList } from 'lucide-react';
 import Button from '../../../components/ui/Button';
+import toast from 'react-hot-toast';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -32,6 +33,127 @@ export default function PurchaseOrderDetail({
 
   const currentNote = poNotes[o.id] ?? o.note;
   const currentReceivedBy = poReceivedBy[o.id] ?? o.received_by;
+
+  const handlePrintBarcodes = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>In mã vạch đơn nhập - ${o.po_code}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            .barcode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+            .barcode-item { border: 1px dashed #ccc; padding: 10px; text-align: center; font-size: 11px; }
+          </style>
+        </head>
+        <body>
+          <h2>IN MÃ VẠCH SẢN PHẨM</h2>
+          <div class="barcode-grid">
+            ${o.items?.map(it => Array(Math.min(it.quantity || 1, 10)).fill(0).map(() => `
+              <div class="barcode-item">
+                <div style="font-weight: bold;">${it.product_name}</div>
+                <div style="color: #666;">${it.product_sku}</div>
+                <div style="font-size: 18px; margin: 4px 0; font-family: monospace;">||||||||||||||||||</div>
+                <div style="font-weight: bold; color: #b91c1c;">${fmt(it.unit_price)} đ</div>
+              </div>
+            `).join('')).join('')}
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleCopyPO = () => {
+    const itemLines = o.items?.map(it => `- ${it.product_sku}: ${it.product_name} x ${it.quantity} (Đơn giá: ${fmt(it.unit_price)})`).join('\n') || '';
+    const text = `Mã đơn nhập: ${o.po_code}\nThời gian: ${o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}\nNhà cung cấp: ${o.supplier_name} (${o.supplier_code})\nCần trả NCC: ${fmt(o.total)} đ\nĐã trả: ${fmt(o.paid_amount)} đ\nChi tiết hàng hóa:\n${itemLines}`;
+    navigator.clipboard.writeText(text);
+    toast.success('Đã sao chép thông tin đơn nhập hàng');
+  };
+
+  const handlePrintPO = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Đơn nhập hàng - ${o.po_code}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #333; }
+            h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 8px; color: #1e3a8a; text-align: center; }
+            .info-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+            .info-table td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+            .info-table td.label { font-weight: bold; background-color: #f9fafb; width: 25%; }
+            .items-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .items-table th, .items-table td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; }
+            .items-table th { background-color: #f3f4f6; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h2>PHIẾU NHẬP HÀNG</h2>
+          <div style="text-align: center; margin-bottom: 20px;">Mã phiếu: <strong>${o.po_code}</strong> | Ngày nhập: ${o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</div>
+          
+          <table class="info-table">
+            <tr><td class="label">Nhà cung cấp</td><td>${o.supplier_name} (${o.supplier_code})</td></tr>
+            <tr><td class="label">Người lập phiếu</td><td>${o.created_by}</td></tr>
+            <tr><td class="label">Người nhận hàng</td><td>${o.received_by}</td></tr>
+            <tr><td class="label">Ghi chú</td><td>${o.note || '---'}</td></tr>
+          </table>
+
+          <h3>DANH SÁCH MẶT HÀNG</h3>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Mã hàng</th>
+                <th>Tên hàng</th>
+                <th class="text-right">Số lượng</th>
+                <th class="text-right">Đơn giá</th>
+                <th class="text-right">Giảm giá</th>
+                <th class="text-right">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${o.items?.map(it => `
+                <tr>
+                  <td>${it.product_sku}</td>
+                  <td><strong>${it.product_name}</strong></td>
+                  <td class="text-right">${it.quantity}</td>
+                  <td class="text-right">${fmt(it.unit_price)}</td>
+                  <td class="text-right">${fmt(it.discount)}</td>
+                  <td class="text-right"><strong>${fmt(it.total)}</strong></td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colSpan="5" class="text-right">Tổng cộng tiền hàng:</td>
+                <td class="text-right">${fmt(o.subtotal || o.total)}</td>
+              </tr>
+              <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colSpan="5" class="text-right">Giảm giá:</td>
+                <td class="text-right">${fmt(o.discount_amount)}</td>
+              </tr>
+              <tr style="font-weight: bold; background-color: #f9fafb; color: #1d4ed8;">
+                <td colSpan="5" class="text-right">Cần trả NCC:</td>
+                <td class="text-right">${fmt(o.total)}</td>
+              </tr>
+              <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colSpan="5" class="text-right">Đã thanh toán:</td>
+                <td class="text-right">${fmt(o.paid_amount)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <tr id={`detail-${o.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
@@ -96,13 +218,13 @@ export default function PurchaseOrderDetail({
 
               {/* Action Buttons */}
               <div className="flex flex-wrap justify-end gap-2 my-2">
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" onClick={handlePrintBarcodes} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Printer size={15} className="text-gray-500" /> In mã vạch
                 </Button>
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" onClick={handleCopyPO} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Copy size={15} className="text-gray-500" /> Sao chép
                 </Button>
-                <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
+                <Button variant="secondary" onClick={handlePrintPO} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
                   <Printer size={15} className="text-gray-500" /> In đơn
                 </Button>
                 <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-2.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold shadow-sm">

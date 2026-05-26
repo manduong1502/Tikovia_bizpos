@@ -73,12 +73,12 @@ export default function LoginPage() {
       } else {
         const res = await api.post('/auth/login', { username, password });
         if (res.data.token) {
+          // Disable tenant subdomain redirection to keep only 1 default shop
+          /*
           const tenantSubdomain = res.data.tenant?.subdomain;
           const hostname = window.location.hostname.toLowerCase();
           const port = window.location.port;
 
-          // If the user logs in from the main base domain (e.g. bizpos.tikovia.vn or localhost),
-          // we redirect them to their specific tenant subdomain.
           const isBaseDomain = hostname === 'bizpos.tikovia.vn' || hostname === 'localhost';
 
           if (isBaseDomain && tenantSubdomain) {
@@ -89,7 +89,11 @@ export default function LoginPage() {
             window.location.href = `http://${targetHost}/login?token=${res.data.token}`;
             return;
           }
+          */
 
+          if (res.data.tenant?.subdomain) {
+            localStorage.setItem('tenant_subdomain', res.data.tenant.subdomain);
+          }
           localStorage.setItem('token', res.data.token);
           localStorage.setItem('user', JSON.stringify(res.data.user));
           if (target === 'pos') {
