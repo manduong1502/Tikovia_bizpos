@@ -904,8 +904,6 @@ export default function ProductsPage() {
             </tbody>
           </table>
         </div>
-
-        </div>
         <Pagination
           totalItems={filtered.length}
           pageSize={perPage}
@@ -914,6 +912,7 @@ export default function ProductsPage() {
           onPageSizeChange={setPerPage}
           itemName="hàng hóa"
         />
+        </div>
       </div>
 
       {/* Product Create/Edit Modal */}

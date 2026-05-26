@@ -30,8 +30,9 @@ export default function ReportsPage() {
   const d = data || {};
 
   return (
-    <div className="flex flex-col gap-4 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full mb-1">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
         <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Báo cáo</h1>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <Dropdown
@@ -46,6 +47,7 @@ export default function ReportsPage() {
           />
           <Button icon={<Download size={16} />} className="shadow-sm w-full sm:w-auto justify-center text-xs sm:text-sm whitespace-nowrap cursor-pointer" onClick={() => { const rows = (d.top_products || []).map(p => ({ name: p.name, quantity: p.quantity || p.total_quantity, revenue: p.revenue || p.total_revenue })); exportCSV([{key:'name',label:'Sản phẩm'},{key:'quantity',label:'SL bán'},{key:'revenue',label:'Doanh thu'}], rows, 'bao_cao'); toast.success('Xuất file thành công'); }}>Xuất file</Button>
         </div>
+      </div>
       </div>
 
       {/* Tab navigation */}
@@ -111,7 +113,7 @@ export default function ReportsPage() {
 
       {/* Detail table */}
       <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-x-auto max-w-full mb-8">
-        <table className="w-full text-sm min-w-[600px]">
+        <table className="w-full text-xs min-w-[600px]">
           <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 border-b border-gray-100 font-bold tracking-wider">
             <tr>
               <th className="px-6 py-4 text-left">Ngày</th>

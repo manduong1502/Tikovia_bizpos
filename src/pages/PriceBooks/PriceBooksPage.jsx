@@ -358,10 +358,10 @@ export default function PriceBooksPage() {
   };
 
   return (
-    <div className="flex-1 bg-gray-50/50 min-h-screen p-1.5 sm:p-4 font-sans max-w-full overflow-x-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 mb-3 sm:mb-4 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
-        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+        <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Bảng giá chung
         </h1>
 
@@ -464,60 +464,62 @@ export default function PriceBooksPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative lg:h-[calc(100vh-144px)]">
+      <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 md:top-[102px] bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[118px] lg:max-h-[calc(100vh-144px)] lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto custom-scrollbar lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
-          {/* Nhóm hàng */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
-              <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
+          <div className="w-64 shrink-0 flex flex-col gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
+            {/* Nhóm hàng */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm hàng</span>
+                <button className="text-primary text-xs font-bold hover:underline cursor-pointer bg-transparent border-none">Tạo mới</button>
+              </div>
+              <CategoryFilter
+                categories={categories}
+                products={products}
+                selectedIds={filters.selectedCategories}
+                onApply={(ids) => setFilters((prev) => ({ ...prev, selectedCategories: ids }))}
+              />
             </div>
-            <CategoryFilter
-              categories={categories}
-              products={products}
-              selectedIds={filters.selectedCategories}
-              onApply={(ids) => setFilters((prev) => ({ ...prev, selectedCategories: ids }))}
-            />
-          </div>
 
-          <hr className="border-gray-100" />
+            <hr className="border-gray-100" />
 
-          {/* Tồn kho */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tồn kho</span>
-            <Dropdown
-              value={filters.stock}
-              options={STOCK_OPTIONS}
-              onChange={(v) => setFilters((prev) => ({ ...prev, stock: v }))}
-            />
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Giá bán */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giá bán</span>
-            <div className="flex flex-col gap-3">
+            {/* Tồn kho */}
+            <div>
+              <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tồn kho</span>
               <Dropdown
-                value={filters.priceCond}
-                options={PRICE_COND_OPTIONS}
-                onChange={(v) => setFilters((prev) => ({ ...prev, priceCond: v }))}
+                value={filters.stock}
+                options={STOCK_OPTIONS}
+                onChange={(v) => setFilters((prev) => ({ ...prev, stock: v }))}
               />
-              <Dropdown
-                value={filters.priceComp}
-                options={PRICE_COMPARE_OPTIONS}
-                onChange={(v) => setFilters((prev) => ({ ...prev, priceComp: v }))}
-              />
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* Giá bán */}
+            <div>
+              <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giá bán</span>
+              <div className="flex flex-col gap-3">
+                <Dropdown
+                  value={filters.priceCond}
+                  options={PRICE_COND_OPTIONS}
+                  onChange={(v) => setFilters((prev) => ({ ...prev, priceCond: v }))}
+                />
+                <Dropdown
+                  value={filters.priceComp}
+                  options={PRICE_COMPARE_OPTIONS}
+                  onChange={(v) => setFilters((prev) => ({ ...prev, priceComp: v }))}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -587,7 +589,7 @@ export default function PriceBooksPage() {
                         <td key={col.key} className="py-2.5 px-3 text-right">
                           <input
                             type="text"
-                            className="w-32 border border-gray-200 rounded-xl px-3 py-1.5 text-right text-xs font-bold text-gray-800 focus:border-primary outline-none focus:ring-1 focus:ring-primary shadow-sm bg-white transition-all float-right"
+                            className="w-32 border border-gray-200 rounded-lg px-2 py-0.5 text-right text-xs font-bold text-gray-800 focus:border-primary outline-none focus:ring-1 focus:ring-primary shadow-sm bg-white transition-all float-right"
                             defaultValue={fmt(p.sellPrice)}
                             onBlur={(e) => {
                               const newVal = e.target.value;

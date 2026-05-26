@@ -369,9 +369,9 @@ export default function CashbookPage() {
   };
 
   return (
-    <div className="flex flex-col gap-2 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden bg-gray-50/50 min-h-screen">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Search and Action bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 max-w-full">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 w-full">
           <div className="flex items-center gap-2 flex-1 w-full lg:w-auto">
             <button
@@ -499,14 +499,14 @@ export default function CashbookPage() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 items-start max-w-full relative">
+      <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Mobile Filter Sidebar backdrop */}
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/40 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-12 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:sticky lg:top-[90px] lg:h-[calc(100vh-130px)] lg:w-[260px] lg:p-0 lg:shadow-none lg:bg-transparent lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-4`}>
+        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -1054,17 +1054,14 @@ export default function CashbookPage() {
             </table>
           </div>
 
-          {/* Footer Active Pagination */}
-          <div className="mt-auto border-t border-gray-100 p-4 bg-gray-50/50">
-            <Pagination
-              totalItems={filteredEntries.length}
-              pageSize={pageSize}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={setPageSize}
-              itemName="phiếu thu chi"
-            />
-          </div>
+          <Pagination
+            totalItems={filteredEntries.length}
+            pageSize={pageSize}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemName="phiếu thu chi"
+          />
         </div>
       </div>
 

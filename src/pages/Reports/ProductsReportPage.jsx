@@ -225,7 +225,7 @@ export default function ProductsReportPage() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 p-1.5 sm:p-4 bg-gray-50/50 min-h-screen text-[13px] text-gray-800 animate-page-in items-start">
+    <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 bg-transparent font-sans w-full relative items-start animate-page-in text-[13px] text-gray-800">
       
       {/* ─── SIDEBAR FILTERS ─── */}
       <aside className="w-full lg:w-[260px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col gap-5 z-20 sticky top-4">

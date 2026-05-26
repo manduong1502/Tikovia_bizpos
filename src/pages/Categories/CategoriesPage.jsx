@@ -252,18 +252,19 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5 animate-page-in p-1.5 sm:p-4 max-w-full overflow-x-hidden">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 max-w-full">
-        <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 tracking-tight flex items-center gap-3 m-0">Nhóm hàng</h1>
-        <Button
-          variant="primary"
-          icon={<Plus size={16} />}
-          onClick={() => openCreateModal()}
-          className="shadow-md hover:shadow-lg bg-gradient-to-r from-primary to-blue-600 border-none w-full sm:w-auto justify-center text-xs sm:text-sm py-2 sm:py-2.5 px-4 rounded-xl cursor-pointer"
-        >
-          Thêm nhóm hàng
-        </Button>
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full">
+          <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">Nhóm hàng</h1>
+          <Button
+            variant="primary"
+            onClick={() => openCreateModal()}
+            className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap cursor-pointer shrink-0"
+          >
+            <Plus size={16} /> <span className="hidden sm:inline">Thêm nhóm hàng</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

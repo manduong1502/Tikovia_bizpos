@@ -1482,7 +1482,7 @@ export default function SuppliersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-sm min-w-[800px]">
+            <table className="w-full text-xs min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="py-2.5 px-3 w-12 text-center">
