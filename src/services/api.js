@@ -241,7 +241,13 @@ export const orderAPI = {
     const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
     return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
   }),
-  getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true }).then(r => normalizeOrderDetail(r.data)).catch(() => normalizeOrderDetail(FALLBACK_ORDERS.find(o => o.id === Number(id)))),
+  getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true })
+    .then(r => normalizeOrderDetail(r.data))
+    .catch(() => {
+      const found = LOCAL_ADDED_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id)
+        || FALLBACK_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id);
+      return normalizeOrderDetail(found);
+    }),
   create: (data) => api.post('/orders', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
     console.warn("create order API failed", err);
     const newId = Date.now();
@@ -364,6 +370,10 @@ export const returnAPI = {
     if (res && !res.orderId && data.orderId) res.orderId = data.orderId;
     if (res && !res.order_id && data.orderId) res.order_id = data.orderId;
     return res;
+  }),
+  getById: (id) => api.get(`/returns/${id}`, { hideErrorToast: true }).then(r => r.data).catch(() => {
+    const found = [...LOCAL_ADDED_RETURNS, ...FALLBACK_RETURNS].find(o => o.id === Number(id) || o.id === id || o.code === id);
+    return found ? (LOCAL_UPDATED_RETURNS[found.id] ? { ...found, ...LOCAL_UPDATED_RETURNS[found.id] } : found) : null;
   }),
 };
 
@@ -637,11 +647,24 @@ export const supplierAPI = {
 };
 
 let FALLBACK_PURCHASE_ORDERS = [
-  { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Citigo', total: 4550000, paid_amount: 4550000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-  { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 3200000, paid_amount: 3200000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-  { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 1850000, paid_amount: 1850000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-  { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
-  { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '' },
+  { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Citigo', total: 4550000, paid_amount: 4550000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+    { id: 1, product_sku: 'SP001', product_name: 'Coca Cola 330ml', quantity: 250, unit_price: 10000, total: 2500000 },
+    { id: 6, product_sku: 'SP006', product_name: 'Bột giặt OMO 3kg', quantity: 24, unit_price: 85000, total: 2040000 }
+  ] },
+  { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 3200000, paid_amount: 3200000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+    { id: 2, product_sku: 'SP002', product_name: 'Pepsi 330ml', quantity: 320, unit_price: 10000, total: 3200000 }
+  ] },
+  { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 1850000, paid_amount: 1850000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+    { id: 7, product_sku: 'SP007', product_name: 'Nước rửa chén Sunlight', quantity: 50, unit_price: 35000, total: 1750000 },
+    { id: 1, product_sku: 'SP001', product_name: 'Coca Cola 330ml', quantity: 10, unit_price: 10000, total: 100000 }
+  ] },
+  { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+    { id: 4, product_sku: 'SP004', product_name: 'Mì Hảo Hảo tôm chua cay', quantity: 1000, unit_price: 5000, total: 5000000 },
+    { id: 5, product_sku: 'SP005', product_name: 'Snack Oishi tôm', quantity: 50, unit_price: 8000, total: 400000 }
+  ] },
+  { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
+    { id: 10, product_sku: 'SP010', product_name: 'Vở Campus 200 trang', quantity: 140, unit_price: 15000, total: 2100000 }
+  ] },
 ];
 let LOCAL_ADDED_PURCHASE_ORDERS = loadLocalState('ADDED_PO', []);
 let LOCAL_UPDATED_PURCHASE_ORDERS = loadLocalState('UPD_PO', {});
@@ -665,7 +688,13 @@ export const purchaseOrderAPI = {
     const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
     return [...toAdd, ...list];
   }),
-  getById: (id) => api.get(`/purchase-orders/${id}`).then(r => r.data),
+  getById: (id) => api.get(`/purchase-orders/${id}`, { hideErrorToast: true })
+    .then(r => r.data)
+    .catch(() => {
+      const found = LOCAL_ADDED_PURCHASE_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.po_code === id)
+        || FALLBACK_PURCHASE_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.po_code === id);
+      return found || null;
+    }),
   create: (data) => api.post('/purchase-orders', data, { hideErrorToast: true }).then(r => {
     const suppId = Number(data.supplierId || data.supplier_id);
     if (suppId) {
@@ -718,7 +747,9 @@ export const purchaseOrderAPI = {
 };
 
 let FALLBACK_PURCHASE_RETURNS = [
-  { id: 1, code: 'THN000001', createdAt: '2026-05-16T15:35:00Z', supplier: { name: 'Công ty Pharmedic' }, total: 0, discount: 0, paid: 0, status: 'COMPLETED' },
+  { id: 1, code: 'THN000001', createdAt: '2026-05-16T15:35:00Z', created_at: '2026-05-16T15:35:00Z', supplier: { name: 'Công ty Pharmedic' }, supplier_name: 'Công ty Pharmedic', supplier_code: 'NCC003', total: 350000, discount: 0, paid: 350000, status: 'COMPLETED', items: [
+    { id: 1, product_sku: 'SP007', product_name: 'Nước rửa chén Sunlight', quantity: 10, unit_price: 35000, total: 350000 }
+  ] },
 ];
 let LOCAL_ADDED_PURCHASE_RETURNS = loadLocalState('ADDED_PR', []);
 let LOCAL_UPDATED_PURCHASE_RETURNS = loadLocalState('UPD_PR', {});
@@ -757,9 +788,9 @@ export const purchaseReturnAPI = {
     const toAdd = LOCAL_ADDED_PURCHASE_RETURNS.filter(o => !existingCodes.has(o.code));
     return [...toAdd, ...list];
   }),
-  getById: (id) => api.get(`/purchase-returns/${id}`).then(r => r.data).catch(() => {
-    const found = [...LOCAL_ADDED_PURCHASE_RETURNS, ...FALLBACK_PURCHASE_RETURNS].find(o => o.id === Number(id));
-    return found ? (LOCAL_UPDATED_PURCHASE_RETURNS[id] ? { ...found, ...LOCAL_UPDATED_PURCHASE_RETURNS[id] } : found) : null;
+  getById: (id) => api.get(`/purchase-returns/${id}`, { hideErrorToast: true }).then(r => r.data).catch(() => {
+    const found = [...LOCAL_ADDED_PURCHASE_RETURNS, ...FALLBACK_PURCHASE_RETURNS].find(o => o.id === Number(id) || o.id === id || o.code === id);
+    return found ? (LOCAL_UPDATED_PURCHASE_RETURNS[found.id] ? { ...found, ...LOCAL_UPDATED_PURCHASE_RETURNS[found.id] } : found) : null;
   }),
   create: (data) => api.post('/purchase-returns', data, { hideErrorToast: true }).then(r => {
     const suppId = Number(data.supplierId || data.supplier_id);

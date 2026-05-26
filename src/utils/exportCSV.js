@@ -114,6 +114,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
           };
         } else {
           cellStyle.font.bold = false;
+          cellStyle.font.italic = true;
           cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
         }
         

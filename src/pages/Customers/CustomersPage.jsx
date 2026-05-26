@@ -112,11 +112,18 @@ export default function CustomersPage() {
     const tid = toast.loading('Đang tải chi tiết hóa đơn...');
     try {
       const detail = await orderAPI.getById(orderId);
-      setSelectedTx({
-        ...detail,
-        type: 'Bán hàng',
-        partnerName: partnerName
-      });
+      if (detail) {
+        setSelectedTx({
+          ...defaultData,
+          ...detail,
+          type: 'Bán hàng',
+          partnerName: partnerName
+        });
+      } else if (defaultData) {
+        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
+      } else {
+        toast.error('Không tìm thấy chi tiết hóa đơn');
+      }
     } catch (err) {
       console.error(err);
       if (defaultData) {
@@ -540,13 +547,13 @@ export default function CustomersPage() {
     // Get orders for this customer
     const custId = c.id;
     const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
-    const custOrders = orders.filter(o => 
-      o.customerId === custId || 
-      o.customer_id === custId || 
-      o.customer?.id === custId || 
-      o.customer_code === custCode ||
-      o.customer_name === c.name
-    ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
+    const custOrders = orders.filter(o => {
+      const oCustId = o.customerId || o.customer_id || o.customer?.id;
+      if (oCustId) return oCustId === custId;
+      const oCustCode = o.customer_code || o.customer?.code;
+      if (oCustCode) return oCustCode === custCode;
+      return o.customer_name === c.name;
+    }).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
     // Build transactions for debt tab from real orders
     const debtTransactions = [
@@ -563,12 +570,14 @@ export default function CustomersPage() {
           debt: total - paid,
         };
       }),
-      ...cashbooks.filter(cb => 
-        cb.partnerType === 'customer' &&
-        (cb.supplierId === custId || 
-        (cb.partnerName && cb.partnerName === c.name) ||
-        (cb.supplier_code && cb.supplier_code === custCode))
-      ).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH') && !cb.code?.startsWith('TTM')).map(cb => ({
+      ...cashbooks.filter(cb => {
+        if (cb.partnerType !== 'customer') return false;
+        const cbCustId = cb.customerId || cb.supplierId;
+        if (cbCustId) return cbCustId === custId;
+        const cbCustCode = cb.customer_code || cb.supplier_code;
+        if (cbCustCode) return cbCustCode === custCode;
+        return cb.partnerName === c.name;
+      }).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH') && !cb.code?.startsWith('TTM')).map(cb => ({
         code: cb.code,
         type: 'Thanh toán',
         date: cb.createdAt || cb.created_at || cb.date,
@@ -1408,15 +1417,22 @@ export default function CustomersPage() {
           if (!c) return;
           const custId = c.id;
           const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
-          const custOrders = orders.filter(o => 
-            o.customerId === custId || o.customer_id === custId || o.customer?.id === custId || 
-            o.customer_code === custCode || o.customer_name === c.name
-          ).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
+          const custOrders = orders.filter(o => {
+            const oCustId = o.customerId || o.customer_id || o.customer?.id;
+            if (oCustId) return oCustId === custId;
+            const oCustCode = o.customer_code || o.customer?.code;
+            if (oCustCode) return oCustCode === custCode;
+            return o.customer_name === c.name;
+          }).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
-          const custCashbooks = cashbooks.filter(cb => 
-            cb.partnerType === 'customer' && 
-            (cb.supplierId === c.id || (cb.partnerName && cb.partnerName === c.name))
-          );
+          const custCashbooks = cashbooks.filter(cb => {
+            if (cb.partnerType !== 'customer') return false;
+            const cbCustId = cb.customerId || cb.supplierId;
+            if (cbCustId) return cbCustId === custId;
+            const cbCustCode = cb.customer_code || cb.supplier_code;
+            if (cbCustCode) return cbCustCode === custCode;
+            return cb.partnerName === c.name;
+          });
 
           const now = new Date();
           let startDate = new Date(0), endDate = new Date();

@@ -111,28 +111,36 @@ export default function SuppliersPage() {
       let detail = null;
       if (tx.type === 'import') {
         detail = await purchaseOrderAPI.getById(tx.id);
-        setSelectedTx({
-          ...detail,
-          type: 'import',
-          partnerName: partnerName
-        });
+        if (detail) {
+          setSelectedTx({
+            ...detail,
+            type: 'import',
+            partnerName: partnerName
+          });
+        } else {
+          setSelectedTx({ ...tx, partnerName });
+        }
       } else if (tx.type === 'return') {
         detail = await purchaseReturnAPI.getById(tx.id);
-        // Ensure return items have SKU and product name
-        const detailItems = (detail?.items || []).map(it => {
-          const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
-          return {
-            ...it,
-            product_sku: it.product_sku || it.sku || prod?.sku || '',
-            product_name: it.product_name || it.name || prod?.name || '',
-          };
-        });
-        setSelectedTx({
-          ...detail,
-          items: detailItems,
-          type: 'return',
-          partnerName: partnerName
-        });
+        if (detail) {
+          // Ensure return items have SKU and product name
+          const detailItems = (detail?.items || []).map(it => {
+            const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+            return {
+              ...it,
+              product_sku: it.product_sku || it.sku || prod?.sku || '',
+              product_name: it.product_name || it.name || prod?.name || '',
+            };
+          });
+          setSelectedTx({
+            ...detail,
+            items: detailItems,
+            type: 'return',
+            partnerName: partnerName
+          });
+        } else {
+          setSelectedTx({ ...tx, partnerName });
+        }
       } else {
         setSelectedTx({ ...tx, partnerName });
       }
@@ -482,16 +490,20 @@ export default function SuppliersPage() {
     const s = exportModalSupplier;
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
     const supId = s.id;
-    const supPOs = purchaseOrders.filter(po => 
-      po.supplierId === supId || 
-      (po.supplier_code && po.supplier_code === supCode) || 
-      (po.supplier_name && po.supplier_name === s.name)
-    );
-    const supPRs = purchaseReturns.filter(pr => 
-      pr.supplierId === supId || 
-      (pr.supplier_code && pr.supplier_code === supCode) || 
-      (pr.supplier_name && pr.supplier_name === s.name)
-    );
+    const supPOs = purchaseOrders.filter(po => {
+      const poSupId = po.supplierId || po.supplier_id || po.supplier?.id;
+      if (poSupId) return poSupId === supId;
+      const poSupCode = po.supplier_code || po.supplier?.code;
+      if (poSupCode) return poSupCode === supCode;
+      return po.supplier_name === s.name;
+    });
+    const supPRs = purchaseReturns.filter(pr => {
+      const prSupId = pr.supplierId || pr.supplier_id || pr.supplier?.id;
+      if (prSupId) return prSupId === supId;
+      const prSupCode = pr.supplier_code || pr.supplier?.code;
+      if (prSupCode) return prSupCode === supCode;
+      return pr.supplier_name === s.name;
+    });
 
     const tid = toast.loading('Đang chuẩn bị dữ liệu xuất, vui lòng đợi...');
 
@@ -547,11 +559,14 @@ export default function SuppliersPage() {
       endDate = new Date(now.getFullYear(), now.getMonth(), 0);
     }
 
-    const supCashbooks = cashbooks.filter(cb => 
-      cb.supplierId === supId || 
-      (cb.partnerName && cb.partnerName === s.name) ||
-      (cb.supplier_code && cb.supplier_code === supCode)
-    );
+    const supCashbooks = cashbooks.filter(cb => {
+      if (cb.partnerType !== 'supplier') return false;
+      const cbSupId = cb.supplierId || cb.customerId;
+      if (cbSupId) return cbSupId === supId;
+      const cbSupCode = cb.supplier_code || cb.customer_code;
+      if (cbSupCode) return cbSupCode === supCode;
+      return cb.partnerName === s.name;
+    });
 
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
@@ -786,17 +801,21 @@ export default function SuppliersPage() {
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
     const supId = s.id;
     
-    // Match by supplierId OR supplier_code OR supplier_name
-    const supPOs = purchaseOrders.filter(po => 
-      po.supplierId === supId || 
-      (po.supplier_code && po.supplier_code === supCode) || 
-      (po.supplier_name && po.supplier_name === s.name)
-    );
-    const supPRs = purchaseReturns.filter(pr => 
-      pr.supplierId === supId || 
-      (pr.supplier_code && pr.supplier_code === supCode) || 
-      (pr.supplier_name && pr.supplier_name === s.name)
-    );
+    // Match by supplierId OR supplier_code OR supplier_name strictly
+    const supPOs = purchaseOrders.filter(po => {
+      const poSupId = po.supplierId || po.supplier_id || po.supplier?.id;
+      if (poSupId) return poSupId === supId;
+      const poSupCode = po.supplier_code || po.supplier?.code;
+      if (poSupCode) return poSupCode === supCode;
+      return po.supplier_name === s.name;
+    });
+    const supPRs = purchaseReturns.filter(pr => {
+      const prSupId = pr.supplierId || pr.supplier_id || pr.supplier?.id;
+      if (prSupId) return prSupId === supId;
+      const prSupCode = pr.supplier_code || pr.supplier?.code;
+      if (prSupCode) return prSupCode === supCode;
+      return pr.supplier_name === s.name;
+    });
 
     const transactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({
@@ -823,12 +842,14 @@ export default function SuppliersPage() {
         status: pr.status,
         items: pr.items || []
       })),
-      ...cashbooks.filter(cb => 
-        cb.partnerType === 'supplier' &&
-        (cb.supplierId === supId || 
-        (cb.partnerName && cb.partnerName === s.name) ||
-        (cb.supplier_code && cb.supplier_code === supCode))
-      ).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH')).map(cb => ({
+      ...cashbooks.filter(cb => {
+        if (cb.partnerType !== 'supplier') return false;
+        const cbSupId = cb.supplierId || cb.customerId;
+        if (cbSupId) return cbSupId === supId;
+        const cbSupCode = cb.supplier_code || cb.customer_code;
+        if (cbSupCode) return cbSupCode === supCode;
+        return cb.partnerName === s.name;
+      }).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH')).map(cb => ({
         id: cb.id || cb.code,
         code: cb.code,
         type: 'payment',
