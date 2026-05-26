@@ -105,13 +105,17 @@ export default function CustomersPage() {
   const [paymentModalCustomer, setPaymentModalCustomer] = useState(null);
 
   const handleOpenOrder = async (orderId, partnerName, defaultData = null) => {
+    console.log("CustomersPage: handleOpenOrder called for orderId:", orderId, "partnerName:", partnerName, "defaultData:", defaultData);
     if (!orderId) {
+      console.warn("CustomersPage: orderId is missing, using defaultData.");
       if (defaultData) setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
       return;
     }
     const tid = toast.loading('Đang tải chi tiết hóa đơn...');
     try {
+      console.log("CustomersPage: Fetching detail for ID:", orderId);
       const detail = await orderAPI.getById(orderId);
+      console.log("CustomersPage: Fetched detail:", detail);
       if (detail) {
         setSelectedTx({
           ...defaultData,
@@ -120,12 +124,13 @@ export default function CustomersPage() {
           partnerName: partnerName
         });
       } else if (defaultData) {
+        console.warn("CustomersPage: detail is null/undefined. Falling back to defaultData.");
         setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
       } else {
         toast.error('Không tìm thấy chi tiết hóa đơn');
       }
     } catch (err) {
-      console.error(err);
+      console.error("CustomersPage: Exception inside handleOpenOrder:", err);
       if (defaultData) {
         setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
       } else {
