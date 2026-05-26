@@ -241,21 +241,13 @@ export const orderAPI = {
     const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
     return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
   }),
-  getById: (id) => {
-    console.log("orderAPI.getById calling URL:", `/orders/${id}`);
-    return api.get(`/orders/${id}`, { hideErrorToast: true })
-      .then(r => {
-        console.log("orderAPI.getById success response data:", r.data);
-        return normalizeOrderDetail(r.data);
-      })
-      .catch((err) => {
-        console.error("orderAPI.getById network error:", err);
-        const found = LOCAL_ADDED_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id)
-          || FALLBACK_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id);
-        console.log("orderAPI.getById fallback found:", found);
-        return normalizeOrderDetail(found);
-      });
-  },
+  getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true })
+    .then(r => normalizeOrderDetail(r.data))
+    .catch(() => {
+      const found = LOCAL_ADDED_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id)
+        || FALLBACK_ORDERS.find(o => o.id === Number(id) || o.id === id || o.code === id || o.order_code === id);
+      return normalizeOrderDetail(found);
+    }),
   create: (data) => api.post('/orders', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
     console.warn("create order API failed", err);
     const newId = Date.now();
