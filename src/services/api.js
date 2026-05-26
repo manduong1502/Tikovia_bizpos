@@ -256,9 +256,68 @@ export const orderAPI = {
     return newOrder;
   }),
   importExcel: (data) => api.post('/orders/import', data).then(r => r.data),
-  update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data),
+  update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data).catch(() => {
+    const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
+    const oldPaid = Number(existing.paid_amount || existing.paid || 0);
+    const newPaid = Number(data.paid ?? data.paid_amount ?? oldPaid);
+    
+    const updated = {
+      ...existing,
+      ...data,
+      paid_amount: newPaid,
+      paid: newPaid,
+    };
+    LOCAL_UPDATED_ORDERS[id] = updated;
+    persistOrders();
+
+    // Update local customer debt if paid changed
+    const custId = existing.customer_id || existing.customerId;
+    if (custId && newPaid !== oldPaid) {
+      const diffPaid = newPaid - oldPaid;
+      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
+      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
+      
+      LOCAL_UPDATED_CUSTOMERS[custId] = {
+        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
+        debt: Math.max(0, currentDebt - diffPaid)
+      };
+      persistCustomers();
+    }
+
+    return normalizeOrder(updated);
+  }),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
-  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => r.data),
+  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => r.data).catch(() => {
+    const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
+    const updated = {
+      ...existing,
+      status: 'CANCELLED',
+      payment_status: 'cancelled',
+    };
+    LOCAL_UPDATED_ORDERS[id] = updated;
+    persistOrders();
+
+    // Revert customer spent & debt
+    const custId = existing.customer_id || existing.customerId;
+    if (custId) {
+      const total = Number(existing.total || 0);
+      const paid = Number(existing.paid_amount || existing.paid || 0);
+      const debtChange = total - paid;
+      
+      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
+      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
+      const currentSpent = c ? Number(c.total_spent !== undefined ? c.total_spent : c.totalSpent || 0) : 0;
+
+      LOCAL_UPDATED_CUSTOMERS[custId] = {
+        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
+        debt: Math.max(0, currentDebt - debtChange),
+        total_spent: Math.max(0, currentSpent - total)
+      };
+      persistCustomers();
+    }
+
+    return normalizeOrder(updated);
+  }),
   delete: (id) => api.delete(`/orders/${id}`).then(r => r.data),
   return: (id, data) => api.post(`/orders/${id}/return`, data).then(r => r.data),
 };
@@ -343,6 +402,37 @@ export const returnAPI = {
     const found = [...LOCAL_ADDED_RETURNS, ...FALLBACK_RETURNS].find(o => o.id === Number(id) || o.id === id || o.code === id);
     return found ? (LOCAL_UPDATED_RETURNS[found.id] ? { ...found, ...LOCAL_UPDATED_RETURNS[found.id] } : found) : null;
   }),
+  update: (id, data) => api.put(`/returns/${id}`, data).then(r => r.data).catch(() => {
+    LOCAL_UPDATED_RETURNS[id] = { ...(LOCAL_UPDATED_RETURNS[id] || {}), ...data };
+    persistReturns();
+    return { id, ...data };
+  }),
+  cancel: (id) => api.put(`/returns/${id}/cancel`).then(r => r.data).catch(() => {
+    LOCAL_UPDATED_RETURNS[id] = { ...(LOCAL_UPDATED_RETURNS[id] || {}), status: 'CANCELLED' };
+    persistReturns();
+
+    // Revert customer spent & debt in local storage
+    const retObj = LOCAL_ADDED_RETURNS.find(x => x.id === id) || FALLBACK_RETURNS.find(x => x.id === id);
+    if (retObj && retObj.customer_id) {
+      const custId = retObj.customer_id;
+      const returnTotal = Number(retObj.total || 0);
+      const paidCustomer = Number(retObj.paid_customer || retObj.paid || 0);
+      const debtDecrease = returnTotal - paidCustomer;
+      
+      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
+      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
+      const currentReturn = c ? Number(c.total_return !== undefined ? c.total_return : c.totalReturn || 0) : 0;
+
+      LOCAL_UPDATED_CUSTOMERS[custId] = {
+        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
+        debt: currentDebt + debtDecrease,
+        total_return: Math.max(0, currentReturn - returnTotal)
+      };
+      persistCustomers();
+    }
+
+    return { id, status: 'CANCELLED' };
+  }),
 };
 
 // ─── Customers ───
@@ -395,6 +485,7 @@ export const customerAPI = {
     const toAdd = LOCAL_ADDED_CUSTOMERS.map(normalizeCustomer).filter(c => c && !existingCodes.has(c.code));
     return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
   }),
+  getAllSimple: () => customerAPI.getAll({ limit: 1000 }).then(res => res.data || res),
   getById: (id) => api.get(`/customers/${id}`, { hideErrorToast: true }).then(r => normalizeCustomer(r.data)).catch(() => normalizeCustomer(FALLBACK_CUSTOMERS.find(c => c.id === Number(id)))),
   create: (data) => api.post('/customers', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
     console.warn("create customer API failed", err);
@@ -414,7 +505,18 @@ export const customerAPI = {
     persistCustomers();
     return { id, ...data };
   }),
-  delete: (id) => api.delete(`/customers/${id}`).then(r => r.data),
+  delete: (id) => api.delete(`/customers/${id}`, { hideErrorToast: true }).then(r => {
+    LOCAL_DELETED_CUSTOMERS.add(Number(id));
+    LOCAL_ADDED_CUSTOMERS = LOCAL_ADDED_CUSTOMERS.filter(c => c.id !== Number(id));
+    persistCustomers();
+    return r.data;
+  }).catch((err) => {
+    console.warn("delete customer API failed, using fallback memory", err);
+    LOCAL_DELETED_CUSTOMERS.add(Number(id));
+    LOCAL_ADDED_CUSTOMERS = LOCAL_ADDED_CUSTOMERS.filter(c => c.id !== Number(id));
+    persistCustomers();
+    return { success: true };
+  }),
 };
 
 // ─── Suppliers ───

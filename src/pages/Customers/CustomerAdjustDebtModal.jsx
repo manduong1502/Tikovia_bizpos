@@ -24,9 +24,8 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
       await customerAPI.update(customer.id, { debt: val });
       toast.success(`Đã điều chỉnh nợ khách hàng thành ${fmt(val)}`);
       onSaved?.();
-    } catch {
-      toast.success(`Đã điều chỉnh nợ khách hàng thành ${fmt(val)}`);
-      onSaved?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi điều chỉnh công nợ');
     }
     onClose();
   };

@@ -7,7 +7,8 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, ClipboardList, Star, Filter, Columns3, Trash2, Copy, Save, MoreHorizontal, Calendar, X, SlidersHorizontal, Eye
 } from 'lucide-react';
-import { exportCSV } from '../../utils/exportUtils';
+import { exportCSV } from '../../utils/exportCSV';
+import { copyToClipboard } from '../../utils/exportUtils';
 import Pagination from '../../components/common/Pagination';
 import { inDateRange } from '../../utils/dateFilterUtils';
 
@@ -131,6 +132,127 @@ export default function ReturnsPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
+  const handleSaveNote = async (id) => {
+    const note = returnNotes[id] ?? '';
+    try {
+      await returnAPI.update(id, { reason: note });
+      toast.success('Lưu ghi chú thành công');
+      reload();
+    } catch (err) {
+      toast.error('Lỗi khi lưu ghi chú');
+    }
+  };
+
+  const handleCancelReturn = async (id, code) => {
+    if (!confirm(`Hủy phiếu trả hàng ${code}?`)) return;
+    try {
+      await returnAPI.cancel(id);
+      toast.success('Hủy phiếu trả hàng thành công');
+      reload();
+      setExpandedId(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi hủy phiếu trả hàng');
+    }
+  };
+
+  const handleCopyCode = async (code) => {
+    await copyToClipboard(code);
+    toast.success(`Đã sao chép mã phiếu: ${code}`);
+  };
+
+  const handlePrintReturn = (o) => {
+    const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+    const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
+    const customerName = o.customer_name || 'Khách lẻ';
+    const items = o.items || [];
+    
+    const returnHTML = `
+        <style>
+          .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
+          .inv-logo-container { text-align: center; margin-bottom: 5px; }
+          .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
+          .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+          .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
+          .inv-table th { font-weight: bold; text-align: center; }
+          .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary td { padding: 3px 0; border: none !important; }
+          .inv-summary .label { text-align: right; padding-right: 15px; }
+          .inv-summary .value { text-align: right; width: 70px; }
+          .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
+            .inv-wrap { padding: 5mm 4mm 0 4mm; width: 70mm; margin: 0 auto; }
+          }
+        </style>
+        <div class="inv-wrap">
+          <div class="inv-logo-container">
+            <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
+          </div>
+          <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+          <div class="inv-info">Điện Thoại: 0796.637.194</div>
+          <div class="inv-title">PHIẾU TRẢ HÀNG</div>
+          <div class="inv-code-date">${o.code} - ${dateStr}</div>
+
+          <div class="inv-customer-info">
+            <div>Khách hàng: ${customerName}</div>
+            <div>SĐT: ${o.customer?.phone || ''}</div>
+          </div>
+
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">Mặt hàng</th>
+                <th style="width: 25px;">SL</th>
+                <th style="text-align: right;">Đơn giá</th>
+                <th style="text-align: right;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => `
+                <tr>
+                  <td>${it.product_name || ''}</td>
+                  <td style="text-align: center;">${it.quantity}</td>
+                  <td style="text-align: right;">${f(it.price || 0)}</td>
+                  <td style="text-align: right;">${f(it.total || 0)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <table class="inv-summary">
+            <tr>
+              <td class="label">Tổng tiền hàng trả:</td>
+              <td class="value">${f(o.total)}</td>
+            </tr>
+            <tr>
+              <td class="label">Phí trả hàng:</td>
+              <td class="value">${f(o.discount || 0)}</td>
+            </tr>
+            <tr>
+              <td class="label">Tiền trả khách:</td>
+              <td class="value">${f(o.paid || 0)}</td>
+            </tr>
+          </table>
+
+          <div class="inv-footer">
+            <div style="margin-top: 5px;">Ghi chú: ${o.reason || o.note || ''}</div>
+          </div>
+        </div>
+      `;
+    
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(`<html><head><title>In phiếu trả hàng</title></head><body onload="window.print();window.close();">${returnHTML}</body></html>`);
+      printWin.document.close();
+    }
+  };
+
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
@@ -204,18 +326,18 @@ export default function ReturnsPage() {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    const data = dataToExport.map(o => ({
-      'Mã trả hàng': o.code,
-      'Thời gian': o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
-      'Mã KH': o.customer_code,
-      'Khách hàng': o.customer_name,
-      'Tổng tiền hàng': o.total,
-      'Cần trả khách': o.must_pay_customer,
-      'Đã trả khách': o.paid_customer,
-      'Trạng thái': STATUS_LABEL[o.status] || o.status,
-    }));
-    exportCSV(data, 'DanhSachTraHang');
-    toast.success('Xuất file thành công');
+    exportCSV('tra_hang', ['Mã trả hàng', 'Thời gian', 'Mã KH', 'Khách hàng', 'Tổng tiền hàng', 'Cần trả khách', 'Đã trả khách', 'Trạng thái'],
+      dataToExport.map(o => [
+        o.code,
+        o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
+        o.customer_code || '---',
+        o.customer_name || 'Khách lẻ',
+        o.total || 0,
+        o.must_pay_customer || 0,
+        o.paid_customer || 0,
+        STATUS_LABEL[o.status] || o.status
+      ])
+    );
   };
 
   const toggleSelectAll = () => {
@@ -350,10 +472,40 @@ export default function ReturnsPage() {
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="flex items-center justify-end border-t border-gray-200 pt-3 mt-1.5">
-                <div className="flex items-center gap-3">
-                  <Button variant="secondary" className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold border-none cursor-pointer">
+              <div className="flex items-center justify-between border-t border-gray-200 pt-3 mt-1.5">
+                <div className="flex items-center gap-2">
+                  {o.status !== 'CANCELLED' && (
+                    <Button 
+                      variant="danger" 
+                      onClick={() => handleCancelReturn(o.id, o.code)} 
+                      className="flex items-center gap-1.5 text-xs py-1 px-3 shadow-sm font-bold whitespace-nowrap"
+                    >
+                      <Trash2 size={14} /> Hủy phiếu
+                    </Button>
+                  )}
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => handleCopyCode(o.code)} 
+                    className="flex items-center gap-1.5 text-xs py-1 px-3 shadow-sm font-bold whitespace-nowrap"
+                  >
+                    <Copy size={14} /> Sao chép
+                  </Button>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => handleSaveNote(o.id)} 
+                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold whitespace-nowrap"
+                  >
                     <Save size={14} /> Lưu
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    onClick={() => handlePrintReturn(o)} 
+                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold whitespace-nowrap"
+                  >
+                    <Printer size={14} /> In
                   </Button>
                 </div>
               </div>
@@ -363,6 +515,10 @@ export default function ReturnsPage() {
       </tr>
     );
   };
+
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumMustPay = filtered.reduce((s, o) => s + Number(o.must_pay_customer || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_customer || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
@@ -562,6 +718,18 @@ export default function ReturnsPage() {
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-50">
+                {/* Summary row */}
+                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                  <td colSpan={2}></td>
+                  {visibleColumns.includes('code') && <td></td>}
+                  {visibleColumns.includes('created_at') && <td></td>}
+                  {visibleColumns.includes('customer_code') && <td></td>}
+                  {visibleColumns.includes('customer_name') && <td></td>}
+                  {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotal)}</td>}
+                  {visibleColumns.includes('must_pay_customer') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumMustPay)}</td>}
+                  {visibleColumns.includes('paid_customer') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumPaid)}</td>}
+                  {visibleColumns.includes('status') && <td></td>}
+                </tr>
                 {paginated.map(o => {
                   const isSelected = selectedIds.has(o.id);
                   const isStarred = starred.has(o.id);

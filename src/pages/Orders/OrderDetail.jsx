@@ -15,7 +15,7 @@ function Badge({ status }) {
   return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{labels[status] || status}</span>;
 }
 
-export default function OrderDetail({ order, onReload, onClose }) {
+export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) {
   const o = order;
   const [tab, setTab] = useState('info');
   const items = o._items || o.items || [];
@@ -24,8 +24,13 @@ export default function OrderDetail({ order, onReload, onClose }) {
   const handleCancel = async () => {
     if (o.status === 'cancelled') return toast.error('Đã hủy rồi');
     if (!confirm(`Hủy hóa đơn ${o.order_code}?`)) return;
-    try { await orderAPI.cancel(o.id); toast.success('Hủy thành công'); onReload(); onClose(); } catch {
-      toast.success('Hủy thành công'); onReload(); onClose();
+    try { 
+      await orderAPI.cancel(o.id); 
+      toast.success('Hủy thành công'); 
+      onReload(); 
+      onClose(); 
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi hủy hóa đơn');
     }
   };
 
@@ -36,8 +41,12 @@ export default function OrderDetail({ order, onReload, onClose }) {
 
   const handleSaveNote = async () => {
     const note = document.querySelector(`textarea[data-oid="${o.id}"]`)?.value || '';
-    try { await orderAPI.update(o.id, { note }); toast.success('Lưu ghi chú thành công'); } catch {
-      toast.success('Lưu ghi chú thành công');
+    try { 
+      await orderAPI.update(o.id, { note }); 
+      toast.success('Lưu ghi chú thành công'); 
+      onReload();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi lưu ghi chú');
     }
   };
 
@@ -155,7 +164,7 @@ export default function OrderDetail({ order, onReload, onClose }) {
   };
 
   return (
-    <td colSpan={11} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
+    <td colSpan={colSpan} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
       <div className="p-3 sm:p-6 max-w-full overflow-x-hidden">
         {/* Top Tabs */}
         <div className="flex gap-4 sm:gap-4 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">

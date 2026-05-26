@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Search, Plus, Calendar, Clock, HelpCircle, ChevronDown, Check } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
-import { cashbookAPI } from '../../services/api';
+import { cashbookAPI, customerAPI, supplierAPI } from '../../services/api';
 import NumericInput from '../../components/ui/NumericInput';
 
 export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) {
@@ -31,6 +31,11 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [showPartnerTypeDropdown, setShowPartnerTypeDropdown] = useState(false);
 
+  // Autocomplete suggestions states
+  const [partnerSuggestions, setPartnerSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPartnerId, setSelectedPartnerId] = useState(null);
+
   // Sub-modal (Tạo đối tượng nhận/nộp) states
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [partnerForm, setPartnerForm] = useState({
@@ -47,6 +52,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
   const catRef = useRef(null);
   const accRef = useRef(null);
   const partRef = useRef(null);
+  const partnerSearchRef = useRef(null);
 
   // Predefined Categories
   const baseIncomeCategories = ['Thu nhập khác', 'Chuyển/Rút'];
@@ -84,6 +90,9 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
       setShowCatDropdown(false);
       setShowAccountDropdown(false);
       setShowPartnerTypeDropdown(false);
+      setSelectedPartnerId(null);
+      setPartnerSuggestions([]);
+      setShowSuggestions(false);
     }
   }, [open, type, isThu]);
 
@@ -93,6 +102,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
       if (catRef.current && !catRef.current.contains(event.target)) setShowCatDropdown(false);
       if (accRef.current && !accRef.current.contains(event.target)) setShowAccountDropdown(false);
       if (partRef.current && !partRef.current.contains(event.target)) setShowPartnerTypeDropdown(false);
+      if (partnerSearchRef.current && !partnerSearchRef.current.contains(event.target)) setShowSuggestions(false);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -101,6 +111,55 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
   if (!open) return null;
 
   const f = (key, val) => setForm(p => ({ ...p, [key]: val }));
+
+  const handlePartnerSearch = async (val) => {
+    f('payer_name', val);
+    setSelectedPartnerId(null);
+    if (!val || val.trim().length === 0) {
+      setPartnerSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      if (form.partnerType === 'customer') {
+        const res = await customerAPI.getAll({ search: val, limit: 10 });
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setPartnerSuggestions(list);
+        setShowSuggestions(list.length > 0);
+      } else if (form.partnerType === 'supplier') {
+        const res = await supplierAPI.getAll({ search: val, limit: 10 });
+        const list = Array.isArray(res) ? res : (res?.data || []);
+        setPartnerSuggestions(list);
+        setShowSuggestions(list.length > 0);
+      } else {
+        setPartnerSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setPartnerSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectPartner = (partner) => {
+    f('payer_name', partner.name);
+    f('payer_phone', partner.phone || '');
+    f('payer_address', partner.address || '');
+    setSelectedPartnerId(partner.id);
+    setPartnerSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  const handlePartnerTypeChange = (type) => {
+    f('partnerType', type);
+    f('payer_name', '');
+    f('payer_phone', '');
+    f('payer_address', '');
+    setSelectedPartnerId(null);
+    setPartnerSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   // Form submission
   const handleSubmit = async (shouldPrint = false) => {
@@ -128,13 +187,15 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
         note: form.note,
         branch: 'Chi nhánh trung tâm',
         createdBy: form.createdBy,
+        customerId: form.partnerType === 'customer' ? selectedPartnerId : null,
+        supplierId: form.partnerType === 'supplier' ? selectedPartnerId : null,
       });
 
       toast.success(`Tạo phiếu ${isThu ? 'thu' : 'chi'} thành công ${shouldPrint ? '& Đã in' : ''}`);
       onSaved?.();
       onClose();
-    } catch {
-      toast.error('Có lỗi xảy ra khi lưu phiếu');
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi lưu phiếu');
     } finally {
       setSaving(false);
     }
@@ -405,7 +466,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
                         <div 
                           key={t.key}
                           onClick={() => {
-                            f('partnerType', t.key);
+                            handlePartnerTypeChange(t.key);
                             setShowPartnerTypeDropdown(false);
                           }}
                           className="px-3 py-1.5 text-xs font-semibold hover:bg-blue-50 hover:text-primary cursor-pointer transition-colors"
@@ -418,13 +479,16 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
                 </div>
 
                 {/* Tên & Nút tạo mới */}
-                <div className="flex-1 flex flex-col gap-1 relative">
+                <div className="flex-1 flex flex-col gap-1 relative" ref={partnerSearchRef}>
                   <input 
                     type="text" 
                     placeholder={`Tìm hoặc nhập tên người ${isThu ? 'nộp' : 'nhận'}`}
                     className="w-full border border-gray-200 rounded-xl pl-3.5 pr-20 py-2.5 text-xs font-semibold outline-none focus:border-primary transition-all"
                     value={form.payer_name}
-                    onChange={e => f('payer_name', e.target.value)}
+                    onChange={e => handlePartnerSearch(e.target.value)}
+                    onFocus={() => {
+                      if (partnerSuggestions.length > 0) setShowSuggestions(true);
+                    }}
                   />
                   <button 
                     onClick={() => setPartnerModalOpen(true)}
@@ -432,6 +496,23 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
                   >
                     Tạo mới
                   </button>
+
+                  {/* Suggestions Autocomplete Dropdown */}
+                  {showSuggestions && partnerSuggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-30 py-1.5 max-h-[200px] overflow-y-auto custom-scrollbar">
+                      {partnerSuggestions.map(p => (
+                        <div 
+                          key={p.id}
+                          onClick={() => handleSelectPartner(p)}
+                          className="px-3.5 py-2 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col gap-0.5 border-b border-gray-50 last:border-none"
+                        >
+                          <span className="text-xs font-bold text-gray-800">{p.name} ({p.code || `KH${String(p.id).padStart(6, '0')}`})</span>
+                          {p.phone && <span className="text-[10px] text-gray-500 font-semibold">SĐT: {p.phone}</span>}
+                          {p.address && <span className="text-[10px] text-gray-400 truncate">{p.address}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

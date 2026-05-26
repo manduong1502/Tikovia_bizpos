@@ -255,7 +255,7 @@ export default function OrdersPage() {
 
   const [filters, setFilters] = useState({
     orderDate: { mode: 'all', label: 'Tháng này', start: null, end: null },
-    status: '',
+    statuses: new Set(['completed', 'pending', 'processing', 'failed']),
     deliveryStatus: '',
     deliveryPartner: '',
     deliveryDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
@@ -267,7 +267,6 @@ export default function OrdersPage() {
   const reload = useCallback(async () => {
     try {
       const params = { page: 1, limit: 500 };
-      if (filters.status) params.status = filters.status;
       const r = await orderAPI.getAll(params);
       const rawList = Array.isArray(r) ? r : (r?.data || []);
       if (rawList.length === 0) {
@@ -283,7 +282,7 @@ export default function OrdersPage() {
     } catch {
       setOrders([]);
     }
-  }, [filters.status]);
+  }, []);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -307,6 +306,8 @@ export default function OrdersPage() {
       if (qCode && !(o.order_code || '').toLowerCase().includes(qCode)) return false;
       if (qCust && !(o.customer_name || '').toLowerCase().includes(qCust) && !(o.customer_code || '').toLowerCase().includes(qCust)) return false;
       if (qProd && !o.items?.some(it => (it.product_sku || '').toLowerCase().includes(qProd) || (it.product_name || '').toLowerCase().includes(qProd))) return false;
+
+      if (filters.statuses && !filters.statuses.has(o.status || 'completed')) return false;
 
       if (filters.deliveryStatus && o.delivery_status !== filters.deliveryStatus) return false;
       if (filters.deliveryPartner && o.delivery_partner !== filters.deliveryPartner) return false;
@@ -682,8 +683,7 @@ export default function OrdersPage() {
                                         toast.success('Cập nhật trạng thái thanh toán thành công!');
                                         reload();
                                       } catch (err) {
-                                        toast.success('Cập nhật trạng thái thanh toán thành công!');
-                                        setOrders(prev => prev.map(item => item.id === o.id ? { ...item, paid_amount: num } : item));
+                                        toast.error(err.response?.data?.message || err.message || 'Cập nhật trạng thái thanh toán thất bại!');
                                       }
                                     }
                                   }}
@@ -702,7 +702,7 @@ export default function OrdersPage() {
                     {/* Expanded Detail View */}
                     {isExpanded && (
                       <tr id={`detail-${o.id}`}>
-                        <OrderDetail order={o} onReload={reload} onClose={() => setExpandedId(null)} />
+                        <OrderDetail order={o} onReload={reload} onClose={() => setExpandedId(null)} colSpan={visibleColumns.length + 2} />
                       </tr>
                     )}
                   </>

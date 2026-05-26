@@ -523,17 +523,64 @@ export default function CustomersPage() {
     );
   };
 
+  const handleSaveNote = async (id, noteText) => {
+    const tid = toast.loading('Đang lưu ghi chú...');
+    try {
+      await customerAPI.update(id, { note: noteText });
+      setCustomers(prev => prev.map(c => c.id === id ? { ...c, note: noteText } : c));
+      toast.success('Lưu thông tin thành công', { id: tid });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi lưu ghi chú', { id: tid });
+    }
+  };
+
+  const handlePrintCustomer = (c) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Thông tin khách hàng - ${c.code || `KH${String(c.id).padStart(6, '0')}`}</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; color: #333; }
+            h2 { border-bottom: 2px solid #3b82f6; padding-bottom: 8px; color: #1e3a8a; }
+            .info-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .info-table td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+            .info-table td.label { font-weight: bold; background-color: #f9fafb; width: 30%; }
+          </style>
+        </head>
+        <body>
+          <h2>THÔNG TIN KHÁCH HÀNG</h2>
+          <table class="info-table">
+            <tr><td class="label">Mã KH</td><td>${c.code || `KH${String(c.id).padStart(6, '0')}`}</td></tr>
+            <tr><td class="label">Tên khách hàng</td><td>${c.name}</td></tr>
+            <tr><td class="label">Điện thoại</td><td>${c.phone || '---'}</td></tr>
+            <tr><td class="label">Email</td><td>${c.email || '---'}</td></tr>
+            <tr><td class="label">Địa chỉ</td><td>${c.address || '---'}</td></tr>
+            <tr><td class="label">Nợ hiện tại</td><td>${fmt(c.debt || c.totalDebt || 0)} VNĐ</td></tr>
+            <tr><td class="label">Tổng bán</td><td>${fmt(c.total_spent || c.totalSpent || 0)} VNĐ</td></tr>
+            <tr><td class="label">Loại khách hàng</td><td>${c.customerType || 'Cá nhân'}</td></tr>
+            <tr><td class="label">Ghi chú</td><td>${c.note || '---'}</td></tr>
+          </table>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa khách hàng này?')) return;
+    const tid = toast.loading('Đang xóa khách hàng...');
     try {
       await customerAPI.delete(id);
       setCustomers(prev => prev.filter(c => c.id !== id));
       setExpandedId(null);
-      toast.success('Xóa khách hàng thành công');
-    } catch {
-      setCustomers(prev => prev.filter(c => c.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa khách hàng thành công');
+      toast.success('Xóa khách hàng thành công', { id: tid });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa khách hàng', { id: tid });
     }
   };
 
@@ -680,13 +727,13 @@ export default function CustomersPage() {
                     <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-4 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
                       <Edit size={13} /> Chỉnh sửa
                     </Button>
-                    <Button variant="secondary" onClick={() => toast.success('Lưu thông tin thành công')} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => handleSaveNote(c.id, currentNote)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Save size={13} /> Lưu
                     </Button>
                     <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                       Thanh toán nợ
                     </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
+                    <Button variant="secondary" onClick={() => handlePrintCustomer(c)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
                       <Printer size={13} /> In
                     </Button>
                     <Button variant="secondary" className="p-1.5 shadow-sm flex-none">

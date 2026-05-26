@@ -61,9 +61,8 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
       await customerAPI.update(customer.id, { debt: Math.max(0, currentDebt - val) });
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
       onSaved?.();
-    } catch {
-      toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
-      onSaved?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi thanh toán nợ');
     }
     onClose();
   };

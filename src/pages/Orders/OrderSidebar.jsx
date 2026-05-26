@@ -39,24 +39,34 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái hóa đơn</span>
         <div className="flex flex-col gap-2.5">
           {[
-            { label: 'Đang xử lý', val: 'processing' },
-            { label: 'Hoàn thành', val: 'completed', checked: true },
+            { label: 'Đang xử lý', val: 'pending', extraVal: 'processing' },
+            { label: 'Hoàn thành', val: 'completed' },
             { label: 'Không giao được', val: 'failed' },
             { label: 'Đã hủy', val: 'cancelled' },
-          ].map(s => (
-            <label key={s.val} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-              <input
-                type="checkbox"
-                defaultChecked={s.checked}
-                className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                onChange={e => {
-                  if (e.target.checked && s.val === 'completed') set('status', '');
-                  else if (!e.target.checked && s.val === 'completed') set('status', 'cancelled');
-                }}
-              />
-              <span>{s.label}</span>
-            </label>
-          ))}
+          ].map(s => {
+            const isChecked = filters.statuses?.has(s.val);
+            return (
+              <label key={s.val} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                  onChange={() => {
+                    const next = new Set(filters.statuses);
+                    if (next.has(s.val)) {
+                      next.delete(s.val);
+                      if (s.extraVal) next.delete(s.extraVal);
+                    } else {
+                      next.add(s.val);
+                      if (s.extraVal) next.add(s.extraVal);
+                    }
+                    onFilterChange(prev => ({ ...prev, statuses: next }));
+                  }}
+                />
+                <span>{s.label}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
 

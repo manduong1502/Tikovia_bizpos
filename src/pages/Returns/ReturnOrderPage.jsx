@@ -24,6 +24,7 @@ export default function ReturnOrderPage() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showSku, setShowSku] = useState(true);
 
   // New state for searching
   const [customers, setCustomers] = useState([]);
@@ -204,6 +205,101 @@ export default function ReturnOrderPage() {
     setItems(prev => prev.filter(it => it.id !== id));
   };
 
+  const handlePrintPreview = () => {
+    const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+    const customerName = customer ? customer.name : 'Khách lẻ';
+    
+    const returnHTML = `
+        <style>
+          .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
+          .inv-logo-container { text-align: center; margin-bottom: 5px; }
+          .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
+          .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+          .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
+          .inv-table th { font-weight: bold; text-align: center; }
+          .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary td { padding: 3px 0; border: none !important; }
+          .inv-summary .label { text-align: right; padding-right: 15px; }
+          .inv-summary .value { text-align: right; width: 70px; }
+          .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
+            .inv-wrap { padding: 5mm 4mm 0 4mm; width: 70mm; margin: 0 auto; }
+          }
+        </style>
+        <div class="inv-wrap">
+          <div class="inv-logo-container">
+            <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
+          </div>
+          <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+          <div class="inv-info">Điện Thoại: 0796.637.194</div>
+          <div class="inv-title">XEM TRƯỚC PHIẾU TRẢ HÀNG</div>
+          <div class="inv-code-date">Bản xem trước - ${new Date().toLocaleString('vi-VN')}</div>
+
+          <div class="inv-customer-info">
+            <div>Khách hàng: ${customerName}</div>
+            <div>SĐT: ${customer?.phone || ''}</div>
+          </div>
+
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">Mặt hàng</th>
+                <th style="width: 25px;">SL</th>
+                <th style="text-align: right;">Đơn giá</th>
+                <th style="text-align: right;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => `
+                <tr>
+                  <td>${it.name || ''}</td>
+                  <td style="text-align: center;">${it.return_quantity}</td>
+                  <td style="text-align: right;">${f(it.return_price || 0)}</td>
+                  <td style="text-align: right;">${f((parseFloat(it.return_quantity) || 0) * it.return_price)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <table class="inv-summary">
+            <tr>
+              <td class="label">Tổng tiền hàng trả:</td>
+              <td class="value">${f(totalReturnGoods)}</td>
+            </tr>
+            <tr>
+              <td class="label">Phí trả hàng:</td>
+              <td class="value">${f(returnFee)}</td>
+            </tr>
+            <tr>
+              <td class="label">Cần trả khách:</td>
+              <td class="value">${f(customerMustReceive)}</td>
+            </tr>
+            <tr>
+              <td class="label">Thực tế trả khách:</td>
+              <td class="value">${f(actualPaid)}</td>
+            </tr>
+          </table>
+
+          <div class="inv-footer">
+            <div style="margin-top: 5px;">Ghi chú: ${note || ''}</div>
+          </div>
+        </div>
+      `;
+    
+    const printWin = window.open('', '_blank');
+    if (printWin) {
+      printWin.document.write(`<html><head><title>Xem trước phiếu trả hàng</title></head><body onload="window.print();window.close();">${returnHTML}</body></html>`);
+      printWin.document.close();
+    }
+  };
+
   const handleSaveReturn = async () => {
     const validItems = items.filter(it => (parseFloat(it.return_quantity) || 0) > 0);
     if (validItems.length === 0) {
@@ -221,6 +317,8 @@ export default function ReturnOrderPage() {
           quantity: Number(it.return_quantity),
           price: Number(it.return_price)
         })),
+        discount: returnFee,
+        paid: actualPaid,
         reason: note || ''
       };
 
@@ -254,8 +352,8 @@ export default function ReturnOrderPage() {
         </div>
 
         <div className="flex items-center gap-2 text-gray-600">
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="Ẩn/hiện cột"><Eye size={18} /></button>
+          <button onClick={handlePrintPreview} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
+          <button onClick={() => setShowSku(!showSku)} className={`p-2 rounded-xl cursor-pointer transition-colors border-none bg-transparent ${showSku ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-100'}`} title="Ẩn/hiện cột Mã hàng"><Eye size={18} /></button>
           <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors text-amber-600 border-none bg-transparent" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
         </div>
       </div>
@@ -271,7 +369,7 @@ export default function ReturnOrderPage() {
                   <tr className="bg-gray-50/80 text-gray-700 text-xs font-bold border-b border-gray-200 sticky top-0 z-10 shadow-sm">
                     <th className="py-3.5 px-4 w-12 text-center"></th>
                     <th className="py-3.5 px-4 w-16 text-center">STT</th>
-                    <th className="py-3.5 px-4 w-32">Mã hàng</th>
+                    {showSku && <th className="py-3.5 px-4 w-32">Mã hàng</th>}
                     <th className="py-3.5 px-4 flex-1">Tên hàng</th>
                     <th className="py-3.5 px-4 w-24 text-center">ĐVT</th>
                     <th className="py-3.5 px-4 w-36 text-right">Số lượng</th>
@@ -292,7 +390,7 @@ export default function ReturnOrderPage() {
                         </button>
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
-                      <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
+                      {showSku && <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>}
                       <td className="py-3 px-4">
                         <div className="font-bold text-gray-900 mb-1">{it.name}</div>
                         <div className="flex items-center gap-1.5">

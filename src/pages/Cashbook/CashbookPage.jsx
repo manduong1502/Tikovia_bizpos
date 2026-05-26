@@ -328,16 +328,73 @@ export default function CashbookPage() {
     toast.success('Xuất file thành công');
   };
 
+  const handlePrintEntry = (e) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const isInc = e.type === 'INCOME' || e.type === 'thu' || e.type === 'in';
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Phiếu ${isInc ? 'thu' : 'chi'} - ${e.code}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.5; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+            .code { font-size: 14px; font-style: italic; color: #666; }
+            .info-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .info-table td { padding: 8px 12px; border: 1px solid #e5e7eb; }
+            .info-table td.label { font-weight: bold; background-color: #f9fafb; width: 35%; }
+            .footer-sig { margin-top: 40px; display: flex; justify-content: space-between; }
+            .sig-box { text-align: center; width: 45%; }
+            .sig-title { font-weight: bold; margin-bottom: 50px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">PHIẾU ${isInc ? 'THU' : 'CHI'}</div>
+            <div class="code">Số: ${e.code}</div>
+            <div style="font-size: 12px;">Ngày: ${e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : ''}</div>
+          </div>
+          <table class="info-table">
+            <tr><td class="label">Người ${isInc ? 'nộp tiền' : 'nhận tiền'}</td><td>${e.partnerName || '---'}</td></tr>
+            <tr><td class="label">Số điện thoại</td><td>${e.partnerPhone || '---'}</td></tr>
+            <tr><td class="label">Địa chỉ</td><td>${e.partnerAddress || '---'}</td></tr>
+            <tr><td class="label">Loại thu chi</td><td>${e.category || '---'}</td></tr>
+            <tr><td class="label">Số tiền</td><td><strong>${fmt(e.amount)} VNĐ</strong></td></tr>
+            <tr><td class="label">Ghi chú</td><td>${e.note || '---'}</td></tr>
+            <tr><td class="label">Người tạo</td><td>${e.createdBy || '---'}</td></tr>
+            <tr><td class="label">Chi nhánh</td><td>${e.branch || 'Chi nhánh trung tâm'}</td></tr>
+          </table>
+          <div class="footer-sig">
+            <div class="sig-box">
+              <div class="sig-title">Người ${isInc ? 'nộp' : 'nhận'} tiền</div>
+              <div>(Ký, ghi rõ họ tên)</div>
+            </div>
+            <div class="sig-box">
+              <div class="sig-title">Thủ quỹ</div>
+              <div>(Ký, ghi rõ họ tên)</div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const handleCancelEntry = async (id) => {
     if (!window.confirm('Bạn có chắc chắn muốn hủy phiếu này không?')) return;
+    const tid = toast.loading('Đang hủy phiếu quỹ...');
     try {
       await cashbookAPI.cancel(id);
-      toast.success('Hủy phiếu thành công');
+      toast.success('Hủy phiếu thành công', { id: tid });
       reload();
-    } catch {
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi hủy phiếu quỹ', { id: tid });
       // If server failed, do it locally for premium flow
       setEntries(prev => prev.map(e => e.id === id ? { ...e, status: 'cancelled' } : e));
-      toast.success('Hủy phiếu thành công (giả lập)');
     }
   };
 
@@ -888,7 +945,7 @@ export default function CashbookPage() {
                         )}
                         {visibleColumns.includes('partnerCode') && (
                           <td className="py-2.5 px-3 text-xs text-gray-600 font-bold">
-                            {e.partnerType === 'customer' ? 'KH0001' : (e.partnerType === 'supplier' ? 'NCC0001' : '—')}
+                            {e.partnerType === 'customer' ? (e.customer?.code || '—') : (e.partnerType === 'supplier' ? (e.supplier?.code || '—') : '—')}
                           </td>
                         )}
                         {visibleColumns.includes('partnerName') && (
@@ -1025,7 +1082,10 @@ export default function CashbookPage() {
                                     <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 border border-gray-200 bg-white rounded-xl transition-all shadow-sm cursor-pointer">
                                       <Edit size={14} /> Sửa
                                     </button>
-                                    <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 border border-gray-200 bg-white rounded-xl transition-all shadow-sm cursor-pointer">
+                                    <button 
+                                      onClick={() => handlePrintEntry(e)}
+                                      className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 border border-gray-200 bg-white rounded-xl transition-all shadow-sm cursor-pointer"
+                                    >
                                       <Printer size={14} /> In
                                     </button>
                                   </div>
