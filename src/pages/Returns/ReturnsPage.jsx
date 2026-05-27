@@ -124,13 +124,33 @@ export default function ReturnsPage() {
     try {
       const r = await returnAPI.getAll({ limit: 500 });
       const rawList = Array.isArray(r) ? r : (r.data || []);
-      setReturns(rawList.map(normalizeReturn));
+      setReturns(prev => {
+        const nextList = rawList.map(normalizeReturn);
+        return nextList.map(item => {
+          const prevItem = prev.find(p => p.id === item.id);
+          if (prevItem && prevItem.items && prevItem.items.length > 0) {
+            return { ...item, items: prevItem.items };
+          }
+          return item;
+        });
+      });
     } catch {
       setReturns([]);
     }
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  const loadDetail = async (id) => {
+    try {
+      const r = await returnAPI.getById(id);
+      if (r) {
+        setReturns(prev => prev.map(o => o.id === id ? normalizeReturn({ ...o, ...r }) : o));
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết phiếu trả hàng:", err);
+    }
+  };
 
   const handleSaveNote = async (id) => {
     const note = returnNotes[id] ?? '';
@@ -743,6 +763,7 @@ export default function ReturnsPage() {
                           const nextId = isExpanded ? null : o.id;
                           setExpandedId(nextId);
                           if (nextId) {
+                            loadDetail(nextId);
                             scrollRowIntoView(nextId);
                           }
                         }}

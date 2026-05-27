@@ -277,7 +277,15 @@ export default function OrdersPage() {
         ];
         setOrders(mockOrders);
       } else {
-        setOrders(rawList);
+        setOrders(prev => {
+          return rawList.map(item => {
+            const prevItem = prev.find(p => p.id === item.id);
+            if (prevItem && prevItem._items) {
+              return { ...item, _items: prevItem._items };
+            }
+            return item;
+          });
+        });
       }
     } catch {
       setOrders([]);
