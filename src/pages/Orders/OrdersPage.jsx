@@ -255,7 +255,7 @@ export default function OrdersPage() {
 
   const [filters, setFilters] = useState({
     orderDate: { mode: 'all', label: 'Tháng này', start: null, end: null },
-    statuses: new Set(['completed', 'pending', 'processing', 'failed']),
+    statuses: new Set(['completed', 'pending', 'processing', 'failed', 'shipping']),
     deliveryStatus: '',
     deliveryPartner: '',
     deliveryDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },

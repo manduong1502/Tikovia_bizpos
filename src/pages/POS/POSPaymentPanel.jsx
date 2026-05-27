@@ -113,6 +113,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
         driverId: customer ? (currentInvoice.driverId || '') : null,
         driverName: customer ? (currentInvoice.driverName || 'Chưa gán') : null,
         deliveryStatus: customer ? (currentInvoice.deliveryStatus || 'ASSIGNED') : null,
+        latitude: customer ? (customer.latitude ? Number(customer.latitude) : null) : null,
+        longitude: customer ? (customer.longitude ? Number(customer.longitude) : null) : null,
       };
 
       let newOrder;
@@ -296,7 +298,28 @@ export default function POSPaymentPanel({ forceShow = false }) {
           <span style={{ color: 'var(--pos-text-muted)', marginRight: '12px' }}><User size={20} /></span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--pos-primary)' }}>{customer.name}</div>
-            {(customer.totalDebt || 0) > 0 && <div style={{ fontSize: '12px', color: 'var(--pos-danger)', marginTop: '4px', fontWeight: '500' }}>Nợ: {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+              {(customer.totalDebt || 0) > 0 && <span style={{ fontSize: '12px', color: 'var(--pos-danger)', fontWeight: '500' }}>Nợ: {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}</span>}
+              <button 
+                type="button" 
+                onClick={() => setShowCustomerModal(true)} 
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  border: 'none', 
+                  background: 'none', 
+                  padding: 0, 
+                  cursor: 'pointer', 
+                  fontSize: '11px', 
+                  fontWeight: '700',
+                  color: (!customer.latitude || !customer.longitude) ? '#ef4444' : '#3b5fe4' 
+                }}
+              >
+                <Pin size={12} className={(!customer.latitude || !customer.longitude) ? 'animate-bounce' : ''} />
+                {(!customer.latitude || !customer.longitude) ? 'Cập nhật vị trí' : 'Sửa / Xem vị trí'}
+              </button>
+            </div>
           </div>
           <button onClick={() => updateCurrentInvoice({ customer: null })} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--pos-text-muted)', transition: 'color 0.2s' }} onMouseOver={e=>e.currentTarget.style.color='var(--pos-danger)'} onMouseOut={e=>e.currentTarget.style.color='var(--pos-text-muted)'}><X size={18} /></button>
         </div>
@@ -497,6 +520,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
       {showCustomerModal && (
         <CustomerModal 
           open={showCustomerModal} 
+          customer={customer}
           onClose={() => setShowCustomerModal(false)}
           onSaved={(newCustomer) => {
             if (newCustomer) {

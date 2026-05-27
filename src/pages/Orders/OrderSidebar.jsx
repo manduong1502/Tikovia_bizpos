@@ -39,7 +39,7 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái hóa đơn</span>
         <div className="flex flex-col gap-2.5">
           {[
-            { label: 'Đang xử lý', val: 'pending', extraVal: 'processing' },
+            { label: 'Đang xử lý', val: 'pending', extraVals: ['processing', 'shipping'] },
             { label: 'Hoàn thành', val: 'completed' },
             { label: 'Không giao được', val: 'failed' },
             { label: 'Đã hủy', val: 'cancelled' },
@@ -53,12 +53,12 @@ export default function OrderSidebar({ filters, onFilterChange }) {
                   className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                   onChange={() => {
                     const next = new Set(filters.statuses);
-                    if (next.has(s.val)) {
-                      next.delete(s.val);
-                      if (s.extraVal) next.delete(s.extraVal);
+                    const allVals = [s.val, ...(s.extraVals || [])];
+                    const hasAll = allVals.every(v => next.has(v));
+                    if (hasAll) {
+                      allVals.forEach(v => next.delete(v));
                     } else {
-                      next.add(s.val);
-                      if (s.extraVal) next.add(s.extraVal);
+                      allVals.forEach(v => next.add(v));
                     }
                     onFilterChange(prev => ({ ...prev, statuses: next }));
                   }}

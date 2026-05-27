@@ -10,8 +10,8 @@ const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 const PAY_LABEL = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Quẹt thẻ' };
 
 function Badge({ status }) {
-  const map = { completed: 'bg-green-100 text-green-700 border border-green-200', paid: 'bg-green-100 text-green-700 border border-green-200', cancelled: 'bg-gray-100 text-gray-500 border border-gray-200', partial: 'bg-yellow-100 text-yellow-700 border border-yellow-200', unpaid: 'bg-red-100 text-red-600 border border-red-200' };
-  const labels = { completed: 'Hoàn thành', paid: 'Hoàn thành', cancelled: 'Đã hủy', partial: '1 phần', unpaid: 'Chưa TT' };
+  const map = { completed: 'bg-green-100 text-green-700 border border-green-200', paid: 'bg-green-100 text-green-700 border border-green-200', cancelled: 'bg-gray-100 text-gray-500 border border-gray-200', partial: 'bg-yellow-100 text-yellow-700 border border-yellow-200', unpaid: 'bg-red-100 text-red-600 border border-red-200', shipping: 'bg-blue-100 text-blue-700 border border-blue-200' };
+  const labels = { completed: 'Hoàn thành', paid: 'Hoàn thành', cancelled: 'Đã hủy', partial: '1 phần', unpaid: 'Chưa TT', shipping: 'Đang giao' };
   return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{labels[status] || status}</span>;
 }
 
