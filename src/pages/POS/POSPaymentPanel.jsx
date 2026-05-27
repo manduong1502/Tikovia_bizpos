@@ -104,8 +104,15 @@ export default function POSPaymentPanel({ forceShow = false }) {
         })),
         paymentMethod: 'CASH',
         discount: Number(discountAmount || 0),
-        paid: finalPaid,
-        note: currentInvoice.note || null
+        paid: customer ? 0 : finalPaid,
+        note: currentInvoice.note || null,
+        status: customer ? 'SHIPPING' : 'COMPLETED',
+        deliveryAddress: customer ? (currentInvoice.deliveryAddress || customer.address || '') : null,
+        receiverName: customer ? (currentInvoice.receiverName || customer.name) : null,
+        receiverPhone: customer ? (currentInvoice.receiverPhone || customer.phone || '') : null,
+        driverId: customer ? (currentInvoice.driverId || '') : null,
+        driverName: customer ? (currentInvoice.driverName || 'Chưa gán') : null,
+        deliveryStatus: customer ? (currentInvoice.deliveryStatus || 'ASSIGNED') : null,
       };
 
       let newOrder;
@@ -119,7 +126,9 @@ export default function POSPaymentPanel({ forceShow = false }) {
       
       toast.success(isEditMode 
         ? `Cập nhật hóa đơn thành công! (${currentInvoice._editOrderCode})` 
-        : `Tạo đơn hàng thành công! ${isDebt ? `(Ghi nợ: ${new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))})` : ''}`
+        : customer 
+          ? 'Tạo đơn giao hàng thành công!' 
+          : `Tạo đơn hàng thành công! ${isDebt ? `(Ghi nợ: ${new Intl.NumberFormat('vi-VN').format(Math.abs(changeAmount))})` : ''}`
       );
       
       const dateStr = new Date().toLocaleString('vi-VN');

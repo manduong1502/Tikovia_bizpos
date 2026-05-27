@@ -73,6 +73,12 @@ export function POSProvider({ children }) {
       isPaymentMode: false,
       _editOrderId: editOrder.id,
       _editOrderCode: editOrder.code,
+      deliveryAddress: editOrder.deliveryAddress || '',
+      receiverName: editOrder.receiverName || '',
+      receiverPhone: editOrder.receiverPhone || '',
+      driverId: editOrder.driverId || '',
+      driverName: editOrder.driverName || 'Chưa gán',
+      deliveryStatus: editOrder.deliveryStatus || 'ASSIGNED',
     };
     setInvoices(prev => [...prev, editInvoice]);
     setActiveTabId(nextTabId);
