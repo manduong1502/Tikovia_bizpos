@@ -45,15 +45,19 @@ export function POSProvider({ children }) {
     loadData();
   }, []);
 
-  // Handle editOrder from navigation state
+  // Handle editOrder or copyOrder from navigation state
   useEffect(() => {
     const editOrder = location.state?.editOrder;
-    if (!editOrder || products.length === 0) return;
+    const copyOrder = location.state?.copyOrder;
+    const targetOrder = editOrder || copyOrder;
+    if (!targetOrder || products.length === 0) return;
+
+    const prefix = editOrder ? 'Update' : 'Copy';
     // Avoid re-creating if tab already exists
-    const existingTab = invoices.find(inv => inv.label === `Update_${editOrder.code}`);
+    const existingTab = invoices.find(inv => inv.label === `${prefix}_${targetOrder.code}`);
     if (existingTab) { setActiveTabId(existingTab.id); return; }
 
-    const editCart = (editOrder.items || []).map(it => {
+    const editCart = (targetOrder.items || []).map(it => {
       const prod = products.find(p => p.id === it.productId || p.sku === it.product_sku);
       return {
         product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: Number(it.unit_price || it.price || 0), stock: 9999 },
@@ -65,20 +69,22 @@ export function POSProvider({ children }) {
 
     const editInvoice = {
       id: nextTabId,
-      label: `Update_${editOrder.code}`,
+      label: `${prefix}_${targetOrder.code}`,
       cart: editCart,
-      customer: editOrder.customer || null,
-      note: editOrder.note || '',
+      customer: targetOrder.customer || null,
+      note: targetOrder.note || '',
       discount: 0,
       isPaymentMode: false,
-      _editOrderId: editOrder.id,
-      _editOrderCode: editOrder.code,
-      deliveryAddress: editOrder.deliveryAddress || '',
-      receiverName: editOrder.receiverName || '',
-      receiverPhone: editOrder.receiverPhone || '',
-      driverId: editOrder.driverId || '',
-      driverName: editOrder.driverName || 'Chưa gán',
-      deliveryStatus: editOrder.deliveryStatus || 'ASSIGNED',
+      ...(editOrder ? {
+        _editOrderId: editOrder.id,
+        _editOrderCode: editOrder.code,
+      } : {}),
+      deliveryAddress: targetOrder.deliveryAddress || '',
+      receiverName: targetOrder.receiverName || '',
+      receiverPhone: targetOrder.receiverPhone || '',
+      driverId: targetOrder.driverId || '',
+      driverName: targetOrder.driverName || 'Chưa gán',
+      deliveryStatus: targetOrder.deliveryStatus || 'ASSIGNED',
     };
     setInvoices(prev => [...prev, editInvoice]);
     setActiveTabId(nextTabId);

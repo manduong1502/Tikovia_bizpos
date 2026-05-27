@@ -34,9 +34,24 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
     }
   };
 
-  const handleCopy = async () => {
-    await copyToClipboard(o.order_code);
-    toast.success(`Đã sao chép: ${o.order_code}`);
+  const handleCopy = () => {
+    navigate('/pos', {
+      state: {
+        copyOrder: {
+          id: o.id,
+          code: o.order_code,
+          items: items,
+          customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null,
+          note: o.note,
+          deliveryAddress: o.deliveryAddress || '',
+          receiverName: o.receiverName || '',
+          receiverPhone: o.receiverPhone || '',
+          driverId: o.driverId || '',
+          driverName: o.driverName || 'Chưa gán',
+          deliveryStatus: o.deliveryStatus || 'ASSIGNED'
+        }
+      }
+    });
   };
 
   const handleSaveNote = async () => {
