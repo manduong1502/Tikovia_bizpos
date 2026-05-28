@@ -103,6 +103,8 @@ export default function ReturnsPage() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [starred, setStarred] = useState(new Set());
   const [expandedId, setExpandedId] = useState(null);
+  const expandedIdRef = useRef(null);
+  expandedIdRef.current = expandedId;
 
   const [visibleColumns, setVisibleColumns] = useState(
     ALL_COLUMNS.filter(c => c.default).map(c => c.key)
@@ -129,6 +131,14 @@ export default function ReturnsPage() {
         return nextList.map(item => {
           const prevItem = prev.find(p => p.id === item.id);
           if (prevItem && prevItem.items && prevItem.items.length > 0) {
+            const prevTime = prevItem.updatedAt ? new Date(prevItem.updatedAt).getTime() : 0;
+            const currTime = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+            if (prevTime !== currTime) {
+              if (expandedIdRef.current === item.id) {
+                setTimeout(() => loadDetail(item.id), 50);
+              }
+              return item;
+            }
             return { ...item, items: prevItem.items };
           }
           return item;
