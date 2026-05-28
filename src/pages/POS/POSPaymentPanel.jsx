@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePOS } from './POSContext';
 import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus } from 'lucide-react';
-import api, { customerAPI } from '../../services/api';
+import api, { customerAPI, orderAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { printHTML } from '../../utils/exportUtils';
 import { useNavigate } from 'react-router-dom';
@@ -119,11 +119,9 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       let newOrder;
       if (isEditMode) {
-        const res = await api.put(`/orders/${currentInvoice._editOrderId}`, orderData);
-        newOrder = res.data?.data || res.data;
+        newOrder = await orderAPI.update(currentInvoice._editOrderId, orderData);
       } else {
-        const res = await api.post('/orders', orderData);
-        newOrder = res.data?.data || res.data;
+        newOrder = await orderAPI.create(orderData);
       }
       
       toast.success(isEditMode 

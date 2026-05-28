@@ -138,6 +138,10 @@ export const brandAPI = {
   create: (data) => api.post('/brands', data).then(r => r.data),
 };
 
+const isNetworkError = (error) => {
+  return !error || !error.response || error.code === 'ERR_NETWORK' || error.message === 'Network Error';
+};
+
 // ─── Orders ───
 // Normalize Prisma camelCase → snake_case keys that OrdersPage uses
 function normalizeOrder(o) {
@@ -203,6 +207,19 @@ export const orderAPI = {
   getAll: (params) => api.get('/orders', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
     list = list.map(normalizeOrder);
+    
+    // Clear local storage updates for these orders since we successfully synced with backend
+    let changed = false;
+    list.forEach(o => {
+      if (LOCAL_UPDATED_ORDERS[o.id]) {
+        delete LOCAL_UPDATED_ORDERS[o.id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistOrders();
+    }
+
     list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
     list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
     const existingCodes = new Set(list.map(o => o.code));
@@ -223,7 +240,10 @@ export const orderAPI = {
       return normalizeOrderDetail(found);
     }),
   create: (data) => api.post('/orders', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
-    console.warn("create order API failed", err);
+    if (!isNetworkError(err)) {
+      throw err;
+    }
+    console.warn("create order API failed (offline)", err);
     const newId = Date.now();
     const custId = data.customer_id || data.customerId;
     const customer = FALLBACK_CUSTOMERS.find(c => c.id === custId) || { name: 'Khách lẻ', code: '' };
@@ -262,7 +282,16 @@ export const orderAPI = {
     return newOrder;
   }),
   importExcel: (data) => api.post('/orders/import', data).then(r => r.data),
-  update: (id, data) => api.put(`/orders/${id}`, data).then(r => r.data).catch(() => {
+  update: (id, data) => api.put(`/orders/${id}`, data).then(r => {
+    if (LOCAL_UPDATED_ORDERS[id]) {
+      delete LOCAL_UPDATED_ORDERS[id];
+      persistOrders();
+    }
+    return r.data;
+  }).catch(err => {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
     const oldPaid = Number(existing.paid_amount || existing.paid || 0);
     const newPaid = Number(data.paid ?? data.paid_amount ?? oldPaid);
@@ -293,7 +322,16 @@ export const orderAPI = {
     return normalizeOrder(updated);
   }),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
-  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => r.data).catch(() => {
+  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => {
+    if (LOCAL_UPDATED_ORDERS[id]) {
+      delete LOCAL_UPDATED_ORDERS[id];
+      persistOrders();
+    }
+    return r.data;
+  }).catch(err => {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
     const updated = {
       ...existing,
@@ -324,7 +362,13 @@ export const orderAPI = {
 
     return normalizeOrder(updated);
   }),
-  delete: (id) => api.delete(`/orders/${id}`).then(r => r.data),
+  delete: (id) => api.delete(`/orders/${id}`).then(r => {
+    if (LOCAL_UPDATED_ORDERS[id]) {
+      delete LOCAL_UPDATED_ORDERS[id];
+      persistOrders();
+    }
+    return r.data;
+  }),
   return: (id, data) => api.post(`/orders/${id}/return`, data).then(r => r.data),
 };
 
@@ -343,6 +387,19 @@ const FALLBACK_RETURNS = [];
 export const returnAPI = {
   getAll: (params) => api.get('/returns', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+    
+    // Clear local storage updates for these returns since we successfully synced with backend
+    let changed = false;
+    list.forEach(o => {
+      if (LOCAL_UPDATED_RETURNS[o.id]) {
+        delete LOCAL_UPDATED_RETURNS[o.id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistReturns();
+    }
+
     list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
     list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
     const existingCodes = new Set(list.map(o => o.code));
@@ -356,7 +413,10 @@ export const returnAPI = {
     return [...toAdd, ...list];
   }),
   create: (data) => api.post('/returns', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
-    console.warn("create return API failed", err);
+    if (!isNetworkError(err)) {
+      throw err;
+    }
+    console.warn("create return API failed (offline)", err);
     const newId = Date.now();
     const orderId = data.orderId || data.order_id;
     const order = FALLBACK_ORDERS.find(o => o.id === orderId) || LOCAL_ADDED_ORDERS.find(o => o.id === orderId) || {};
@@ -408,12 +468,30 @@ export const returnAPI = {
     const found = [...LOCAL_ADDED_RETURNS, ...FALLBACK_RETURNS].find(o => o.id === Number(id) || o.id === id || o.code === id);
     return found ? (LOCAL_UPDATED_RETURNS[found.id] ? { ...found, ...LOCAL_UPDATED_RETURNS[found.id] } : found) : null;
   }),
-  update: (id, data) => api.put(`/returns/${id}`, data).then(r => r.data).catch(() => {
+  update: (id, data) => api.put(`/returns/${id}`, data).then(r => {
+    if (LOCAL_UPDATED_RETURNS[id]) {
+      delete LOCAL_UPDATED_RETURNS[id];
+      persistReturns();
+    }
+    return r.data;
+  }).catch(err => {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     LOCAL_UPDATED_RETURNS[id] = { ...(LOCAL_UPDATED_RETURNS[id] || {}), ...data };
     persistReturns();
     return { id, ...data };
   }),
-  cancel: (id) => api.put(`/returns/${id}/cancel`).then(r => r.data).catch(() => {
+  cancel: (id) => api.put(`/returns/${id}/cancel`).then(r => {
+    if (LOCAL_UPDATED_RETURNS[id]) {
+      delete LOCAL_UPDATED_RETURNS[id];
+      persistReturns();
+    }
+    return r.data;
+  }).catch(err => {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     LOCAL_UPDATED_RETURNS[id] = { ...(LOCAL_UPDATED_RETURNS[id] || {}), status: 'CANCELLED' };
     persistReturns();
 
@@ -479,6 +557,19 @@ export const customerAPI = {
   getAll: (params) => api.get('/customers', { params, hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
     list = list.map(normalizeCustomer);
+
+    // Clear local storage updates for these customers since we successfully synced with backend
+    let changed = false;
+    list.forEach(c => {
+      if (LOCAL_UPDATED_CUSTOMERS[c.id]) {
+        delete LOCAL_UPDATED_CUSTOMERS[c.id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistCustomers();
+    }
+
     list = list.filter(c => c && !LOCAL_DELETED_CUSTOMERS.has(c.id) && !LOCAL_DELETED_CUSTOMERS.has(c.code));
     list = list.map(c => LOCAL_UPDATED_CUSTOMERS[c.id] ? normalizeCustomer({ ...c, ...LOCAL_UPDATED_CUSTOMERS[c.id] }) : c);
     const existingCodes = new Set(list.map(c => c.code));
