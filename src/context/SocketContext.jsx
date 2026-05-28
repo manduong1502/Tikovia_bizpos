@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { notificationAPI } from '../services/api';
+import { useAppStore } from '../stores/appStore';
 
 const SocketContext = createContext(null);
 
@@ -61,7 +62,17 @@ export const SocketProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const orderUpdateCallbacks = useRef(new Set());
-  const token = localStorage.getItem('token');
+
+  const user = useAppStore(s => s.user);
+  const [token, setToken] = useState(localStorage.getItem('token'));
+
+  // Watch for appStore user changes to update the token from localStorage
+  useEffect(() => {
+    const currentToken = localStorage.getItem('token');
+    if (currentToken !== token) {
+      setToken(currentToken);
+    }
+  }, [user, token]);
 
   // Load existing notifications
   const loadNotifications = async () => {

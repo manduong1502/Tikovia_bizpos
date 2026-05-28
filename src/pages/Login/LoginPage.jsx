@@ -4,6 +4,7 @@ import { Eye, EyeOff, Monitor, ShoppingCart, AlertCircle, PlusCircle } from 'luc
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api, { getSubdomain } from '../../services/api';
+import { useAppStore } from '../../stores/appStore';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('admin');
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [tenantError, setTenantError] = useState('');
   const [tenantLoading, setTenantLoading] = useState(true);
   const navigate = useNavigate();
+  const setUser = useAppStore(s => s.setUser);
 
   const currentSubdomain = getSubdomain();
 
@@ -27,7 +29,7 @@ export default function LoginPage() {
       const fetchUserData = async () => {
         try {
           const res = await api.get('/auth/me');
-          localStorage.setItem('user', JSON.stringify(res.data));
+          setUser(res.data);
           toast.success('Đăng nhập thành công!');
           navigate('/dashboard');
         } catch (e) {
@@ -51,7 +53,7 @@ export default function LoginPage() {
       }
     };
     checkTenant();
-  }, [currentSubdomain, navigate]);
+  }, [currentSubdomain, navigate, setUser]);
 
   const handleLogin = async (e, target = 'dashboard') => {
     if (e) e.preventDefault();
@@ -95,7 +97,7 @@ export default function LoginPage() {
             localStorage.setItem('tenant_subdomain', res.data.tenant.subdomain);
           }
           localStorage.setItem('token', res.data.token);
-          localStorage.setItem('user', JSON.stringify(res.data.user));
+          setUser(res.data.user);
           if (target === 'pos') {
             navigate('/pos');
           } else {

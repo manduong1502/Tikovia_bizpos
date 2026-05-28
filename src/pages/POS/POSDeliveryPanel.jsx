@@ -47,6 +47,26 @@ export default function POSDeliveryPanel() {
       return;
     }
     
+    const toastId = toast.loading('Đang định vị địa chỉ giao hàng...');
+    let resolvedLat = null;
+    let resolvedLng = null;
+    
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(deliveryAddress)}&limit=1`, {
+        headers: {
+          'Accept-Language': 'vi-VN',
+          'User-Agent': 'TikoBizPOS/1.0 (contact@tikovia.vn)'
+        }
+      });
+      const data = await res.json();
+      if (data && data.length > 0) {
+        resolvedLat = parseFloat(data[0].lat);
+        resolvedLng = parseFloat(data[0].lon);
+      }
+    } catch (err) {
+      console.error('Nominatim geocoding error during POS checkout:', err);
+    }
+    
     try {
       const orderData = {
         customerId: customer?.id || null,
@@ -66,17 +86,19 @@ export default function POSDeliveryPanel() {
         receiverPhone: receiverPhone,
         driverId: '',
         driverName: 'Chưa gán',
-        deliveryStatus: 'ASSIGNED'
+        deliveryStatus: 'ASSIGNED',
+        latitude: resolvedLat,
+        longitude: resolvedLng
       };
 
       await api.post('/orders', orderData);
       
-      toast.success('Tạo đơn giao hàng thành công!');
+      toast.success('Tạo đơn giao hàng thành công!', { id: toastId });
       clearCurrentInvoice();
       navigate('/invoices');
       
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn giao hàng');
+      toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn giao hàng', { id: toastId });
     }
   };
 

@@ -19,6 +19,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   const [nameError, setNameError] = useState('');
 
   const mapRef = useRef(null);
+  const mapId = `customer-map-${customer?.id || 'new'}`;
 
   const [form, setForm] = useState({
     name: '', code: '', phone: '', email: '', address: '', note: '',
@@ -71,7 +72,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
       const L = window.L;
       if (!L) return;
 
-      const mapContainer = document.getElementById('customer-map');
+      const mapContainer = document.getElementById(mapId);
       if (!mapContainer) return;
 
       // Fix default Leaflet icon paths in React bundle environment
@@ -85,7 +86,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
       const initialLat = Number(form.latitude) || 16.047079;
       const initialLng = Number(form.longitude) || 108.206230;
 
-      const map = L.map('customer-map').setView([initialLat, initialLng], 14);
+      const map = L.map(mapId).setView([initialLat, initialLng], 14);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -109,7 +110,12 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
       
       // If customer has no coordinates but has address, auto geocode as hint
       if (customer && !customer.latitude && !customer.longitude && customer.address) {
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customer.address)}&limit=1`)
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customer.address)}&limit=1`, {
+          headers: {
+            'Accept-Language': 'vi-VN',
+            'User-Agent': 'TikoBizPOS/1.0 (contact@tikovia.vn)'
+          }
+        })
           .then(res => res.json())
           .then(data => {
             if (data && data.length > 0) {
@@ -143,7 +149,12 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     
     const toastId = toast.loading('Đang tìm vị trí trên bản đồ...');
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchVal)}&limit=1`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchVal)}&limit=1`, {
+        headers: {
+          'Accept-Language': 'vi-VN',
+          'User-Agent': 'TikoBizPOS/1.0 (contact@tikovia.vn)'
+        }
+      });
       const data = await res.json();
       if (data && data.length > 0) {
         const newLat = parseFloat(data[0].lat);
@@ -266,7 +277,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
           <div className="md:col-span-2">
             <FormField label="Định vị bản đồ (Kéo thả ghim hoặc click chọn vị trí chính xác)">
               <div 
-                id="customer-map" 
+                id={mapId} 
                 style={{ 
                   height: '240px', 
                   width: '100%', 

@@ -244,14 +244,23 @@ export default function OrdersPage() {
 
   const handleDownloadSample = () => {
     const wb = XLSX.utils.book_new();
-    const headers = ['Mã hóa đơn', 'Mã KH', 'Tên khách hàng', 'Tổng tiền hàng', 'Giảm giá', 'Khách đã trả', 'Ghi chú'];
+    const headers = [
+      'Mã hóa đơn', 'Mã KH', 'Tên khách hàng', 
+      'Mã hàng', 'Tên hàng', 'ĐVT', 'Số lượng', 'Đơn giá', 'Thành tiền',
+      'Tổng tiền hàng', 'Giảm giá', 'Khách đã trả', 'Ghi chú'
+    ];
     const sampleData = [
       headers,
-      ['HD000101', 'KH000001', 'Nguyễn Văn A', 1500000, 50000, 1450000, 'Đơn hàng mua trực tiếp'],
-      ['HD000102', 'KH000002', 'Trần Thị B', 3200000, 200000, 3000000, 'Khách quen'],
+      ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000001', 'Gà ta thả vườn làm sạch', 'Kg', 2, 150000, 300000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
+      ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000002', 'Trứng gà ta sạch', 'Hộp', 1, 35000, 35000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
+      ['HD000102', 'KH000002', 'Trần Thị B', 'SP000003', 'Gà ác làm sạch nguyên con', 'Con', 1, 85000, 85000, 85000, 0, 85000, 'Khách quen'],
     ];
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 25 }];
+    ws['!cols'] = [
+      { wch: 15 }, { wch: 15 }, { wch: 25 }, 
+      { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
+      { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 25 }
+    ];
     XLSX.utils.book_append_sheet(wb, ws, 'OrdersTemplate');
     XLSX.writeFile(wb, 'MauFileHoaDon.xlsx');
   };

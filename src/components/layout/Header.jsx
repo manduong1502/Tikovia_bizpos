@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Truck, HelpCircle, MessageSquare, Bell, Settings, Menu, X, LogOut } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
+import { useAppStore } from '../../stores/appStore';
 
 export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -10,6 +11,9 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
+  
+  const user = useAppStore(s => s.user);
+  const logout = useAppStore(s => s.logout);
 
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useSocket() || {
     notifications: [],
@@ -35,7 +39,7 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    logout();
     toast.success('Đăng xuất thành công');
     navigate('/login');
   };
@@ -151,10 +155,14 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 sm:gap-2.5 cursor-pointer ml-1 sm:ml-2 hover:bg-gray-50 p-1 sm:p-1.5 rounded-xl transition-colors select-none"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-cyan-600 flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-sm">A</div>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-cyan-600 flex items-center justify-center text-white text-xs sm:text-sm font-bold shadow-sm">
+              {(user?.fullName || 'Admin')[0].toUpperCase()}
+            </div>
             <div className="hidden sm:flex flex-col items-start pr-1">
-              <span className="text-[13px] text-gray-800 font-bold leading-tight">Admin</span>
-              <span className="text-[11px] text-gray-400 font-medium">Quản lý</span>
+              <span className="text-[13px] text-gray-800 font-bold leading-tight">{user?.fullName || 'Admin'}</span>
+              <span className="text-[11px] text-gray-400 font-medium">
+                {user?.role === 'ADMIN' ? 'Quản lý' : (user?.role || 'Nhân viên')}
+              </span>
             </div>
           </div>
 
@@ -162,7 +170,7 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
             <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-1 z-[110] animate-fadeIn">
               <div className="px-4 py-2 border-b border-gray-50">
                 <p className="text-xs text-gray-400 font-medium">Tài khoản</p>
-                <p className="text-[13px] font-bold text-gray-800">Admin</p>
+                <p className="text-[13px] font-bold text-gray-800">{user?.fullName || 'Admin'}</p>
               </div>
               <button
                 onClick={handleLogout}

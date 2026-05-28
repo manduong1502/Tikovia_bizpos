@@ -963,7 +963,7 @@ export const purchaseReturnAPI = {
     persistPRs();
     return { id, ...data };
   }),
-  delete: (id) => api.delete(`/purchase-returns/${id}`).then(r => r.data).catch(() => {
+  delete: (id) => api.put(`/purchase-returns/${id}/cancel`).then(r => r.data).catch(() => {
     LOCAL_UPDATED_PURCHASE_RETURNS[id] = { ...(LOCAL_UPDATED_PURCHASE_RETURNS[id] || {}), status: 'CANCELLED' };
     persistPRs();
     return { success: true };

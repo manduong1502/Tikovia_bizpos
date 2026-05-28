@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
 import AppLayout from './components/layout/AppLayout';
@@ -82,7 +82,6 @@ function SuperAdminGuestRoute({ children }) {
 
 function App() {
   const navigate = useNavigate();
-  const location = useLocation();
   const darkMode = useAppStore(s => s.darkMode);
 
   // Apply dark mode class on mount
