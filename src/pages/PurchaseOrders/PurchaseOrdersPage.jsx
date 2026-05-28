@@ -41,8 +41,21 @@ const scrollRowIntoView = (id) => {
   }, 100);
 };
 
-const PAY_BADGE = { paid: 'bg-green-100 text-green-700', partial: 'bg-yellow-100 text-yellow-700', unpaid: 'bg-red-100 text-red-600' };
-const PAY_LABEL = { paid: 'Đã nhập hàng', partial: 'Phiếu tạm', unpaid: 'Đã hủy' };
+const PAY_BADGE = {
+  paid: 'bg-green-50 text-green-700 border border-green-200',
+  partial_paid: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
+  unpaid_completed: 'bg-orange-50 text-orange-700 border border-orange-200',
+  partial: 'bg-blue-50 text-blue-700 border border-blue-200',
+  unpaid: 'bg-red-50 text-red-600 border border-red-200',
+};
+
+const PAY_LABEL = {
+  paid: 'Đã nhập hàng',
+  partial_paid: 'Thanh toán một phần',
+  unpaid_completed: 'Chưa thanh toán',
+  partial: 'Phiếu tạm',
+  unpaid: 'Đã hủy',
+};
 
 const STATUS_OPTIONS = [
   { value: 'partial', label: 'Phiếu tạm' },
@@ -60,33 +73,57 @@ const ALL_COLUMNS = [
   { key: 'payment_status', label: 'Trạng thái', default: true },
 ];
 
-const normalizePO = (o) => ({
-  ...o,
-  id: o.id,
-  po_code: o.po_code || o.code || '',
-  created_at: o.created_at || o.createdAt || null,
-  supplier_code: o.supplier_code || o.supplier?.code || '',
-  supplier_name: o.supplier_name || o.supplier?.name || '',
-  total: Number(o.total || 0),
-  paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || o.total || 0),
-  payment_status: o.payment_status || o.paymentStatus || (o.status === 'PENDING' ? 'partial' : 'paid'),
-  items: Array.isArray(o.items) && o.items.length > 0 ? o.items.map(it => ({
-    ...it,
-    id: it.id,
-    product_sku: it.product_sku || it.product?.sku || '',
-    product_name: it.product_name || it.product?.name || '',
-    quantity: Number(it.quantity || 0),
-    unit_price: Number(it.unit_price || it.price || 0),
-    discount: Number(it.discount || 0),
-    total: Number(it.total || (it.quantity * (it.price || it.unit_price || 0)))
-  })) : [
-    { id: 1, product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 19, unit_price: 150000, discount: 0, total: 2850000 },
-    { id: 2, product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 20, unit_price: 85000, discount: 0, total: 1700000 },
-  ],
-  created_by: o.user_name || o.created_by || 'Võ Thành Huy',
-  received_by: o.received_by || o.user_name || 'Võ Thành Huy',
-  note: o.note || '',
-});
+const normalizePO = (o) => {
+  const total = Number(o.total || 0);
+  const paidVal = o.paid_amount !== undefined ? o.paid_amount : (o.paidAmount !== undefined ? o.paidAmount : (o.paid !== undefined ? o.paid : 0));
+  const paid_amount = Number(paidVal || 0);
+
+  let payment_status = o.payment_status || o.paymentStatus;
+  if (!payment_status) {
+    if (o.status === 'CANCELLED') {
+      payment_status = 'unpaid';
+    } else if (o.status === 'PENDING') {
+      payment_status = 'partial';
+    } else {
+      // COMPLETED
+      if (paid_amount >= total && total > 0) {
+        payment_status = 'paid';
+      } else if (paid_amount > 0 && paid_amount < total) {
+        payment_status = 'partial_paid';
+      } else {
+        payment_status = 'unpaid_completed';
+      }
+    }
+  }
+
+  return {
+    ...o,
+    id: o.id,
+    po_code: o.po_code || o.code || '',
+    created_at: o.created_at || o.createdAt || null,
+    supplier_code: o.supplier_code || o.supplier?.code || '',
+    supplier_name: o.supplier_name || o.supplier?.name || '',
+    total,
+    paid_amount,
+    payment_status,
+    items: Array.isArray(o.items) && o.items.length > 0 ? o.items.map(it => ({
+      ...it,
+      id: it.id,
+      product_sku: it.product_sku || it.product?.sku || '',
+      product_name: it.product_name || it.product?.name || '',
+      quantity: Number(it.quantity || 0),
+      unit_price: Number(it.unit_price || it.price || 0),
+      discount: Number(it.discount || 0),
+      total: Number(it.total || (it.quantity * (it.price || it.unit_price || 0)))
+    })) : [
+      { id: 1, product_sku: 'NSTP00018', product_name: 'Gà ta sạch size 1.4-1.6 kg/con', quantity: 19, unit_price: 150000, discount: 0, total: 2850000 },
+      { id: 2, product_sku: 'NSTP00017', product_name: 'Gà ác làm sạch', quantity: 20, unit_price: 85000, discount: 0, total: 1700000 },
+    ],
+    created_by: o.user_name || o.created_by || 'Võ Thành Huy',
+    received_by: o.received_by || o.user_name || 'Võ Thành Huy',
+    note: o.note || '',
+  };
+};
 
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
@@ -198,7 +235,11 @@ export default function PurchaseOrdersPage() {
       if (qSuppCode && !(o.supplier_code || '').toLowerCase().includes(qSuppCode) && !(o.supplier_name || '').toLowerCase().includes(qSuppCode)) return false;
       if (qProduct && !o.items?.some(it => (it.product_sku || '').toLowerCase().includes(qProduct) || (it.product_name || '').toLowerCase().includes(qProduct))) return false;
 
-      if (!filters.statuses.has(o.payment_status)) return false;
+      let effectiveStatus = o.payment_status;
+      if (o.payment_status === 'partial_paid' || o.payment_status === 'unpaid_completed') {
+        effectiveStatus = 'paid';
+      }
+      if (!filters.statuses.has(effectiveStatus)) return false;
 
       if (filters.dateRange && filters.dateRange.mode === 'all' && filters.dateRange.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filters.dateRange.label);

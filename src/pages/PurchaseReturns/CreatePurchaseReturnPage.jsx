@@ -395,8 +395,8 @@ export default function CreatePurchaseReturnPage() {
     setSaving(true);
     try {
       const payload = {
-        purchaseOrderId: poId ? Number(poId) : null,
-        purchase_order_id: poId ? Number(poId) : null,
+        purchaseOrderId: po ? Number(po.id) : null,
+        purchase_order_id: po ? Number(po.id) : null,
         supplierId: Number(selectedSupplier.id),
         supplier_id: Number(selectedSupplier.id),
         items: validItems.map(it => ({

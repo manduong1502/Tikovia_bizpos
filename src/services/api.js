@@ -948,6 +948,17 @@ export const purchaseReturnAPI = {
       ...data,
       total: returnAmount,
     };
+    if (data.items) {
+      newReturn.items = data.items.map(it => {
+        const p = FALLBACK_PRODUCTS.find(x => x.id === it.productId);
+        return {
+          ...it,
+          product_sku: p ? p.sku : '',
+          product_name: p ? p.name : '',
+          product: p ? { id: p.id, sku: p.sku, name: p.name } : null
+        };
+      });
+    }
     const supplier = FALLBACK_SUPPLIERS.find(s => s.id === suppId) || { name: 'Nhà cung cấp không xác định' };
     newReturn.supplier = supplier;
     newReturn.supplier_name = supplier.name;
