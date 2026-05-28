@@ -78,6 +78,7 @@ export function POSProvider({ children }) {
       ...(editOrder ? {
         _editOrderId: editOrder.id,
         _editOrderCode: editOrder.code,
+        _editOrderStatus: targetOrder.status || editOrder.status || null,
       } : {}),
       deliveryAddress: targetOrder.deliveryAddress || '',
       receiverName: targetOrder.receiverName || '',
@@ -89,7 +90,10 @@ export function POSProvider({ children }) {
     setInvoices(prev => [...prev, editInvoice]);
     setActiveTabId(nextTabId);
     setNextTabId(prev => prev + 1);
-    setSaleMode('fast');
+    
+    const isDelivery = !!(targetOrder.deliveryAddress || targetOrder.driverId || targetOrder.deliveryStatus || (targetOrder.status && targetOrder.status.toUpperCase() === 'SHIPPING'));
+    setSaleMode(isDelivery ? 'delivery' : 'fast');
+    
     // Clear the state so it doesn't re-trigger
     window.history.replaceState({}, '');
   }, [location.state, products]);

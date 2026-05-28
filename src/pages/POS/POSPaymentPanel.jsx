@@ -94,6 +94,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
         finalPaid = total;
       }
 
+      const isDeliveryMode = saleMode === 'delivery';
+
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
         items: cart.map(i => ({
@@ -104,17 +106,17 @@ export default function POSPaymentPanel({ forceShow = false }) {
         })),
         paymentMethod: 'CASH',
         discount: Number(discountAmount || 0),
-        paid: customer ? 0 : finalPaid,
+        paid: finalPaid,
         note: currentInvoice.note || null,
-        status: customer ? 'SHIPPING' : 'COMPLETED',
-        deliveryAddress: customer ? (currentInvoice.deliveryAddress || customer.address || '') : null,
-        receiverName: customer ? (currentInvoice.receiverName || customer.name) : null,
-        receiverPhone: customer ? (currentInvoice.receiverPhone || customer.phone || '') : null,
-        driverId: customer ? (currentInvoice.driverId || '') : null,
-        driverName: customer ? (currentInvoice.driverName || 'Chưa gán') : null,
-        deliveryStatus: customer ? (currentInvoice.deliveryStatus || 'ASSIGNED') : null,
-        latitude: customer ? (customer.latitude ? Number(customer.latitude) : null) : null,
-        longitude: customer ? (customer.longitude ? Number(customer.longitude) : null) : null,
+        status: isDeliveryMode ? (finalPaid >= total ? 'COMPLETED' : 'SHIPPING') : 'COMPLETED',
+        deliveryAddress: isDeliveryMode ? (currentInvoice.deliveryAddress || customer?.address || '') : null,
+        receiverName: isDeliveryMode ? (currentInvoice.receiverName || customer?.name || '') : null,
+        receiverPhone: isDeliveryMode ? (currentInvoice.receiverPhone || customer?.phone || '') : null,
+        driverId: isDeliveryMode ? (currentInvoice.driverId || '') : null,
+        driverName: isDeliveryMode ? (currentInvoice.driverName || 'Chưa gán') : null,
+        deliveryStatus: isDeliveryMode ? (currentInvoice.deliveryStatus || 'ASSIGNED') : null,
+        latitude: isDeliveryMode ? (customer?.latitude ? Number(customer.latitude) : null) : null,
+        longitude: isDeliveryMode ? (customer?.longitude ? Number(customer.longitude) : null) : null,
       };
       
       console.log('Sending orderData to API:', JSON.stringify(orderData, null, 2));
