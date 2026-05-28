@@ -92,7 +92,7 @@ export default function ReturnsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
 
   const handleSort = (key) => {
     let direction = 'asc';
@@ -318,6 +318,14 @@ export default function ReturnsPage() {
     return [...filtered].sort((a, b) => {
       let valA = a[sortConfig.key];
       let valB = b[sortConfig.key];
+
+      if (sortConfig.key === 'created_at') {
+        const timeA = new Date(valA || 0).getTime();
+        const timeB = new Date(valB || 0).getTime();
+        if (timeA < timeB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (timeA > timeB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      }
 
       if (['total', 'must_pay_customer', 'paid_customer'].includes(sortConfig.key)) {
         valA = Number(valA || 0);
