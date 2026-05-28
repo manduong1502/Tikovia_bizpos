@@ -426,6 +426,7 @@ export default function SuppliersPage() {
   // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [search, searchCode, searchName, searchPhone, filterGroup, filterDebt]);
 
   const sortedFiltered = useMemo(() => {
@@ -1558,7 +1559,7 @@ export default function SuppliersPage() {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    checked={paginated.length > 0 && paginated.every(s => selectedIds.has(s.id))}
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>

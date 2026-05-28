@@ -391,6 +391,7 @@ export default function PurchaseReturnsPage() {
   // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [search, searchCode, searchSupplier, filters]);
 
   const sortedFiltered = useMemo(() => {
@@ -433,26 +434,29 @@ export default function PurchaseReturnsPage() {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    const data = dataToExport.map(o => ({
-      'Mã trả hàng nhập': o.code,
-      'Thời gian': o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
-      'Nhà cung cấp': o.supplier_name,
-      'Tổng tiền hàng': o.total,
-      'Giảm giá': o.discount,
-      'NCC cần trả': o.supplier_must_pay,
-      'NCC đã trả': o.paid,
-      'Trạng thái': STATUS_LABEL[o.status] || o.status,
-    }));
-    exportCSV(data, 'DanhSachTraHangNhap');
-    toast.success('Xuất file thành công');
+    exportCSV('DanhSachTraHangNhap', ['Mã trả hàng nhập', 'Thời gian', 'Nhà cung cấp', 'Tổng tiền hàng', 'Giảm giá', 'NCC cần trả', 'NCC đã trả', 'Trạng thái'],
+      dataToExport.map(o => [
+        o.code,
+        o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '',
+        o.supplier_name,
+        o.total,
+        o.discount,
+        o.supplier_must_pay,
+        o.paid,
+        STATUS_LABEL[o.status] || o.status,
+      ])
+    );
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === paginated.length) {
-      setSelectedIds(new Set());
+    const allSelected = paginated.length > 0 && paginated.every(o => selectedIds.has(o.id));
+    const next = new Set(selectedIds);
+    if (allSelected) {
+      paginated.forEach(o => next.delete(o.id));
     } else {
-      setSelectedIds(new Set(paginated.map(o => o.id)));
+      paginated.forEach(o => next.add(o.id));
     }
+    setSelectedIds(next);
   };
 
   const toggleSelect = (id) => {
@@ -653,7 +657,7 @@ export default function PurchaseReturnsPage() {
                   <th className="py-2.5 px-3 w-12 text-center">
                     <input 
                       type="checkbox" 
-                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                      checked={paginated.length > 0 && paginated.every(o => selectedIds.has(o.id))}
                       onChange={toggleSelectAll}
                       className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                     />

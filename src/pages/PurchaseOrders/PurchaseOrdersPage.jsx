@@ -218,6 +218,7 @@ export default function PurchaseOrdersPage() {
   // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [search, searchCode, searchProduct, searchSupplierCode, filters]);
 
   const sortedFiltered = useMemo(() => {
@@ -449,7 +450,7 @@ export default function PurchaseOrdersPage() {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    checked={paginated.length > 0 && paginated.every(o => selectedIds.has(o.id))}
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>

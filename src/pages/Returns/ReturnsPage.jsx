@@ -304,7 +304,10 @@ export default function ReturnsPage() {
     });
   }, [returns, search, searchCode, searchCustomer, filters]);
 
-  useEffect(() => { setCurrentPage(1); }, [search, searchCode, searchCustomer, filters]);
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds(new Set());
+  }, [search, searchCode, searchCustomer, filters]);
 
   const sortedFiltered = useMemo(() => {
     if (!sortConfig.key) return filtered;
@@ -361,8 +364,14 @@ export default function ReturnsPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === paginated.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(paginated.map(o => o.id)));
+    const allSelected = paginated.length > 0 && paginated.every(o => selectedIds.has(o.id));
+    const next = new Set(selectedIds);
+    if (allSelected) {
+      paginated.forEach(o => next.delete(o.id));
+    } else {
+      paginated.forEach(o => next.add(o.id));
+    }
+    setSelectedIds(next);
   };
 
   const toggleSelect = (id) => {
@@ -689,7 +698,7 @@ export default function ReturnsPage() {
                   <th className="py-2.5 px-3 w-12 text-center">
                     <input 
                       type="checkbox" 
-                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                      checked={paginated.length > 0 && paginated.every(o => selectedIds.has(o.id))}
                       onChange={toggleSelectAll}
                       className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
                     />

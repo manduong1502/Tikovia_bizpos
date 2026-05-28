@@ -456,6 +456,7 @@ export default function CustomersPage() {
   // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [
     search, searchEmail, searchAddress, searchNote, searchOrderCode,
     filterGroup, filterDate, filterType, filterGender, filterBirthdayDate,
@@ -1334,7 +1335,7 @@ export default function CustomersPage() {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    checked={paginated.length > 0 && paginated.every(c => selectedIds.has(c.id))}
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>

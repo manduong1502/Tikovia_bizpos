@@ -131,6 +131,7 @@ export default function CashbookPage() {
   // Row selection & Details expander
   const [expandedId, setExpandedId] = useState(null);
   const [stars, setStars] = useState({});
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState('thu');
@@ -182,6 +183,7 @@ export default function CashbookPage() {
   // Reset page size
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds(new Set());
   }, [
     search, paymentMethodFilter, timeFilter, customDate,
     showIncome, showExpense, categoryFilter, statusPaid,
@@ -309,6 +311,11 @@ export default function CashbookPage() {
   }, [sortedFiltered, currentPage, pageSize]);
 
   const handleExport = () => {
+    const dataToExport = selectedIds.size > 0 ? filteredEntries.filter(item => selectedIds.has(item.id)) : filteredEntries;
+    if (dataToExport.length === 0) {
+      toast.error('Không có dữ liệu để xuất');
+      return;
+    }
     exportCSV(
       [
         { key: 'code', label: 'Mã phiếu' },
@@ -318,7 +325,7 @@ export default function CashbookPage() {
         { key: 'amount', label: 'Giá trị' },
         { key: 'status_lbl', label: 'Trạng thái' },
       ],
-      filteredEntries.map(e => ({
+      dataToExport.map(e => ({
         ...e,
         created_at_fmt: e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
         status_lbl: e.status === 'cancelled' ? 'Đã hủy' : 'Đã thanh toán',
@@ -780,7 +787,22 @@ export default function CashbookPage() {
             <table className="w-full text-xs border-collapse min-w-[800px] border-collapse">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm text-[11px] text-gray-500 uppercase border-b border-gray-100 font-extrabold tracking-wider">
                 <tr>
-                  <th className="py-2.5 px-3 w-12 text-center"><input type="checkbox" className="rounded border-gray-300" /></th>
+                  <th className="py-2.5 px-3 w-12 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                      checked={paginated.length > 0 && paginated.every(item => selectedIds.has(item.id))}
+                      onChange={(ev) => {
+                        const next = new Set(selectedIds);
+                        if (ev.target.checked) {
+                          paginated.forEach(item => next.add(item.id));
+                        } else {
+                          paginated.forEach(item => next.delete(item.id));
+                        }
+                        setSelectedIds(next);
+                      }}
+                    />
+                  </th>
                   <th className="py-2.5 px-3 w-10"></th>
                   {visibleColumns.includes('code') && (
                     <th className="py-2.5 px-3 text-left cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('code')}>
@@ -890,7 +912,17 @@ export default function CashbookPage() {
                         className={`hover:bg-blue-50/20 transition-all cursor-pointer border-b border-gray-50 ${isExpanded ? 'bg-blue-50/30' : ''}`}
                       >
                         <td className="py-2.5 px-3 w-12 text-center" onClick={ev => ev.stopPropagation()}>
-                          <input type="checkbox" className="rounded border-gray-300" />
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                            checked={selectedIds.has(e.id)}
+                            onChange={(ev) => {
+                              const next = new Set(selectedIds);
+                              if (ev.target.checked) next.add(e.id);
+                              else next.delete(e.id);
+                              setSelectedIds(next);
+                            }}
+                          />
                         </td>
                         <td className="py-2.5 px-3 w-10 text-center">
                           <button 

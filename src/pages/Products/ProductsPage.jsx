@@ -252,6 +252,7 @@ export default function ProductsPage() {
   const handleFilterChange = useCallback((patch) => {
     setFilters(prev => ({ ...prev, ...patch }));
     setPage(1);
+    setSelected(new Set());
   }, []);
 
   const fetchProducts = useCallback(async () => {
@@ -305,6 +306,12 @@ export default function ProductsPage() {
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
+
+  // Reset selected when filters/searches change
+  useEffect(() => {
+    setSelected(new Set());
+    setPage(1);
+  }, [search, searchSku, searchName, searchLocation]);
 
   // Filtered & sorted data
   const filtered = useMemo(() => {
@@ -814,7 +821,7 @@ export default function ProductsPage() {
                   <input
                     type="checkbox"
                     className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    checked={filtered.length > 0 && selected.size === filtered.length}
+                    checked={pageItems.length > 0 && pageItems.every(p => selected.has(p.id))}
                     onChange={(e) => toggleAll(e.target.checked)}
                   />
                 </th>
