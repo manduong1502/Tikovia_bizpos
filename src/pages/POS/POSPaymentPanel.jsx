@@ -116,6 +116,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
         latitude: customer ? (customer.latitude ? Number(customer.latitude) : null) : null,
         longitude: customer ? (customer.longitude ? Number(customer.longitude) : null) : null,
       };
+      
+      console.log('Sending orderData to API:', JSON.stringify(orderData, null, 2));
 
       let newOrder;
       if (isEditMode) {
