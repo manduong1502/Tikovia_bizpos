@@ -4,6 +4,7 @@ import { orderAPI } from '../../services/api';
 import { exportCSV } from '../../utils/exportCSV';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
+import { useSocket } from '../../context/SocketContext';
 import {
   Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X, Pencil
 } from 'lucide-react';
@@ -67,6 +68,8 @@ export default function OrdersPage() {
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { registerOrderUpdateCallback, unregisterOrderUpdateCallback } = useSocket() || {};
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -293,6 +296,18 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    if (!registerOrderUpdateCallback) return;
+    const handleRealtimeOrderUpdate = (data) => {
+      console.log("⚡ Nhận sự kiện cập nhật đơn hàng từ Socket.io:", data);
+      reload();
+    };
+    registerOrderUpdateCallback(handleRealtimeOrderUpdate);
+    return () => {
+      unregisterOrderUpdateCallback(handleRealtimeOrderUpdate);
+    };
+  }, [registerOrderUpdateCallback, unregisterOrderUpdateCallback, reload]);
 
   useEffect(() => {
     const onDocClick = (e) => {

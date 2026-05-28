@@ -1053,5 +1053,13 @@ export const reportAPI = {
   getCustomers: (params) => api.get('/reports/customers', { params }).then(r => r.data),
 };
 
+// ─── Notifications ───
+export const notificationAPI = {
+  getAll: (params) => api.get('/notifications', { params }).then(r => r.data),
+  readAll: () => api.put('/notifications/read-all').then(r => r.data),
+  readOne: (id) => api.put(`/notifications/${id}/read`).then(r => r.data),
+  delete: (id) => api.delete(`/notifications/${id}`).then(r => r.data),
+};
+
 export default api;
 

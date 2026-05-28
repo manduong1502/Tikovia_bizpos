@@ -5,6 +5,7 @@ import AppLayout from './components/layout/AppLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useAppStore } from './stores/appStore';
+import { SocketProvider } from './context/SocketContext';
 
 // ─── Lazy loaded pages ───
 const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
@@ -91,17 +92,18 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: { fontFamily: 'Inter, sans-serif', fontSize: '13px', borderRadius: '10px', padding: '12px 16px' },
-          success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-        }}
-      />
+      <SocketProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: { fontFamily: 'Inter, sans-serif', fontSize: '13px', borderRadius: '10px', padding: '12px 16px' },
+            success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+            error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+          }}
+        />
 
-      <Routes>
+        <Routes>
         {/* Trang chủ → chuyển về Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
@@ -176,6 +178,7 @@ function App() {
         {/* Route không tồn tại → về Dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      </SocketProvider>
     </ErrorBoundary>
   );
 }
