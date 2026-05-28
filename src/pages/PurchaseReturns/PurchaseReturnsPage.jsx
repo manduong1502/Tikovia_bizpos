@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportCSV';
 import Pagination from '../../components/common/Pagination';
-import { inDateRange } from '../../utils/dateFilterUtils';
+import { inDateRange, getRangeByCreatedLabel, buildCustomRange } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -381,8 +381,12 @@ export default function PurchaseReturnsPage() {
       if (!filters.statuses.has(o.status)) return false;
       if (filters.createdBy && o.createdBy.toLowerCase() !== filters.createdBy.toLowerCase()) return false;
       if (filters.receivedBy && o.receivedBy.toLowerCase() !== filters.receivedBy.toLowerCase()) return false;
-      if (filters.dateRange.start && filters.dateRange.end) {
-        if (!inDateRange(o.created_at, filters.dateRange.start, filters.dateRange.end)) return false;
+      if (filters.dateRange && filters.dateRange.mode === 'all' && filters.dateRange.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filters.dateRange.label);
+        if (range && !inDateRange(o.created_at, range)) return false;
+      } else if (filters.dateRange && filters.dateRange.mode === 'custom' && filters.dateRange.start) {
+        const range = buildCustomRange(filters.dateRange.start, filters.dateRange.end);
+        if (range && !inDateRange(o.created_at, range)) return false;
       }
       return true;
     });
