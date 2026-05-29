@@ -83,8 +83,13 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
 
     try {
-      let finalPaid = paidAmount;
-      if (!customer && paidAmount > total) {
+      const activeOverpayMode = paidAmount < total ? 'debt' : overpayMode;
+      let finalPaid = total;
+      if (paidAmount < total) {
+        finalPaid = paidAmount;
+      } else if (activeOverpayMode === 'debt') {
+        finalPaid = paidAmount;
+      } else {
         finalPaid = total;
       }
 
@@ -423,23 +428,46 @@ export default function POSPaymentPanel({ forceShow = false }) {
             </div>
 
             <div style={{ padding: '4px 0' }}>
-              {customer ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '8px 0', borderTop: '1px dashed #eee' }}>
-                  <span style={{ fontWeight: '500', color: '#555' }}>Dư nợ sau khi trả</span>
-                  <span style={{ fontWeight: '700', color: (Number(customer.totalDebt || 0) + total - paidAmount) > 0 ? '#e53935' : '#2e7d32' }}>
-                    {new Intl.NumberFormat('vi-VN').format(Number(customer.totalDebt || 0) + total - paidAmount)}đ
-                  </span>
-                </div>
-              ) : (
-                paidAmount > total && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '8px 0', borderTop: '1px dashed #eee' }}>
-                    <span style={{ fontWeight: '500', color: '#555' }}>Tiền thừa trả khách</span>
-                    <span style={{ fontWeight: '700', color: '#2e7d32' }}>
-                      {new Intl.NumberFormat('vi-VN').format(paidAmount - total)}đ
-                    </span>
-                  </div>
-                )
-              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
+                <input 
+                  type="radio" 
+                  name="pay-change-mode" 
+                  value="change" 
+                  checked={paidAmount >= total && overpayMode === 'change'}
+                  onChange={() => {
+                    setOverpayMode('change');
+                  }} 
+                />
+                <span>Tiền thừa trả khách</span>
+                <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
+                  {new Intl.NumberFormat('vi-VN').format(
+                    paidAmount >= total 
+                      ? (overpayMode === 'change' ? (paidAmount - total) : 0)
+                      : 0
+                  )}
+                </span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
+                <input 
+                  type="radio" 
+                  name="pay-change-mode" 
+                  value="debt" 
+                  checked={paidAmount < total || overpayMode === 'debt'}
+                  onChange={() => {
+                    setOverpayMode('debt');
+                  }} 
+                />
+                <span>Tính vào công nợ</span>
+                <span style={{ marginLeft: 'auto', fontWeight: '600', color: (oldDebt + total - paidAmount) > 0 ? '#e53935' : '#2e7d32' }}>
+                  {new Intl.NumberFormat('vi-VN').format(
+                    paidAmount < total 
+                      ? (oldDebt + total - paidAmount) 
+                      : (overpayMode === 'debt' 
+                          ? (oldDebt + total - paidAmount) 
+                          : oldDebt)
+                  )}
+                </span>
+              </label>
             </div>
           </>
         )}
