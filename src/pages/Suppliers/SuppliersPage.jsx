@@ -574,9 +574,9 @@ export default function SuppliersPage() {
         date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: 0
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: Number(pr.total || 0)
+        date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0)
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng').map(cb => ({
         date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
@@ -588,9 +588,9 @@ export default function SuppliersPage() {
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
-        total: Number(pr.total || 0), paid: 0, items: pr.items || [] 
+        total: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), paid: 0, items: pr.items || [] 
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng').map(cb => ({
         code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
         total: Number(cb.amount || 0), 
         paid: 0, items: [], cashbookType: cb.type
@@ -859,14 +859,15 @@ export default function SuppliersPage() {
         type: 'return',
         typeName: 'Trả hàng',
         date: pr.created_at,
-        total: pr.total,
+        total: pr.paid > 0 ? pr.paid : pr.total,
         paid: pr.paid || 0,
-        debt: -Number(pr.total || 0),
+        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
       ...cashbooks.filter(cb => {
         if (cb.partnerType !== 'supplier') return false;
+        if (cb.category === 'Thu tiền trả hàng') return false;
         const cbSupId = cb.supplierId || cb.customerId;
         if (cbSupId) return cbSupId === supId;
         const cbSupCode = cb.supplier_code || cb.customer_code;
@@ -1276,15 +1277,15 @@ export default function SuppliersPage() {
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
                       {(() => {
-                        // Calculate running debt: reverse list (oldest first), accumulate, then reverse back
-                        const sortedOldFirst = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
-                        let runningDebt = 0;
-                        const withDebt = sortedOldFirst.map(tx => {
-                          runningDebt += tx.debt;
+                        // Calculate running debt backwards from the current debt
+                        const currentFinalDebt = Number(s.debt || s.totalDebt || 0);
+                        const sortedNewFirst = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+                        let tempDebt = currentFinalDebt;
+                        const withDebt = sortedNewFirst.map(tx => {
+                          const runningDebt = tempDebt;
+                          tempDebt -= tx.debt;
                           return { ...tx, runningDebt };
                         });
-                        // Show newest first
-                        withDebt.reverse();
                         return withDebt.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                           <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
