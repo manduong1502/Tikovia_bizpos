@@ -571,21 +571,12 @@ export default function SuppliersPage() {
 
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: Number(po.paid_amount || 0)
+        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: 0
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at || pr.createdAt), debtIncrease: Number(pr.paid || 0), debtDecrease: Number(pr.total || 0)
+        date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: Number(pr.total || 0)
       })),
-      ...supCashbooks.filter(cb => {
-        if (cb.status !== 'completed') return false;
-        const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
-        const isAuto = supPOs.some(po => {
-           const poTime = new Date(po.created_at || po.createdAt).getTime();
-           const paid = Number(po.paid_amount || po.paid || 0);
-           return paid === Number(cb.amount) && Math.abs(poTime - cbTime) < 5000;
-        });
-        return !isAuto;
-      }).map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
         date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
@@ -593,24 +584,15 @@ export default function SuppliersPage() {
     const transactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
         code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
-        total: Number(po.total || 0), paid: Number(po.paid_amount || 0), items: po.items || [] 
+        total: Number(po.total || 0), paid: 0, items: po.items || [] 
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
-        total: Number(pr.total || 0), paid: Number(pr.paid || 0), items: pr.items || [] 
+        total: Number(pr.total || 0), paid: 0, items: pr.items || [] 
       })),
-      ...supCashbooks.filter(cb => {
-        if (cb.status !== 'completed') return false;
-        const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
-        const isAuto = supPOs.some(po => {
-           const poTime = new Date(po.created_at || po.createdAt).getTime();
-           const paid = Number(po.paid_amount || po.paid || 0);
-           return paid === Number(cb.amount) && Math.abs(poTime - cbTime) < 5000;
-        });
-        return !isAuto;
-      }).map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
         code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
-        total: cb.type === 'INCOME' ? Number(cb.amount || 0) : cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, 
+        total: Number(cb.amount || 0), 
         paid: 0, items: [], cashbookType: cb.type
       }))
     ].filter(tx => {
@@ -658,14 +640,12 @@ export default function SuppliersPage() {
     // Calculate totals for header
     const totalGhiNo = transactions.reduce((s, tx) => {
       if (tx.type === 'Nhập hàng') return s + tx.total;
-      if (tx.type === 'Trả hàng') return s + tx.paid;
-      if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? tx.total : 0);
+      if (tx.type === 'Thanh toán' && tx.cashbookType === 'INCOME') return s + tx.total;
       return s;
     }, 0);
     const totalGhiCo = transactions.reduce((s, tx) => {
-      if (tx.type === 'Nhập hàng') return s + (tx.paid > 0 ? tx.paid : 0);
       if (tx.type === 'Trả hàng') return s + tx.total;
-      if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? tx.total : 0);
+      if (tx.type === 'Thanh toán' && tx.cashbookType === 'EXPENSE') return s + tx.total;
       return s;
     }, 0);
     const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
@@ -688,9 +668,9 @@ export default function SuppliersPage() {
       let ghiCo = 0;
       if (tx.type === 'Nhập hàng') {
         ghiNo = tx.total;
-        ghiCo = tx.paid;
+        ghiCo = 0;
       } else if (tx.type === 'Trả hàng') {
-        ghiNo = tx.paid;
+        ghiNo = 0;
         ghiCo = tx.total;
       } else if (tx.type === 'Thanh toán') {
         ghiNo = tx.cashbookType === 'INCOME' ? tx.total : 0;
@@ -869,7 +849,7 @@ export default function SuppliersPage() {
         date: po.created_at,
         total: po.total,
         paid: po.paid_amount,
-        debt: Number(po.total || 0) - Number(po.paid_amount || 0),
+        debt: Number(po.total || 0),
         status: po.payment_status,
         items: po.items || []
       })),
@@ -881,7 +861,7 @@ export default function SuppliersPage() {
         date: pr.created_at,
         total: pr.total,
         paid: pr.paid || 0,
-        debt: -(Number(pr.total || 0) - Number(pr.paid || 0)),
+        debt: -Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -892,7 +872,7 @@ export default function SuppliersPage() {
         const cbSupCode = cb.supplier_code || cb.customer_code;
         if (cbSupCode) return cbSupCode === supCode;
         return cb.partnerName === s.name;
-      }).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH')).map(cb => ({
+      }).filter(cb => cb.status === 'completed').map(cb => ({
         id: cb.id || cb.code,
         code: cb.code,
         type: 'payment',

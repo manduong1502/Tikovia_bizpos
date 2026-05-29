@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { customerAPI, orderAPI, cashbookAPI } from '../../services/api';
+import { customerAPI, orderAPI, cashbookAPI, returnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -93,6 +93,7 @@ export default function CustomersPage() {
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
   const [orders, setOrders] = useState([]);
   const [cashbooks, setCashbooks] = useState([]);
+  const [returns, setReturns] = useState([]);
 
   // Customer debt modal states
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -303,17 +304,21 @@ export default function CustomersPage() {
 
       // Load orders for debt tab
       try {
-        const [ordRes, cbRes] = await Promise.all([
+        const [ordRes, cbRes, retRes] = await Promise.all([
           orderAPI.getAll({ limit: 1000 }).catch(() => ({ data: [] })),
-          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] }))
+          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] })),
+          returnAPI.getAll().catch(() => [])
         ]);
         const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
         setOrders(rawOrders);
         const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
         setCashbooks(rawCBs);
+        const rawReturns = Array.isArray(retRes) ? retRes : (retRes?.data || []);
+        setReturns(rawReturns);
       } catch {
         setOrders([]);
         setCashbooks([]);
+        setReturns([]);
       }
     } catch {
       setCustomers([]);
@@ -603,6 +608,15 @@ export default function CustomersPage() {
       return o.customer_name === c.name;
     }).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
+    // Get returns for this customer
+    const custReturns = returns.filter(r => {
+      const rCustId = r.customerId || r.customer_id || r.customer?.id;
+      if (rCustId) return rCustId === custId;
+      const rCustCode = r.customer_code || r.customer?.code;
+      if (rCustCode) return rCustCode === custCode;
+      return r.customer_name === c.name;
+    }).filter(r => r.status !== 'CANCELLED' && r.status !== 'cancelled');
+
     // Build transactions for debt tab from real orders
     const debtTransactions = [
       ...custOrders.map(o => {
@@ -615,7 +629,20 @@ export default function CustomersPage() {
           date: o.created_at || o.createdAt,
           total: total,
           paid: paid,
-          debt: total - paid,
+          debt: total,
+        };
+      }),
+      ...custReturns.map(r => {
+        const total = Number(r.total || 0);
+        const paid = Number(r.paid || 0);
+        return {
+          id: r.id,
+          code: r.code,
+          type: 'Trả hàng',
+          date: r.created_at || r.createdAt,
+          total: total,
+          paid: paid,
+          debt: -total,
         };
       }),
       ...cashbooks.filter(cb => {
@@ -625,11 +652,11 @@ export default function CustomersPage() {
         const cbCustCode = cb.customer_code || cb.supplier_code;
         if (cbCustCode) return cbCustCode === custCode;
         return cb.partnerName === c.name;
-      }).filter(cb => cb.status === 'completed' && !cb.code?.startsWith('TCM') && !cb.code?.startsWith('TCH') && !cb.code?.startsWith('TTM')).map(cb => ({
+      }).filter(cb => cb.status === 'completed').map(cb => ({
         code: cb.code,
         type: 'Thanh toán',
         date: cb.createdAt || cb.created_at || cb.date,
-        total: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : Number(cb.amount || 0),
+        total: Number(cb.amount || 0),
         paid: cb.amount,
         debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
       }))
@@ -1488,6 +1515,14 @@ export default function CustomersPage() {
             return o.customer_name === c.name;
           }).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
+          const custReturns = returns.filter(r => {
+            const rCustId = r.customerId || r.customer_id || r.customer?.id;
+            if (rCustId) return rCustId === custId;
+            const rCustCode = r.customer_code || r.customer?.code;
+            if (rCustCode) return rCustCode === custCode;
+            return r.customer_name === c.name;
+          }).filter(r => r.status !== 'CANCELLED' && r.status !== 'cancelled');
+
           const custCashbooks = cashbooks.filter(cb => {
             if (cb.partnerType !== 'customer') return false;
             const cbCustId = cb.customerId || cb.supplierId;
@@ -1506,7 +1541,10 @@ export default function CustomersPage() {
 
           const noDauKy = [
             ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
-              date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: Number(o.paid_amount || o.paid || 0)
+              date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: 0
+            })),
+            ...custReturns.filter(r => r.status !== 'CANCELLED').map(r => ({
+              date: new Date(r.created_at || r.createdAt), debtIncrease: 0, debtDecrease: Number(r.total || 0)
             })),
             ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
               date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
@@ -1528,6 +1566,18 @@ export default function CustomersPage() {
                 console.warn(`Lỗi khi lấy chi tiết đơn hàng ${o.code}`);
               }
             }
+            // Fetch detailed items for all returns to ensure no missing products
+            for (let i = 0; i < custReturns.length; i++) {
+              const r = custReturns[i];
+              try {
+                const detail = await returnAPI.getById(r.id);
+                if (detail && detail.items) {
+                  custReturns[i].items = detail.items;
+                }
+              } catch(e) {
+                console.warn(`Lỗi khi lấy chi tiết đơn trả hàng ${r.code}`);
+              }
+            }
           } catch(e) {}
 
           toast.dismiss(tid);
@@ -1535,21 +1585,15 @@ export default function CustomersPage() {
           const transactions = [
             ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
               code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
-              total: Number(o.total || 0), paid: Number(o.paid_amount || o.paid || 0), items: o.items || [] 
+              total: Number(o.total || 0), paid: 0, items: o.items || [] 
             })),
-            ...custCashbooks.filter(cb => {
-              if (cb.status !== 'completed') return false;
-              // Filter out auto-generated cashbooks to avoid double-counting tx.paid
-              const cbTime = new Date(cb.createdAt || cb.created_at || cb.date).getTime();
-              const isAuto = custOrders.some(o => {
-                 const oTime = new Date(o.created_at || o.createdAt).getTime();
-                 const paid = Number(o.paid_amount || o.paid || 0);
-                 return paid === Number(cb.amount) && Math.abs(oTime - cbTime) < 5000;
-              });
-              return !isAuto;
-            }).map(cb => ({
+            ...custReturns.filter(r => r.status !== 'CANCELLED').map(r => ({
+              code: r.code, type: 'Trả hàng', date: new Date(r.created_at || r.createdAt),
+              total: Number(r.total || 0), paid: 0, items: r.items || [] 
+            })),
+            ...custCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
               code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
-              total: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : cb.type === 'INCOME' ? Number(cb.amount || 0) : 0,
+              total: Number(cb.amount || 0),
               paid: 0, items: [], cashbookType: cb.type
             }))
           ].filter(tx => {
@@ -1562,12 +1606,12 @@ export default function CustomersPage() {
 
           const totalGhiNo = transactions.reduce((s, tx) => {
             if (tx.type === 'Bán hàng') return s + Number(tx.total || 0);
-            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'EXPENSE' ? Number(tx.total || 0) : 0);
+            if (tx.type === 'Thanh toán' && tx.cashbookType === 'EXPENSE') return s + Number(tx.total || 0);
             return s;
           }, 0);
           const totalGhiCo = transactions.reduce((s, tx) => {
-            if (tx.type === 'Bán hàng') return s + (Number(tx.paid || 0) > 0 ? Number(tx.paid || 0) : 0);
-            if (tx.type === 'Thanh toán') return s + (tx.cashbookType === 'INCOME' ? Number(tx.total || 0) : 0);
+            if (tx.type === 'Trả hàng') return s + Number(tx.total || 0);
+            if (tx.type === 'Thanh toán' && tx.cashbookType === 'INCOME') return s + Number(tx.total || 0);
             return s;
           }, 0);
           const noCuoiKy = Number(noDauKy) + Number(totalGhiNo) - Number(totalGhiCo);
@@ -1621,7 +1665,10 @@ export default function CustomersPage() {
             let ghiCo = 0;
             if (tx.type === 'Bán hàng') {
               ghiNo = tx.total;
-              ghiCo = tx.paid;
+              ghiCo = 0;
+            } else if (tx.type === 'Trả hàng') {
+              ghiNo = 0;
+              ghiCo = tx.total;
             } else if (tx.type === 'Thanh toán') {
               ghiNo = tx.cashbookType === 'EXPENSE' ? tx.total : 0;
               ghiCo = tx.cashbookType === 'INCOME' ? tx.total : 0;
