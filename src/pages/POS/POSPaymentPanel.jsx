@@ -94,7 +94,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
         finalPaid = total;
       }
 
-      const isDeliveryMode = saleMode === 'delivery';
+      const isDeliveryMode = saleMode === 'delivery' || finalPaid < total;
 
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
