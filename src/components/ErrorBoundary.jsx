@@ -10,6 +10,20 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary caught:', error, info);
+    const errMsg = error?.message || '';
+    if (
+      errMsg.includes('Failed to fetch dynamically imported module') ||
+      errMsg.includes('ChunkLoadError') ||
+      errMsg.includes('Loading chunk')
+    ) {
+      const now = Date.now();
+      const lastReload = sessionStorage.getItem('last-chunk-error-reload');
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        sessionStorage.setItem('last-chunk-error-reload', String(now));
+        console.log('Chunk load error detected, auto-reloading page...');
+        window.location.reload();
+      }
+    }
   }
 
   render() {

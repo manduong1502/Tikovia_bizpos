@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -16,6 +17,7 @@ export default function PurchaseOrderDetail({
   deletePO,
   purchaseReturns = []
 }) {
+  const navigate = useNavigate();
   const [detailTab, setDetailTab] = useState('info');
   const [detailSearchSku, setDetailSearchSku] = useState('');
   const [detailSearchName, setDetailSearchName] = useState('');
@@ -73,6 +75,11 @@ export default function PurchaseOrderDetail({
     const text = `Mã đơn nhập: ${o.po_code}\nThời gian: ${o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}\nNhà cung cấp: ${o.supplier_name} (${o.supplier_code})\nCần trả NCC: ${fmt(o.total)} đ\nĐã trả: ${fmt(o.paid_amount)} đ\nChi tiết hàng hóa:\n${itemLines}`;
     navigator.clipboard.writeText(text);
     toast.success('Đã sao chép thông tin đơn nhập hàng');
+  };
+
+  const handleClonePO = () => {
+    navigate('/purchase-orders/create', { state: { cloneFrom: o } });
+    toast.success('Đang tạo phiếu nhập mới từ dữ liệu sao chép');
   };
 
   const handlePrintPO = () => {
@@ -216,21 +223,7 @@ export default function PurchaseOrderDetail({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap justify-end gap-2 my-2">
-                <Button variant="secondary" onClick={handlePrintBarcodes} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
-                  <Printer size={15} className="text-gray-500" /> In mã vạch
-                </Button>
-                <Button variant="secondary" onClick={handleCopyPO} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
-                  <Copy size={15} className="text-gray-500" /> Sao chép
-                </Button>
-                <Button variant="secondary" onClick={handlePrintPO} className="flex items-center gap-1.5 text-xs py-1 px-2.5 border border-gray-200 shadow-sm font-bold text-gray-700 bg-white hover:bg-gray-50">
-                  <Printer size={15} className="text-gray-500" /> In đơn
-                </Button>
-                <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-2.5 bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 font-bold shadow-sm">
-                  <XCircle size={15} /> Hủy phiếu
-                </Button>
-              </div>
+
 
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left Side: Items */}
@@ -336,6 +329,34 @@ export default function PurchaseOrderDetail({
                       placeholder="Không có ghi chú..."
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Bottom Action Bar */}
+              <div className="flex items-center justify-between border-t border-gray-200 pt-3 mt-3">
+                <div className="flex items-center gap-3">
+                  <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100">
+                    <XCircle size={14} /> Hủy phiếu
+                  </Button>
+                  <Button variant="secondary" onClick={handleClonePO} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
+                    <Copy size={14} /> Sao chép
+                  </Button>
+                  <Button variant="secondary" onClick={handlePrintBarcodes} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
+                    <Printer size={14} /> In mã vạch
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Button variant="secondary" onClick={handlePrintPO} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
+                    <Printer size={14} /> In đơn
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => alert(`Mã đơn nhập: ${o.po_code}\nNgười lập: ${o.created_by}\nNgười nhận: ${currentReceivedBy}`)}
+                    className="p-2 shadow-sm border border-gray-200"
+                  >
+                    <MoreHorizontal size={14} />
+                  </Button>
                 </div>
               </div>
             </div>

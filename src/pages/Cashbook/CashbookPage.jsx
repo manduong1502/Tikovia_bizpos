@@ -892,6 +892,31 @@ export default function CashbookPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
+                {/* Summary row */}
+                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                  <td colSpan={2}></td>
+                  {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                  {visibleColumns.includes('time') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
+                  {visibleColumns.includes('createdAt') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') && !visibleColumns.includes('time') ? 'Tổng cộng' : ''}</td>}
+                  {visibleColumns.includes('employee') && <td></td>}
+                  {visibleColumns.includes('branch') && <td></td>}
+                  {visibleColumns.includes('category') && <td></td>}
+                  {visibleColumns.includes('bankAccount') && <td></td>}
+                  {visibleColumns.includes('bankAccountNumber') && <td></td>}
+                  {visibleColumns.includes('partnerCode') && <td></td>}
+                  {visibleColumns.includes('partnerName') && <td></td>}
+                  {visibleColumns.includes('partnerPhone') && <td></td>}
+                  {visibleColumns.includes('partnerAddress') && <td></td>}
+                  {visibleColumns.includes('amount') && (
+                    <td className={`py-2.5 px-3 text-right font-extrabold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      {fmt(totalIn - totalOut)}
+                    </td>
+                  )}
+                  {visibleColumns.includes('transferContent') && <td></td>}
+                  {visibleColumns.includes('note') && <td></td>}
+                  {visibleColumns.includes('paymentMethod') && <td></td>}
+                  {visibleColumns.includes('status') && <td></td>}
+                </tr>
                 {paginated.map((e, i) => {
                   const isInc = e.type === 'INCOME' || e.type === 'thu' || e.type === 'in';
                   const isCancelled = e.status === 'cancelled';

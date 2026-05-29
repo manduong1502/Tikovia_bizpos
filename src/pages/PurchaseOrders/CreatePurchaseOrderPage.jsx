@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Search, Plus, Trash2, User, X, Printer, Eye, AlertCircle, Scan, Upload, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -12,6 +12,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function CreatePurchaseOrderPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const updateId = searchParams.get('id');
   const isUpdate = searchParams.get('type') === 'update';
@@ -87,6 +88,44 @@ export default function CreatePurchaseOrderPage() {
   useEffect(() => {
     loadData();
   }, [isUpdate, updateId]);
+
+  useEffect(() => {
+    if (location.state?.cloneFrom) {
+      const po = location.state.cloneFrom;
+      
+      // Khôi phục nhà cung cấp
+      if (po.supplier) {
+        setSelectedSupplier(po.supplier);
+      } else if (po.supplierId || po.supplier_id) {
+        const matchedSup = suppliers.find(s => s.id === (po.supplierId || po.supplier_id));
+        if (matchedSup) setSelectedSupplier(matchedSup);
+        else setSelectedSupplier({ id: po.supplierId || po.supplier_id, name: po.supplier_name || 'NCC cũ', code: po.supplier_code || '' });
+      } else if (po.supplier_name) {
+        setSelectedSupplier({ name: po.supplier_name, code: po.supplier_code || '' });
+      }
+
+      // Khôi phục ghi chú, giảm giá
+      if (po.note) setNote(po.note);
+      if (po.discount_amount !== undefined) setDiscountStr(String(po.discount_amount));
+      else if (po.discount !== undefined) setDiscountStr(String(po.discount));
+
+      // Khôi phục items
+      if (Array.isArray(po.items)) {
+        setItems(po.items.map(it => ({
+          id: it.productId || it.product?.id || it.id,
+          sku: it.product_sku || it.product?.sku || it.sku || '',
+          name: it.product_name || it.product?.name || it.name || '',
+          unit: it.unit || it.product?.unit || 'Cái',
+          quantity: Number(it.quantity || 1),
+          unit_price: Number(it.unit_price || it.price || 0),
+          discount: Number(it.discount || 0),
+        })));
+      }
+      
+      // Xoá state để không bị khôi phục lại khi reload/back
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, suppliers]);
 
   // Lọc sản phẩm
   const filteredProducts = useMemo(() => {

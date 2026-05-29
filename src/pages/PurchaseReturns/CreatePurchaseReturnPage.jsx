@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -11,6 +11,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function CreatePurchaseReturnPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const poId = searchParams.get('poId');
 
@@ -85,6 +86,46 @@ export default function CreatePurchaseReturnPage() {
   useEffect(() => {
     loadData();
   }, [poId]);
+
+  useEffect(() => {
+    if (location.state?.cloneFrom) {
+      const pr = location.state.cloneFrom;
+
+      // Khôi phục nhà cung cấp
+      if (pr.supplier) {
+        setSelectedSupplier(pr.supplier);
+      } else if (pr.supplierId || pr.supplier_id) {
+        const matchedSup = suppliers.find(s => s.id === (pr.supplierId || pr.supplier_id));
+        if (matchedSup) setSelectedSupplier(matchedSup);
+        else setSelectedSupplier({ id: pr.supplierId || pr.supplier_id, name: pr.supplier_name || 'NCC cũ', code: pr.supplier_code || '' });
+      } else if (pr.supplier_name) {
+        setSelectedSupplier({ name: pr.supplier_name, code: pr.supplier_code || '' });
+      }
+
+      // Khôi phục ghi chú, giảm giá, số tiền NCC trả
+      if (pr.note) setNote(pr.note);
+      if (pr.discount !== undefined) setDiscountStr(String(pr.discount));
+      if (pr.paid !== undefined) setPaidAmountStr(String(pr.paid));
+
+      // Khôi phục items
+      if (Array.isArray(pr.items)) {
+        setItems(pr.items.map((it, idx) => ({
+          id: it.productId || it.product_id || it.product?.id || it.id,
+          sku: it.product_sku || it.product?.sku || it.sku || `SP00${idx+1}`,
+          name: it.product_name || it.product?.name || it.name || '',
+          unit: it.unit || it.product?.unit || 'Cái',
+          max_quantity: 999999, // Không giới hạn số lượng trả độc lập
+          return_quantity: Number(it.quantity || it.return_quantity || 1),
+          import_price: Number(it.import_price || it.cost_price || it.price || 0),
+          return_price: Number(it.return_price || it.price || 0),
+          note: it.note || '',
+        })));
+      }
+
+      // Xoá state để không bị khôi phục lại khi reload/back
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, suppliers]);
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];

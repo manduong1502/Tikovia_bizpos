@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI, returnAPI, customerAPI } from '../../services/api';
@@ -9,6 +9,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 export default function ReturnOrderPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [order, setOrder] = useState(null);
   const [customer, setCustomer] = useState(null);
@@ -95,6 +96,96 @@ export default function ReturnOrderPage() {
       setLoading(false);
     }
   }, [orderId]);
+
+  useEffect(() => {
+    const restoreCloneData = async () => {
+      if (location.state?.cloneFrom) {
+        const pr = location.state.cloneFrom;
+        setLoading(true);
+
+        // 1. Khôi phục khách hàng
+        if (pr.customer) {
+          setCustomer(pr.customer);
+        } else if (pr.customerId || pr.customer_id) {
+          setCustomer({
+            id: pr.customerId || pr.customer_id,
+            name: pr.customer_name || 'Khách lẻ',
+            code: pr.customer_code || '',
+            phone: pr.customer_phone || ''
+          });
+        } else if (pr.customer_name) {
+          setCustomer({
+            name: pr.customer_name,
+            code: pr.customer_code || '',
+            phone: pr.customer_phone || ''
+          });
+        }
+
+        // 2. Khôi phục ghi chú, phí trả hàng, số tiền đã trả khách
+        if (pr.reason || pr.note) setNote(pr.reason || pr.note || '');
+        if (pr.discount !== undefined) setDiscountStr(fmt(Number(pr.discount)));
+        if (pr.paid !== undefined) setPaidAmountStr(fmt(Number(pr.paid)));
+
+        // 3. Khôi phục Hóa đơn liên kết và danh sách sản phẩm trả
+        const ordId = pr.orderId || pr.order_id || pr.order?.id;
+        if (ordId) {
+          try {
+            const orderData = await orderAPI.getById(ordId);
+            setOrder(orderData);
+            
+            if (Array.isArray(orderData.items)) {
+              const mappedItems = orderData.items.map((it, idx) => {
+                const boughtQty = Number(it.quantity || 0);
+                const unitPrice = Number(it.price || it.unit_price || 0);
+                const itemDiscount = Number(it.discount || 0);
+                const pricePerUnit = unitPrice - (itemDiscount / boughtQty);
+                
+                // Khớp sản phẩm với đơn trả hàng cũ để lấy số lượng và giá trả lại
+                const cloneItem = pr.items?.find(ci => 
+                  String(ci.productId || ci.product_id || ci.product?.id || ci.id) === String(it.productId || it.product?.id || it.id) ||
+                  String(ci.product_sku || ci.sku) === String(it.product?.sku || it.product_sku || it.sku)
+                );
+                
+                return {
+                  id: it.productId || it.product?.id || it.id,
+                  sku: it.product?.sku || it.product_sku || `SP00${idx+1}`,
+                  name: it.product?.name || it.product_name || '',
+                  unit: it.product?.unit || it.unit || 'Cái',
+                  max_quantity: boughtQty,
+                  return_quantity: cloneItem ? Number(cloneItem.quantity || cloneItem.return_quantity || 0) : 0,
+                  return_price: cloneItem ? Number(cloneItem.price || cloneItem.return_price || 0) : pricePerUnit,
+                  note: cloneItem?.note || '',
+                };
+              });
+              setItems(mappedItems);
+            }
+          } catch (err) {
+            console.error("Lỗi khi tải hóa đơn liên kết của phiếu trả hàng sao chép:", err);
+          }
+        } else {
+          // Không có hóa đơn liên kết, khôi phục trực tiếp danh sách sản phẩm
+          if (Array.isArray(pr.items)) {
+            setItems(pr.items.map((it, idx) => ({
+              id: it.productId || it.product_id || it.product?.id || it.id,
+              sku: it.product_sku || it.sku || `SP00${idx+1}`,
+              name: it.product_name || it.name || '',
+              unit: it.unit || it.product?.unit || 'Cái',
+              max_quantity: 999999,
+              return_quantity: Number(it.quantity || it.return_quantity || 0),
+              return_price: Number(it.price || it.return_price || 0),
+              note: it.note || '',
+            })));
+          }
+        }
+
+        // Xoá state để không bị khôi phục lại khi reload/back
+        window.history.replaceState({}, document.title);
+        setLoading(false);
+      }
+    };
+
+    restoreCloneData();
+  }, [location.state]);
 
   const filteredCustomers = useMemo(() => {
     let list = customers;

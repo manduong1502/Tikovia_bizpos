@@ -190,6 +190,11 @@ export default function ReturnsPage() {
     toast.success(`Đã sao chép mã phiếu: ${code}`);
   };
 
+  const handleCloneReturn = (o) => {
+    navigate('/returns/new', { state: { cloneFrom: o } });
+    toast.success('Đang tạo phiếu trả hàng mới từ dữ liệu sao chép');
+  };
+
   const handlePrintReturn = (o) => {
     const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
@@ -536,7 +541,7 @@ export default function ReturnsPage() {
                   )}
                   <Button 
                     variant="secondary" 
-                    onClick={() => handleCopyCode(o.code)} 
+                    onClick={() => handleCloneReturn(o)} 
                     className="flex items-center gap-1.5 text-xs py-1 px-3 shadow-sm font-bold whitespace-nowrap"
                   >
                     <Copy size={14} /> Sao chép

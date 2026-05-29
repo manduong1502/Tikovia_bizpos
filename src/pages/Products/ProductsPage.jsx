@@ -409,6 +409,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(filtered.length / perPage) || 1;
   const pageItems = filtered.slice((page - 1) * perPage, page * perPage);
   const totalStock = filtered.reduce((a, p) => a + Number(p.stock || 0), 0);
+  const totalReserved = filtered.reduce((a, p) => a + Number(p.reserved || 0), 0);
 
   const handleSort = (col) => {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -850,7 +851,7 @@ export default function ProductsPage() {
                 {visibleColumns.includes('sellPrice') && <td></td>}
                 {visibleColumns.includes('costPrice') && <td></td>}
                 {visibleColumns.includes('stock') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmtStock(totalStock)}</td>}
-                {visibleColumns.includes('reserved') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">0</td>}
+                {visibleColumns.includes('reserved') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmtStock(totalReserved)}</td>}
                 {visibleColumns.includes('created_at') && <td></td>}
                 {visibleColumns.includes('expected_out') && <td></td>}
               </tr>
@@ -907,7 +908,7 @@ export default function ProductsPage() {
                         <td className="py-2.5 px-3 text-right font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
                       )}
                       {visibleColumns.includes('reserved') && (
-                        <td className="py-2.5 px-3 text-right text-gray-500">0</td>
+                        <td className="py-2.5 px-3 text-right text-gray-500">{fmtStock(p.reserved || 0)}</td>
                       )}
                       {visibleColumns.includes('created_at') && (
                         <td className="py-2.5 px-3 text-xs text-gray-500">

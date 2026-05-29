@@ -152,11 +152,9 @@ export default function PurchaseReturnsPage() {
     }
   };
 
-  const handleCopyPR = (o) => {
-    const itemLines = o.items?.map(it => `- ${it.product_sku}: ${it.product_name} x ${it.quantity} (Đơn giá trả: ${fmt(it.return_price)})`).join('\n') || '';
-    const text = `Mã phiếu trả: ${o.code}\nThời gian: ${o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}\nNhà cung cấp: ${o.supplier_name}\nNCC cần trả: ${fmt(o.supplier_must_pay)} đ\nNCC đã trả: ${fmt(o.paid)} đ\nChi tiết hàng hóa:\n${itemLines}`;
-    navigator.clipboard.writeText(text);
-    toast.success('Đã sao chép thông tin phiếu trả hàng nhập');
+  const handleClonePR = (o) => {
+    navigate('/purchase-returns/create', { state: { cloneFrom: o } });
+    toast.success('Đang tạo phiếu trả hàng nhập mới từ dữ liệu sao chép');
   };
 
   const renderDetail = (o) => {
@@ -298,7 +296,7 @@ export default function PurchaseReturnsPage() {
                   <Button variant="danger" onClick={() => deletePR(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
                     <Trash2 size={14} /> Hủy
                   </Button>
-                  <Button variant="secondary" onClick={() => handleCopyPR(o)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
+                  <Button variant="secondary" onClick={() => handleClonePR(o)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
                     <Copy size={14} /> Sao chép
                   </Button>
                 </div>
@@ -489,6 +487,11 @@ export default function PurchaseReturnsPage() {
       return next;
     });
   };
+
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount || 0), 0);
+  const sumMustPay = filtered.reduce((s, o) => s + Number(o.supplier_must_pay || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
@@ -718,6 +721,18 @@ export default function PurchaseReturnsPage() {
                 </tr>
               </thead>
               <tbody className="text-xs divide-y divide-gray-50">
+                {/* Summary row */}
+                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                  <td colSpan={2}></td>
+                  {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                  {visibleColumns.includes('created_at') && <td></td>}
+                  {visibleColumns.includes('supplier_name') && <td>{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
+                  {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotal)}</td>}
+                  {visibleColumns.includes('discount') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumDiscount)}</td>}
+                  {visibleColumns.includes('supplier_must_pay') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumMustPay)}</td>}
+                  {visibleColumns.includes('paid') && <td className="py-2.5 px-3 text-right text-green-600 font-extrabold">{fmt(sumPaid)}</td>}
+                  {visibleColumns.includes('status') && <td></td>}
+                </tr>
                 {paginated.map(o => {
                   const isSelected = selectedIds.has(o.id);
                   const isStarred = starred.has(o.id);

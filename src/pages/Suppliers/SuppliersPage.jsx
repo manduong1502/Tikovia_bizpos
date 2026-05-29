@@ -1380,6 +1380,10 @@ export default function SuppliersPage() {
     );
   };
 
+  const sumDebt = filtered.reduce((s, sup) => s + Number(sup.debt || 0), 0);
+  const sumTotalSpent = filtered.reduce((s, sup) => s + Number(sup.total_spent || 0), 0);
+  const sumNetPurchase = filtered.reduce((s, sup) => s + Number(sup.net_purchase ?? sup.total_spent ?? 0), 0);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
@@ -1591,6 +1595,22 @@ export default function SuppliersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
+              {/* Summary row */}
+              <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                <td colSpan={2}></td>
+                {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                {visibleColumns.includes('name') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
+                {visibleColumns.includes('phone') && <td></td>}
+                {visibleColumns.includes('email') && <td></td>}
+                {visibleColumns.includes('address') && <td></td>}
+                {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right text-red-500 font-extrabold">{fmt(sumDebt)}</td>}
+                {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
+                {visibleColumns.includes('net_purchase') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumNetPurchase)}</td>}
+                {visibleColumns.includes('isActive') && <td></td>}
+                {visibleColumns.includes('note') && <td></td>}
+                {visibleColumns.includes('created_at') && <td></td>}
+                <td></td>
+              </tr>
               {paginated.map((s) => {
                 const isSelected = selectedIds.has(s.id);
                 const isStarred = starred.has(s.id);

@@ -356,6 +356,9 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || 0), 0);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
@@ -522,6 +525,17 @@ export default function PurchaseOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
+              {/* Summary row */}
+              <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                <td colSpan={2}></td>
+                {visibleColumns.includes('po_code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                {visibleColumns.includes('created_at') && <td></td>}
+                {visibleColumns.includes('supplier_code') && <td>{!visibleColumns.includes('po_code') ? 'Tổng cộng' : ''}</td>}
+                {visibleColumns.includes('supplier_name') && <td>{!visibleColumns.includes('po_code') && !visibleColumns.includes('supplier_code') ? 'Tổng cộng' : ''}</td>}
+                {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotal)}</td>}
+                {visibleColumns.includes('paid_amount') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumPaid)}</td>}
+                {visibleColumns.includes('payment_status') && <td></td>}
+              </tr>
               {paginated.map((o) => {
                 const isSelected = selectedIds.has(o.id);
                 const isStarred = starred.has(o.id);

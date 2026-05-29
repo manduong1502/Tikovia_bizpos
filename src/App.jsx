@@ -7,35 +7,56 @@ import { DashboardSkeleton } from './components/ui/Skeleton';
 import { useAppStore } from './stores/appStore';
 import { SocketProvider } from './context/SocketContext';
 
+// Helper function to retry loading lazy dynamic imports if they fail (e.g. after a deploy)
+const lazyRetry = (componentImport) => {
+  return lazy(() =>
+    componentImport().catch((error) => {
+      const isChunkLoadFailed =
+        error.name === 'ChunkLoadError' ||
+        /Failed to fetch dynamically imported module/i.test(error.message);
+
+      if (isChunkLoadFailed) {
+        const hasReloaded = sessionStorage.getItem('chunk-load-reloaded');
+        if (!hasReloaded) {
+          sessionStorage.setItem('chunk-load-reloaded', 'true');
+          window.location.reload();
+          return new Promise(() => {}); // Return a pending promise to keep loading state
+        }
+      }
+      throw error;
+    })
+  );
+};
+
 // ─── Lazy loaded pages ───
-const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
-const RegisterTenantPage = lazy(() => import('./pages/RegisterTenant/RegisterTenantPage'));
-const DashboardPage = lazy(() => import('./pages/Dashboard/DashboardPage'));
-const ProductsPage = lazy(() => import('./pages/Products/ProductsPage'));
-const OrdersPage = lazy(() => import('./pages/Orders/OrdersPage'));
-const CustomersPage = lazy(() => import('./pages/Customers/CustomersPage'));
-const CashbookPage = lazy(() => import('./pages/Cashbook/CashbookPage'));
-const ReportsPage = lazy(() => import('./pages/Reports/ReportsPage'));
-const EndOfDayReportPage = lazy(() => import('./pages/Reports/EndOfDayReportPage'));
-const SalesReportPage = lazy(() => import('./pages/Reports/SalesReportPage'));
-const ProductsReportPage = lazy(() => import('./pages/Reports/ProductsReportPage'));
-const CustomersReportPage = lazy(() => import('./pages/Reports/CustomersReportPage'));
-const SettingsPage = lazy(() => import('./pages/Settings/SettingsPage'));
-const SuppliersPage = lazy(() => import('./pages/Suppliers/SuppliersPage'));
-const PurchaseOrdersPage = lazy(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
-const CategoriesPage = lazy(() => import('./pages/Categories/CategoriesPage'));
-const POSPage = lazy(() => import('./pages/POS/POSPage'));
-const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage'));
-const PriceBooksPage = lazy(() => import('./pages/PriceBooks/PriceBooksPage'));
-const CreatePurchaseOrderPage = lazy(() => import('./pages/PurchaseOrders/CreatePurchaseOrderPage'));
-const PurchaseReturnsPage = lazy(() => import('./pages/PurchaseReturns/PurchaseReturnsPage'));
-const CreatePurchaseReturnPage = lazy(() => import('./pages/PurchaseReturns/CreatePurchaseReturnPage'));
+const LoginPage = lazyRetry(() => import('./pages/Login/LoginPage'));
+const RegisterTenantPage = lazyRetry(() => import('./pages/RegisterTenant/RegisterTenantPage'));
+const DashboardPage = lazyRetry(() => import('./pages/Dashboard/DashboardPage'));
+const ProductsPage = lazyRetry(() => import('./pages/Products/ProductsPage'));
+const OrdersPage = lazyRetry(() => import('./pages/Orders/OrdersPage'));
+const CustomersPage = lazyRetry(() => import('./pages/Customers/CustomersPage'));
+const CashbookPage = lazyRetry(() => import('./pages/Cashbook/CashbookPage'));
+const ReportsPage = lazyRetry(() => import('./pages/Reports/ReportsPage'));
+const EndOfDayReportPage = lazyRetry(() => import('./pages/Reports/EndOfDayReportPage'));
+const SalesReportPage = lazyRetry(() => import('./pages/Reports/SalesReportPage'));
+const ProductsReportPage = lazyRetry(() => import('./pages/Reports/ProductsReportPage'));
+const CustomersReportPage = lazyRetry(() => import('./pages/Reports/CustomersReportPage'));
+const SettingsPage = lazyRetry(() => import('./pages/Settings/SettingsPage'));
+const SuppliersPage = lazyRetry(() => import('./pages/Suppliers/SuppliersPage'));
+const PurchaseOrdersPage = lazyRetry(() => import('./pages/PurchaseOrders/PurchaseOrdersPage'));
+const CategoriesPage = lazyRetry(() => import('./pages/Categories/CategoriesPage'));
+const POSPage = lazyRetry(() => import('./pages/POS/POSPage'));
+const PlaceholderPage = lazyRetry(() => import('./pages/PlaceholderPage'));
+const PriceBooksPage = lazyRetry(() => import('./pages/PriceBooks/PriceBooksPage'));
+const CreatePurchaseOrderPage = lazyRetry(() => import('./pages/PurchaseOrders/CreatePurchaseOrderPage'));
+const PurchaseReturnsPage = lazyRetry(() => import('./pages/PurchaseReturns/PurchaseReturnsPage'));
+const CreatePurchaseReturnPage = lazyRetry(() => import('./pages/PurchaseReturns/CreatePurchaseReturnPage'));
 
-const ReturnsPage = lazy(() => import('./pages/Returns/ReturnsPage'));
-const ReturnOrderPage = lazy(() => import('./pages/Returns/ReturnOrderPage'));
+const ReturnsPage = lazyRetry(() => import('./pages/Returns/ReturnsPage'));
+const ReturnOrderPage = lazyRetry(() => import('./pages/Returns/ReturnOrderPage'));
 
-const SystemLogin = lazy(() => import('./pages/SystemAdmin/SystemLogin'));
-const SystemDashboard = lazy(() => import('./pages/SystemAdmin/SystemDashboard'));
+const SystemLogin = lazyRetry(() => import('./pages/SystemAdmin/SystemLogin'));
+const SystemDashboard = lazyRetry(() => import('./pages/SystemAdmin/SystemDashboard'));
 
 function PageLoader() {
   return (
@@ -84,9 +105,10 @@ function App() {
   const navigate = useNavigate();
   const darkMode = useAppStore(s => s.darkMode);
 
-  // Apply dark mode class on mount
+  // Apply dark mode class on mount and clean chunk reloaded flag
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
+    sessionStorage.removeItem('chunk-load-reloaded');
   }, [darkMode]);
 
   return (
