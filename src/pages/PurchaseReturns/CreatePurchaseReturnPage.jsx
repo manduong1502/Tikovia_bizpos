@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import Button from '../../components/ui/Button';
@@ -34,6 +34,8 @@ export default function CreatePurchaseReturnPage() {
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
   const [poSearch, setPoSearch] = useState('');
+  const [poDropdownOpen, setPoDropdownOpen] = useState(false);
+  const poDropdownRef = useRef(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
@@ -86,6 +88,16 @@ export default function CreatePurchaseReturnPage() {
   useEffect(() => {
     loadData();
   }, [poId]);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (poDropdownRef.current && !poDropdownRef.current.contains(e.target)) {
+        setPoDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
 
   useEffect(() => {
     if (location.state?.cloneFrom) {
@@ -153,16 +165,18 @@ export default function CreatePurchaseReturnPage() {
   }, [supplierSearch, suppliers]);
 
   const filteredPOs = useMemo(() => {
-    if (!poSearch.trim()) return [];
-    const q = poSearch.toLowerCase();
+    const q = poSearch.trim().toLowerCase();
     return purchaseOrders.filter(o => {
       if (selectedSupplier) {
         const suppId = Number(selectedSupplier.id);
         const poSuppId = Number(o.supplierId || o.supplier_id || o.supplier?.id);
         if (poSuppId && poSuppId !== suppId) return false;
       }
-      return (o.po_code || o.code || '').toLowerCase().includes(q);
-    }).slice(0, 6);
+      if (q) {
+        return (o.po_code || o.code || '').toLowerCase().includes(q);
+      }
+      return true;
+    }).slice(0, 10);
   }, [poSearch, purchaseOrders, selectedSupplier]);
 
   const handleSelectPO = async (poItem) => {
@@ -803,7 +817,7 @@ export default function CreatePurchaseReturnPage() {
             </div>
 
             {/* Purchase Order Search */}
-            <div>
+            <div ref={poDropdownRef}>
               <label className="text-xs font-bold text-gray-500 mb-1.5 block">Chọn phiếu nhập (Tùy chọn)</label>
               <div className="relative">
                 {po ? (
@@ -822,30 +836,62 @@ export default function CreatePurchaseReturnPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
+                  <div 
+                    className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2 cursor-pointer"
+                    onClick={() => setPoDropdownOpen(true)}
+                  >
                     <Search size={16} className="text-gray-400 shrink-0" />
                     <input 
                       type="text" 
-                      placeholder="Tìm theo mã phiếu nhập..." 
+                      placeholder="Tìm theo mã hoặc chọn từ danh sách..." 
                       className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
                       value={poSearch}
-                      onChange={e => setPoSearch(e.target.value)}
+                      onChange={e => {
+                        setPoSearch(e.target.value);
+                        setPoDropdownOpen(true);
+                      }}
+                      onFocus={() => setPoDropdownOpen(true)}
                     />
+                    <button 
+                      type="button"
+                      className="p-0.5 text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPoDropdownOpen(!poDropdownOpen);
+                      }}
+                    >
+                      {poDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
                   </div>
                 )}
 
-                {!po && filteredPOs.length > 0 && (
+                {poDropdownOpen && !po && (
                   <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
                     {filteredPOs.map(o => (
                       <div 
                         key={o.id}
-                        onClick={() => handleSelectPO(o)}
+                        onClick={() => {
+                          handleSelectPO(o);
+                          setPoDropdownOpen(false);
+                        }}
                         className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                       >
-                        <span className="font-extrabold text-sm text-gray-800">{o.po_code || o.code}</span>
-                        <span className="text-xs text-gray-500 font-medium">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''} - {o.supplier_name || o.supplier?.name}</span>
+                        <div className="flex justify-between items-center">
+                          <span className="font-extrabold text-sm text-gray-800">{o.po_code || o.code}</span>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium truncate">
+                          {o.supplier_name || o.supplier?.name || 'Không rõ NCC'} - {fmt(o.total)} đ
+                        </span>
                       </div>
                     ))}
+                    {filteredPOs.length === 0 && (
+                      <div className="p-4 text-center text-xs font-bold text-gray-400">
+                        {selectedSupplier ? `Nhà cung cấp "${selectedSupplier.name}" chưa có phiếu nhập nào` : 'Không tìm thấy phiếu nhập nào'}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
