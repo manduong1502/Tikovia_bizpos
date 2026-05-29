@@ -83,14 +83,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
 
     try {
-      const oldDebtVal = customer ? Number(customer.totalDebt || customer.debt || 0) : 0;
-      const activeOverpayMode = paidAmount < total ? 'debt' : overpayMode;
-      let finalPaid = total;
-      if (paidAmount < total) {
-        finalPaid = paidAmount;
-      } else if (activeOverpayMode === 'debt') {
-        finalPaid = Math.min(paidAmount, total + oldDebtVal);
-      } else {
+      let finalPaid = paidAmount;
+      if (!customer && paidAmount > total) {
         finalPaid = total;
       }
 
@@ -139,8 +133,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
       const orderCode = newOrder?.code || newOrder?.order_code || 'HD' + Date.now().toString().slice(-6);
       const oldDebt = customer ? Number(customer.totalDebt || customer.debt || 0) : 0;
       const totalDebt = oldDebt + total;
-      const remainingDebt = Math.max(0, totalDebt - finalPaid);
-      const actualChange = paidAmount - finalPaid;
+      const remainingDebt = totalDebt - finalPaid;
+      const actualChange = !customer && paidAmount > total ? paidAmount - total : 0;
 
       const invoiceHTML = `
         <style>
@@ -227,7 +221,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <td class="value">${new Intl.NumberFormat('vi-VN').format(totalDebt)}</td>
             </tr>
             <tr>
-              <td class="label">Khách thanh toán:</td>
+              <td class="label">Khách đã trả:</td>
               <td class="value">${new Intl.NumberFormat('vi-VN').format(paidAmount)}</td>
             </tr>
             ${actualChange > 0 ? `
@@ -242,9 +236,9 @@ export default function POSPaymentPanel({ forceShow = false }) {
             </tr>
           </table>
 
-          <div class="inv-footer">
-            <div>Chữ ký Khách Hàng :</div>
-            <div style="margin-top: 5px;">Ghi chú: ${currentInvoice.note || ''}</div>
+          <div class="inv-footer" style="text-align: right; font-size: 11px; font-weight: bold; margin-top: 10px;">
+            <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
+            <div>Ghi chú: ${currentInvoice.note || ''}</div>
           </div>
 
           <div class="inv-thanks">
@@ -376,11 +370,11 @@ export default function POSPaymentPanel({ forceShow = false }) {
             />
           </span>
         </div>
-        {customer && (customer.totalDebt || 0) > 0 && (
+        {customer && (
           <div className="pos-payment-row">
-            <span className="label" style={{ color: '#e53935' }}>Nợ cũ</span>
-            <span className="value" style={{ color: '#e53935', fontWeight: '600' }}>
-              {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}
+            <span className="label" style={{ color: '#666' }}>Nợ cũ</span>
+            <span className="value" style={{ color: (customer.totalDebt || 0) > 0 ? '#e53935' : '#2e7d32', fontWeight: '600' }}>
+              {new Intl.NumberFormat('vi-VN').format(customer.totalDebt || 0)}
             </span>
           </div>
         )}
@@ -429,55 +423,22 @@ export default function POSPaymentPanel({ forceShow = false }) {
             </div>
 
             <div style={{ padding: '4px 0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
-                <input 
-                  type="radio" 
-                  name="pay-change-mode" 
-                  value="change" 
-                  checked={paidAmount >= total && overpayMode === 'change'}
-                  onChange={() => {
-                    setOverpayMode('change');
-                  }} 
-                />
-                <span>Tiền thừa trả khách</span>
-                <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
-                  {new Intl.NumberFormat('vi-VN').format(
-                    paidAmount >= total 
-                      ? (overpayMode === 'change' 
-                          ? (paidAmount - total) 
-                          : Math.max(0, (paidAmount - total) - (customer ? Number(customer.totalDebt || customer.debt || 0) : 0)))
-                      : 0
-                  )}
-                </span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
-                <input 
-                  type="radio" 
-                  name="pay-change-mode" 
-                  value="debt" 
-                  checked={paidAmount < total || overpayMode === 'debt'}
-                  onChange={() => {
-                    setOverpayMode('debt');
-                  }} 
-                />
-                <span>Tính vào công nợ</span>
-                <span style={{ marginLeft: 'auto', fontWeight: '600', color: '#e53935' }}>
-                  {new Intl.NumberFormat('vi-VN').format(
-                    paidAmount < total 
-                      ? (total - paidAmount) 
-                      : (overpayMode === 'debt' 
-                          ? Math.max(0, (customer ? Number(customer.totalDebt || customer.debt || 0) : 0) - (paidAmount - total))
-                          : (customer ? Number(customer.totalDebt || customer.debt || 0) : 0))
-                  )}
-                </span>
-              </label>
-              {paidAmount >= total && overpayMode === 'debt' && customer && (customer.totalDebt || 0) > 0 && (paidAmount - total) > customer.totalDebt && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'default', padding: '4px 0', opacity: 0.8 }}>
-                  <span style={{ marginLeft: '24px', color: '#666' }}>Tiền thừa trả khách:</span>
-                  <span style={{ marginLeft: 'auto', fontWeight: '600' }}>
-                    {new Intl.NumberFormat('vi-VN').format((paidAmount - total) - customer.totalDebt)}
+              {customer ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '8px 0', borderTop: '1px dashed #eee' }}>
+                  <span style={{ fontWeight: '500', color: '#555' }}>Dư nợ sau khi trả</span>
+                  <span style={{ fontWeight: '700', color: (Number(customer.totalDebt || 0) + total - paidAmount) > 0 ? '#e53935' : '#2e7d32' }}>
+                    {new Intl.NumberFormat('vi-VN').format(Number(customer.totalDebt || 0) + total - paidAmount)}đ
                   </span>
-                </label>
+                </div>
+              ) : (
+                paidAmount > total && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', padding: '8px 0', borderTop: '1px dashed #eee' }}>
+                    <span style={{ fontWeight: '500', color: '#555' }}>Tiền thừa trả khách</span>
+                    <span style={{ fontWeight: '700', color: '#2e7d32' }}>
+                      {new Intl.NumberFormat('vi-VN').format(paidAmount - total)}đ
+                    </span>
+                  </div>
+                )
               )}
             </div>
           </>
