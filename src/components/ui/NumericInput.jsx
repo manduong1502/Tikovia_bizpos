@@ -11,9 +11,10 @@ const NumericInput = forwardRef(({
   const [isFocused, setIsFocused] = useState(false);
 
   // Helper to format string/number to dot/comma separated string
-  const formatValue = (val) => {
+  const formatValue = (val, focusedOverride) => {
     if (val === undefined || val === null || val === '') return '';
-    
+    const focused = focusedOverride !== undefined ? focusedOverride : isFocused;
+
     if (allowDecimal) {
       // Convert to string and handle decimals
       let str = String(val).replace(/,/g, '.');
@@ -26,7 +27,7 @@ const NumericInput = forwardRef(({
       
       if (!str) return '';
       
-      if (isFocused) {
+      if (focused) {
         // When focused, show the raw string with dot so user can edit easily
         return str;
       }
@@ -34,7 +35,7 @@ const NumericInput = forwardRef(({
       const num = Number(str);
       if (isNaN(num)) return str;
       
-      // format to Vietnamese style: e.g. 1.234,56
+      // format to Vietnamese style: e.g. 1,5
       return new Intl.NumberFormat('vi-VN', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 4
@@ -44,9 +45,7 @@ const NumericInput = forwardRef(({
       const numericStr = String(val).replace(/\D/g, '');
       if (!numericStr) return '';
       
-      if (isFocused) {
-        return numericStr; // no thousand separators when focused
-      }
+      // For integer values, always format with thousand separators immediately
       return new Intl.NumberFormat('vi-VN').format(Number(numericStr));
     }
   };
@@ -54,14 +53,20 @@ const NumericInput = forwardRef(({
   const [displayValue, setDisplayValue] = useState(formatValue(value));
 
   useEffect(() => {
-    // Only update displayValue from parent value if it represents a different numeric value
-    const currentNum = allowDecimal 
-      ? parseFloat(String(displayValue).replace(/,/g, '.')) 
-      : Number(String(displayValue).replace(/\D/g, ''));
-    const parentNum = Number(value) || 0;
-    
-    if (isNaN(currentNum) || currentNum !== parentNum || displayValue === '') {
-      setDisplayValue(formatValue(value));
+    if (allowDecimal) {
+      const currentNum = parseFloat(String(displayValue).replace(/,/g, '.'));
+      const parentNum = Number(value) || 0;
+      
+      if (isNaN(currentNum) || currentNum !== parentNum || displayValue === '') {
+        setDisplayValue(formatValue(value));
+      }
+    } else {
+      const currentNum = Number(String(displayValue).replace(/\D/g, ''));
+      const parentNum = Number(value) || 0;
+      
+      if (currentNum !== parentNum || displayValue === '') {
+        setDisplayValue(formatValue(value));
+      }
     }
   }, [value, isFocused]);
 
@@ -93,7 +98,9 @@ const NumericInput = forwardRef(({
       }
     } else {
       const numericStr = rawVal.replace(/\D/g, '');
-      setDisplayValue(numericStr); // keep raw digit string while typing/focused
+      // Format with dots immediately while typing
+      const formatted = formatValue(numericStr);
+      setDisplayValue(formatted);
       
       if (onChange) {
         const parsedNum = Number(numericStr) || 0;
@@ -109,13 +116,19 @@ const NumericInput = forwardRef(({
 
   const handleFocus = (e) => {
     setIsFocused(true);
+    if (allowDecimal) {
+      // Switch to unformatted decimal on focus
+      setDisplayValue(formatValue(value, true));
+    }
     if (props.onFocus) props.onFocus(e);
   };
 
   const handleBlur = (e) => {
     setIsFocused(false);
-    // Format on blur
-    setDisplayValue(formatValue(value));
+    if (allowDecimal) {
+      // Format to Vietnamese style on blur
+      setDisplayValue(formatValue(value, false));
+    }
     if (props.onBlur) props.onBlur(e);
   };
 
