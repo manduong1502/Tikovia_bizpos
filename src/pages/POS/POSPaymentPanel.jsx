@@ -41,6 +41,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const paidAmount = paidAmountStr === '' ? 0 : Number(paidAmountStr.replace(/\D/g, ''));
   const changeAmount = paidAmount - total;
   const isDebt = changeAmount < 0;
+  const oldDebt = customer ? Number(customer.totalDebt || customer.debt || 0) : 0;
 
   const handleCustomerSearch = async (e) => {
     const val = e.target.value;
