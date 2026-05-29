@@ -287,9 +287,39 @@ export default function CustomersPage() {
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedEmail, setDebouncedEmail] = useState('');
+  const [debouncedAddress, setDebouncedAddress] = useState('');
+  const [debouncedNote, setDebouncedNote] = useState('');
+  const [debouncedOrderCode, setDebouncedOrderCode] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedEmail(searchEmail);
+      setDebouncedAddress(searchAddress);
+      setDebouncedNote(searchNote);
+      setDebouncedOrderCode(searchOrderCode);
+    }, 600);
+    return () => clearTimeout(handler);
+  }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
+
   const reload = useCallback(async () => {
     try {
-      const res = await customerAPI.getAll({ limit: 500 });
+      const params = { limit: 2000 };
+      if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+      if (debouncedEmail.trim()) params.email = debouncedEmail.trim();
+      if (debouncedAddress.trim()) params.address = debouncedAddress.trim();
+      if (debouncedNote.trim()) params.note = debouncedNote.trim();
+      if (debouncedOrderCode.trim()) params.orderCode = debouncedOrderCode.trim();
+
+      const res = await customerAPI.getAll(params);
       const rawList = Array.isArray(res) ? res : (res?.data || []);
       if (rawList.length === 0) {
         const mockCustomers = [
@@ -323,7 +353,7 @@ export default function CustomersPage() {
     } catch {
       setCustomers([]);
     }
-  }, []);
+  }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode]);
 
   useEffect(() => { reload(); }, [reload]);
 

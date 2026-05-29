@@ -151,7 +151,7 @@ function normalizeOrder(o) {
     order_code: o.order_code || o.code,
     created_at: o.created_at || o.createdAt,
     customer_name: o.customer_name || o.customer?.name || null,
-    customer_code: o.customer_code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
+    customer_code: o.customer_code || o.customer?.code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
     user_name: o.user_name || o.user?.fullName || null,
     total: Number(o.total || 0),
     subtotal: Number(o.subtotal || o.total || 0),

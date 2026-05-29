@@ -565,6 +565,7 @@ export default function CreatePurchaseOrderPage() {
                       <td className="p-4 text-gray-600">{item.unit}</td>
                       <td className="p-4 text-right">
                         <NumericInput
+                          allowDecimal={true}
                           className="w-20 text-right border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm"
                           value={item.quantity}
                           onChange={e => handleUpdateItem(item.id, 'quantity', e.target.value)}
