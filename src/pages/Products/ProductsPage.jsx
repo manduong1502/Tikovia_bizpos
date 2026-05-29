@@ -80,6 +80,7 @@ export default function ProductsPage() {
   const [detailTab, setDetailTab] = useState('info');
   const [modalOpen, setModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
+  const [isClone, setIsClone] = useState(false);
 
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
@@ -620,7 +621,7 @@ export default function ProductsPage() {
                 <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Trash2 size={14} /> Xóa
                 </Button>
-                <Button variant="secondary" onClick={async () => { await copyToClipboard(`${p.sku} - ${p.name} - ${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)}`); toast.success('Đã sao chép thông tin sản phẩm'); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
+                <Button variant="secondary" onClick={() => { setEditProduct(p); setIsClone(true); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
                   <Copy size={14} /> Sao chép
                 </Button>
                 <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
@@ -628,7 +629,7 @@ export default function ProductsPage() {
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button variant="primary" onClick={() => { setEditProduct(p); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
+                <Button variant="primary" onClick={() => { setEditProduct(p); setIsClone(false); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
                   <Edit size={14} /> Chỉnh sửa
                 </Button>
                  <Button 
@@ -734,7 +735,7 @@ export default function ProductsPage() {
                   )}
                 </div>
 
-                <Button variant="primary" onClick={() => { setEditProduct(null); setModalOpen(true); }} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap shrink-0 cursor-pointer">
+                <Button variant="primary" onClick={() => { setEditProduct(null); setIsClone(false); setModalOpen(true); }} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap shrink-0 cursor-pointer">
                   <Plus size={16} /> <span className="hidden sm:inline">Thêm mới</span>
                 </Button>
 
@@ -956,8 +957,9 @@ export default function ProductsPage() {
       {/* Product Create/Edit Modal */}
       <ProductModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setIsClone(false); }}
         product={editProduct}
+        isClone={isClone}
         onSaved={fetchProducts}
       />
 

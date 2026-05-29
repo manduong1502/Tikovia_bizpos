@@ -27,8 +27,8 @@ const Accordion = ({ title, description, children, defaultOpen = true }) => {
   );
 };
 
-export default function ProductModal({ open, onClose, product = null, onSaved }) {
-  const isEdit = !!product;
+export default function ProductModal({ open, onClose, product = null, isClone = false, onSaved }) {
+  const isEdit = !!product && !isClone;
   const fileInputRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -83,15 +83,15 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
   useEffect(() => {
     if (product) {
       setForm({
-        name: product.name || '',
-        sku: product.sku || '',
+        name: isClone ? `${product.name} (Sao chép)` : (product.name || ''),
+        sku: isClone ? '' : (product.sku || ''),
         categoryId: product.categoryId || '',
         brandId: product.brandId || '',
         supplierId: product.supplierId || product.supplier_id || product.supplier?.id || '',
         sellPrice: product.sellPrice || '',
         costPrice: product.costPrice || '',
         unit: product.unit || 'Cái',
-        stock: product.stock || '',
+        stock: isClone ? '0' : (product.stock || ''),
         minStock: product.minStock || '0',
         maxStock: product.maxStock || '999999999',
         location: product.location || '',
@@ -239,7 +239,7 @@ export default function ProductModal({ open, onClose, product = null, onSaved })
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Chỉnh sửa hàng hóa' : 'Tạo hàng hóa'}
+      title={isEdit ? 'Chỉnh sửa hàng hóa' : (isClone ? 'Sao chép hàng hóa' : 'Tạo hàng hóa')}
       size="xl"
       footer={
         <div className="flex w-full items-center justify-between">
