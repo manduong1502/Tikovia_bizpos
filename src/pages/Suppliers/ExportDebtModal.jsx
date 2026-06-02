@@ -31,10 +31,16 @@ export default function ExportDebtModal({ open, onClose, onExport }) {
         toast.error('Vui lòng chọn đầy đủ thời gian Từ ngày và Đến ngày');
         return;
       }
+      const [sYear, sMonth, sDay] = customStartDate.split('-').map(Number);
+      const [eYear, eMonth, eDay] = customEndDate.split('-').map(Number);
+      
+      const start = new Date(sYear, sMonth - 1, sDay, 0, 0, 0, 0);
+      const end = new Date(eYear, eMonth - 1, eDay, 23, 59, 59, 999);
+
       onExport({
         mode: 'custom',
-        start: new Date(customStartDate),
-        end: new Date(customEndDate)
+        start,
+        end
       }, columns);
     } else {
       onExport(timeRange, columns);
