@@ -674,7 +674,7 @@ export default function SuppliersPage() {
     
     transactions.forEach(tx => {
       // Dòng phiếu (Summary row)
-      const txTimeStr = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
+      const txTimeStr = `${formatDate(tx.date)} ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
       let ghiNo = 0;
       let ghiCo = 0;

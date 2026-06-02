@@ -9,6 +9,16 @@ import toast from 'react-hot-toast';
  */
 export function applyExcelStyles(worksheet, autoCols = []) {
   const range = XLSX.utils.decode_range(worksheet['!ref']);
+  const timeCols = [];
+  
+  // Find which columns have "Thời gian", "Ngày tạo" or similar in row 0
+  for (let C = range.s.c; C <= range.e.c; ++C) {
+    const headerCell = worksheet[XLSX.utils.encode_cell({c:C, r:0})];
+    if (headerCell && (headerCell.v === 'Thời gian' || headerCell.v === 'Ngày tạo' || headerCell.v === 'Ngày cập nhật')) {
+      timeCols.push(C);
+    }
+  }
+
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const cellAddress = {c:C, r:R};
@@ -17,6 +27,11 @@ export function applyExcelStyles(worksheet, autoCols = []) {
       
       const isHeader = R === 0 || (worksheet[cellRef].v && String(worksheet[cellRef].v).includes('Công nợ chi tiết'));
       
+      const alignment = { vertical: 'center' };
+      if (timeCols.includes(C) && R > 0) {
+        alignment.horizontal = 'right';
+      }
+      
       worksheet[cellRef].s = {
         ...(worksheet[cellRef].s || {}),
         font: {
@@ -24,6 +39,7 @@ export function applyExcelStyles(worksheet, autoCols = []) {
           name: 'Arial',
           sz: 11
         },
+        alignment,
         border: {
           top: { style: "thin", color: { auto: 1 } },
           bottom: { style: "thin", color: { auto: 1 } },
@@ -124,7 +140,8 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         }
         
         // Alignment
-        if (C === 0 || C === 1) cellStyle.alignment.horizontal = 'center';
+        if (C === 0) cellStyle.alignment.horizontal = 'right';
+        if (C === 1) cellStyle.alignment.horizontal = 'center';
         if (C >= 4 && C <= 11) cellStyle.alignment.horizontal = 'right'; // Number columns
       }
 

@@ -1712,7 +1712,7 @@ export default function CustomersPage() {
           exportData.push(headerRow);
 
           transactions.forEach(tx => {
-            const txTime = `${formatDate(tx.date)}\r\n${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
+            const txTime = `${formatDate(tx.date)} ${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
             
             let ghiNo = 0;
             let ghiCo = 0;
