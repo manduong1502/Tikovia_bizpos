@@ -972,7 +972,15 @@ export default function CustomersPage() {
                     >
                       <Download size={13} /> Xuất file công nợ
                     </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
+                    <Button 
+                      variant="secondary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExportModalCustomer(c);
+                        setExportModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+                    >
                       <Download size={13} /> Xuất file
                     </Button>
                   </div>
@@ -1570,6 +1578,16 @@ export default function CustomersPage() {
           else if (timeRange === 'this_week') { const day = now.getDay() || 7; startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1); }
           else if (timeRange === 'this_month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           else if (timeRange === 'last_month') { startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); endDate = new Date(now.getFullYear(), now.getMonth(), 0); }
+          else if (typeof timeRange === 'object' && timeRange !== null && timeRange.mode === 'custom') {
+            if (timeRange.start) {
+              startDate = new Date(timeRange.start);
+              startDate.setHours(0, 0, 0, 0);
+            }
+            if (timeRange.end) {
+              endDate = new Date(timeRange.end);
+              endDate.setHours(23, 59, 59, 999);
+            }
+          }
 
           const noDauKy = [
             ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
@@ -1631,6 +1649,9 @@ export default function CustomersPage() {
           ].filter(tx => {
             if (timeRange === 'all') return true;
             if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
+            if (typeof timeRange === 'object' && timeRange !== null && timeRange.mode === 'custom') {
+              return tx.date >= startDate && tx.date <= endDate;
+            }
             return tx.date >= startDate;
           }).sort((a, b) => a.date - b.date);
 

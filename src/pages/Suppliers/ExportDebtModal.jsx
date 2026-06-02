@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import toast from 'react-hot-toast';
 
 export default function ExportDebtModal({ open, onClose, onExport }) {
-  const [timeRange, setTimeRange] = useState('all'); // all, today, this_week, this_month, last_month, etc.
+  const [timeRange, setTimeRange] = useState('all'); // all, today, this_week, this_month, last_month, custom
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   
   const [columns, setColumns] = useState({
     detail: true, // Chi tiết từng hàng giao dịch
@@ -23,7 +26,19 @@ export default function ExportDebtModal({ open, onClose, onExport }) {
   };
 
   const handleExport = () => {
-    onExport(timeRange, columns);
+    if (timeRange === 'custom') {
+      if (!customStartDate || !customEndDate) {
+        toast.error('Vui lòng chọn đầy đủ thời gian Từ ngày và Đến ngày');
+        return;
+      }
+      onExport({
+        mode: 'custom',
+        start: new Date(customStartDate),
+        end: new Date(customEndDate)
+      }, columns);
+    } else {
+      onExport(timeRange, columns);
+    }
     onClose();
   };
 
@@ -52,7 +67,8 @@ export default function ExportDebtModal({ open, onClose, onExport }) {
                 { id: 'this_week', label: 'Tuần này' },
                 { id: 'this_month', label: 'Tháng này' },
                 { id: 'last_month', label: 'Tháng trước' },
-                { id: 'all', label: 'Toàn thời gian' }
+                { id: 'all', label: 'Toàn thời gian' },
+                { id: 'custom', label: 'Lựa chọn khác' }
               ].map(opt => (
                 <button
                   key={opt.id}
@@ -67,6 +83,29 @@ export default function ExportDebtModal({ open, onClose, onExport }) {
                 </button>
               ))}
             </div>
+
+            {timeRange === 'custom' && (
+              <div className="mt-4 flex items-center gap-4 animate-fade-in p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Từ ngày</label>
+                  <input 
+                    type="date" 
+                    value={customStartDate} 
+                    onChange={e => setCustomStartDate(e.target.value)} 
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-gray-500 mb-1">Đến ngày</label>
+                  <input 
+                    type="date" 
+                    value={customEndDate} 
+                    onChange={e => setCustomEndDate(e.target.value)} 
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Export Info Selection */}
