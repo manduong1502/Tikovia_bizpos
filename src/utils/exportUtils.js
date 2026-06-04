@@ -50,8 +50,22 @@ export async function copyToClipboard(text) {
  * Print HTML content in a new window
  */
 export function printHTML(html, title = 'In') {
-  const w = window.open('', '_blank', 'width=800,height=600');
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
+  // Create a hidden iframe
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.opacity = '0';
+  iframe.style.pointerEvents = 'none';
+  
+  document.body.appendChild(iframe);
+  
+  const doc = iframe.contentWindow.document || iframe.contentDocument;
+  doc.open();
+  doc.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
     body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; font-size: 13px; color: #333; }
     table { width: 100%; border-collapse: collapse; margin: 10px 0; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -63,7 +77,18 @@ export function printHTML(html, title = 'In') {
     .total-row { font-weight: bold; font-size: 14px; }
     @media print { body { padding: 0; } }
   </style></head><body>${html}</body></html>`);
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 300);
+  doc.close();
+  
+  iframe.contentWindow.focus();
+  
+  // Wait for styles/images to load in the iframe, then trigger print
+  setTimeout(() => {
+    iframe.contentWindow.print();
+    // Remove the iframe after printing is done/cancelled
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 1000);
+  }, 300);
 }

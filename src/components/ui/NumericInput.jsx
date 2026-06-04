@@ -97,17 +97,50 @@ const NumericInput = forwardRef(({
         });
       }
     } else {
-      const numericStr = rawVal.replace(/\D/g, '');
-      // Format with dots immediately while typing
-      const formatted = formatValue(numericStr);
+      const input = e.target;
+      const originalValue = input.value;
+      const selectionStart = input.selectionStart;
+      
+      const digitsBeforeCursor = originalValue.slice(0, selectionStart).replace(/\D/g, '').length;
+      const numericStr = originalValue.replace(/\D/g, '');
+      
+      if (!numericStr) {
+        input.value = '';
+        setDisplayValue('');
+        if (onChange) {
+          onChange({
+            target: {
+              name: props.name,
+              value: 0
+            }
+          });
+        }
+        return;
+      }
+      
+      const formatted = new Intl.NumberFormat('vi-VN').format(Number(numericStr));
+      
+      let newSelectionStart = 0;
+      let digitCount = 0;
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) {
+          digitCount++;
+        }
+        newSelectionStart++;
+        if (digitCount === digitsBeforeCursor) {
+          break;
+        }
+      }
+      
+      input.value = formatted;
+      input.setSelectionRange(newSelectionStart, newSelectionStart);
       setDisplayValue(formatted);
       
       if (onChange) {
-        const parsedNum = Number(numericStr) || 0;
         onChange({
           target: {
             name: props.name,
-            value: parsedNum
+            value: Number(numericStr) || 0
           }
         });
       }

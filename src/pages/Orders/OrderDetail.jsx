@@ -75,28 +75,32 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
     const customerName = o.customer_name || 'Khách lẻ';
 
-    const remainingDebt = Math.max(0, o.total - (o.paid_amount || 0));
     const paidAmount = o.paid_amount || 0;
+    const custDebt = o.customer ? Number(o.customer.totalDebt || o.customer.debt || 0) : 0;
+    const oldDebt = o.customer ? Math.max(0, custDebt - (Number(o.total || 0) - paidAmount)) : 0;
+    const totalDebt = oldDebt + Number(o.total || 0);
+    const remainingDebt = totalDebt - paidAmount;
 
     const invoiceHTML = `
         <style>
           .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
           .inv-logo-container { text-align: center; margin-bottom: 5px; }
           .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
-          .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
-          .inv-stk { text-align: center; font-size: 11px; font-weight: bold; margin: 2px 0; }
-          .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
-          .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
-          .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
-          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+          .inv-company { text-align: center; font-size: 14px; font-weight: bold; margin: 8px 0 4px; text-transform: uppercase; }
+          .inv-info { text-align: center; font-size: 12px; margin: 2px 0; }
+          .inv-stk { text-align: center; font-size: 12px; font-weight: bold; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 11px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 12px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
           .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
           .inv-table th { font-weight: bold; text-align: center; }
-          .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary { width: 100%; font-size: 12px; margin-bottom: 15px; border-collapse: collapse; }
           .inv-summary td { padding: 3px 0; border: none !important; }
           .inv-summary .label { text-align: right; padding-right: 15px; }
-          .inv-summary .value { text-align: right; width: 70px; }
-          .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
-          .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
+          .inv-summary .value { text-align: right; width: 90px; }
+          .inv-footer { font-size: 12px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 12px; font-style: italic; margin-top: 20px; }
           @media print {
             @page { margin: 0; }
             body { margin: 0; padding: 0; }
@@ -107,6 +111,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
           <div class="inv-logo-container">
             <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
           </div>
+          <div class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</div>
           <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
           <div class="inv-info">Điện Thoại: 0796.637.194</div>
           <div class="inv-stk">STK : 8282688686</div>
@@ -156,6 +161,14 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               <td class="value">${f(o.total)}</td>
             </tr>
             <tr>
+              <td class="label">Nợ cũ:</td>
+              <td class="value">${f(oldDebt)}</td>
+            </tr>
+            <tr>
+              <td class="label">Tổng Nợ:</td>
+              <td class="value">${f(totalDebt)}</td>
+            </tr>
+            <tr>
               <td class="label">Khách đã trả:</td>
               <td class="value">${f(paidAmount)}</td>
             </tr>
@@ -165,9 +178,9 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
             </tr>
           </table>
 
-          <div class="inv-footer">
-            <div>Chữ ký Khách Hàng :</div>
-            <div style="margin-top: 5px;">Ghi chú: ${o.note || ''}</div>
+          <div class="inv-footer" style="text-align: right; font-size: 12px; font-weight: bold; margin-top: 10px;">
+            <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
+            <div>Ghi chú: ${o.note || ''}</div>
           </div>
 
           <div class="inv-thanks">

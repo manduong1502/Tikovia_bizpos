@@ -147,20 +147,21 @@ export default function POSPaymentPanel({ forceShow = false }) {
           .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
           .inv-logo-container { text-align: center; margin-bottom: 5px; }
           .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
-          .inv-info { text-align: center; font-size: 11px; margin: 2px 0; }
-          .inv-stk { text-align: center; font-size: 11px; font-weight: bold; margin: 2px 0; }
-          .inv-title { text-align: center; font-size: 14px; font-weight: bold; margin: 15px 0 2px; }
-          .inv-code-date { text-align: center; font-size: 10px; margin-bottom: 10px; color: #333; }
-          .inv-customer-info { font-size: 11px; margin-bottom: 8px; line-height: 1.5; }
-          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+          .inv-company { text-align: center; font-size: 14px; font-weight: bold; margin: 8px 0 4px; text-transform: uppercase; }
+          .inv-info { text-align: center; font-size: 12px; margin: 2px 0; }
+          .inv-stk { text-align: center; font-size: 12px; font-weight: bold; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 11px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 12px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
           .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
           .inv-table th { font-weight: bold; text-align: center; }
-          .inv-summary { width: 100%; font-size: 11px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary { width: 100%; font-size: 12px; margin-bottom: 15px; border-collapse: collapse; }
           .inv-summary td { padding: 3px 0; border: none !important; }
           .inv-summary .label { text-align: right; padding-right: 15px; }
-          .inv-summary .value { text-align: right; width: 70px; }
-          .inv-footer { font-size: 11px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
-          .inv-thanks { text-align: center; font-size: 11px; font-style: italic; margin-top: 20px; }
+          .inv-summary .value { text-align: right; width: 90px; }
+          .inv-footer { font-size: 12px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 12px; font-style: italic; margin-top: 20px; }
           @media print {
             @page { margin: 0; }
             body { margin: 0; padding: 0; }
@@ -171,20 +172,21 @@ export default function POSPaymentPanel({ forceShow = false }) {
           <div class="inv-logo-container">
             <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
           </div>
+          <div class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</div>
           <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
           <div class="inv-info">Điện Thoại: 0796.637.194</div>
           <div class="inv-stk">STK : 8282688686</div>
           <div class="inv-stk">Ngân hàng: TMCP Quân Đội (MB<br/>Bank)</div>
-
+ 
           <div class="inv-title">HÓA ĐƠN BÁN HÀNG</div>
           <div class="inv-code-date">${orderCode} - ${dateStr}</div>
-
+ 
           <div class="inv-customer-info">
             <div>Khách hàng: ${customer ? customer.name : 'Khách lẻ'}</div>
             <div>SĐT: ${customer?.phone || ''}</div>
             <div>ĐC: ${customer?.address || ''}</div>
           </div>
-
+ 
           <table class="inv-table">
             <thead>
               <tr>
@@ -212,7 +214,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
               }).join('')}
             </tbody>
           </table>
-
+ 
           <table class="inv-summary">
             <tr>
               <td class="label">Tổng đơn hàng:</td>
@@ -241,12 +243,12 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <td class="value">${new Intl.NumberFormat('vi-VN').format(remainingDebt)}</td>
             </tr>
           </table>
-
-          <div class="inv-footer" style="text-align: right; font-size: 11px; font-weight: bold; margin-top: 10px;">
+ 
+          <div class="inv-footer" style="text-align: right; font-size: 12px; font-weight: bold; margin-top: 10px;">
             <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
             <div>Ghi chú: ${currentInvoice.note || ''}</div>
           </div>
-
+ 
           <div class="inv-thanks">
             Cảm ơn và hẹn gặp lại!
           </div>
@@ -401,8 +403,44 @@ export default function POSPaymentPanel({ forceShow = false }) {
                   value={paidAmountStr}
                   placeholder="0"
                   onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '');
-                    setPaidAmountStr(raw ? new Intl.NumberFormat('vi-VN').format(raw) : '');
+                    const input = e.target;
+                    const originalValue = input.value;
+                    const selectionStart = input.selectionStart;
+                    
+                    // Get raw digits before the cursor
+                    const digitsBeforeCursor = originalValue.slice(0, selectionStart).replace(/\D/g, '').length;
+                    
+                    // Get raw digits of the whole string
+                    const rawDigits = originalValue.replace(/\D/g, '');
+                    
+                    if (!rawDigits) {
+                      input.value = '';
+                      setPaidAmountStr('');
+                      return;
+                    }
+                    
+                    // Format the raw digits
+                    const formatted = new Intl.NumberFormat('vi-VN').format(Number(rawDigits));
+                    
+                    // Find the new cursor position by counting digits
+                    let newSelectionStart = 0;
+                    let digitCount = 0;
+                    for (let i = 0; i < formatted.length; i++) {
+                      if (/\d/.test(formatted[i])) {
+                        digitCount++;
+                      }
+                      newSelectionStart++;
+                      if (digitCount === digitsBeforeCursor) {
+                        break;
+                      }
+                    }
+                    
+                    // Update DOM input value and selection range synchronously
+                    input.value = formatted;
+                    input.setSelectionRange(newSelectionStart, newSelectionStart);
+                    
+                    // Update React state
+                    setPaidAmountStr(formatted);
                   }}
                   style={{ width: '100px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', fontWeight: '600', padding: '2px 0' }}
                 />
