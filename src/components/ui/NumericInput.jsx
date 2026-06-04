@@ -45,7 +45,12 @@ const NumericInput = forwardRef(({
       const numericStr = String(val).replace(/\D/g, '');
       if (!numericStr) return '';
       
-      // For integer values, always format with thousand separators immediately
+      if (focused) {
+        // Show raw number without separators when focused
+        return numericStr;
+      }
+      
+      // For integer values, always format with thousand separators when blurred
       return new Intl.NumberFormat('vi-VN').format(Number(numericStr));
     }
   };
@@ -97,44 +102,8 @@ const NumericInput = forwardRef(({
         });
       }
     } else {
-      const input = e.target;
-      const originalValue = input.value;
-      const selectionStart = input.selectionStart;
-      
-      const digitsBeforeCursor = originalValue.slice(0, selectionStart).replace(/\D/g, '').length;
-      const numericStr = originalValue.replace(/\D/g, '');
-      
-      if (!numericStr) {
-        input.value = '';
-        setDisplayValue('');
-        if (onChange) {
-          onChange({
-            target: {
-              name: props.name,
-              value: 0
-            }
-          });
-        }
-        return;
-      }
-      
-      const formatted = new Intl.NumberFormat('vi-VN').format(Number(numericStr));
-      
-      let newSelectionStart = 0;
-      let digitCount = 0;
-      for (let i = 0; i < formatted.length; i++) {
-        if (/\d/.test(formatted[i])) {
-          digitCount++;
-        }
-        newSelectionStart++;
-        if (digitCount === digitsBeforeCursor) {
-          break;
-        }
-      }
-      
-      input.value = formatted;
-      input.setSelectionRange(newSelectionStart, newSelectionStart);
-      setDisplayValue(formatted);
+      const numericStr = rawVal.replace(/\D/g, '');
+      setDisplayValue(numericStr);
       
       if (onChange) {
         onChange({

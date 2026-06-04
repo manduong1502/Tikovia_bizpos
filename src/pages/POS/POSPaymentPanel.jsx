@@ -14,6 +14,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [paidAmountStr, setPaidAmountStr] = useState('');
+  const [isPaidAmountFocused, setIsPaidAmountFocused] = useState(false);
   const [salesChannel, setSalesChannel] = useState('Bán trực tiếp');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -400,47 +401,17 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <span className="value">
                 <input 
                   type="text" 
-                  value={paidAmountStr}
+                  value={
+                    isPaidAmountFocused 
+                      ? paidAmountStr.replace(/\D/g, '') 
+                      : (paidAmountStr ? new Intl.NumberFormat('vi-VN').format(Number(paidAmountStr.replace(/\D/g, ''))) : '')
+                  }
                   placeholder="0"
+                  onFocus={() => setIsPaidAmountFocused(true)}
+                  onBlur={() => setIsPaidAmountFocused(false)}
                   onChange={(e) => {
-                    const input = e.target;
-                    const originalValue = input.value;
-                    const selectionStart = input.selectionStart;
-                    
-                    // Get raw digits before the cursor
-                    const digitsBeforeCursor = originalValue.slice(0, selectionStart).replace(/\D/g, '').length;
-                    
-                    // Get raw digits of the whole string
-                    const rawDigits = originalValue.replace(/\D/g, '');
-                    
-                    if (!rawDigits) {
-                      input.value = '';
-                      setPaidAmountStr('');
-                      return;
-                    }
-                    
-                    // Format the raw digits
-                    const formatted = new Intl.NumberFormat('vi-VN').format(Number(rawDigits));
-                    
-                    // Find the new cursor position by counting digits
-                    let newSelectionStart = 0;
-                    let digitCount = 0;
-                    for (let i = 0; i < formatted.length; i++) {
-                      if (/\d/.test(formatted[i])) {
-                        digitCount++;
-                      }
-                      newSelectionStart++;
-                      if (digitCount === digitsBeforeCursor) {
-                        break;
-                      }
-                    }
-                    
-                    // Update DOM input value and selection range synchronously
-                    input.value = formatted;
-                    input.setSelectionRange(newSelectionStart, newSelectionStart);
-                    
-                    // Update React state
-                    setPaidAmountStr(formatted);
+                    const raw = e.target.value.replace(/\D/g, '');
+                    setPaidAmountStr(raw);
                   }}
                   style={{ width: '100px', textAlign: 'right', border: 'none', borderBottom: '1px solid #e0e0e0', outline: 'none', fontSize: '14px', fontWeight: '600', padding: '2px 0' }}
                 />
