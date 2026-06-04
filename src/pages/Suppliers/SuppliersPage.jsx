@@ -580,26 +580,30 @@ export default function SuppliersPage() {
 
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: 0
+        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0) - Number(po.paid_amount || po.paid || 0), debtDecrease: 0
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0)
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng').map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng' && cb.category !== 'Trả tiền nhà cung cấp').map(cb => ({
         date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
       }))
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
     const transactions = [
-      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
-        total: Number(po.total || 0), paid: 0, items: po.items || [] 
-      })),
+      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
+        const total = Number(po.total || 0);
+        const paid = Number(po.paid_amount || po.paid || 0);
+        return { 
+          code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
+          total: total - paid, paid: paid, items: po.items || [] 
+        };
+      }),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
         total: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), paid: 0, items: pr.items || [] 
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng').map(cb => ({
+      ...supCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Thu tiền trả hàng' && cb.category !== 'Trả tiền nhà cung cấp').map(cb => ({
         code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
         total: Number(cb.amount || 0), 
         paid: 0, items: [], cashbookType: cb.type
@@ -853,18 +857,22 @@ export default function SuppliersPage() {
     });
 
     const transactions = [
-      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({
-        id: po.id,
-        code: po.po_code,
-        type: 'import',
-        typeName: 'Nhập hàng',
-        date: po.created_at,
-        total: po.total,
-        paid: po.paid_amount,
-        debt: Number(po.total || 0),
-        status: po.payment_status,
-        items: po.items || []
-      })),
+      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
+        const total = Number(po.total || 0);
+        const paid = Number(po.paid_amount || po.paid || 0);
+        return {
+          id: po.id,
+          code: po.po_code,
+          type: 'import',
+          typeName: 'Nhập hàng',
+          date: po.created_at,
+          total: total - paid,
+          paid: paid,
+          debt: total - paid,
+          status: po.payment_status,
+          items: po.items || []
+        };
+      }),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({
         id: pr.id,
         code: pr.code,
@@ -880,6 +888,7 @@ export default function SuppliersPage() {
       ...cashbooks.filter(cb => {
         if (cb.partnerType !== 'supplier') return false;
         if (cb.category === 'Thu tiền trả hàng') return false;
+        if (cb.category === 'Trả tiền nhà cung cấp') return false; // Filter out order checkout payments
         const cbSupId = cb.supplierId || cb.customerId;
         if (cbSupId) return cbSupId === supId;
         const cbSupCode = cb.supplier_code || cb.customer_code;

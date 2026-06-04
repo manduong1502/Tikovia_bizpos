@@ -657,9 +657,9 @@ export default function CustomersPage() {
           code: o.order_code || o.code,
           type: 'Bán hàng',
           date: o.created_at || o.createdAt,
-          total: total,
+          total: total - paid,
           paid: paid,
-          debt: total,
+          debt: total - paid,
         };
       }),
       ...custReturns.map(r => {
@@ -678,6 +678,7 @@ export default function CustomersPage() {
       ...cashbooks.filter(cb => {
         if (cb.partnerType !== 'customer') return false;
         if (cb.category === 'Chi tiền trả hàng') return false;
+        if (cb.category === 'Thu tiền khách trả') return false; // Filter out order checkout payments
         const cbCustId = cb.customerId || cb.supplierId;
         if (cbCustId) return cbCustId === custId;
         const cbCustCode = cb.customer_code || cb.supplier_code;
@@ -1591,12 +1592,12 @@ export default function CustomersPage() {
 
           const noDauKy = [
             ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
-              date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0), debtDecrease: 0
+              date: new Date(o.created_at || o.createdAt), debtIncrease: Number(o.total || 0) - Number(o.paid_amount || o.paid || 0), debtDecrease: 0
             })),
             ...custReturns.filter(r => r.status !== 'CANCELLED').map(r => ({
               date: new Date(r.created_at || r.createdAt), debtIncrease: 0, debtDecrease: r.paid > 0 ? Number(r.paid) : Number(r.total || 0)
             })),
-            ...custCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Chi tiền trả hàng').map(cb => ({
+            ...custCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Chi tiền trả hàng' && cb.category !== 'Thu tiền khách trả').map(cb => ({
               date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
             }))
           ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
@@ -1633,15 +1634,19 @@ export default function CustomersPage() {
           toast.dismiss(tid);
 
           const transactions = [
-            ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => ({
-              code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
-              total: Number(o.total || 0), paid: 0, items: o.items || [] 
-            })),
+            ...custOrders.filter(o => o.status !== 'CANCELLED').map(o => {
+              const total = Number(o.total || 0);
+              const paid = Number(o.paid_amount || o.paid || 0);
+              return {
+                code: o.order_code || o.code, type: 'Bán hàng', date: new Date(o.created_at || o.createdAt),
+                total: total - paid, paid: paid, items: o.items || [] 
+              };
+            }),
             ...custReturns.filter(r => r.status !== 'CANCELLED').map(r => ({
               code: r.code, type: 'Trả hàng', date: new Date(r.created_at || r.createdAt),
               total: r.paid > 0 ? Number(r.paid) : Number(r.total || 0), paid: 0, items: r.items || [] 
             })),
-            ...custCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Chi tiền trả hàng').map(cb => ({
+            ...custCashbooks.filter(cb => cb.status === 'completed' && cb.category !== 'Chi tiền trả hàng' && cb.category !== 'Thu tiền khách trả').map(cb => ({
               code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
               total: Number(cb.amount || 0),
               paid: 0, items: [], cashbookType: cb.type
