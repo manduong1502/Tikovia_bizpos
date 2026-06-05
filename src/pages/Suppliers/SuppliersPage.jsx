@@ -1316,7 +1316,9 @@ export default function SuppliersPage() {
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'payment' ? 'text-green-600' : tx.type === 'return' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                            {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                          </td>
                           <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}

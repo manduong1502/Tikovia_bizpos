@@ -950,7 +950,9 @@ export default function CustomersPage() {
                               {tx.type}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'Thanh toán' ? 'text-green-600' : tx.type === 'Trả hàng' ? 'text-red-600' : 'text-primary'}`}>{fmt(Math.abs(tx.debt))}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                            {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                          </td>
                           <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))}
