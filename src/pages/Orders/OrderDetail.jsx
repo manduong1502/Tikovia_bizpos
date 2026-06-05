@@ -75,11 +75,19 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
     const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
     const customerName = o.customer_name || 'Khách lẻ';
 
-    const paidAmount = o.paid_amount || 0;
-    const custDebt = o.customer ? Number(o.customer.totalDebt || o.customer.debt || 0) : 0;
-    const oldDebt = o.customer ? Math.max(0, custDebt - (Number(o.total || 0) - paidAmount)) : 0;
+    const paidAmount = o.paid_amount ?? o.paid ?? 0;
+    let oldDebt = 0;
+    let remainingDebt = 0;
+    if (o.oldDebt !== undefined && o.oldDebt !== null) {
+      oldDebt = Number(o.oldDebt);
+      remainingDebt = o.newDebt !== undefined && o.newDebt !== null ? Number(o.newDebt) : (oldDebt + Number(o.total || 0) - paidAmount);
+    } else {
+      // Fallback for legacy orders created before the migration
+      const custDebt = o.customer ? Number(o.customer.totalDebt || o.customer.debt || 0) : 0;
+      oldDebt = o.customer ? Math.max(0, custDebt - (Number(o.total || 0) - paidAmount)) : 0;
+      remainingDebt = oldDebt + Number(o.total || 0) - paidAmount;
+    }
     const totalDebt = oldDebt + Number(o.total || 0);
-    const remainingDebt = totalDebt - paidAmount;
 
     const invoiceHTML = `
         <style>

@@ -439,7 +439,7 @@ export default function OrdersPage() {
   const loadDetail = async (id) => {
     try {
       const r = await orderAPI.getById(id);
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, _items: r.items || o.items || [], subtotal: r.subtotal || o.total, note: r.note || o.note } : o));
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, ...r, _items: r.items || o.items || [], subtotal: r.subtotal || o.total, note: r.note || o.note } : o));
     } catch {
       // Mock fallback
     }
