@@ -199,13 +199,13 @@ export default function CreatePurchaseOrderPage() {
     return Math.max(0, totalGoods - discountVal);
   }, [totalGoods, discountVal]);
 
-  // Tự động gán tiền trả NCC bằng Cần trả NCC nếu người dùng chưa nhập
+  // Tiền trả nhà cung cấp, mặc định là 0 nếu bỏ trống
   const actualPaid = useMemo(() => {
-    if (paidAmountStr === '') return needToPay;
+    if (paidAmountStr === '') return 0;
     let num = Number(paidAmountStr.replace(/[^0-9.-]+/g, ''));
     if (Number.isNaN(num)) return 0;
     return num;
-  }, [paidAmountStr, needToPay]);
+  }, [paidAmountStr]);
 
   // Xử lý import Excel
   const handleImportExcel = (e) => {
