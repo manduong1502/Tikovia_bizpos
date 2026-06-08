@@ -766,18 +766,25 @@ export default function CreatePurchaseReturnPage() {
               <label className="text-xs font-bold text-gray-500 mb-1.5 block">Nhà cung cấp</label>
               <div className="relative">
                 {selectedSupplier ? (
-                  <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
-                    <div className="flex flex-col">
-                      <span className="font-extrabold text-sm text-gray-800">{selectedSupplier.name}</span>
-                      <span className="text-xs text-gray-500 font-medium">{selectedSupplier.phone || selectedSupplier.code}</span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
+                      <div className="flex flex-col">
+                        <span className="font-extrabold text-sm text-gray-800">{selectedSupplier.name}</span>
+                        <span className="text-xs text-gray-500 font-medium">{selectedSupplier.phone || selectedSupplier.code}</span>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedSupplier(null)} 
+                        className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
+                        title="Xóa nhà cung cấp"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => setSelectedSupplier(null)} 
-                      className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
-                      title="Xóa nhà cung cấp"
-                    >
-                      <X size={18} />
-                    </button>
+                    <div className="text-sm font-bold text-gray-700 px-1 mt-1">
+                      Nợ: <span className={Number(currentDebt) !== 0 ? "text-red-600" : "text-gray-800"}>
+                        {fmt(currentDebt)}
+                      </span>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
