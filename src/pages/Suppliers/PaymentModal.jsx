@@ -7,6 +7,13 @@ import toast from 'react-hot-toast';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const toLocalISOString = (dateOrStr) => {
+  const d = dateOrStr ? new Date(dateOrStr) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 export default function PaymentModal({ open, onClose, supplier, purchaseOrders = [], onSaved }) {
   const [paymentDate, setPaymentDate] = useState('');
   const [createdBy, setCreatedBy] = useState('Võ Thành Huy');
@@ -21,8 +28,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
     if (open && supplier) {
       setAmount('');
       setNote('');
-      const now = new Date();
-      setPaymentDate(now.toISOString().slice(0, 16));
+      setPaymentDate(toLocalISOString(new Date()));
       setAllocate(true);
       setAllocations({});
     }

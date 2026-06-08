@@ -4,6 +4,13 @@ import Button from '../../components/ui/Button';
 import { supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
+const toLocalISOString = (dateOrStr) => {
+  const d = dateOrStr ? new Date(dateOrStr) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
   const [adjustDate, setAdjustDate] = useState('');
   const [debtValue, setDebtValue] = useState('');
@@ -14,8 +21,7 @@ export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
     if (open && supplier) {
       setDebtValue(String(supplier.debt || supplier.totalDebt || 0));
       setNote('');
-      const now = new Date();
-      setAdjustDate(now.toISOString().slice(0, 16));
+      setAdjustDate(toLocalISOString(new Date()));
     }
   }, [open, supplier]);
 

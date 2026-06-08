@@ -10,6 +10,13 @@ import ProductModal from '../Products/ProductModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
+const toLocalISOString = (dateOrStr) => {
+  const d = dateOrStr ? new Date(dateOrStr) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 export default function CreatePurchaseOrderPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,10 +29,7 @@ export default function CreatePurchaseOrderPage() {
   
   // States cho đơn nhập hàng
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [importDate, setImportDate] = useState(() => {
-    const now = new Date();
-    return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
-  });
+  const [importDate, setImportDate] = useState(() => toLocalISOString(new Date()));
   
   const [poCode, setPoCode] = useState('');
   const [orderCode, setOrderCode] = useState('');
@@ -66,7 +70,7 @@ export default function CreatePurchaseOrderPage() {
           if (poRes.status) setStatus(poRes.status);
           if (poRes.discount) setDiscountStr(String(poRes.discount));
           if (poRes.paid) setPaidAmountStr(String(poRes.paid));
-          if (poRes.createdAt) setImportDate(new Date(poRes.createdAt).toISOString().slice(0, 16));
+          if (poRes.createdAt) setImportDate(toLocalISOString(poRes.createdAt));
           if (Array.isArray(poRes.items)) {
             setItems(poRes.items.map(it => ({
               id: it.productId || it.product?.id || it.id,

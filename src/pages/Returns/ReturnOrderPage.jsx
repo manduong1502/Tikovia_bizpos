@@ -6,6 +6,13 @@ import { orderAPI, returnAPI, customerAPI } from '../../services/api';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const toLocalISOString = (dateOrStr) => {
+  const d = dateOrStr ? new Date(dateOrStr) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 export default function ReturnOrderPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
@@ -15,10 +22,7 @@ export default function ReturnOrderPage() {
   const [customer, setCustomer] = useState(null);
   const [items, setItems] = useState([]);
   
-  const [returnDate, setReturnDate] = useState(() => {
-    const now = new Date();
-    return now.toISOString().slice(0, 16);
-  });
+  const [returnDate, setReturnDate] = useState(() => toLocalISOString(new Date()));
   
   const [discountStr, setDiscountStr] = useState('0'); // Phí trả hàng (khách chịu)
   const [paidAmountStr, setPaidAmountStr] = useState(''); // Tiền đã trả khách

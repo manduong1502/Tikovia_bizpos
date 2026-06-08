@@ -9,6 +9,13 @@ import ProductModal from '../Products/ProductModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
+const toLocalISOString = (dateOrStr) => {
+  const d = dateOrStr ? new Date(dateOrStr) : new Date();
+  if (isNaN(d.getTime())) return '';
+  const tzOffset = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+};
+
 export default function CreatePurchaseReturnPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,10 +28,7 @@ export default function CreatePurchaseReturnPage() {
   
   const [po, setPo] = useState(null);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
-  const [returnDate, setReturnDate] = useState(() => {
-    const now = new Date();
-    return now.toISOString().slice(0, 16);
-  });
+  const [returnDate, setReturnDate] = useState(() => toLocalISOString(new Date()));
 
   const [items, setItems] = useState([]);
   const [discountStr, setDiscountStr] = useState('0');
