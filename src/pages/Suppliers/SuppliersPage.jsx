@@ -857,21 +857,39 @@ export default function SuppliersPage() {
     });
 
     const transactions = [
-      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
+      ...supPOs.filter(po => po.status !== 'CANCELLED').flatMap(po => {
         const total = Number(po.total || 0);
         const paid = Number(po.paid_amount || po.paid || 0);
-        return {
-          id: po.id,
-          code: po.po_code,
-          type: 'import',
-          typeName: 'Nhập hàng',
-          date: po.created_at,
-          total: total - paid,
-          paid: paid,
-          debt: total - paid,
-          status: po.payment_status,
-          items: po.items || []
-        };
+        const txs = [
+          {
+            id: `${po.id}-import`,
+            code: po.po_code || po.code,
+            type: 'import',
+            typeName: 'Nhập hàng',
+            date: po.created_at || po.createdAt,
+            total: total,
+            paid: 0,
+            debt: total,
+            status: po.payment_status || 'paid',
+            items: po.items || []
+          }
+        ];
+        if (paid > 0) {
+          const matchedCB = cashbooks.find(cb => cb.purchaseOrderId === po.id || cb.purchase_order_id === po.id);
+          txs.push({
+            id: `${po.id}-payment`,
+            code: matchedCB ? matchedCB.code : `PC${po.po_code || po.code}`,
+            type: 'payment',
+            typeName: 'Thanh toán',
+            date: po.created_at || po.createdAt,
+            total: paid,
+            paid: paid,
+            debt: -paid,
+            status: 'completed',
+            items: []
+          });
+        }
+        return txs;
       }),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({
         id: pr.id,

@@ -649,18 +649,33 @@ export default function CustomersPage() {
 
     // Build transactions for debt tab from real orders
     const debtTransactions = [
-      ...custOrders.map(o => {
+      ...custOrders.flatMap(o => {
         const total = Number(o.total || 0);
         const paid = Number(o.paid_amount || o.paid || 0);
-        return {
-          id: o.id,
-          code: o.order_code || o.code,
-          type: 'Bán hàng',
-          date: o.created_at || o.createdAt,
-          total: total - paid,
-          paid: paid,
-          debt: total - paid,
-        };
+        const txs = [
+          {
+            id: `${o.id}-sale`,
+            code: o.order_code || o.code,
+            type: 'Bán hàng',
+            date: o.created_at || o.createdAt,
+            total: total,
+            paid: 0,
+            debt: total,
+          }
+        ];
+        if (paid > 0) {
+          const matchedCB = cashbooks.find(cb => cb.orderId === o.id || cb.order_id === o.id);
+          txs.push({
+            id: `${o.id}-payment`,
+            code: matchedCB ? matchedCB.code : `PT${o.order_code || o.code}`,
+            type: 'Thanh toán',
+            date: o.created_at || o.createdAt,
+            total: paid,
+            paid: paid,
+            debt: -paid,
+          });
+        }
+        return txs;
       }),
       ...custReturns.map(r => {
         const total = Number(r.total || 0);
