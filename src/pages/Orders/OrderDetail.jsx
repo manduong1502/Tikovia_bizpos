@@ -376,22 +376,22 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
             </div>
           </div>
         ) : (
-          <div className="p-4 sm:p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-gray-200 overflow-x-auto max-w-full">
-            <table className="w-full text-xs mt-4 min-w-[500px]">
+          <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full max-w-full">
+            <table className="w-full text-xs min-w-[600px]">
               <thead>
-                <tr className="text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                  <th className="py-2">Thời gian</th>
-                  <th className="py-2">Phương thức</th>
-                  <th className="py-2 text-right">Số tiền</th>
-                  <th className="py-2 pl-4">Trạng thái</th>
+                <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                  <th className="p-3">Thời gian</th>
+                  <th className="p-3">Phương thức</th>
+                  <th className="p-3 text-right">Số tiền</th>
+                  <th className="p-3 text-center">Trạng thái</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr className="hover:bg-blue-50/30 transition-colors font-medium">
-                  <td className="py-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
-                  <td className="py-3 text-gray-800">{PAY_LABEL[o.payment_method] || 'Tiền mặt'}</td>
-                  <td className="py-3 text-right font-extrabold text-primary">{fmt(o.paid_amount)}</td>
-                  <td className="py-3 pl-4"><Badge status="completed" /></td>
+              <tbody className="divide-y divide-gray-100 font-medium">
+                <tr className="hover:bg-blue-50/30 transition-colors">
+                  <td className="p-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                  <td className="p-3 text-gray-800">{PAY_LABEL[o.payment_method] || 'Tiền mặt'}</td>
+                  <td className="p-3 text-right font-bold text-primary">{fmt(o.paid_amount)}</td>
+                  <td className="p-3 text-center"><Badge status="completed" /></td>
                 </tr>
               </tbody>
             </table>
