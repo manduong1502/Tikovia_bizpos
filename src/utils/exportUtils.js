@@ -90,5 +90,5 @@ export function printHTML(html, title = 'In') {
         document.body.removeChild(iframe);
       }
     }, 1000);
-  }, 300);
+  }, 50);
 }
