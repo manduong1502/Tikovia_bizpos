@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronsLeft, ChevronsRight, FileText
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX to speed up route loading
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -179,7 +179,8 @@ export default function EndOfDayReportPage() {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
     const todayStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const dateRangeStr = getFormattedDateRange();
     const safeDateStr = getSafeDateString();

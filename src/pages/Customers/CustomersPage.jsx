@@ -7,8 +7,7 @@ import {
   Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
-import * as XLSX from 'xlsx-js-style';
-import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
+// Dynamic imports will be used for XLSX and exportCSV to speed up route loading
 import CustomerModal from './CustomerModal';
 import CustomerPaymentModal from './CustomerPaymentModal';
 import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
@@ -137,13 +136,15 @@ export default function CustomersPage() {
     }
   };
 
-  const handleImportExcel = (e) => {
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -235,6 +236,9 @@ export default function CustomersPage() {
       }
     };
     reader.readAsArrayBuffer(file);
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const handleConfirmImport = async () => {
@@ -253,18 +257,23 @@ export default function CustomersPage() {
     }
   };
 
-  const handleDownloadSample = () => {
-    const wb = XLSX.utils.book_new();
-    const headers = ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Giới tính', 'Công nợ', 'Ghi chú'];
-    const sampleData = [
-      headers,
-      ['KH000001', 'Nguyễn Văn A', '0912345678', 'nva@gmail.com', '123 Lê Lợi, Q.1, TP.HCM', 'Nam', 500000, 'Khách hàng VIP'],
-      ['KH000002', 'Trần Thị B', '0987654321', 'ttb@yahoo.com', '456 Nguyễn Thị Minh Khai, Q.3, TP.HCM', 'Nữ', 0, 'Khách hàng mới'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    ws['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(wb, ws, 'CustomersTemplate');
-    XLSX.writeFile(wb, 'MauFileKhachHang.xlsx');
+  const handleDownloadSample = async () => {
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const wb = XLSX.utils.book_new();
+      const headers = ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Giới tính', 'Công nợ', 'Ghi chú'];
+      const sampleData = [
+        headers,
+        ['KH000001', 'Nguyễn Văn A', '0912345678', 'nva@gmail.com', '123 Lê Lợi, Q.1, TP.HCM', 'Nam', 500000, 'Khách hàng VIP'],
+        ['KH000002', 'Trần Thị B', '0987654321', 'ttb@yahoo.com', '456 Nguyễn Thị Minh Khai, Q.3, TP.HCM', 'Nữ', 0, 'Khách hàng mới'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+      ws['!cols'] = [{ wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 12 }, { wch: 15 }, { wch: 25 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'CustomersTemplate');
+      XLSX.writeFile(wb, 'MauFileKhachHang.xlsx');
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const [filterGroup, setFilterGroup] = useState('');
@@ -547,16 +556,21 @@ export default function CustomersPage() {
     setStarred(next);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
     
     if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng bán'],
-      dataToExport.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || c.totalDebt || 0, c.total_spent || c.totalSpent || 0])
-    );
+    try {
+      const { exportCSV } = await import('../../utils/exportCSV');
+      exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng bán'],
+        dataToExport.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || c.totalDebt || 0, c.total_spent || c.totalSpent || 0])
+      );
+    } catch (err) {
+      toast.error('Không thể tải thư viện xuất CSV');
+    }
   };
 
   const handleSaveNote = async (id, noteText) => {
@@ -1797,36 +1811,42 @@ export default function CustomersPage() {
           signRow2[totalCols - 2] = '(Ký, họ tên)';
           exportData.push(signRow2);
 
-          const ws = XLSX.utils.aoa_to_sheet(exportData);
-          
-          const autoCols = [];
-          autoCols.push({ wch: 14 }); // Thời gian
-          autoCols.push({ wch: 14 }); // Mã
-          autoCols.push({ wch: 28 }); // Diễn giải
-          if (columns.detail) {
-             if (columns.unit) autoCols.push({ wch: 8 });
-             if (columns.quantity) autoCols.push({ wch: 8 });
-             if (columns.price) autoCols.push({ wch: 12 });
-             if (columns.discount) autoCols.push({ wch: 10 });
-             autoCols.push({ wch: 8 }); // VAT
-             if (columns.importPrice) autoCols.push({ wch: 14 });
-             if (columns.total) autoCols.push({ wch: 14 });
-             if (columns.note) autoCols.push({ wch: 14 });
-          }
-          autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
-          
-          // Dynamic merges for Title and Date
-          const merges = [
-            { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } },
-            { s: { r: 5, c: 0 }, e: { r: 5, c: totalCols - 1 } }
-          ];
+          try {
+            const XLSX = await import('xlsx-js-style');
+            const { applyDebtExcelStyles } = await import('../../utils/exportCSV');
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            const autoCols = [];
+            autoCols.push({ wch: 14 }); // Thời gian
+            autoCols.push({ wch: 14 }); // Mã
+            autoCols.push({ wch: 28 }); // Diễn giải
+            if (columns.detail) {
+               if (columns.unit) autoCols.push({ wch: 8 });
+               if (columns.quantity) autoCols.push({ wch: 8 });
+               if (columns.price) autoCols.push({ wch: 12 });
+               if (columns.discount) autoCols.push({ wch: 10 });
+               autoCols.push({ wch: 8 }); // VAT
+               if (columns.importPrice) autoCols.push({ wch: 14 });
+               if (columns.total) autoCols.push({ wch: 14 });
+               if (columns.note) autoCols.push({ wch: 14 });
+            }
+            autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+            
+            // Dynamic merges for Title and Date
+            const merges = [
+              { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } },
+              { s: { r: 5, c: 0 }, e: { r: 5, c: totalCols - 1 } }
+            ];
 
-          applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
-          
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
-          XLSX.writeFile(wb, `CongNoChiTietKhachHang_${custCode}.xlsx`);
-          toast.success('Đã xuất file công nợ khách hàng');
+            applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
+            
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
+            XLSX.writeFile(wb, `CongNoChiTietKhachHang_${custCode}.xlsx`);
+            toast.success('Đã xuất file công nợ khách hàng');
+          } catch (err) {
+            toast.error('Không thể tải thư viện xuất Excel');
+          }
         }}
       />
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Search, Plus, Trash2, User, X, Printer, Eye, AlertCircle, Scan, Upload, FileSpreadsheet } from 'lucide-react';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX to speed up route loading
 import Button from '../../components/ui/Button';
 import NumericInput from '../../components/ui/NumericInput';
 import { purchaseOrderAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
@@ -217,8 +217,9 @@ export default function CreatePurchaseOrderPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -278,7 +279,8 @@ export default function CreatePurchaseOrderPage() {
   };
 
   // Tải file mẫu Excel
-  const handleDownloadSample = () => {
+  const handleDownloadSample = async () => {
+    const XLSX = await import('xlsx');
     const sampleData = [
       { 'Mã hàng': 'SP001', 'Số lượng': 10, 'Đơn giá': 7000 },
       { 'Mã hàng': 'SP002', 'Số lượng': 20, 'Đơn giá': 7000 },

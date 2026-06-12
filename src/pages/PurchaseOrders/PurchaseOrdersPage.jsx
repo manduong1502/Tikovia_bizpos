@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, ClipboardList, Star, Filter, Upload, Settings, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Tag, XCircle, HelpCircle, ChevronUp, Calendar, ChevronRight, Eye, X, SlidersHorizontal
 } from 'lucide-react';
-import { exportCSV } from '../../utils/exportCSV';
+// Dynamic imports will be used for exportCSV to speed up route loading
 import PurchaseOrderModal from './PurchaseOrderModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
@@ -312,12 +312,13 @@ export default function PurchaseOrdersPage() {
     setStarred(next);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
     if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
+    const { exportCSV } = await import('../../utils/exportCSV');
     exportCSV('phieu_nhap_hang', ['Mã nhập hàng', 'Thời gian', 'Mã NCC', 'Nhà cung cấp', 'Cần trả NCC', 'Đã trả NCC', 'Trạng thái'],
       dataToExport.map(o => [o.po_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.supplier_code, o.supplier_name, o.total, o.paid_amount, PAY_LABEL[o.payment_status] || o.payment_status])
     );

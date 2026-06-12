@@ -5,7 +5,7 @@ import {
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX to speed up route loading
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -195,7 +195,8 @@ export default function ProductsReportPage() {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
     const todayStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     const aoa = [
       [`Ngày lập: ${todayStr}`],

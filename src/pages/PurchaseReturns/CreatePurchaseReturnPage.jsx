@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX to speed up route loading
 import Button from '../../components/ui/Button';
 import { purchaseOrderAPI, purchaseReturnAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
 import ProductModal from '../Products/ProductModal';
@@ -255,8 +255,9 @@ export default function CreatePurchaseReturnPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -366,7 +367,8 @@ export default function CreatePurchaseReturnPage() {
     setImportSummaryOpen(false);
   };
 
-  const handleDownloadSample = () => {
+  const handleDownloadSample = async () => {
+    const XLSX = await import('xlsx');
     const sampleData = [
       { 'Mã hàng': 'SP001', 'Số lượng': 5, 'Đơn giá': 150000, 'Ghi chú': 'Hàng lỗi kỹ thuật' },
       { 'Mã hàng': 'SP002', 'Số lượng': 10, 'Đơn giá': 85000, 'Ghi chú': 'Hàng cận date' },

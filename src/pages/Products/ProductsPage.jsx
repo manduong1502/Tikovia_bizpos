@@ -5,11 +5,10 @@ import Button from '../../components/ui/Button';
 import {
   Plus, Download, Upload, Settings, Search, Star, ChevronUp, ChevronDown, Package, Trash2, Copy, Edit, Tag, MoreHorizontal, ClipboardList, ChevronLeft, ChevronRight, X, Filter, Columns3, HelpCircle, AlertCircle, SlidersHorizontal
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX and exportCSV to speed up route loading
 import FilterSidebar from './FilterSidebar';
 import ProductModal from './ProductModal';
 import Pagination from '../../components/common/Pagination';
-import { exportProducts } from '../../utils/exportCSV';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
 import {
   parseFlexibleDate,
@@ -90,8 +89,9 @@ export default function ProductsPage() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        const XLSX = await import('xlsx');
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -211,7 +211,8 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDownloadSample = () => {
+  const handleDownloadSample = async () => {
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     const headers = [
       'Loại hàng', 'Nhóm hàng(3 Cấp)', 'Mã hàng', 'Tên hàng', 'Thương hiệu', 'Giá bán', 'Giá vốn', 'Tồn kho', 'Tồn nhỏ nhất', 'Tồn lớn nhất', 'ĐVT', 'Mô tả', 'Mẫu ghi chú', 'Vị trí'
@@ -674,7 +675,7 @@ export default function ProductsPage() {
                 Đã chọn {selected.size}
                 <button onClick={() => setSelected(new Set())} className="text-gray-400 hover:text-red-500 cursor-pointer bg-transparent border-none p-0.5 transition-colors"><X size={14} /></button>
               </span>
-              <Button variant="secondary" onClick={() => exportProducts(filtered.filter(p => selected.has(p.id)))} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs">
+              <Button variant="secondary" onClick={async () => { const { exportProducts } = await import('../../utils/exportCSV'); exportProducts(filtered.filter(p => selected.has(p.id))); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs">
                 <Download size={14} /> Xuất file
               </Button>
               <Button variant="secondary" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs">
@@ -750,7 +751,7 @@ export default function ProductsPage() {
                   <Download size={14} /> Tải file mẫu
                 </Button>
 
-                <Button variant="secondary" onClick={() => exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered)} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
+                <Button variant="secondary" onClick={async () => { const { exportProducts } = await import('../../utils/exportCSV'); exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
                   <Download size={14} /> Xuất file
                 </Button>
 

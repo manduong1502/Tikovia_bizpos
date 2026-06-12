@@ -6,7 +6,7 @@ import Modal from '../../components/ui/Modal';
 import Dropdown from '../../components/ui/Dropdown';
 import CategoryFilter from '../../components/ui/CategoryFilter';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
+// Dynamic imports will be used for XLSX to speed up route loading
 import Pagination from '../../components/common/Pagination';
 import {
   Search, Plus, Download, Upload, ChevronDown, ChevronUp, Info, HelpCircle, Columns3, Settings, Filter, X, SlidersHorizontal
@@ -266,6 +266,7 @@ export default function PriceBooksPage() {
         const file = input.files?.[0];
         if (!file) return;
 
+        const XLSX = await import('xlsx');
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -331,8 +332,9 @@ export default function PriceBooksPage() {
     input.click();
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
+      const XLSX = await import('xlsx');
       const rows = filteredProducts.map((p) => {
         const row = {};
         shownColumns.forEach((c) => {

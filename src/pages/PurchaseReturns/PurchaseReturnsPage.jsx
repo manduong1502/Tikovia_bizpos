@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, ClipboardList, Star, Filter, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Calendar, ChevronRight, Eye, Settings, HelpCircle, X, SlidersHorizontal
 } from 'lucide-react';
-import { exportCSV } from '../../utils/exportCSV';
+// Dynamic imports will be used for exportCSV to speed up route loading
 import Pagination from '../../components/common/Pagination';
 import { inDateRange, getRangeByCreatedLabel, buildCustomRange } from '../../utils/dateFilterUtils';
 
@@ -442,12 +442,13 @@ export default function PurchaseReturnsPage() {
     });
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
     if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
+    const { exportCSV } = await import('../../utils/exportCSV');
     exportCSV('DanhSachTraHangNhap', ['Mã trả hàng nhập', 'Thời gian', 'Nhà cung cấp', 'Tổng tiền hàng', 'Giảm giá', 'NCC cần trả', 'NCC đã trả', 'Trạng thái'],
       dataToExport.map(o => [
         o.code,

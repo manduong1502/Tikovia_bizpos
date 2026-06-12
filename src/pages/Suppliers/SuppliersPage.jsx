@@ -6,8 +6,7 @@ import toast from 'react-hot-toast';
 import {
   Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
 } from 'lucide-react';
-import * as XLSX from 'xlsx-js-style';
-import { exportCSV, applyExcelStyles, applyDebtExcelStyles } from '../../utils/exportCSV';
+// Dynamic imports will be used for XLSX and exportCSV to speed up route loading
 import SupplierModal from './SupplierModal';
 import PaymentModal from './PaymentModal';
 import AdjustDebtModal from './AdjustDebtModal';
@@ -163,13 +162,15 @@ export default function SuppliersPage() {
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
 
-  const handleImportExcel = (e) => {
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -271,6 +272,9 @@ export default function SuppliersPage() {
       }
     };
     reader.readAsArrayBuffer(file);
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const handleConfirmImport = async () => {
@@ -289,18 +293,23 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleDownloadSample = () => {
-    const wb = XLSX.utils.book_new();
-    const headers = ['Mã NCC', 'Tên nhà cung cấp', 'Điện thoại', 'Email', 'Địa chỉ', 'Công nợ', 'Ghi chú'];
-    const sampleData = [
-      headers,
-      ['NCC00001', 'Công ty TNHH Thực phẩm Sạch', '0912345678', 'contact@thucpham.vn', '123 Nguyễn Văn Linh, Q.7, TP.HCM', 1500000, 'Nhà cung cấp uy tín'],
-      ['NCC00002', 'Đại lý Nước giải khát Miền Nam', '0987654321', 'sales@ngk.com', '456 Lê Lợi, Q.1, TP.HCM', 0, 'Giao hàng nhanh'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 15 }, { wch: 25 }];
-    XLSX.utils.book_append_sheet(wb, ws, 'SuppliersTemplate');
-    XLSX.writeFile(wb, 'MauFileNhaCungCap.xlsx');
+  const handleDownloadSample = async () => {
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const wb = XLSX.utils.book_new();
+      const headers = ['Mã NCC', 'Tên nhà cung cấp', 'Điện thoại', 'Email', 'Địa chỉ', 'Công nợ', 'Ghi chú'];
+      const sampleData = [
+        headers,
+        ['NCC00001', 'Công ty TNHH Thực phẩm Sạch', '0912345678', 'contact@thucpham.vn', '123 Nguyễn Văn Linh, Q.7, TP.HCM', 1500000, 'Nhà cung cấp uy tín'],
+        ['NCC00002', 'Đại lý Nước giải khát Miền Nam', '0987654321', 'sales@ngk.com', '456 Lê Lợi, Q.1, TP.HCM', 0, 'Giao hàng nhanh'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+      ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 25 }, { wch: 35 }, { wch: 15 }, { wch: 25 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'SuppliersTemplate');
+      XLSX.writeFile(wb, 'MauFileNhaCungCap.xlsx');
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const [filterGroup, setFilterGroup] = useState('');
@@ -480,16 +489,21 @@ export default function SuppliersPage() {
     setStarred(next);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
     
     if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    exportCSV('nha_cung_cap', ['Mã NCC', 'Tên nhà cung cấp', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng mua'],
-      dataToExport.map(s => [s.code || `NCC${String(s.id).padStart(3, '0')}`, s.name, s.phone || '', s.email || '', s.address || '', s.debt || 0, s.total_spent || 0])
-    );
+    try {
+      const { exportCSV } = await import('../../utils/exportCSV');
+      exportCSV('nha_cung_cap', ['Mã NCC', 'Tên nhà cung cấp', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng mua'],
+        dataToExport.map(s => [s.code || `NCC${String(s.id).padStart(3, '0')}`, s.name, s.phone || '', s.email || '', s.address || '', s.debt || 0, s.total_spent || 0])
+      );
+    } catch (err) {
+      toast.error('Không thể tải thư viện xuất CSV');
+    }
   };
 
   const handleExportDebt = async (timeRange, columns) => {
@@ -763,36 +777,43 @@ export default function SuppliersPage() {
     signRow2[totalCols - 2] = '(Ký, họ tên)';
     exportData.push(signRow2);
 
-    const ws = XLSX.utils.aoa_to_sheet(exportData);
-    
-    const autoCols = [];
-    autoCols.push({ wch: 14 }); // Thời gian
-    autoCols.push({ wch: 14 }); // Mã
-    autoCols.push({ wch: 28 }); // Diễn giải
-    if (columns.detail) {
-       if (columns.unit) autoCols.push({ wch: 8 });
-       if (columns.quantity) autoCols.push({ wch: 8 });
-       if (columns.price) autoCols.push({ wch: 12 });
-       if (columns.discount) autoCols.push({ wch: 10 });
-       autoCols.push({ wch: 8 }); // VAT
-       if (columns.importPrice) autoCols.push({ wch: 14 });
-       if (columns.total) autoCols.push({ wch: 14 });
-       if (columns.note) autoCols.push({ wch: 14 });
+    try {
+      const XLSX = await import('xlsx-js-style');
+      const { applyDebtExcelStyles } = await import('../../utils/exportCSV');
+      
+      const ws = XLSX.utils.aoa_to_sheet(exportData);
+      
+      const autoCols = [];
+      autoCols.push({ wch: 14 }); // Thời gian
+      autoCols.push({ wch: 14 }); // Mã
+      autoCols.push({ wch: 28 }); // Diễn giải
+      if (columns.detail) {
+         if (columns.unit) autoCols.push({ wch: 8 });
+         if (columns.quantity) autoCols.push({ wch: 8 });
+         if (columns.price) autoCols.push({ wch: 12 });
+         if (columns.discount) autoCols.push({ wch: 10 });
+         autoCols.push({ wch: 8 }); // VAT
+         if (columns.importPrice) autoCols.push({ wch: 14 });
+         if (columns.total) autoCols.push({ wch: 14 });
+         if (columns.note) autoCols.push({ wch: 14 });
+      }
+      autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+      
+      // Dynamic merges for Title and Date
+      const merges = [
+        { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
+        { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } }
+      ];
+
+      applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
+      XLSX.writeFile(wb, `CongNoChiTietNhaCungCap_${supCode}.xlsx`);
+      toast.success('Đã xuất file công nợ');
+    } catch (err) {
+      toast.error('Không thể tải thư viện xuất Excel');
     }
-    autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
-    
-    // Dynamic merges for Title and Date
-    const merges = [
-      { s: { r: 3, c: 0 }, e: { r: 3, c: totalCols - 1 } },
-      { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } }
-    ];
-
-    applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
-    XLSX.writeFile(wb, `CongNoChiTietNhaCungCap_${supCode}.xlsx`);
-    toast.success('Đã xuất file công nợ');
   };
 
   const handleDelete = async (id) => {
