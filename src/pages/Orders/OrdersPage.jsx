@@ -289,7 +289,7 @@ export default function OrdersPage() {
 
   const reload = useCallback(async () => {
     try {
-      const params = { page: 1, limit: 500 };
+      const params = { page: 1, limit: 150 };
       const r = await orderAPI.getAll(params);
       const rawList = Array.isArray(r) ? r : (r?.data || []);
       if (rawList.length === 0) {
