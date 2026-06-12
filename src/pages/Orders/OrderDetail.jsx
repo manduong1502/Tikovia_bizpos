@@ -188,7 +188,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
 
           <div class="inv-footer" style="text-align: right; font-size: 12px; font-weight: bold; margin-top: 10px;">
             <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
-            <div>Ghi chú: ${o.note || ''}</div>
+            <div style="white-space: pre-wrap;">Ghi chú: ${o.note || ''}</div>
           </div>
 
           <div class="inv-thanks">

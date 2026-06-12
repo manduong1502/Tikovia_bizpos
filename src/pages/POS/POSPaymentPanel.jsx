@@ -247,7 +247,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
  
           <div class="inv-footer" style="text-align: right; font-size: 12px; font-weight: bold; margin-top: 10px;">
             <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
-            <div>Ghi chú: ${currentInvoice.note || ''}</div>
+            <div style="white-space: pre-wrap;">Ghi chú: ${currentInvoice.note || ''}</div>
           </div>
  
           <div class="inv-thanks">

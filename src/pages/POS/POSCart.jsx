@@ -263,11 +263,11 @@ export default function POSCart() {
       <div className="pos-cart-footer">
         <div className="pos-note-input">
           <span>✏️</span>
-          <input 
-            type="text" 
+          <textarea 
             placeholder="Ghi chú đơn hàng" 
             value={currentInvoice?.note || ''}
             onChange={(e) => updateCurrentInvoice({ note: e.target.value })}
+            rows={2}
           />
         </div>
         <div className="pos-total-summary">
