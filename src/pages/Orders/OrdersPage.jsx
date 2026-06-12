@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { orderAPI } from '../../services/api';
-import { exportCSV } from '../../utils/exportCSV';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import { useSocket } from '../../context/SocketContext';
 import {
   Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X, Pencil
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import OrderSidebar from './OrderSidebar';
 import OrderDetail from './OrderDetail';
 import Pagination from '../../components/common/Pagination';
@@ -97,13 +95,15 @@ export default function OrdersPage() {
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
 
-  const handleImportExcel = (e) => {
+  const handleImportExcel = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
+    try {
+      const XLSX = await import('xlsx');
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
         const data = new Uint8Array(event.target.result);
         const wb = XLSX.read(data, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -226,6 +226,9 @@ export default function OrdersPage() {
       }
     };
     reader.readAsArrayBuffer(file);
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const handleConfirmImport = async () => {
@@ -244,27 +247,32 @@ export default function OrdersPage() {
     }
   };
 
-  const handleDownloadSample = () => {
-    const wb = XLSX.utils.book_new();
-    const headers = [
-      'Mã hóa đơn', 'Mã KH', 'Tên khách hàng', 
-      'Mã hàng', 'Tên hàng', 'ĐVT', 'Số lượng', 'Đơn giá', 'Thành tiền',
-      'Tổng tiền hàng', 'Giảm giá', 'Khách đã trả', 'Ghi chú'
-    ];
-    const sampleData = [
-      headers,
-      ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000001', 'Gà ta thả vườn làm sạch', 'Kg', 2, 150000, 300000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
-      ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000002', 'Trứng gà ta sạch', 'Hộp', 1, 35000, 35000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
-      ['HD000102', 'KH000002', 'Trần Thị B', 'SP000003', 'Gà ác làm sạch nguyên con', 'Con', 1, 85000, 85000, 85000, 0, 85000, 'Khách quen'],
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(sampleData);
-    ws['!cols'] = [
-      { wch: 15 }, { wch: 15 }, { wch: 25 }, 
-      { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
-      { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 25 }
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'OrdersTemplate');
-    XLSX.writeFile(wb, 'MauFileHoaDon.xlsx');
+  const handleDownloadSample = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
+      const headers = [
+        'Mã hóa đơn', 'Mã KH', 'Tên khách hàng', 
+        'Mã hàng', 'Tên hàng', 'ĐVT', 'Số lượng', 'Đơn giá', 'Thành tiền',
+        'Tổng tiền hàng', 'Giảm giá', 'Khách đã trả', 'Ghi chú'
+      ];
+      const sampleData = [
+        headers,
+        ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000001', 'Gà ta thả vườn làm sạch', 'Kg', 2, 150000, 300000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
+        ['HD000101', 'KH000001', 'Nguyễn Văn A', 'SP000002', 'Trứng gà ta sạch', 'Hộp', 1, 35000, 35000, 300000, 20000, 280000, 'Giao hàng buổi chiều'],
+        ['HD000102', 'KH000002', 'Trần Thị B', 'SP000003', 'Gà ác làm sạch nguyên con', 'Con', 1, 85000, 85000, 85000, 0, 85000, 'Khách quen'],
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(sampleData);
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 15 }, { wch: 25 }, 
+        { wch: 15 }, { wch: 25 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 15 },
+        { wch: 18 }, { wch: 15 }, { wch: 18 }, { wch: 25 }
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, 'OrdersTemplate');
+      XLSX.writeFile(wb, 'MauFileHoaDon.xlsx');
+    } catch (err) {
+      toast.error('Không thể tải thư viện xử lý Excel');
+    }
   };
 
   const [filters, setFilters] = useState({
@@ -425,15 +433,20 @@ export default function OrdersPage() {
     setStarred(next);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const dataToExport = selectedIds.size > 0 ? filtered.filter(item => selectedIds.has(item.id)) : filtered;
     if (dataToExport.length === 0) {
       toast.error('Không có dữ liệu để xuất');
       return;
     }
-    exportCSV('hoa_don', ['Mã hóa đơn', 'Thời gian', 'Khách hàng', 'Tổng tiền', 'Giảm giá', 'Khách trả'],
-      dataToExport.map(o => [o.order_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.customer_name || 'Khách lẻ', o.total || 0, o.discount_amount || 0, o.paid_amount || 0])
-    );
+    try {
+      const { exportCSV } = await import('../../utils/exportCSV');
+      exportCSV('hoa_don', ['Mã hóa đơn', 'Thời gian', 'Khách hàng', 'Tổng tiền', 'Giảm giá', 'Khách trả'],
+        dataToExport.map(o => [o.order_code, o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '', o.customer_name || 'Khách lẻ', o.total || 0, o.discount_amount || 0, o.paid_amount || 0])
+      );
+    } catch (err) {
+      toast.error('Không thể tải thư viện xuất CSV');
+    }
   };
 
   const loadDetail = async (id) => {
