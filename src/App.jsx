@@ -111,6 +111,28 @@ function App() {
     sessionStorage.removeItem('chunk-load-reloaded');
   }, [darkMode]);
 
+  // Tải trước (prefetch) các trang lớn chạy ngầm để kế toán chuyển trang tức thời không giật lag
+  useEffect(() => {
+    const prefetchTimer = setTimeout(() => {
+      const pageImports = [
+        () => import('./pages/Orders/OrdersPage'),
+        () => import('./pages/Products/ProductsPage'),
+        () => import('./pages/PurchaseOrders/PurchaseOrdersPage'),
+        () => import('./pages/Customers/CustomersPage'),
+        () => import('./pages/Cashbook/CashbookPage'),
+        () => import('./pages/Returns/ReturnsPage'),
+        () => import('./pages/Suppliers/SuppliersPage'),
+        () => import('./pages/POS/POSPage'),
+        () => import('./pages/Categories/CategoriesPage'),
+        () => import('./pages/PriceBooks/PriceBooksPage'),
+        () => import('./pages/PurchaseReturns/PurchaseReturnsPage'),
+      ];
+      pageImports.forEach(fn => fn().catch(() => {}));
+    }, 2000);
+
+    return () => clearTimeout(prefetchTimer);
+  }, []);
+
   return (
     <ErrorBoundary>
       <SocketProvider>

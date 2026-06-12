@@ -101,6 +101,7 @@ const fallbackEntries = [
 
 export default function CashbookPage() {
   const [entries, setEntries] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   
   // Advanced Sidebar Filters States
@@ -150,6 +151,7 @@ export default function CashbookPage() {
   };
 
   const reload = useCallback(async () => {
+    setIsLoading(true);
     try {
       const params = {};
       if (search) params.search = search;
@@ -164,6 +166,8 @@ export default function CashbookPage() {
       }
     } catch { 
       setEntries(fallbackEntries); 
+    } finally {
+      setIsLoading(false);
     }
   }, [search]);
 
@@ -893,31 +897,57 @@ export default function CashbookPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {/* Summary row */}
-                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
-                  <td colSpan={2}></td>
-                  {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
-                  {visibleColumns.includes('time') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
-                  {visibleColumns.includes('createdAt') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') && !visibleColumns.includes('time') ? 'Tổng cộng' : ''}</td>}
-                  {visibleColumns.includes('employee') && <td></td>}
-                  {visibleColumns.includes('branch') && <td></td>}
-                  {visibleColumns.includes('category') && <td></td>}
-                  {visibleColumns.includes('bankAccount') && <td></td>}
-                  {visibleColumns.includes('bankAccountNumber') && <td></td>}
-                  {visibleColumns.includes('partnerCode') && <td></td>}
-                  {visibleColumns.includes('partnerName') && <td></td>}
-                  {visibleColumns.includes('partnerPhone') && <td></td>}
-                  {visibleColumns.includes('partnerAddress') && <td></td>}
-                  {visibleColumns.includes('amount') && (
-                    <td className={`py-2.5 px-3 text-right font-extrabold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      {fmt(totalIn - totalOut)}
-                    </td>
-                  )}
-                  {visibleColumns.includes('transferContent') && <td></td>}
-                  {visibleColumns.includes('note') && <td></td>}
-                  {visibleColumns.includes('paymentMethod') && <td></td>}
-                  {visibleColumns.includes('status') && <td></td>}
-                </tr>
-                {paginated.map((e, i) => {
+                {!isLoading && (
+                  <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                    <td colSpan={2}></td>
+                    {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                    {visibleColumns.includes('time') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
+                    {visibleColumns.includes('createdAt') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') && !visibleColumns.includes('time') ? 'Tổng cộng' : ''}</td>}
+                    {visibleColumns.includes('employee') && <td></td>}
+                    {visibleColumns.includes('branch') && <td></td>}
+                    {visibleColumns.includes('category') && <td></td>}
+                    {visibleColumns.includes('bankAccount') && <td></td>}
+                    {visibleColumns.includes('bankAccountNumber') && <td></td>}
+                    {visibleColumns.includes('partnerCode') && <td></td>}
+                    {visibleColumns.includes('partnerName') && <td></td>}
+                    {visibleColumns.includes('partnerPhone') && <td></td>}
+                    {visibleColumns.includes('partnerAddress') && <td></td>}
+                    {visibleColumns.includes('amount') && (
+                      <td className={`py-2.5 px-3 text-right font-extrabold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {fmt(totalIn - totalOut)}
+                      </td>
+                    )}
+                    {visibleColumns.includes('transferContent') && <td></td>}
+                    {visibleColumns.includes('note') && <td></td>}
+                    {visibleColumns.includes('paymentMethod') && <td></td>}
+                    {visibleColumns.includes('status') && <td></td>}
+                  </tr>
+                )}
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, idx) => (
+                    <tr key={idx} className="animate-pulse border-b border-gray-100">
+                      <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                      <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                      {visibleColumns.includes('code') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                      {visibleColumns.includes('time') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                      {visibleColumns.includes('createdAt') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                      {visibleColumns.includes('employee') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                      {visibleColumns.includes('branch') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
+                      {visibleColumns.includes('category') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
+                      {visibleColumns.includes('bankAccount') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-32" /></td>}
+                      {visibleColumns.includes('bankAccountNumber') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                      {visibleColumns.includes('partnerCode') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                      {visibleColumns.includes('partnerName') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
+                      {visibleColumns.includes('partnerPhone') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                      {visibleColumns.includes('partnerAddress') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-40" /></td>}
+                      {visibleColumns.includes('amount') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                      {visibleColumns.includes('transferContent') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                      {visibleColumns.includes('note') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                      {visibleColumns.includes('paymentMethod') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                      {visibleColumns.includes('status') && <td className="py-2.5 px-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>}
+                    </tr>
+                  ))
+                ) : paginated.map((e, i) => {
                   const isInc = e.type === 'INCOME' || e.type === 'thu' || e.type === 'in';
                   const isCancelled = e.status === 'cancelled';
                   const isExpanded = expandedId === e.id;
@@ -1156,7 +1186,7 @@ export default function CashbookPage() {
                   );
                 })}
 
-                {filteredEntries.length === 0 && (
+                {!isLoading && filteredEntries.length === 0 && (
                   <tr>
                     <td colSpan={2 + visibleColumns.length} className="text-center py-20 text-gray-400">
                       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">

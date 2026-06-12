@@ -57,6 +57,7 @@ const ALL_COLUMNS = [
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');
@@ -320,6 +321,7 @@ export default function CustomersPage() {
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
   const reload = useCallback(async () => {
+    setIsLoading(true);
     try {
       const params = { limit: 2000 };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
@@ -361,6 +363,8 @@ export default function CustomersPage() {
       }
     } catch {
       setCustomers([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode]);
 
@@ -1481,15 +1485,29 @@ export default function CustomersPage() {
                 {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
                 <td></td>
               </tr>
-              {paginated.map((c) => {
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <tr key={`skeleton-${rowIndex}`} className="animate-pulse border-b border-gray-100">
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    {visibleColumns.includes('code') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    {visibleColumns.includes('name') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-32" /></td>}
+                    {visibleColumns.includes('phone') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                    {visibleColumns.includes('email') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                    {visibleColumns.includes('address') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-36" /></td>}
+                    {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    <td className="py-2.5 px-3 text-center"><div className="h-5 bg-gray-200 rounded-lg w-12 mx-auto" /></td>
+                  </tr>
+                ))
+              ) : paginated.map((c) => {
                 const isSelected = selectedIds.has(c.id);
                 const isStarred = starred.has(c.id);
                 const isExpanded = expandedId === c.id;
 
                 return (
-                  <>
+                  <React.Fragment key={c.id}>
                     <tr
-                      key={c.id}
                       id={`row-${c.id}`}
                       onClick={() => {
                         const nextId = isExpanded ? null : c.id;
@@ -1543,11 +1561,11 @@ export default function CustomersPage() {
 
                     {/* Expanded Detail View */}
                     {isExpanded && renderDetail(c)}
-                  </>
+                  </React.Fragment>
                 );
               })}
 
-              {filtered.length === 0 && (
+              {!isLoading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={visibleColumns.length + 3} className="p-12 text-center text-gray-400 font-medium">
                     <User size={48} className="mx-auto mb-3 text-gray-300" />

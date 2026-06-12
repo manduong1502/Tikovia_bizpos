@@ -60,6 +60,7 @@ const ALL_COLUMNS = [
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
@@ -258,6 +259,7 @@ export default function ProductsPage() {
   }, []);
 
   const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [p, c, s] = await Promise.all([
         productAPI.getAll().catch(() => []),
@@ -295,7 +297,9 @@ export default function ProductsPage() {
       setCategories(cats);
 
       setSuppliers(Array.isArray(s) ? s : []);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -858,15 +862,30 @@ export default function ProductsPage() {
                 {visibleColumns.includes('expected_out') && <td></td>}
               </tr>
 
-              {pageItems.map((p) => {
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <tr key={`skeleton-${rowIndex}`} className="animate-pulse border-b border-gray-100">
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    <td className="py-2.5 px-3"><div className="w-10 h-10 bg-gray-200 rounded-xl" /></td>
+                    {visibleColumns.includes('sku') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    {visibleColumns.includes('name') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-48" /></td>}
+                    {visibleColumns.includes('sellPrice') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('costPrice') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('stock') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-12 ml-auto" /></td>}
+                    {visibleColumns.includes('reserved') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-12 ml-auto" /></td>}
+                    {visibleColumns.includes('created_at') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                    {visibleColumns.includes('expected_out') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-12" /></td>}
+                  </tr>
+                ))
+              ) : pageItems.map((p) => {
                 const isSelected = selected.has(p.id);
                 const isStarred = starred.has(p.id);
                 const isExpanded = expandedId === p.id;
 
                 return (
-                  <>
+                  <React.Fragment key={p.id}>
                     <tr
-                      key={p.id}
                       id={`row-${p.id}`}
                       onClick={() => {
                         const nextId = isExpanded ? null : p.id;
@@ -929,11 +948,11 @@ export default function ProductsPage() {
 
                     {/* Expanded Detail View */}
                     {isExpanded && renderDetail(p)}
-                  </>
+                  </React.Fragment>
                 );
               })}
 
-              {pageItems.length === 0 && (
+              {!isLoading && pageItems.length === 0 && (
                 <tr>
                   <td colSpan={visibleColumns.length + 3} className="p-12 text-center text-gray-400 font-medium">
                     <Package size={32} className="mx-auto mb-3 text-gray-300" />

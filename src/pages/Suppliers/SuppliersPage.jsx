@@ -61,6 +61,7 @@ const ALL_COLUMNS = [
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);
@@ -324,6 +325,7 @@ export default function SuppliersPage() {
   const searchPanelRef = useRef(null);
 
   const reload = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [supRes, prodRes, poRes, prRes, cbRes] = await Promise.all([
         supplierAPI.getAll({ limit: 500 }),
@@ -403,6 +405,8 @@ export default function SuppliersPage() {
       setProducts([]);
       setPurchaseOrders([]);
       setPurchaseReturns([]);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -1662,22 +1666,43 @@ export default function SuppliersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
               {/* Summary row */}
-              <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
-                <td colSpan={2}></td>
-                {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
-                {visibleColumns.includes('name') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
-                {visibleColumns.includes('phone') && <td></td>}
-                {visibleColumns.includes('email') && <td></td>}
-                {visibleColumns.includes('address') && <td></td>}
-                {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right text-red-500 font-extrabold">{fmt(sumDebt)}</td>}
-                {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
-                {visibleColumns.includes('net_purchase') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumNetPurchase)}</td>}
-                {visibleColumns.includes('isActive') && <td></td>}
-                {visibleColumns.includes('note') && <td></td>}
-                {visibleColumns.includes('created_at') && <td></td>}
-                <td></td>
-              </tr>
-              {paginated.map((s) => {
+              {!isLoading && (
+                <tr className="bg-blue-50/50 text-[13px] font-bold text-gray-700 border-b border-gray-100">
+                  <td colSpan={2}></td>
+                  {visibleColumns.includes('code') && <td className="py-2.5 px-3">Tổng cộng</td>}
+                  {visibleColumns.includes('name') && <td className="py-2.5 px-3">{!visibleColumns.includes('code') ? 'Tổng cộng' : ''}</td>}
+                  {visibleColumns.includes('phone') && <td></td>}
+                  {visibleColumns.includes('email') && <td></td>}
+                  {visibleColumns.includes('address') && <td></td>}
+                  {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right text-red-500 font-extrabold">{fmt(sumDebt)}</td>}
+                  {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
+                  {visibleColumns.includes('net_purchase') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumNetPurchase)}</td>}
+                  {visibleColumns.includes('isActive') && <td></td>}
+                  {visibleColumns.includes('note') && <td></td>}
+                  {visibleColumns.includes('created_at') && <td></td>}
+                  <td></td>
+                </tr>
+              )}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse border-b border-gray-100">
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    {visibleColumns.includes('code') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    {visibleColumns.includes('name') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-36" /></td>}
+                    {visibleColumns.includes('phone') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
+                    {visibleColumns.includes('email') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                    {visibleColumns.includes('address') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-32" /></td>}
+                    {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('net_purchase') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('isActive') && <td className="py-2.5 px-3 text-center"><div className="h-5 bg-gray-200 rounded-full w-20 mx-auto" /></td>}
+                    {visibleColumns.includes('note') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
+                    {visibleColumns.includes('created_at') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    <td className="py-2.5 px-3 text-center"><div className="h-5 bg-gray-200 rounded w-12 mx-auto" /></td>
+                  </tr>
+                ))
+              ) : paginated.map((s) => {
                 const isSelected = selectedIds.has(s.id);
                 const isStarred = starred.has(s.id);
                 const isExpanded = expandedId === s.id;
@@ -1759,7 +1784,7 @@ export default function SuppliersPage() {
                 );
               })}
 
-              {filtered.length === 0 && (
+              {!isLoading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={visibleColumns.length + 3} className="p-12 text-center text-gray-400 font-medium">
                     <Building2 size={48} className="mx-auto mb-3 text-gray-300" />

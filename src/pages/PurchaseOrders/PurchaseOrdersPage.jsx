@@ -133,6 +133,7 @@ const normalizePO = (o) => {
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);
   const [search, setSearch] = useState('');
@@ -181,6 +182,7 @@ export default function PurchaseOrdersPage() {
   const searchPanelRef = useRef(null);
 
   const reload = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [listRes, supplierRes, returnRes] = await Promise.all([
         purchaseOrderAPI.getAll({ limit: 500 }),
@@ -198,6 +200,8 @@ export default function PurchaseOrdersPage() {
       setOrders([]);
       setSuppliers([]);
       setPurchaseReturns([]);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -542,15 +546,28 @@ export default function PurchaseOrdersPage() {
                 {visibleColumns.includes('paid_amount') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumPaid)}</td>}
                 {visibleColumns.includes('payment_status') && <td></td>}
               </tr>
-              {paginated.map((o) => {
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <tr key={`skeleton-${rowIndex}`} className="animate-pulse border-b border-gray-100">
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    <td className="py-2.5 px-3 text-center"><div className="w-4 h-4 bg-gray-200 rounded mx-auto" /></td>
+                    {visibleColumns.includes('po_code') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    {visibleColumns.includes('created_at') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
+                    {visibleColumns.includes('supplier_code') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-16" /></td>}
+                    {visibleColumns.includes('supplier_name') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
+                    {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('paid_amount') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
+                    {visibleColumns.includes('payment_status') && <td className="py-2.5 px-3"><div className="h-5 bg-gray-200 rounded-full w-20" /></td>}
+                  </tr>
+                ))
+              ) : paginated.map((o) => {
                 const isSelected = selectedIds.has(o.id);
                 const isStarred = starred.has(o.id);
                 const isExpanded = expandedId === o.id;
 
                 return (
-                  <>
+                  <React.Fragment key={o.id}>
                     <tr
-                      key={o.id}
                       id={`row-${o.id}`}
                       onClick={() => {
                         const nextId = isExpanded ? null : o.id;
@@ -614,11 +631,11 @@ export default function PurchaseOrdersPage() {
                         purchaseReturns={purchaseReturns.filter(pr => pr.purchaseOrderId === o.id || pr.purchase_order_id === o.id || (pr.purchaseOrder && pr.purchaseOrder.id === o.id))}
                       />
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
 
-              {filtered.length === 0 && (
+              {!isLoading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={visibleColumns.length + 2} className="p-12 text-center text-gray-400 font-medium">
                     <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
