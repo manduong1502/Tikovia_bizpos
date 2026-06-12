@@ -13,6 +13,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function CategoriesPage() {
   const [roots, setRoots] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -23,6 +24,7 @@ export default function CategoriesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const load = useCallback(() => {
+    setIsLoading(true);
     categoryAPI.getAll()
       .then(res => {
         if (res && res.roots) {
@@ -34,7 +36,8 @@ export default function CategoriesPage() {
           setTotalCount(res.length);
         }
       })
-      .catch(() => { setRoots([]); setTotalCount(0); });
+      .catch(() => { setRoots([]); setTotalCount(0); })
+      .finally(() => { setIsLoading(false); });
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -274,7 +277,11 @@ export default function CategoriesPage() {
             <Layers size={20} className="text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalCount}</div>
+            {isLoading ? (
+              <div className="h-6 bg-gray-200 rounded w-12 my-1 animate-pulse" />
+            ) : (
+              <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalCount}</div>
+            )}
             <div className="text-[12px] text-gray-500 font-medium truncate">Nhóm hàng</div>
           </div>
         </div>
@@ -283,7 +290,11 @@ export default function CategoriesPage() {
             <Package size={20} className="text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalProducts}</div>
+            {isLoading ? (
+              <div className="h-6 bg-gray-200 rounded w-12 my-1 animate-pulse" />
+            ) : (
+              <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{totalProducts}</div>
+            )}
             <div className="text-[12px] text-gray-500 font-medium truncate">Sản phẩm</div>
           </div>
         </div>
@@ -292,7 +303,11 @@ export default function CategoriesPage() {
             <Folder size={20} className="text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{roots.length}</div>
+            {isLoading ? (
+              <div className="h-6 bg-gray-200 rounded w-12 my-1 animate-pulse" />
+            ) : (
+              <div className="text-xl sm:text-[22px] font-bold text-gray-800 truncate">{roots.length}</div>
+            )}
             <div className="text-[12px] text-gray-500 font-medium truncate">Nhóm gốc</div>
           </div>
         </div>
@@ -340,7 +355,21 @@ export default function CategoriesPage() {
 
             {/* Tree Content */}
             <div className="divide-y divide-gray-50">
-              {filteredRoots.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <div key={idx} className="flex items-center py-3 px-3 border-b border-gray-50 animate-pulse">
+                    <span className="w-5 h-5 shrink-0" />
+                    <span className="w-8 h-8 rounded-lg bg-gray-200 shrink-0 mr-3" />
+                    <div className="flex-1 min-w-0">
+                      <div className="h-3 bg-gray-200 rounded w-1/3 mb-1.5" />
+                      <div className="h-2.5 bg-gray-200 rounded w-1/4" />
+                    </div>
+                    <span className="w-[80px] flex justify-center"><div className="h-5 bg-gray-200 rounded-full w-12" /></span>
+                    <span className="w-[100px] flex justify-center"><div className="h-4 bg-gray-200 rounded w-16" /></span>
+                    <span className="w-[110px] flex justify-end pr-2"><div className="h-6 bg-gray-200 rounded w-16" /></span>
+                  </div>
+                ))
+              ) : filteredRoots.length > 0 ? (
                 filteredRoots.map(c => renderNode(c))
               ) : (
                 <div className="text-center py-20">
@@ -364,7 +393,11 @@ export default function CategoriesPage() {
 
             {/* Footer */}
             <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50/50 border-t border-gray-100 text-sm text-gray-600 font-medium">
-              <span>Hiển thị {filteredRoots.length} nhóm gốc / {totalCount} nhóm hàng</span>
+              {isLoading ? (
+                <span className="text-gray-400 font-medium animate-pulse">Đang tải dữ liệu nhóm hàng...</span>
+              ) : (
+                <span>Hiển thị {filteredRoots.length} nhóm gốc / {totalCount} nhóm hàng</span>
+              )}
             </div>
           </div>
         </div>
