@@ -15,7 +15,6 @@ export default function POSPaymentPanel({ forceShow = false }) {
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [paidAmountStr, setPaidAmountStr] = useState('');
   const [isPaidAmountFocused, setIsPaidAmountFocused] = useState(false);
-  const [salesChannel, setSalesChannel] = useState('Bán trực tiếp');
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [overpayMode, setOverpayMode] = useState('change');
@@ -287,17 +286,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
         </div>
       )}
       
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', borderBottom: '1px solid var(--pos-border-light)', backgroundColor: '#f8f9fa' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <select value={salesChannel} onChange={(e) => setSalesChannel(e.target.value)} style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '4px 8px', fontSize: '13px', outline: 'none', cursor: 'pointer', background: '#fff' }}>
-            <option value="Bán trực tiếp">Bán trực tiếp</option>
-            <option value="Facebook">Facebook</option>
-            <option value="Shopee">Shopee</option>
-            <option value="Zalo">Zalo</option>
-          </select>
-        </div>
-      </div>
-      
+
       {customer ? (
         <div style={{ display: 'flex', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--pos-border-light)' }}>
           <span style={{ color: 'var(--pos-text-muted)', marginRight: '12px' }}><User size={20} /></span>
