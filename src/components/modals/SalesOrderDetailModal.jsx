@@ -10,32 +10,9 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
   if (!open || !data) return null;
 
   const handleOpenTicket = () => {
-    const items = data.items || [];
-    navigate('/pos', {
+    navigate('/invoices', {
       state: {
-        copyOrder: {
-          id: data.id,
-          code: data.code,
-          items: items.map(it => ({
-            productId: it.productId || it.product?.id || it.id,
-            product_name: it.product_name || it.name || '',
-            product_sku: it.product_sku || it.sku || '',
-            quantity: Number(it.quantity || 0),
-            unit_price: Number(it.unit_price || it.price || 0),
-            price: Number(it.unit_price || it.price || 0),
-            discount: Number(it.discount || 0)
-          })),
-          customer: data.customer 
-            ? { id: data.customer.id, name: data.customer.name }
-            : (data.customerId ? { id: data.customerId, name: partnerName } : null),
-          note: data.note || '',
-          deliveryAddress: data.deliveryAddress || '',
-          receiverName: data.receiverName || '',
-          receiverPhone: data.receiverPhone || '',
-          driverId: data.driverId || '',
-          driverName: data.deliveryAddress ? (data.driverName || 'Chưa gán') : '',
-          deliveryStatus: data.deliveryAddress ? (data.deliveryStatus || 'ASSIGNED') : ''
-        }
+        openOrderCode: data.code
       }
     });
     onClose();

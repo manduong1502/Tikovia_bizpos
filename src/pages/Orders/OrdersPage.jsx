@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { orderAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
@@ -59,6 +59,7 @@ const ALL_COLUMNS = [
 
 export default function OrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -323,6 +324,24 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const code = location.state?.openOrderCode;
+    if (!code || orders.length === 0) return;
+
+    const matchedOrder = orders.find(o => o.order_code === code);
+    if (matchedOrder) {
+      setFilters(prev => ({
+        ...prev,
+        orderDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
+      }));
+      setSearch(code);
+      setExpandedId(matchedOrder.id);
+      loadDetail(matchedOrder.id);
+      scrollRowIntoView(matchedOrder.id);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.openOrderCode, orders, navigate, location.pathname]);
 
   useEffect(() => {
     if (!registerOrderUpdateCallback) return;
