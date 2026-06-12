@@ -72,6 +72,7 @@ const normalizeReturn = (o) => {
       id: it.id,
       product_sku: it.product?.sku || it.sku || '',
       product_name: it.product?.name || it.name || '',
+      unit: it.unit || it.product?.unit || 'Cái',
       quantity: Number(it.quantity || 0),
       price: Number(it.price || 0),
       total: Number(it.total || (it.quantity * it.price))
@@ -251,7 +252,7 @@ export default function ReturnsPage() {
             <tbody>
               ${items.map(it => `
                 <tr>
-                  <td>${it.product_name || ''}</td>
+                  <td>${it.product_name || ''} ${it.unit ? `(${it.unit})` : ''}</td>
                   <td style="text-align: center;">${it.quantity}</td>
                   <td style="text-align: right;">${f(it.price || 0)}</td>
                   <td style="text-align: right;">${f(it.total || 0)}</td>
@@ -496,7 +497,7 @@ export default function ReturnsPage() {
                     {items.map((it, idx) => (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                         <td className="p-3 text-primary font-bold">{it.product_sku}</td>
-                        <td className="p-3 text-gray-800">{it.product_name}</td>
+                        <td className="p-3 text-gray-800">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
                         <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
                         <td className="p-1.5 px-3 text-right text-gray-600">{fmt(it.price)}</td>
                         <td className="p-1.5 px-3 text-right text-primary font-bold">{fmt(it.total)}</td>

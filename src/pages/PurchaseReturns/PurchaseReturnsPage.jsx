@@ -69,7 +69,11 @@ const normalizePR = (o) => ({
     ...it,
     id: it.id,
     product_sku: it.product_sku || it.product?.sku || it.sku || '',
-    product_name: it.product_name || it.product?.name || it.name || '',
+    product_name: (() => {
+      const base = it.product_name || it.product?.name || it.name || '';
+      const u = it.unit || it.product?.unit;
+      return u ? `${base} (${u})` : base;
+    })(),
     quantity: Number(it.quantity || 0),
     cost_price: Number(it.cost_price || it.costPrice || it.unit_price || it.price || 0),
     return_price: Number(it.return_price || it.returnPrice || it.cost_price || it.costPrice || it.unit_price || it.price || 0),

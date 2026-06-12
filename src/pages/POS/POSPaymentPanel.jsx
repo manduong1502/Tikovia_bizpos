@@ -204,7 +204,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
                 const itemTotal = (i.price - (i.discount || 0)) * i.quantity;
                 return `
                 <tr>
-                  <td>${i.product.name}</td>
+                  <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
                   <td style="text-align: center;">${i.quantity}</td>
                   <td style="text-align: center;">${i.product.unit || 'cái'}</td>
                   <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(i.price)}</td>

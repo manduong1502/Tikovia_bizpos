@@ -54,7 +54,7 @@ export default function PurchaseOrderDetail({
           <div class="barcode-grid">
             ${o.items?.map(it => Array(Math.min(it.quantity || 1, 10)).fill(0).map(() => `
               <div class="barcode-item">
-                <div style="font-weight: bold;">${it.product_name}</div>
+                <div style="font-weight: bold;">${it.product_name} ${it.unit ? `(${it.unit})` : ''}</div>
                 <div style="color: #666;">${it.product_sku}</div>
                 <div style="font-size: 18px; margin: 4px 0; font-family: monospace;">||||||||||||||||||</div>
                 <div style="font-weight: bold; color: #b91c1c;">${fmt(it.unit_price)} đ</div>
@@ -128,7 +128,7 @@ export default function PurchaseOrderDetail({
               ${o.items?.map(it => `
                 <tr>
                   <td>${it.product_sku}</td>
-                  <td><strong>${it.product_name}</strong></td>
+                  <td><strong>${it.product_name} ${it.unit ? `(${it.unit})` : ''}</strong></td>
                   <td class="text-right">${it.quantity}</td>
                   <td class="text-right">${fmt(it.unit_price)}</td>
                   <td class="text-right">${fmt(it.discount)}</td>
@@ -268,7 +268,7 @@ export default function PurchaseOrderDetail({
                         {items.length > 0 ? items.map((it, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                             <td className="p-3 text-gray-800">{it.product_sku}</td>
-                            <td className="p-3 font-bold text-gray-900">{it.product_name}</td>
+                            <td className="p-3 font-bold text-gray-900">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
                             <td className="p-3 text-right text-gray-800">{it.quantity}</td>
                             <td className="p-3 text-right text-gray-800">{fmt(it.unit_price)}</td>
                             <td className="p-3 text-right text-gray-800">{fmt(it.discount)}</td>

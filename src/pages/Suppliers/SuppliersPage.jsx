@@ -126,10 +126,12 @@ export default function SuppliersPage() {
           // Ensure return items have SKU and product name
           const detailItems = (detail?.items || []).map(it => {
             const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+            const base = it.product_name || it.name || prod?.name || '';
+            const u = it.unit || it.product?.unit || prod?.unit;
             return {
               ...it,
               product_sku: it.product_sku || it.sku || prod?.sku || '',
-              product_name: it.product_name || it.name || prod?.name || '',
+              product_name: u ? `${base} (${u})` : base,
             };
           });
           setSelectedTx({
@@ -351,15 +353,19 @@ export default function SuppliersPage() {
         paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || 0),
         payment_status: o.payment_status || o.paymentStatus || (o.status === 'PENDING' ? 'partial' : 'paid'),
         status: o.status || 'COMPLETED',
-        items: Array.isArray(o.items) ? o.items.map(it => ({
-          ...it,
-          product_sku: it.product_sku || it.product?.sku || '',
-          product_name: it.product_name || it.product?.name || '',
-          quantity: Number(it.quantity || 0),
-          unit_price: Number(it.unit_price || it.price || 0),
-          discount: Number(it.discount || 0),
-          total: Number(it.total || (it.quantity * (it.price || it.unit_price || 0)))
-        })) : []
+        items: Array.isArray(o.items) ? o.items.map(it => {
+          const base = it.product_name || it.product?.name || '';
+          const u = it.unit || it.product?.unit;
+          return {
+            ...it,
+            product_sku: it.product_sku || it.product?.sku || '',
+            product_name: u ? `${base} (${u})` : base,
+            quantity: Number(it.quantity || 0),
+            unit_price: Number(it.unit_price || it.price || 0),
+            discount: Number(it.discount || 0),
+            total: Number(it.total || (it.quantity * (it.price || it.unit_price || 0)))
+          };
+        }) : []
       }));
 
       const rawPRs = Array.isArray(prRes) ? prRes : (prRes?.data || []);
@@ -513,9 +519,16 @@ export default function SuppliersPage() {
       for (let i = 0; i < supPOs.length; i++) {
         try {
           const detail = await purchaseOrderAPI.getById(supPOs[i].id);
-          if (detail) {
-            supPOs[i].items = detail.items || [];
-          }
+            supPOs[i].items = (detail.items || []).map(it => {
+              const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+              const base = it.product_name || it.product?.name || it.name || '';
+              const u = it.unit || it.product?.unit || prod?.unit;
+              return {
+                ...it,
+                product_sku: it.product_sku || it.sku || prod?.sku || '',
+                product_name: u ? `${base} (${u})` : base,
+              };
+            });
         } catch (e) {
           console.warn(`Lỗi khi lấy chi tiết đơn nhập ${supPOs[i].po_code}`, e);
         }
@@ -528,10 +541,12 @@ export default function SuppliersPage() {
           if (detail) {
             supPRs[i].items = (detail.items || []).map(it => {
               const prod = products.find(p => p.id === it.productId || p.id === it.product_id);
+              const base = it.product_name || it.name || prod?.name || '';
+              const u = it.unit || it.product?.unit || prod?.unit;
               return {
                 ...it,
                 product_sku: it.product_sku || it.sku || prod?.sku || '',
-                product_name: it.product_name || it.name || prod?.name || '',
+                product_name: u ? `${base} (${u})` : base,
               };
             });
           }

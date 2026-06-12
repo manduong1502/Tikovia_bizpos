@@ -60,13 +60,16 @@ export default function POSCart() {
                   <span className="pos-cart-item-sku">{item.product.sku || ''}</span>
                   
                   <span className="pos-cart-item-name">
-                    {item.product.name}
+                    {item.product.name} {item.product.unit ? `(${item.product.unit})` : ''}
                     <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px', fontWeight: 'normal' }}>
                       (Tồn: {Number(item.product.stock || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })})
                     </span>
                   </span>
                   
                   <div className="pos-cart-item-actions">
+                    {item.product.unit && (
+                      <span className="pos-cart-item-unit-badge">{item.product.unit}</span>
+                    )}
                     <div className="pos-qty-control">
                       <button 
                         className="pos-qty-btn"

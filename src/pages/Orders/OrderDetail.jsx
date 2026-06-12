@@ -47,8 +47,8 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
           receiverName: o.receiverName || '',
           receiverPhone: o.receiverPhone || '',
           driverId: o.driverId || '',
-          driverName: o.driverName || 'Chưa gán',
-          deliveryStatus: o.deliveryStatus || 'ASSIGNED'
+          driverName: o.deliveryAddress ? (o.driverName || 'Chưa gán') : '',
+          deliveryStatus: o.deliveryAddress ? (o.deliveryStatus || 'ASSIGNED') : ''
         }
       }
     });
@@ -151,7 +151,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                 const itemTotal = Number(it.total || price * it.quantity);
                 return `
                 <tr>
-                  <td>${it.product_name || ''}</td>
+                  <td>${it.product_name || ''} ${it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
                   <td style="text-align: center;">${it.quantity}</td>
                   <td style="text-align: center;">${it.unit || 'cái'}</td>
                   <td style="text-align: right;">${f(it.unit_price || 0)}</td>
@@ -298,7 +298,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                     {items.map((it, idx) => (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                         <td className="p-3 text-primary font-bold">{it.product_sku}</td>
-                        <td className="p-3 text-gray-800">{it.product_name}</td>
+                        <td className="p-3 text-gray-800">{it.product_name} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
                         <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
                         <td className="p-3 text-right text-gray-600">{fmt(it.unit_price)}</td>
                         <td className="p-3 text-right text-gray-600">{it.discount > 0 ? fmt(it.discount) : '0'}</td>

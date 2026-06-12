@@ -354,7 +354,7 @@ export default function ReturnOrderPage() {
             <tbody>
               ${items.map(it => `
                 <tr>
-                  <td>${it.name || ''}</td>
+                  <td>${it.name || ''} ${it.unit ? `(${it.unit})` : ''}</td>
                   <td style="text-align: center;">${it.return_quantity}</td>
                   <td style="text-align: right;">${f(it.return_price || 0)}</td>
                   <td style="text-align: right;">${f((parseFloat(it.return_quantity) || 0) * it.return_price)}</td>
@@ -487,7 +487,7 @@ export default function ReturnOrderPage() {
                       <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
                       {showSku && <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>}
                       <td className="py-3 px-4">
-                        <div className="font-bold text-gray-900 mb-1">{it.name}</div>
+                        <div className="font-bold text-gray-900 mb-1">{it.name} {it.unit ? `(${it.unit})` : ''}</div>
                         <div className="flex items-center gap-1.5">
                           <input 
                             type="text"

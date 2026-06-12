@@ -99,7 +99,7 @@ export default function POSHeader() {
                 className="flex items-center p-2 border-b border-gray-100 hover:bg-blue-50 cursor-pointer text-left"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-gray-800 truncate">{p.name}</div>
+                  <div className="text-[13px] font-medium text-gray-800 truncate">{p.name} {p.unit ? `(${p.unit})` : ''}</div>
                   <div className="text-[11px] text-gray-500">{p.sku}</div>
                 </div>
                 <div className="text-right shrink-0 ml-3">

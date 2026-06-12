@@ -897,7 +897,7 @@ export default function ProductsPage() {
                         <td className="py-2.5 px-3 font-bold text-primary">{p.sku || ''}</td>
                       )}
                       {visibleColumns.includes('name') && (
-                        <td className="py-2.5 px-3 font-bold text-gray-800">{p.name}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-800">{p.name} {p.unit ? `(${p.unit})` : ''}</td>
                       )}
                       {visibleColumns.includes('sellPrice') && (
                         <td className="py-2.5 px-3 text-right font-extrabold text-gray-800">{fmt(p.sellPrice)}</td>

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
@@ -11,6 +11,7 @@ export function usePOS() {
 
 export function POSProvider({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   // State for products and customers
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -84,18 +85,18 @@ export function POSProvider({ children }) {
       receiverName: targetOrder.receiverName || '',
       receiverPhone: targetOrder.receiverPhone || '',
       driverId: targetOrder.driverId || '',
-      driverName: targetOrder.driverName || 'Chưa gán',
-      deliveryStatus: targetOrder.deliveryStatus || 'ASSIGNED',
+      driverName: targetOrder.driverId ? (targetOrder.driverName || 'Chưa gán') : '',
+      deliveryStatus: targetOrder.deliveryAddress ? (targetOrder.deliveryStatus || 'ASSIGNED') : '',
     };
     setInvoices(prev => [...prev, editInvoice]);
     setActiveTabId(nextTabId);
     setNextTabId(prev => prev + 1);
     
-    const isDelivery = !!(targetOrder.deliveryAddress || targetOrder.driverId || targetOrder.deliveryStatus || (targetOrder.status && targetOrder.status.toUpperCase() === 'SHIPPING'));
+    const isDelivery = !!(targetOrder.deliveryAddress || targetOrder.driverId || (targetOrder.deliveryAddress && targetOrder.deliveryStatus) || (targetOrder.status && targetOrder.status.toUpperCase() === 'SHIPPING'));
     setSaleMode(isDelivery ? 'delivery' : 'fast');
     
     // Clear the state so it doesn't re-trigger
-    window.history.replaceState({}, '');
+    navigate(location.pathname, { replace: true, state: {} });
   }, [location.state, products]);
 
   // --- Tab Actions ---

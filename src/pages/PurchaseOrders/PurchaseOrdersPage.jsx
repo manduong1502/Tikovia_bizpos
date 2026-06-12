@@ -110,7 +110,12 @@ const normalizePO = (o) => {
       ...it,
       id: it.id,
       product_sku: it.product_sku || it.product?.sku || '',
-      product_name: it.product_name || it.product?.name || '',
+      product_name: (() => {
+        const base = it.product_name || it.product?.name || '';
+        const u = it.unit || it.product?.unit;
+        return u ? `${base} (${u})` : base;
+      })(),
+      unit: it.unit || it.product?.unit || 'Cái',
       quantity: Number(it.quantity || 0),
       unit_price: Number(it.unit_price || it.price || 0),
       discount: Number(it.discount || 0),

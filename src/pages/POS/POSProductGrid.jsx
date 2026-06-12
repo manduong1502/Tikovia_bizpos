@@ -80,7 +80,7 @@ export default function POSProductGrid() {
                   )}
                 </div>
                 <div className="prod-info">
-                  <div className="prod-name">{product.name}</div>
+                  <div className="prod-name">{product.name} {product.unit ? `(${product.unit})` : ''}</div>
                   <div className="prod-price">{new Intl.NumberFormat('vi-VN').format(product.sellPrice)}</div>
                 </div>
               </div>

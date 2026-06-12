@@ -522,7 +522,7 @@ export default function CreatePurchaseReturnPage() {
               ${items.map(it => `
                 <tr>
                   <td>${it.sku}</td>
-                  <td>${it.name}</td>
+                  <td>${it.name} ${it.unit ? `(${it.unit})` : ''}</td>
                   <td class="text-right">${it.return_quantity}</td>
                   <td class="text-right">${fmt(it.return_price)}</td>
                   <td class="text-right">${fmt((parseFloat(it.return_quantity) || 0) * it.return_price)}</td>
@@ -625,7 +625,7 @@ export default function CreatePurchaseReturnPage() {
                     className="p-3 hover:bg-blue-50/60 cursor-pointer flex items-center justify-between transition-colors"
                   >
                     <div className="flex flex-col">
-                      <span className="font-extrabold text-sm text-gray-800">{p.name}</span>
+                      <span className="font-extrabold text-sm text-gray-800">{p.name} {p.unit ? `(${p.unit})` : ''}</span>
                       <span className="text-xs text-primary font-bold">{p.sku} {p.barcode ? ` - ${p.barcode}` : ''}</span>
                     </div>
                     <span className="font-extrabold text-sm text-gray-700">{fmt(p.costPrice || p.cost_price || 0)}</span>
@@ -677,7 +677,7 @@ export default function CreatePurchaseReturnPage() {
                       <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
                       <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>
                       <td className="py-3 px-4">
-                        <div className="font-bold text-gray-900 mb-1">{it.name}</div>
+                        <div className="font-bold text-gray-900 mb-1">{it.name} {it.unit ? `(${it.unit})` : ''}</div>
                         <div className="flex items-center gap-1.5">
                           <input 
                             type="text"

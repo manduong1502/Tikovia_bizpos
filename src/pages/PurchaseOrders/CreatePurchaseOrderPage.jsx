@@ -127,7 +127,7 @@ export default function CreatePurchaseOrderPage() {
       }
       
       // Xoá state để không bị khôi phục lại khi reload/back
-      window.history.replaceState({}, document.title);
+      navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, suppliers]);
 
@@ -390,7 +390,7 @@ export default function CreatePurchaseOrderPage() {
               ${items.map(it => `
                 <tr>
                   <td>${it.sku}</td>
-                  <td>${it.name}</td>
+                  <td>${it.name} ${it.unit ? `(${it.unit})` : ''}</td>
                   <td class="text-right">${it.quantity}</td>
                   <td class="text-right">${fmt(it.unit_price)}</td>
                   <td class="text-right">${fmt(it.quantity * it.unit_price - it.discount)}</td>
@@ -565,7 +565,7 @@ export default function CreatePurchaseOrderPage() {
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="p-4 text-center text-gray-500 font-bold">{idx + 1}</td>
                       <td className="p-4 font-bold text-primary">{item.sku}</td>
-                      <td className="p-4 font-bold text-gray-800">{item.name}</td>
+                      <td className="p-4 font-bold text-gray-800">{item.name} {item.unit ? `(${item.unit})` : ''}</td>
                       <td className="p-4 text-gray-600">{item.unit}</td>
                       <td className="p-4 text-right">
                         <NumericInput

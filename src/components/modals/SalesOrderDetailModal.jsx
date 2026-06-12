@@ -1,10 +1,45 @@
-import { X, Printer } from 'lucide-react';
+import { X, Printer, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function SalesOrderDetailModal({ open, onClose, data, partnerName }) {
+  const navigate = useNavigate();
+
   if (!open || !data) return null;
+
+  const handleOpenTicket = () => {
+    const items = data.items || [];
+    navigate('/pos', {
+      state: {
+        copyOrder: {
+          id: data.id,
+          code: data.code,
+          items: items.map(it => ({
+            productId: it.productId || it.product?.id || it.id,
+            product_name: it.product_name || it.name || '',
+            product_sku: it.product_sku || it.sku || '',
+            quantity: Number(it.quantity || 0),
+            unit_price: Number(it.unit_price || it.price || 0),
+            price: Number(it.unit_price || it.price || 0),
+            discount: Number(it.discount || 0)
+          })),
+          customer: data.customer 
+            ? { id: data.customer.id, name: data.customer.name }
+            : (data.customerId ? { id: data.customerId, name: partnerName } : null),
+          note: data.note || '',
+          deliveryAddress: data.deliveryAddress || '',
+          receiverName: data.receiverName || '',
+          receiverPhone: data.receiverPhone || '',
+          driverId: data.driverId || '',
+          driverName: data.deliveryAddress ? (data.driverName || 'Chưa gán') : '',
+          deliveryStatus: data.deliveryAddress ? (data.deliveryStatus || 'ASSIGNED') : ''
+        }
+      }
+    });
+    onClose();
+  };
 
   const items = data.items || [];
   const statusLabels = {
@@ -55,7 +90,7 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
                   <tr key={idx} className="hover:bg-blue-50/30">
                     <td className="p-3 text-center text-gray-400">{idx + 1}</td>
                     <td className="p-3 text-primary font-bold">{it.product_sku || it.sku || '---'}</td>
-                    <td className="p-3 text-gray-800">{it.product_name || it.name || '---'}</td>
+                    <td className="p-3 text-gray-800">{(it.product_name || it.name || '---')} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
                     <td className="p-3 text-right">{fmt(it.quantity)}</td>
                     <td className="p-3 text-right">{fmt(it.unit_price || it.price)}</td>
                     <td className="p-3 text-right font-bold text-primary">{fmt((it.quantity || 0) * (it.unit_price || it.price || 0))}</td>
@@ -80,7 +115,8 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
 
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
           <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
-          <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
+          <Button variant="primary" onClick={handleOpenTicket} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6 flex items-center gap-1.5"><ExternalLink size={16} /> Mở phiếu</Button>
+          <Button variant="secondary" onClick={onClose} className="border border-gray-200">Đóng</Button>
         </div>
       </div>
     </div>
