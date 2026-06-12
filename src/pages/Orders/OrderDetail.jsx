@@ -375,7 +375,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               </div>
             </div>
           </div>
-        ) : (
+        ) : o.paid_amount > 0 ? (
           <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full max-w-full">
             <table className="w-full text-xs min-w-[600px]">
               <thead>
@@ -395,6 +395,10 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                 </tr>
               </tbody>
             </table>
+          </div>
+        ) : (
+          <div className="text-center py-10 text-gray-400 font-medium border border-gray-200 rounded-lg bg-gray-50/30">
+            Hóa đơn này chưa được thanh toán (Khách đã trả: 0đ).
           </div>
         )}
       </div>
