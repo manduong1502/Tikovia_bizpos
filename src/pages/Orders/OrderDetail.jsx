@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, Receipt, MoreHorizontal } from 'lucide-react';
+import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI } from '../../services/api';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
@@ -377,8 +377,6 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
           </div>
         ) : (
           <div className="p-4 sm:p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-gray-200 overflow-x-auto max-w-full">
-            <Receipt size={40} className="mx-auto mb-3 text-gray-300" />
-            <p className="text-sm font-bold text-gray-700 mb-1">Lịch sử thanh toán</p>
             <table className="w-full text-xs mt-4 min-w-[500px]">
               <thead>
                 <tr className="text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
