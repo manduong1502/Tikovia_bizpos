@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, cashbookAPI, customerAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -99,8 +100,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
           <div>
             <label className="text-sm font-bold text-gray-700 mb-1.5 block">Số tiền thanh toán</label>
-            <input
-              type="number"
+            <NumericInput
               value={payAmount}
               onChange={e => setPayAmount(e.target.value)}
               placeholder="Nhập số tiền"

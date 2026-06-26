@@ -3,6 +3,7 @@ import { X, Plus, Trash2, Search } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import { purchaseOrderAPI, supplierAPI, productAPI } from '../../services/api';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -132,7 +133,13 @@ export default function PurchaseOrderModal({ open, onClose, onSaved }) {
                     <td className="py-2.5 text-primary font-bold">{it.sku}</td>
                     <td className="py-2.5 font-medium text-gray-800">{it.name}</td>
                     <td className="py-2.5 text-right"><input type="number" min="1" className="w-16 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
-                    <td className="py-2.5 text-right"><input type="number" min="0" className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.unit_price} onChange={e => updateItem(i, 'unit_price', e.target.value)} /></td>
+                    <td className="py-2.5 text-right">
+                      <NumericInput 
+                        className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" 
+                        value={it.unit_price} 
+                        onChange={e => updateItem(i, 'unit_price', e.target.value)} 
+                      />
+                    </td>
                     <td className="py-2.5 text-right font-bold text-primary">{fmt(it.unit_price * it.quantity)}</td>
                     <td className="py-2.5 text-center"><button onClick={() => removeItem(i)} className="p-1 hover:bg-red-50 rounded cursor-pointer"><Trash2 size={14} className="text-gray-400 hover:text-red-500" /></button></td>
                   </tr>
@@ -144,7 +151,12 @@ export default function PurchaseOrderModal({ open, onClose, onSaved }) {
           <div className="flex justify-between items-end">
             <div className="w-[200px]">
               <label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Thanh toán</label>
-              <input type="number" className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} placeholder="Số tiền trả NCC" />
+              <NumericInput 
+                className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" 
+                value={paidAmount} 
+                onChange={e => setPaidAmount(String(e.target.value))} 
+                placeholder="Số tiền trả NCC" 
+              />
             </div>
             <div className="text-right">
               <div className="text-[13px] text-gray-500 mb-1">Tổng cộng ({items.reduce((s, it) => s + it.quantity, 0)} SP)</div>

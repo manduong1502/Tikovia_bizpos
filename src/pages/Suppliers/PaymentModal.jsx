@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import { supplierAPI, cashbookAPI, purchaseOrderAPI } from '../../services/api';
 import api from '../../services/api'; // using default api
 import toast from 'react-hot-toast';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -56,7 +57,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
   }, [amount, allocate, purchaseOrders, open, supplier]);
 
   const handleAllocationChange = (poId, value) => {
-    let num = Number(value.replace(/[^0-9.-]+/g, '')) || 0;
+    let num = typeof value === 'number' ? value : (Number(String(value).replace(/[^0-9.-]+/g, '')) || 0);
     const po = purchaseOrders.find(p => p.id === poId);
     if (!po) return;
     const poDebt = po.total - (po.paid_amount || po.paid || 0);
@@ -254,11 +255,10 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
             
             <div>
               <label className="text-xs font-bold text-gray-700 mb-1 block">Số tiền</label>
-              <input 
-                type="number" 
+              <NumericInput 
                 className="w-full border border-primary rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary shadow-sm font-bold text-primary"
                 value={amount}
-                onChange={e => setAmount(e.target.value)}
+                onChange={e => setAmount(String(e.target.value))}
                 placeholder="0"
               />
             </div>
@@ -328,10 +328,9 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
                         <td className="p-3 text-right">{fmt(po.paid_amount || po.paid || 0)}</td>
                         <td className="p-3 text-right text-gray-800 font-bold">{fmt(poDebt)}</td>
                         <td className="p-3 text-right">
-                          <input
-                            type="text"
+                          <NumericInput
                             className="w-24 border border-gray-300 rounded px-2 py-1 text-xs text-right focus:border-primary outline-none font-bold text-primary bg-blue-50/30"
-                            value={allocVal > 0 ? fmt(allocVal) : ''}
+                            value={allocVal}
                             onChange={(e) => handleAllocationChange(po.id, e.target.value)}
                             placeholder="0"
                           />

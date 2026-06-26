@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus } 
 import toast from 'react-hot-toast';
 import { orderAPI, returnAPI, customerAPI } from '../../services/api';
 import { printHTML } from '../../utils/exportUtils';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -620,10 +621,12 @@ export default function ReturnOrderPage() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <input 
-                          type="text"
-                          value={fmt(it.return_price)}
-                          onChange={(e) => handlePriceChange(it.id, e.target.value)}
+                        <NumericInput 
+                          value={it.return_price}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setItems(prev => prev.map(item => item.id === it.id ? { ...item, return_price: val } : item));
+                          }}
                           className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
                         />
                       </td>
@@ -791,12 +794,10 @@ export default function ReturnOrderPage() {
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 font-bold">Phí trả hàng</span>
-                <input 
-                  type="text" 
-                  value={discountStr === '0' ? '' : discountStr}
+                <NumericInput 
+                  value={Number(String(discountStr).replace(/\D/g, '')) || 0}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setDiscountStr(val === '' ? '0' : fmt(Number(val)));
+                    setDiscountStr(String(e.target.value));
                   }}
                   placeholder="0"
                   className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
@@ -813,12 +814,10 @@ export default function ReturnOrderPage() {
                   <span className="text-gray-800 font-extrabold">Tiền đã trả khách</span>
                   <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
                 </div>
-                <input 
-                  type="text" 
-                  value={paidAmountStr === '' ? fmt(Math.max(0, customerMustReceive - currentDebt)) : paidAmountStr}
+                <NumericInput 
+                  value={paidAmountStr === '' ? Math.max(0, customerMustReceive - currentDebt) : (Number(String(paidAmountStr).replace(/\D/g, '')) || 0)}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
+                    setPaidAmountStr(String(e.target.value));
                   }}
                   className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
                 />

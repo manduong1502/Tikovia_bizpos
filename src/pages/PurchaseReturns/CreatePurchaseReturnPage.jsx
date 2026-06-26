@@ -4,6 +4,7 @@ import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, S
 import toast from 'react-hot-toast';
 // Dynamic imports will be used for XLSX to speed up route loading
 import Button from '../../components/ui/Button';
+import NumericInput from '../../components/ui/NumericInput';
 import { purchaseOrderAPI, purchaseReturnAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
 import ProductModal from '../Products/ProductModal';
 
@@ -708,10 +709,12 @@ export default function CreatePurchaseReturnPage() {
                         {fmt(it.import_price)}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <input 
-                          type="text"
-                          value={fmt(it.return_price)}
-                          onChange={(e) => handlePriceChange(it.id, e.target.value)}
+                        <NumericInput 
+                          value={it.return_price}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setItems(prev => prev.map(item => item.id === it.id ? { ...item, return_price: val } : item));
+                          }}
                           className="w-24 py-1 px-2 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
                         />
                       </td>
@@ -940,12 +943,10 @@ export default function CreatePurchaseReturnPage() {
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 font-bold">Giảm giá</span>
-                <input 
-                  type="text" 
-                  value={discountStr === '0' ? '' : discountStr}
+                <NumericInput 
+                  value={Number(String(discountStr).replace(/\D/g, '')) || 0}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setDiscountStr(val === '' ? '0' : fmt(Number(val)));
+                    setDiscountStr(String(e.target.value));
                   }}
                   placeholder="0"
                   className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
@@ -962,12 +963,10 @@ export default function CreatePurchaseReturnPage() {
                   <span className="text-gray-800 font-extrabold">Tiền nhà cung cấp trả (F8)</span>
                   <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
                 </div>
-                <input 
-                  type="text" 
-                  value={paidAmountStr === '' ? fmt(Math.max(0, supplierMustPay - currentDebt)) : paidAmountStr}
+                <NumericInput 
+                  value={paidAmountStr === '' ? Math.max(0, supplierMustPay - currentDebt) : (Number(String(paidAmountStr).replace(/\D/g, '')) || 0)}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    setPaidAmountStr(val === '' ? '0' : fmt(Number(val)));
+                    setPaidAmountStr(String(e.target.value));
                   }}
                   className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
                 />

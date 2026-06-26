@@ -3,6 +3,7 @@ import { X, Calendar } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import { supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import NumericInput from '../../components/ui/NumericInput';
 
 const toLocalISOString = (dateOrStr) => {
   const d = dateOrStr ? new Date(dateOrStr) : new Date();
@@ -85,11 +86,10 @@ export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
 
           <div className="flex items-center">
             <span className="w-40 text-sm font-bold text-gray-700">Giá trị nợ điều chỉnh:</span>
-            <input 
-              type="number" 
+            <NumericInput 
               className="flex-1 border border-primary rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary shadow-sm text-primary font-bold"
               value={debtValue}
-              onChange={e => setDebtValue(e.target.value)}
+              onChange={e => setDebtValue(String(e.target.value))}
               placeholder="Nhập giá trị nợ mới"
             />
           </div>

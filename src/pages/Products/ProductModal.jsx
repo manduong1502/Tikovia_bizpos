@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import { productAPI, categoryAPI, brandAPI, supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Save, X, ImagePlus, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import NumericInput from '../../components/ui/NumericInput';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useRef } from 'react';
@@ -369,14 +370,14 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Giá vốn</label>
-                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.costPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.costPrice} onChange={e => update('costPrice', e.target.value)} placeholder="0" />
+                      <NumericInput className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.costPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.costPrice} onChange={e => update('costPrice', String(e.target.value))} placeholder="0" />
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="text-[13px] text-gray-600">Giá bán</label>
                         <button type="button" onClick={() => toast('Vui lòng vào trang Thiết lập giá ở menu bên trái để cấu hình chi tiết nhiều bảng giá.', { icon: 'ℹ️' })} className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"><Info size={12}/> Thiết lập giá</button>
                       </div>
-                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.sellPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.sellPrice} onChange={e => update('sellPrice', e.target.value)} placeholder="0" />
+                      <NumericInput className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right font-medium transition-colors ${errors.sellPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.sellPrice} onChange={e => update('sellPrice', String(e.target.value))} placeholder="0" />
                     </div>
                   </div>
                 </Accordion>
