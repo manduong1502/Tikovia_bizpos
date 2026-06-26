@@ -57,7 +57,11 @@ export default function POSCart() {
                     <Trash2 size={16} />
                   </button>
                   
-                  <span className="pos-cart-item-sku">{item.product.sku || ''}</span>
+                  <span className="pos-cart-item-sku font-bold text-primary hover:underline cursor-pointer">
+                    <a href={`/products?editSku=${item.product.sku}`} target="_blank" rel="noopener noreferrer">
+                      {item.product.sku || ''}
+                    </a>
+                  </span>
                   
                   <span className="pos-cart-item-name">
                     {item.product.name} {item.product.unit ? `(${item.product.unit})` : ''}

@@ -13,7 +13,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
   if (!open || !customer) return null;
 
-  const currentDebt = Number(customer.debt || customer.totalDebt || 0);
+  const currentDebt = Number(String(customer.debt || customer.totalDebt || 0).replace(/[^0-9.-]/g, '')) || 0;
   const remaining = currentDebt - (Number(payAmount) || 0);
 
   // Get orders with debt from this customer
@@ -29,13 +29,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
       toast.error('Vui lòng nhập số tiền thanh toán hợp lệ');
       return;
     }
-    if (val > currentDebt) {
-      toast.error('Số tiền thanh toán không được lớn hơn nợ hiện tại');
-      return;
-    }
     try {
-      const { customerAPI, default: api } = await import('../../services/api');
-      
       const cashbookCode = `PTM${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 100)}`;
       const payload = {
         code: cashbookCode,
@@ -52,13 +46,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
         note: note || `Thu tiền nợ từ khách hàng ${customer.name}`,
       };
 
-      try {
-        await cashbookAPI.create(payload);
-      } catch(e) {
-        console.warn('Cashbook API might not exist yet:', e);
-      }
-
-      await customerAPI.update(customer.id, { debt: Math.max(0, currentDebt - val) });
+      await cashbookAPI.create(payload);
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
       onSaved?.();
     } catch (err) {
@@ -122,7 +110,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
           <div className="flex items-center justify-between bg-blue-50 rounded-xl p-4 border border-blue-100">
             <span className="text-sm font-bold text-gray-700">Nợ còn lại</span>
-            <span className={`text-lg font-extrabold ${remaining > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{fmt(Math.max(0, remaining))}</span>
+            <span className={`text-lg font-extrabold ${remaining > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{remaining < 0 ? '-' : ''}{fmt(Math.abs(remaining))}</span>
           </div>
 
           <div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI, returnAPI, customerAPI } from '../../services/api';
+import { printHTML } from '../../utils/exportUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -395,6 +396,105 @@ export default function ReturnOrderPage() {
     }
   };
 
+  const printReturnReceipt = (ret) => {
+    const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+    const customerName = ret.customer ? ret.customer.name : (customer ? customer.name : 'Khách lẻ');
+    const dateStr = ret.createdAt ? new Date(ret.createdAt).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN');
+    const itemsList = ret.items || [];
+
+    const returnHTML = `
+        <style>
+          .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
+          .inv-logo-container { text-align: center; margin-bottom: 5px; }
+          .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
+          .inv-company { text-align: center; font-size: 14px; font-weight: bold; margin: 8px 0 4px; text-transform: uppercase; }
+          .inv-info { text-align: center; font-size: 12px; margin: 2px 0; }
+          .inv-title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0 2px; }
+          .inv-code-date { text-align: center; font-size: 11px; margin-bottom: 10px; color: #333; }
+          .inv-customer-info { font-size: 12px; margin-bottom: 8px; line-height: 1.5; }
+          .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+          .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
+          .inv-table th { font-weight: bold; text-align: center; }
+          .inv-summary { width: 100%; font-size: 12px; margin-bottom: 15px; border-collapse: collapse; }
+          .inv-summary td { padding: 3px 0; border: none !important; }
+          .inv-summary .label { text-align: right; padding-right: 15px; }
+          .inv-summary .value { text-align: right; width: 90px; }
+          .inv-footer { font-size: 12px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+          .inv-thanks { text-align: center; font-size: 12px; font-style: italic; margin-top: 20px; }
+          @media print {
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; }
+            .inv-wrap { padding: 5mm 4mm 0 4mm; width: 70mm; margin: 0 auto; }
+          }
+        </style>
+        <div class="inv-wrap">
+          <div class="inv-logo-container">
+            <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" />
+          </div>
+          <div class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</div>
+          <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+          <div class="inv-info">Điện Thoại: 0796.637.194</div>
+          <div class="inv-title">PHIẾU TRẢ HÀNG</div>
+          <div class="inv-code-date">${ret.code} - ${dateStr}</div>
+
+          <div class="inv-customer-info">
+            <div>Khách hàng: ${customerName}</div>
+            <div>SĐT: ${ret.customer?.phone || customer?.phone || ''}</div>
+          </div>
+
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">Mặt hàng</th>
+                <th style="width: 20px;">SL</th>
+                <th style="text-align: right;">Giá</th>
+                <th style="text-align: right;">Thành tiền</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsList.map(it => `
+                <tr>
+                  <td>${it.product?.name || it.name || ''} ${it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
+                  <td style="text-align: center;">${it.quantity || it.return_quantity}</td>
+                  <td style="text-align: right;">${f(it.price || it.return_price || 0)}</td>
+                  <td style="text-align: right;">${f((it.quantity || it.return_quantity || 0) * (it.price || it.return_price || 0))}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <table class="inv-summary">
+            <tr>
+              <td class="label">Tổng tiền hàng trả:</td>
+              <td class="value">${f(ret.total)}</td>
+            </tr>
+            <tr>
+              <td class="label">Phí trả hàng:</td>
+              <td class="value">${f(ret.discount)}</td>
+            </tr>
+            <tr>
+              <td class="label">Cần trả khách:</td>
+              <td class="value">${f(ret.total - ret.discount)}</td>
+            </tr>
+            <tr>
+              <td class="label">Thực tế trả khách:</td>
+              <td class="value">${f(ret.paid)}</td>
+            </tr>
+          </table>
+
+          <div class="inv-footer" style="text-align: right; font-size: 12px; font-weight: bold; margin-top: 10px;">
+            <div style="margin-bottom: 5px;">Chữ ký Khách Hàng :</div>
+            <div style="white-space: pre-wrap;">Ghi chú: ${ret.reason || ''}</div>
+          </div>
+
+          <div class="inv-thanks">
+            Xin cảm ơn!
+          </div>
+        </div>
+      `;
+    printHTML(returnHTML, 'In Phiếu Trả Hàng');
+  };
+
   const handleSaveReturn = async () => {
     const validItems = items.filter(it => (parseFloat(it.return_quantity) || 0) > 0);
     if (validItems.length === 0) {
@@ -419,7 +519,8 @@ export default function ReturnOrderPage() {
 
       const res = await returnAPI.create(payload);
       toast.success(`Tạo phiếu trả hàng thành công! Mã: ${res?.code || ''}`);
-      navigate('/invoices');
+      printReturnReceipt(res);
+      navigate('/returns');
     } catch (e) {
       const msg = e.response?.data?.message || e.message;
       toast.error(`Lỗi khi lưu phiếu trả hàng: ${msg}`);
@@ -438,7 +539,7 @@ export default function ReturnOrderPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate('/invoices')}
+            onClick={() => navigate('/returns')}
             className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
           >
             <ArrowLeft size={20} className="text-gray-500" />
@@ -485,7 +586,13 @@ export default function ReturnOrderPage() {
                         </button>
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
-                      {showSku && <td className="py-3 px-4 font-bold text-gray-800">{it.sku}</td>}
+                      {showSku && (
+                        <td className="py-3 px-4 font-bold text-primary hover:underline cursor-pointer">
+                          <a href={`/products?editSku=${it.sku}`} target="_blank" rel="noopener noreferrer">
+                            {it.sku}
+                          </a>
+                        </td>
+                      )}
                       <td className="py-3 px-4">
                         <div className="font-bold text-gray-900 mb-1">{it.name} {it.unit ? `(${it.unit})` : ''}</div>
                         <div className="flex items-center gap-1.5">

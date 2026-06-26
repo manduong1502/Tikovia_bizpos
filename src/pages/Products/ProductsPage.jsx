@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { productAPI, categoryAPI, supplierAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
@@ -59,6 +60,7 @@ const ALL_COLUMNS = [
 ];
 
 export default function ProductsPage() {
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categories, setCategories] = useState([]);
@@ -303,6 +305,23 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const params = new URLSearchParams(location.search);
+      const editSku = params.get('editSku');
+      if (editSku) {
+        const prod = products.find(p => String(p.sku).toLowerCase() === String(editSku).toLowerCase());
+        if (prod) {
+          setEditProduct(prod);
+          setIsClone(false);
+          setModalOpen(true);
+          // Clean parameter from URL to prevent reopen on re-renders/back
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    }
+  }, [products, location.search]);
 
   useEffect(() => {
     const onDocClick = (e) => {

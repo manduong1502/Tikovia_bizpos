@@ -725,11 +725,31 @@ export default function CustomersPage() {
         paid: cb.amount,
         debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
       }))
-    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    ].sort((a, b) => {
+      const timeDiff = new Date(b.date) - new Date(a.date);
+      if (timeDiff !== 0) return timeDiff;
+      const getPriority = (type) => {
+        if (type === 'Thanh toán') return 1;
+        if (type === 'Trả hàng') return 2;
+        if (type === 'Bán hàng') return 3;
+        return 4;
+      };
+      return getPriority(a.type) - getPriority(b.type);
+    });
 
     // Calculate running debt backwards from the current debt
     const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
-    const sortedNewFirst = [...debtTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const sortedNewFirst = [...debtTransactions].sort((a, b) => {
+      const timeDiff = new Date(b.date) - new Date(a.date);
+      if (timeDiff !== 0) return timeDiff;
+      const getPriority = (type) => {
+        if (type === 'Thanh toán') return 1;
+        if (type === 'Trả hàng') return 2;
+        if (type === 'Bán hàng') return 3;
+        return 4;
+      };
+      return getPriority(a.type) - getPriority(b.type);
+    });
     let tempDebt = currentFinalDebt;
     const transactionsWithDebt = sortedNewFirst.map(tx => {
       const runningDebt = tempDebt;
@@ -799,7 +819,7 @@ export default function CustomersPage() {
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-1.5 text-xs shadow-sm">
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán trừ trả hàng</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(c.debt || c.totalDebt || 0)}</span></div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className={`font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</span></div>
                   </div>
                 </div>
 
@@ -986,7 +1006,7 @@ export default function CustomersPage() {
                           <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
                             {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                           </td>
-                          <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : tx.runningDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))}
                       {transactionsWithDebt.length === 0 && (
@@ -1546,7 +1566,7 @@ export default function CustomersPage() {
                         <td className="py-2.5 px-3 text-gray-700">{c.address || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
-                        <td className={`py-2.5 px-3 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>
+                        <td className={`py-2.5 px-3 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>
                       )}
                       {visibleColumns.includes('total_spent') && (
                         <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(c.total_spent || c.totalSpent || 0)}</td>

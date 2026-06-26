@@ -297,7 +297,11 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {items.map((it, idx) => (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-3 text-primary font-bold">{it.product_sku}</td>
+                        <td className="p-3 font-bold text-primary hover:underline cursor-pointer">
+                          <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
+                            {it.product_sku}
+                          </a>
+                        </td>
                         <td className="p-3 text-gray-800">{it.product_name} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
                         <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
                         <td className="p-3 text-right text-gray-600">{fmt(it.unit_price)}</td>
