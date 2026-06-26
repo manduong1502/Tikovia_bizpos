@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal } from 'lucide-react';
+import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal, FolderOpen } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -347,6 +347,13 @@ export default function PurchaseOrderDetail({
                 </div>
 
                 <div className="flex items-center gap-3">
+                  <Button
+                    variant="primary"
+                    onClick={() => navigate(`/purchase-orders/create?id=${o.id}&type=update`)}
+                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold bg-primary hover:bg-primary-hover text-white"
+                  >
+                    <FolderOpen size={14} /> Mở phiếu
+                  </Button>
                   <Button variant="secondary" onClick={handlePrintPO} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
                     <Printer size={14} /> In đơn
                   </Button>
