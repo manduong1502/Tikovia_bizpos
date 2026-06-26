@@ -103,13 +103,12 @@ function SuperAdminGuestRoute({ children }) {
 
 function App() {
   const navigate = useNavigate();
-  const darkMode = useAppStore(s => s.darkMode);
 
   // Apply dark mode class on mount and clean chunk reloaded flag
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.classList.remove('dark');
     sessionStorage.removeItem('chunk-load-reloaded');
-  }, [darkMode]);
+  }, []);
 
   // Tải trước (prefetch) các trang lớn chạy ngầm để kế toán chuyển trang tức thời không giật lag
   useEffect(() => {

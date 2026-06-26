@@ -40,20 +40,7 @@
   --color-gray-800-dynamic: #1f2937;
 }
 
-.dark {
-  --color-border-dynamic: #2a2d3a;
-  --color-bg-light-dynamic: #0f1117;
-  --color-white-dynamic: #1a1d27;
-  --color-gray-50-dynamic: #14161e;
-  --color-gray-100-dynamic: #1e2130;
-  --color-gray-200-dynamic: #2a2d3a;
-  --color-gray-300-dynamic: #333333;
-  --color-gray-400-dynamic: #555555;
-  --color-gray-500-dynamic: #666666;
-  --color-gray-600-dynamic: #888888;
-  --color-gray-700-dynamic: #a0a0a0;
-  --color-gray-800-dynamic: #e0e0e0;
-}
+
 
 body {
   margin: 0;
@@ -131,27 +118,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   font-family: var(--font-sans) !important;
 }
 
-/* ═══════════════════════════════════════════
-   DARK MODE
-   ═══════════════════════════════════════════ */
-.dark body {
-  background-color: #0f1117;
-  color: #e0e0e0;
-}
 
-.dark input, .dark select, .dark textarea {
-  background-color: #1e2130;
-  border-color: #2a2d3a;
-  color: #e0e0e0;
-}
-
-.dark .bg-blue-50 { background-color: #1a2744; }
-.dark .bg-green-100 { background-color: #0d3320; }
-.dark .bg-red-100 { background-color: #3d1515; }
-.dark .bg-yellow-100 { background-color: #3d3115; }
-
-html.dark ::-webkit-scrollbar-thumb { background: #3a3d4a; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #555; }
 
 /* ═══════════════════════════════════════════
    RESPONSIVE — Mobile & Tablet

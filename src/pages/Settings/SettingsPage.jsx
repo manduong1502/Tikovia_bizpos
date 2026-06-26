@@ -74,11 +74,6 @@ export default function SettingsPage() {
             <div className="animate-fade-in max-w-full">
               <h2 className="text-lg sm:text-xl font-extrabold text-gray-800 mb-6 tracking-tight">Giao diện</h2>
               <div className="bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-100 flex flex-col gap-2">
-                <SettingRow label="Chế độ tối" desc="Sử dụng giao diện tối cho ứng dụng">
-                  <button onClick={toggleDarkMode} className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer border-none shadow-inner ${darkMode ? 'bg-primary' : 'bg-gray-200'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-all shadow-sm ${darkMode ? 'left-5.5' : 'left-0.5'}`} />
-                  </button>
-                </SettingRow>
                 <SettingRow label="Hiển thị ảnh sản phẩm" desc="Hiện ảnh thumbnail trong danh sách hàng hóa"><Toggle defaultChecked /></SettingRow>
                 <SettingRow label="Sidebar thu gọn" desc="Thu gọn sidebar khi không cần thiết"><Toggle /></SettingRow>
               </div>

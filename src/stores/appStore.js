@@ -6,14 +6,9 @@ export const useAppStore = create((set) => ({
   sidebarCollapsed: false,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
-  // Dark mode
-  darkMode: localStorage.getItem('darkMode') === 'true',
-  toggleDarkMode: () => set((s) => {
-    const next = !s.darkMode;
-    localStorage.setItem('darkMode', next);
-    document.documentElement.classList.toggle('dark', next);
-    return { darkMode: next };
-  }),
+  // Dark mode (disabled)
+  darkMode: false,
+  toggleDarkMode: () => {},
 
   // Current user
   user: JSON.parse(localStorage.getItem('user') || 'null'),
