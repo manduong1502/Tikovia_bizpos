@@ -905,9 +905,33 @@ export default function CustomersPage() {
                             <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
                             <td className="py-2 px-3.5 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
                             <td className="py-2 px-3.5 text-center">
-                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                                {o.status === 'CANCELLED' ? 'Đã hủy' : 'Hoàn thành'}
-                              </span>
+                              {o.status === 'CANCELLED' || o.status === 'cancelled' ? (
+                                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+                                  Đã hủy
+                                </span>
+                              ) : (() => {
+                                const total = Number(o.total || 0);
+                                const paid = Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0));
+                                if (paid >= total && total > 0) {
+                                  return (
+                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                      Hoàn thành
+                                    </span>
+                                  );
+                                } else if (paid > 0 && paid < total) {
+                                  return (
+                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
+                                      Một phần
+                                    </span>
+                                  );
+                                } else {
+                                  return (
+                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
+                                      Chưa trả
+                                    </span>
+                                  );
+                                }
+                              })()}
                             </td>
                           </tr>
                         ))}
