@@ -909,7 +909,7 @@ export default function SuppliersPage() {
             date: po.created_at || po.createdAt,
             total: total,
             paid: 0,
-            debt: total,
+            debt: -total,
             status: po.payment_status || 'paid',
             items: po.items || []
           }
@@ -924,7 +924,7 @@ export default function SuppliersPage() {
             date: po.created_at || po.createdAt,
             total: paid,
             paid: paid,
-            debt: -paid,
+            debt: paid,
             status: 'completed',
             items: []
           });
@@ -939,7 +939,7 @@ export default function SuppliersPage() {
         date: pr.created_at,
         total: pr.paid > 0 ? pr.paid : pr.total,
         paid: pr.paid || 0,
-        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
+        debt: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -960,7 +960,7 @@ export default function SuppliersPage() {
         date: cb.createdAt || cb.created_at || cb.date,
         total: cb.amount,
         paid: cb.amount,
-        debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+        debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
         status: 'completed',
         items: []
       }))
@@ -1374,7 +1374,7 @@ export default function SuppliersPage() {
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'import' ? 'text-red-600' : tx.type === 'payment' || tx.type === 'return' ? 'text-green-600' : 'text-gray-400'}`}>
                             {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                           </td>
                           <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
