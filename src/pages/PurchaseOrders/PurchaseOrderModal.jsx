@@ -132,7 +132,7 @@ export default function PurchaseOrderModal({ open, onClose, onSaved }) {
                   <tr key={i} className="border-b border-gray-50">
                     <td className="py-2.5 text-primary font-bold">{it.sku}</td>
                     <td className="py-2.5 font-medium text-gray-800">{it.name}</td>
-                    <td className="py-2.5 text-right"><input type="number" min="1" className="w-16 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
+                    <td className="py-2.5 text-right"><NumericInput allowDecimal={true} className="w-16 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.quantity} onChange={e => updateItem(i, 'quantity', e.target.value)} /></td>
                     <td className="py-2.5 text-right">
                       <NumericInput 
                         className="w-24 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" 

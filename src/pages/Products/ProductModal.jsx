@@ -386,15 +386,15 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Tồn kho</label>
-                      <input type="number" className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right transition-colors ${errors.stock ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.stock} onChange={e => update('stock', e.target.value)} placeholder="0" />
+                      <NumericInput allowDecimal={true} className={`w-full border-b px-1 py-1 text-[14px] outline-none text-right transition-colors ${errors.stock ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'}`} value={form.stock} onChange={e => update('stock', String(e.target.value))} placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Định mức tồn thấp nhất</label>
-                      <input type="number" className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.minStock} onChange={e => update('minStock', e.target.value)} placeholder="0" />
+                      <NumericInput allowDecimal={true} className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.minStock} onChange={e => update('minStock', String(e.target.value))} placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Định mức tồn cao nhất</label>
-                      <input type="number" className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.maxStock} onChange={e => update('maxStock', e.target.value)} placeholder="999,999,999" />
+                      <NumericInput allowDecimal={true} className="w-full border border-gray-300 rounded px-3 py-1.5 text-[14px] focus:border-blue-500 outline-none text-right" value={form.maxStock} onChange={e => update('maxStock', String(e.target.value))} placeholder="999,999,999" />
                     </div>
                   </div>
                 </Accordion>
@@ -411,7 +411,7 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
                     <div>
                       <label className="text-[13px] text-gray-600 mb-1 block">Trọng lượng</label>
                       <div className="flex">
-                        <input type="number" className="flex-1 border border-r-0 border-gray-300 rounded-l px-3 py-2 text-[14px] focus:border-blue-500 outline-none text-right" value={form.weight} onChange={e => update('weight', e.target.value)} placeholder="0" />
+                        <NumericInput allowDecimal={true} className="flex-1 border border-r-0 border-gray-300 rounded-l px-3 py-2 text-[14px] focus:border-blue-500 outline-none text-right" value={form.weight} onChange={e => update('weight', String(e.target.value))} placeholder="0" />
                         <select className="border border-gray-300 rounded-r bg-gray-50 px-2 py-2 text-[14px] outline-none" value={form.weightUnit} onChange={e => update('weightUnit', e.target.value)}>
                           <option value="g">g</option>
                           <option value="kg">kg</option>

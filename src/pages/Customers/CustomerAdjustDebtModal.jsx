@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -53,8 +54,7 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
 
           <div>
             <label className="text-sm font-bold text-gray-700 mb-1.5 block">Giá trị nợ điều chỉnh</label>
-            <input 
-              type="number" 
+            <NumericInput 
               value={adjustValue}
               onChange={e => setAdjustValue(e.target.value)}
               placeholder={String(currentDebt)}

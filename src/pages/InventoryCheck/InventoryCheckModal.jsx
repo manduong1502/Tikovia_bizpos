@@ -3,6 +3,7 @@ import { X, Search, Trash2 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import { inventoryCheckAPI, productAPI } from '../../services/api';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -98,7 +99,7 @@ export default function InventoryCheckModal({ open, onClose, onSaved }) {
                     <td className="py-2.5 text-primary font-bold">{it.sku}</td>
                     <td className="py-2.5 font-medium text-gray-800">{it.name}</td>
                     <td className="py-2.5 text-right text-gray-500 font-medium">{it.system_qty}</td>
-                    <td className="py-2.5 text-right"><input type="number" min="0" className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.actual_qty} onChange={e => updateActual(i, e.target.value)} /></td>
+                    <td className="py-2.5 text-right"><NumericInput allowDecimal={true} className="w-20 text-right border border-gray-200 rounded px-2 py-1 text-[13px] outline-none focus:border-primary" value={it.actual_qty} onChange={e => updateActual(i, e.target.value)} /></td>
                     <td className={`py-2.5 text-right font-bold ${it.diff > 0 ? 'text-green-600' : it.diff < 0 ? 'text-red-500' : 'text-gray-400'}`}>{it.diff > 0 ? '+' : ''}{it.diff}</td>
                     <td className="py-2.5 text-center"><button onClick={() => removeItem(i)} className="p-1 hover:bg-red-50 rounded cursor-pointer"><Trash2 size={14} className="text-gray-400 hover:text-red-500" /></button></td>
                   </tr>

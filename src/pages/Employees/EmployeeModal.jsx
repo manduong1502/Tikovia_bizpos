@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import { employeeAPI } from '../../services/api';
+import NumericInput from '../../components/ui/NumericInput';
 
 export default function EmployeeModal({ open, onClose, onSaved, employee }) {
   const [form, setForm] = useState({ name: '', phone: '', id_card: '', note: '', salary: '', status: 'active' });
@@ -47,7 +48,7 @@ export default function EmployeeModal({ open, onClose, onSaved, employee }) {
           <div className="col-span-2"><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Tên nhân viên *</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.name} onChange={e => f('name', e.target.value)} placeholder="Nhập tên nhân viên" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Điện thoại</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.phone} onChange={e => f('phone', e.target.value)} placeholder="0xxx xxx xxx" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">CMND/CCCD</label><input className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.id_card} onChange={e => f('id_card', e.target.value)} /></div>
-          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Lương</label><input type="number" className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.salary} onChange={e => f('salary', e.target.value)} placeholder="0" /></div>
+          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Lương</label><NumericInput className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.salary} onChange={e => f('salary', e.target.value)} placeholder="0" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Trạng thái</label><select className="w-full border border-gray-200 rounded px-3 py-2 min-h-[42px] text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm cursor-pointer" value={form.status} onChange={e => f('status', e.target.value)}><option value="active">Đang làm</option><option value="inactive">Đã nghỉ</option></select></div>
           <div className="col-span-2"><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Ghi chú</label><textarea className="w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-y min-h-[70px]" value={form.note} onChange={e => f('note', e.target.value)} /></div>
         </div>

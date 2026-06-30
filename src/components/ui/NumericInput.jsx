@@ -73,7 +73,7 @@ const NumericInput = forwardRef(({
         setDisplayValue(formatValue(value));
       }
     }
-  }, [value, isFocused]);
+  }, [value]);
 
   const handleChange = (e) => {
     let rawVal = e.target.value;
@@ -118,19 +118,13 @@ const NumericInput = forwardRef(({
 
   const handleFocus = (e) => {
     setIsFocused(true);
-    if (allowDecimal) {
-      // Switch to unformatted decimal on focus
-      setDisplayValue(formatValue(value, true));
-    }
+    setDisplayValue(formatValue(value, true));
     if (props.onFocus) props.onFocus(e);
   };
 
   const handleBlur = (e) => {
     setIsFocused(false);
-    if (allowDecimal) {
-      // Format to Vietnamese style on blur
-      setDisplayValue(formatValue(value, false));
-    }
+    setDisplayValue(formatValue(value, false));
     if (props.onBlur) props.onBlur(e);
   };
 

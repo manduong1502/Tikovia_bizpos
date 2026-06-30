@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import { customerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Save, X } from 'lucide-react';
+import NumericInput from '../../components/ui/NumericInput';
 
 const FormField = ({ label, required, children }) => (
   <div>
@@ -309,8 +310,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
           </FormField>
 
           <FormField label="Nợ hiện tại">
-            <input 
-              type="number" 
+            <NumericInput 
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
               value={form.totalDebt} 
               onChange={e => u('totalDebt', e.target.value)} 
@@ -318,8 +318,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
             />
           </FormField>
           <FormField label="Tổng bán">
-            <input 
-              type="number" 
+            <NumericInput 
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none transition-colors font-medium text-gray-800" 
               value={form.totalSpent} 
               onChange={e => u('totalSpent', e.target.value)} 

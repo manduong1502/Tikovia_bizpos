@@ -16,6 +16,7 @@ import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal
 import PaymentDetailModal from '../../components/modals/PaymentDetailModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
+import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -1358,8 +1359,7 @@ export default function CustomersPage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500 w-8">Từ</span>
-                <input
-                  type="number"
+                <NumericInput
                   placeholder="0"
                   className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterTotalFrom}
@@ -1368,8 +1368,7 @@ export default function CustomersPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500 w-8">Tới</span>
-                <input
-                  type="number"
+                <NumericInput
                   placeholder="0"
                   className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterTotalTo}
@@ -1396,8 +1395,7 @@ export default function CustomersPage() {
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500 w-8">Từ</span>
-                <input
-                  type="number"
+                <NumericInput
                   placeholder="0"
                   className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterDebtFrom}
@@ -1406,8 +1404,7 @@ export default function CustomersPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-500 w-8">Tới</span>
-                <input
-                  type="number"
+                <NumericInput
                   placeholder="0"
                   className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
                   value={filterDebtTo}
