@@ -330,10 +330,14 @@ export default function OrdersPage() {
   useEffect(() => { reload(); }, [reload]);
 
   useEffect(() => {
-    const code = location.state?.openOrderCode;
+    const codeFromState = location.state?.openOrderCode;
+    const params = new URLSearchParams(location.search);
+    const codeFromQuery = params.get('orderCode');
+    const code = codeFromState || codeFromQuery;
+    
     if (!code || orders.length === 0) return;
 
-    const matchedOrder = orders.find(o => o.order_code === code);
+    const matchedOrder = orders.find(o => String(o.order_code).toLowerCase() === String(code).toLowerCase());
     if (matchedOrder) {
       setFilters(prev => ({
         ...prev,
@@ -343,9 +347,14 @@ export default function OrdersPage() {
       setExpandedId(matchedOrder.id);
       loadDetail(matchedOrder.id);
       scrollRowIntoView(matchedOrder.id);
-      navigate(location.pathname, { replace: true, state: {} });
+      
+      if (codeFromState) {
+        navigate(location.pathname, { replace: true, state: {} });
+      } else {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
-  }, [location.state?.openOrderCode, orders, navigate, location.pathname]);
+  }, [location.state?.openOrderCode, location.search, orders, navigate, location.pathname]);
 
   useEffect(() => {
     if (!registerOrderUpdateCallback) return;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { purchaseOrderAPI, supplierAPI, purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -132,6 +132,7 @@ const normalizePO = (o) => {
 
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [suppliers, setSuppliers] = useState([]);
@@ -206,6 +207,25 @@ export default function PurchaseOrdersPage() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const poCode = params.get('poCode');
+    if (poCode && orders.length > 0) {
+      const matchedOrder = orders.find(o => String(o.po_code).toLowerCase() === String(poCode).toLowerCase());
+      if (matchedOrder) {
+        setFilters(prev => ({
+          ...prev,
+          dateRange: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
+        }));
+        setSearch(poCode);
+        setExpandedId(matchedOrder.id);
+        scrollRowIntoView(matchedOrder.id);
+        // Clean parameter from URL to prevent reopen on re-renders/back
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [location.search, orders]);
 
   useEffect(() => {
     const onDocClick = (e) => {
