@@ -1896,7 +1896,7 @@ export default function CustomersPage() {
         open={paymentModalOpen} 
         onClose={() => { setPaymentModalOpen(false); setPaymentModalCustomer(null); }}
         customer={paymentModalCustomer}
-        orders={orders}
+        orders={orders.filter(o => (o.customerId || o.customer_id || o.customer?.id) === paymentModalCustomer?.id)}
         onSaved={reload}
       />
 

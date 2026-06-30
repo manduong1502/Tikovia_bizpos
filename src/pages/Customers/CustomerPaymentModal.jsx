@@ -19,6 +19,9 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
   // Get orders with debt from this customer
   const debtOrders = orders.filter(o => {
+    const oCustId = o.customerId || o.customer_id || o.customer?.id;
+    if (oCustId !== customer.id) return false;
+
     const total = Number(o.total || 0);
     const paid = Number(o.paid_amount || o.paid || 0);
     return (total - paid) > 0;
