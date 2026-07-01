@@ -83,6 +83,7 @@ export default function ProductsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [isClone, setIsClone] = useState(false);
+  const processedSkuRef = useRef(null);
 
   const [importSummaryOpen, setImportSummaryOpen] = useState(false);
   const [importSummary, setImportSummary] = useState({ totalRows: 0, validItems: [], invalidItems: [] });
@@ -310,9 +311,10 @@ export default function ProductsPage() {
     if (products.length > 0) {
       const params = new URLSearchParams(location.search);
       const editSku = params.get('editSku');
-      if (editSku) {
+      if (editSku && processedSkuRef.current !== editSku) {
         const prod = products.find(p => String(p.sku).toLowerCase() === String(editSku).toLowerCase());
         if (prod) {
+          processedSkuRef.current = editSku;
           setEditProduct(prod);
           setIsClone(false);
           setModalOpen(true);

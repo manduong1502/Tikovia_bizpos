@@ -964,7 +964,17 @@ export default function SuppliersPage() {
         status: 'completed',
         items: []
       }))
-    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    ].sort((a, b) => {
+      const timeDiff = new Date(b.date) - new Date(a.date);
+      if (timeDiff !== 0) return timeDiff;
+      const getPriority = (t) => {
+        if (t === 'payment') return 1;
+        if (t === 'return') return 2;
+        if (t === 'import') return 3;
+        return 4;
+      };
+      return getPriority(a.type) - getPriority(b.type);
+    });
 
     const itemStats = {};
     supPOs.forEach(po => {
