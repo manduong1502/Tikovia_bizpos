@@ -136,6 +136,7 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
   const handleSave = async (createAnother = false) => {
     const newErrors = {};
     if (!form.name.trim()) newErrors.name = true;
+    if (!isEdit && !form.categoryId) newErrors.categoryId = true;
     if (form.costPrice === '' || form.costPrice === null || form.costPrice === undefined) newErrors.costPrice = true;
     if (form.sellPrice === '' || form.sellPrice === null || form.sellPrice === undefined) newErrors.sellPrice = true;
 
@@ -143,6 +144,7 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
 
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.name) toast.error('Vui lòng nhập tên hàng');
+      else if (newErrors.categoryId) toast.error('Vui lòng chọn nhóm hàng');
       else if (newErrors.costPrice) toast.error('Vui lòng nhập giá vốn');
       else if (newErrors.sellPrice) toast.error('Vui lòng nhập giá bán');
       return;
@@ -317,7 +319,7 @@ export default function ProductModal({ open, onClose, product = null, isClone = 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="flex justify-between mb-1">
-                          <label className="text-[13px] text-gray-600">Nhóm hàng</label>
+                          <label className="text-[13px] text-gray-600">Nhóm hàng {!isEdit && <span className="text-red-500">*</span>}</label>
                           <button onClick={handleCreateCategory} className="text-[13px] text-blue-600 hover:underline">Tạo mới</button>
                         </div>
                         <select className={`w-full border rounded px-3 py-2 text-[14px] outline-none bg-white transition-colors ${errors.categoryId ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`} value={form.categoryId} onChange={e => update('categoryId', e.target.value)}>
