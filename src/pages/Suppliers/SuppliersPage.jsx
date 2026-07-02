@@ -915,7 +915,7 @@ export default function SuppliersPage() {
           date: po.created_at || po.createdAt,
           total: total,
           paid: 0,
-          debt: -total,
+          debt: total,
           status: po.payment_status || 'paid',
           items: po.items || []
         };
@@ -928,7 +928,7 @@ export default function SuppliersPage() {
         date: pr.created_at,
         total: pr.paid > 0 ? pr.paid : pr.total,
         paid: pr.paid || 0,
-        debt: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0),
+        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -949,7 +949,7 @@ export default function SuppliersPage() {
           date: matchedPO ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
           total: cb.amount,
           paid: cb.amount,
-          debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
+          debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
           status: 'completed',
           items: []
         };
