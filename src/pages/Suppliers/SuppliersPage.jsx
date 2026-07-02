@@ -618,9 +618,14 @@ export default function SuppliersPage() {
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
         date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0)
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
-        date: new Date(cb.createdAt || cb.created_at || cb.date), debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0, debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
-      }))
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => {
+        const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
+        return {
+          date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
+          debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0,
+          debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
+        };
+      })
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
 
     const transactions = [
@@ -635,11 +640,15 @@ export default function SuppliersPage() {
         code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
         total: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), paid: 0, items: pr.items || [] 
       })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => ({
-        code: cb.code, type: 'Thanh toán', date: new Date(cb.createdAt || cb.created_at || cb.date),
-        total: Number(cb.amount || 0), 
-        paid: 0, items: [], cashbookType: cb.type
-      }))
+      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => {
+        const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
+        return {
+          code: cb.code, type: 'Thanh toán', 
+          date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
+          total: Number(cb.amount || 0), 
+          paid: 0, items: [], cashbookType: cb.type
+        };
+      })
     ].filter(tx => {
       if (timeRange === 'all') return true;
       if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
@@ -930,18 +939,21 @@ export default function SuppliersPage() {
         const cbSupCode = cb.supplier_code || cb.customer_code;
         if (cbSupCode) return cbSupCode === supCode;
         return cb.partnerName === s.name;
-      }).filter(cb => cb.status === 'completed').map(cb => ({
-        id: cb.id || cb.code,
-        code: cb.code,
-        type: 'payment',
-        typeName: 'Thanh toán',
-        date: cb.createdAt || cb.created_at || cb.date,
-        total: cb.amount,
-        paid: cb.amount,
-        debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
-        status: 'completed',
-        items: []
-      }))
+      }).filter(cb => cb.status === 'completed').map(cb => {
+        const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
+        return {
+          id: cb.id || cb.code,
+          code: cb.code,
+          type: 'payment',
+          typeName: 'Thanh toán',
+          date: matchedPO ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
+          total: cb.amount,
+          paid: cb.amount,
+          debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
+          status: 'completed',
+          items: []
+        };
+      })
     ].sort((a, b) => {
       const timeDiff = new Date(b.date) - new Date(a.date);
       if (timeDiff !== 0) return timeDiff;
