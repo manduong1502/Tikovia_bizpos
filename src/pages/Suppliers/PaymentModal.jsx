@@ -21,7 +21,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [allocate, setAllocate] = useState(true);
+  const [allocate, setAllocate] = useState(false);
   const [loading, setLoading] = useState(false);
   const [allocations, setAllocations] = useState({});
 
@@ -30,7 +30,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
       setAmount('');
       setNote('');
       setPaymentDate(toLocalISOString(new Date()));
-      setAllocate(true);
+      setAllocate(false);
       setAllocations({});
     }
   }, [open, supplier]);
@@ -168,7 +168,6 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
                   <tr><td class="label">Số tiền</td><td><strong>${fmt(payAmount)} VNĐ</strong></td></tr>
                   <tr><td class="label">Phương thức</td><td>${paymentMethod === 'cash' ? 'Tiền mặt' : paymentMethod === 'transfer' ? 'Chuyển khoản' : 'Thẻ tín dụng'}</td></tr>
                   <tr><td class="label">Lý do chi</td><td>${note || `Thanh toán nợ cho nhà cung cấp ${supplier.name}`}</td></tr>
-                  <tr><td class="label">Người lập phiếu</td><td>${createdBy}</td></tr>
                 </table>
                 <div class="signatures">
                   <div class="signature-box">
@@ -227,17 +226,6 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
                 onChange={e => setPaymentDate(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-1 block">Người chi</label>
-              <select 
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-primary shadow-sm bg-white cursor-pointer"
-                value={createdBy}
-                onChange={e => setCreatedBy(e.target.value)}
-              >
-                <option value="Võ Thành Huy">Võ Thành Huy</option>
-                <option value="Admin">Admin</option>
-              </select>
-            </div>
             
             <div>
               <label className="text-xs font-bold text-gray-700 mb-1 block">Phương thức thanh toán</label>
@@ -251,7 +239,6 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
                 <option value="card">Thẻ tín dụng</option>
               </select>
             </div>
-            <div className="hidden"></div>
             
             <div>
               <label className="text-xs font-bold text-gray-700 mb-1 block">Số tiền</label>

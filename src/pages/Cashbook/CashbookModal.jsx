@@ -321,80 +321,63 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Loại thu / Loại chi Custom Dropdown */}
-              <div className="relative" ref={catRef}>
-                <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 block">
-                  Loại {isThu ? 'thu' : 'chi'}
-                </label>
-                <div 
-                  onClick={() => setShowCatDropdown(!showCatDropdown)}
-                  className="flex items-center justify-between w-full border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold bg-white outline-none cursor-pointer hover:border-gray-300 transition-all select-none"
-                >
-                  <span className="truncate">{form.category}</span>
-                  <ChevronDown size={14} className="text-gray-400 shrink-0" />
-                </div>
+            {/* Loại thu / Loại chi Custom Dropdown */}
+            <div className="relative" ref={catRef}>
+              <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 block">
+                Loại {isThu ? 'thu' : 'chi'}
+              </label>
+              <div 
+                onClick={() => setShowCatDropdown(!showCatDropdown)}
+                className="flex items-center justify-between w-full border border-gray-200 rounded-xl px-3.5 py-2 text-xs font-bold bg-white outline-none cursor-pointer hover:border-gray-300 transition-all select-none"
+              >
+                <span className="truncate">{form.category}</span>
+                <ChevronDown size={14} className="text-gray-400 shrink-0" />
+              </div>
 
-                {/* Popover Dropdown menu */}
-                {showCatDropdown && (
-                  <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 animate-slide-down flex flex-col max-h-[220px]">
-                    <div className="px-3 pb-2 pt-1 border-b border-gray-100 flex items-center gap-1.5">
-                      <Search size={12} className="text-gray-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Tìm kiếm"
-                        className="w-full border-none outline-none text-xs font-semibold p-0 bg-transparent"
-                        value={catSearch}
-                        onChange={e => setCatSearch(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                      />
-                    </div>
-                    <div className="overflow-y-auto flex-1 custom-scrollbar">
-                      {filteredCats.map(cat => (
-                        <div 
-                          key={cat}
-                          onClick={() => {
-                            f('category', cat);
-                            setShowCatDropdown(false);
-                          }}
-                          className="px-3.5 py-2 text-xs font-semibold hover:bg-blue-50/50 hover:text-primary transition-all flex items-center justify-between cursor-pointer"
-                        >
-                          <span>{cat}</span>
-                          {form.category === cat && <Check size={12} className="text-primary" />}
-                        </div>
-                      ))}
-                      {filteredCats.length === 0 && (
-                        <div className="px-3.5 py-3 text-xs text-gray-400 font-semibold text-center italic">
-                          Không tìm thấy loại {isThu ? 'thu' : 'chi'}
-                        </div>
-                      )}
-                    </div>
-                    {catSearch && !currentCategories.includes(catSearch) && (
+              {/* Popover Dropdown menu */}
+              {showCatDropdown && (
+                <div className="absolute left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 animate-slide-down flex flex-col max-h-[220px]">
+                  <div className="px-3 pb-2 pt-1 border-b border-gray-100 flex items-center gap-1.5">
+                    <Search size={12} className="text-gray-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm kiếm"
+                      className="w-full border-none outline-none text-xs font-semibold p-0 bg-transparent"
+                      value={catSearch}
+                      onChange={e => setCatSearch(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="overflow-y-auto flex-1 custom-scrollbar">
+                    {filteredCats.map(cat => (
                       <div 
-                        onClick={handleAddNewCategory}
-                        className="mt-1 px-3.5 py-2 border-t border-gray-100 text-xs font-bold text-primary hover:bg-blue-50 transition-all flex items-center gap-1.5 cursor-pointer"
+                        key={cat}
+                        onClick={() => {
+                          f('category', cat);
+                          setShowCatDropdown(false);
+                        }}
+                        className="px-3.5 py-2 text-xs font-semibold hover:bg-blue-50/50 hover:text-primary transition-all flex items-center justify-between cursor-pointer"
                       >
-                        <Plus size={14} /> Tạo mới "{catSearch}"
+                        <span>{cat}</span>
+                        {form.category === cat && <Check size={12} className="text-primary" />}
+                      </div>
+                    ))}
+                    {filteredCats.length === 0 && (
+                      <div className="px-3.5 py-3 text-xs text-gray-400 font-semibold text-center italic">
+                        Không tìm thấy loại {isThu ? 'thu' : 'chi'}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Người thu / Người chi Dropdown */}
-              <div>
-                <label className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider mb-1 block">
-                  Người {isThu ? 'thu' : 'chi'}
-                </label>
-                <select 
-                  className="w-full border border-gray-200 rounded px-3.5 py-2 text-xs font-bold bg-white outline-none cursor-pointer hover:border-gray-300 transition-all"
-                  value={form.createdBy}
-                  onChange={e => f('createdBy', e.target.value)}
-                >
-                  <option>Võ Thành Huy</option>
-                  <option>Nguyễn Văn A</option>
-                </select>
-              </div>
+                  {catSearch && !currentCategories.includes(catSearch) && (
+                    <div 
+                      onClick={handleAddNewCategory}
+                      className="mt-1 px-3.5 py-2 border-t border-gray-100 text-xs font-bold text-primary hover:bg-blue-50 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Plus size={14} /> Tạo mới "{catSearch}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Tài khoản nộp (Only for Phiếu thu) */}
