@@ -107,7 +107,6 @@ export default function PurchaseOrderDetail({
           
           <table class="info-table">
             <tr><td class="label">Nhà cung cấp</td><td>${o.supplier_name} (${o.supplier_code})</td></tr>
-            <tr><td class="label">Người lập phiếu</td><td>${o.created_by}</td></tr>
             <tr><td class="label">Người nhận hàng</td><td>${o.received_by}</td></tr>
             <tr><td class="label">Ghi chú</td><td>${o.note || '---'}</td></tr>
           </table>
@@ -363,7 +362,7 @@ export default function PurchaseOrderDetail({
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={() => alert(`Mã đơn nhập: ${o.po_code}\nNgười lập: ${o.created_by}\nNgười nhận: ${currentReceivedBy}`)}
+                    onClick={() => alert(`Mã đơn nhập: ${o.po_code}\nNgười nhận: ${currentReceivedBy}`)}
                     className="p-2 shadow-sm border border-gray-200"
                   >
                     <MoreHorizontal size={14} />

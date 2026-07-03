@@ -31,10 +31,9 @@ export default function PurchaseReturnDetailModal({ open, onClose, data, partner
         </div>
         
         <div className="p-6 flex flex-col gap-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[13px]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[13px]">
             <div><span className="text-gray-500 block">Ngày trả:</span><span className="font-bold text-gray-800">{new Date(data.date || data.createdAt || data.created_at).toLocaleString('vi-VN')}</span></div>
             <div><span className="text-gray-500 block">Tên NCC:</span><span className="font-bold text-primary">{partnerName || '---'}</span></div>
-            <div><span className="text-gray-500 block">Người tạo:</span><span className="font-bold text-gray-800">Admin</span></div>
             <div><span className="text-gray-500 block">Chi nhánh:</span><span className="font-bold text-gray-800">Chi nhánh trung tâm</span></div>
           </div>
 

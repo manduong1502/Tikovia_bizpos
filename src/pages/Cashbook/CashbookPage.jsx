@@ -373,7 +373,6 @@ export default function CashbookPage() {
             <tr><td class="label">Loại thu chi</td><td>${e.category || '---'}</td></tr>
             <tr><td class="label">Số tiền</td><td><strong>${fmt(e.amount)} VNĐ</strong></td></tr>
             <tr><td class="label">Ghi chú</td><td>${e.note || '---'}</td></tr>
-            <tr><td class="label">Người tạo</td><td>${e.createdBy || '---'}</td></tr>
             <tr><td class="label">Chi nhánh</td><td>${e.branch || 'Chi nhánh trung tâm'}</td></tr>
           </table>
           <div class="footer-sig">
