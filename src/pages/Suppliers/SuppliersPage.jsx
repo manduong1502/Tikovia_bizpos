@@ -435,8 +435,8 @@ export default function SuppliersPage() {
 
       if (filterGroup && filterGroup !== 'all') return false;
 
-      if (filterDebt === 'has_debt' && (Number(s.debt) || 0) <= 0) return false;
-      if (filterDebt === 'no_debt' && (Number(s.debt) || 0) > 0) return false;
+      if (filterDebt === 'has_debt' && (Number(s.debt) || 0) === 0) return false;
+      if (filterDebt === 'no_debt' && (Number(s.debt) || 0) !== 0) return false;
 
       return true;
     });
@@ -613,17 +613,17 @@ export default function SuppliersPage() {
 
     const noDauKy = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at || po.createdAt), debtIncrease: Number(po.total || 0), debtDecrease: 0
+        date: new Date(po.created_at || po.createdAt), debtIncrease: 0, debtDecrease: Number(po.total || 0)
       })),
       ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at || pr.createdAt), debtIncrease: 0, debtDecrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0)
+        date: new Date(pr.created_at || pr.createdAt), debtIncrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), debtDecrease: 0
       })),
       ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => {
         const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
         return {
           date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
-          debtIncrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0,
-          debtDecrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0
+          debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0,
+          debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
         };
       })
     ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
@@ -915,7 +915,7 @@ export default function SuppliersPage() {
           date: po.created_at || po.createdAt,
           total: total,
           paid: 0,
-          debt: total,
+          debt: -total,
           status: po.payment_status || 'paid',
           items: po.items || []
         };
@@ -928,7 +928,7 @@ export default function SuppliersPage() {
         date: pr.created_at,
         total: pr.paid > 0 ? pr.paid : pr.total,
         paid: pr.paid || 0,
-        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
+        debt: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -949,7 +949,7 @@ export default function SuppliersPage() {
           date: matchedPO ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
           total: cb.amount,
           paid: cb.amount,
-          debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+          debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
           status: 'completed',
           items: []
         };
@@ -1159,7 +1159,7 @@ export default function SuppliersPage() {
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Số lượng mặt hàng</span><span className="font-bold text-gray-800">{items.length}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tồn kho</span><span className="font-bold text-gray-800">{fmt(totalStock)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng mua</span><span className="font-bold text-gray-800">{fmt(s.total_spent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className="font-extrabold text-red-600">{fmt(s.debt || 0)}</span></div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className={`font-extrabold ${(s.debt || 0) < 0 ? 'text-red-600' : (s.debt || 0) > 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</span></div>
                   </div>
                 </div>
 
@@ -1384,10 +1384,10 @@ export default function SuppliersPage() {
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'import' ? 'text-red-600' : tx.type === 'payment' || tx.type === 'return' ? 'text-green-600' : 'text-gray-400'}`}>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt < 0 ? 'text-red-600' : tx.debt > 0 ? 'text-green-600' : 'text-gray-400'}`}>
                             {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                           </td>
-                          <td className="py-2 px-3.5 text-right font-extrabold text-red-600">{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt < 0 ? 'text-red-600' : tx.runningDebt > 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}
                       {transactions.length === 0 && (
@@ -1759,7 +1759,7 @@ export default function SuppliersPage() {
                         <td className="py-2.5 px-3 text-gray-700">{s.address || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
-                        <td className={`py-2.5 px-3 text-right font-extrabold ${(s.debt || 0) > 0 ? 'text-red-500' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
+                        <td className={`py-2.5 px-3 text-right font-extrabold ${(s.debt || 0) < 0 ? 'text-red-500' : (s.debt || 0) > 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
                       )}
                       {visibleColumns.includes('total_spent') && (
                         <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(s.total_spent || 0)}</td>

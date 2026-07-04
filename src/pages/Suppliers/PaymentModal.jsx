@@ -73,7 +73,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
 
   if (!open || !supplier) return null;
 
-  const currentDebt = Number(supplier.debt || supplier.totalDebt || 0);
+  const currentDebt = -Number(supplier.debt || supplier.totalDebt || 0);
   const payAmount = Number(amount || 0);
   const remainingDebt = currentDebt - payAmount;
 
@@ -136,7 +136,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
       // This is safe in both online and offline modes since it overwrites the absolute debt value.
       await supplierAPI.update(supplier.id, {
         ...supplier,
-        debt: currentDebt - payAmount
+        debt: -remainingDebt
       });
 
       toast.success('Thanh toán thành công');

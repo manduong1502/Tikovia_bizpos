@@ -390,7 +390,7 @@ export default function CreatePurchaseReturnPage() {
     toast.success('Đã tải file mẫu Excel thành công');
   };
 
-  const currentDebt = selectedSupplier ? Number(selectedSupplier.debt || selectedSupplier.totalDebt || selectedSupplier.total_debt || 0) : 0;
+  const currentDebt = selectedSupplier ? -Number(selectedSupplier.debt || selectedSupplier.totalDebt || selectedSupplier.total_debt || 0) : 0;
 
   const totalReturnGoods = items.reduce((acc, it) => acc + ((parseFloat(it.return_quantity) || 0) * it.return_price), 0);
   const actualDiscount = Number(discountStr.replace(/\D/g, '')) || 0;
@@ -794,8 +794,8 @@ export default function CreatePurchaseReturnPage() {
                       </button>
                     </div>
                     <div className="text-sm font-bold text-gray-700 px-1 mt-1">
-                      Nợ: <span className={Number(currentDebt) !== 0 ? "text-red-600" : "text-gray-800"}>
-                        {fmt(currentDebt)}
+                      Nợ: <span className={Number(currentDebt) > 0 ? "text-red-600" : Number(currentDebt) < 0 ? "text-green-600" : "text-gray-800"}>
+                        {fmt(-currentDebt)}
                       </span>
                     </div>
                   </div>

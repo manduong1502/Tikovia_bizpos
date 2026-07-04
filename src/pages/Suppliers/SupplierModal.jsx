@@ -40,8 +40,8 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
         email: supplier.email || '',
         address: supplier.address || '',
         total_spent: Number(supplier.total_spent || 0),
-        debt: Number(supplier.debt || 0),
-        net_purchase: Number(supplier.net_purchase ?? supplier.total_spent ?? 0),
+        debt: -Number(supplier.debt || 0),
+        net_purchase: Number(supplier.net_purchase || 0),
         isActive: supplier.isActive !== false,
         note: supplier.note || ''
       });
@@ -68,11 +68,12 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
     if (nameError) { toast.error('Tên nhà cung cấp đã tồn tại'); return; }
     setSaving(true);
     try {
+      const payload = { ...form, debt: -form.debt };
       if (supplier) {
-        await supplierAPI.update(supplier.id, form);
+        await supplierAPI.update(supplier.id, payload);
         toast.success('Cập nhật NCC thành công');
       } else {
-        await supplierAPI.create(form);
+        await supplierAPI.create(payload);
         toast.success('Tạo nhà cung cấp thành công');
       }
       onSaved?.();

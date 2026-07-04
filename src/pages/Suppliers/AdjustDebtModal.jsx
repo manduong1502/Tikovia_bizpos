@@ -20,7 +20,7 @@ export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
 
   useEffect(() => {
     if (open && supplier) {
-      setDebtValue(String(supplier.debt || supplier.totalDebt || 0));
+      setDebtValue(String(-(supplier.debt || 0)));
       setNote('');
       setAdjustDate(toLocalISOString(new Date()));
     }
@@ -37,7 +37,7 @@ export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
     setLoading(true);
     try {
       await supplierAPI.update(supplier.id, {
-        debt: Number(debtValue),
+        debt: -Number(debtValue),
         // Có thể lưu thêm note vào một nơi nào đó nếu cần thiết, 
         // tạm thời API supplier.update chỉ nhận note chung của NCC.
         // Để làm đúng chuẩn, sau này cần bảng DebtAdjustment riêng.
@@ -69,7 +69,7 @@ export default function AdjustDebtModal({ open, onClose, supplier, onSaved }) {
         <div className="p-6 space-y-5 flex-1">
           <div className="flex items-center">
             <span className="w-40 text-sm font-bold text-gray-700">Nợ cần trả hiện tại:</span>
-            <span className="text-sm font-bold text-gray-800">{new Intl.NumberFormat('vi-VN').format(supplier.debt || supplier.totalDebt || 0)}</span>
+            <span className="text-sm font-bold text-gray-800">{new Intl.NumberFormat('vi-VN').format(-(supplier.debt || 0))}</span>
           </div>
 
           <div className="flex items-center">
