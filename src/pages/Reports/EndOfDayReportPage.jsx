@@ -454,21 +454,6 @@ export default function EndOfDayReportPage() {
           </div>
         </div>
 
-        {/* Nhân viên */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nhân viên</label>
-          <select 
-            value={selectedEmployee} 
-            onChange={(e) => setSelectedEmployee(e.target.value)}
-            className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700"
-          >
-            <option value="">Chọn nhân viên</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.name}>{emp.name} ({emp.code})</option>
-            ))}
-          </select>
-        </div>
-
 
         {/* Phương thức thanh toán */}
         <div className="flex flex-col gap-1.5">

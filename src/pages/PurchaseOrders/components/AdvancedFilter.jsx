@@ -62,19 +62,6 @@ export default function AdvancedFilter({
           />
         </div>
 
-
-
-        {/* Received By Filter */}
-        <div>
-          <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người nhập</span>
-          <select
-            className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
-            value={filters.receivedBy}
-            onChange={e => setFilters(prev => ({ ...prev, receivedBy: e.target.value }))}
-          >
-            {receivedByOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
       </div>
     </div>
   );

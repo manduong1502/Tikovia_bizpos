@@ -204,18 +204,6 @@ export default function PurchaseOrderDetail({
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">Người nhập:</span>
-                    <select
-                      className="border border-gray-300 rounded px-2.5 py-1 text-sm font-bold text-gray-800 bg-white outline-none focus:border-primary shadow-sm"
-                      value={currentReceivedBy}
-                      onChange={(e) => handleUpdateReceivedBy(o.id, e.target.value)}
-                    >
-                      <option value="Võ Thành Huy">Võ Thành Huy</option>
-                      <option value="Admin">Admin</option>
-                      <option value="Nguyễn Văn A">Nguyễn Văn A</option>
-                    </select>
-                  </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <Eye size={16} /> <span className="font-bold">{o.view_count || 1}</span>
                   </div>

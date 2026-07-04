@@ -190,18 +190,7 @@ export default function PurchaseReturnsPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">Người trả:</span>
-                    <select
-                      className="border border-gray-300 rounded px-2.5 py-1 text-sm font-bold text-gray-800 bg-white outline-none focus:border-primary shadow-sm"
-                      value={currentReceivedBy}
-                      onChange={(e) => handleUpdateReceivedBy(o.id, e.target.value)}
-                    >
-                      <option value="Võ Thành Huy">Võ Thành Huy</option>
-                      <option value="Admin">Admin</option>
-                      <option value="Nguyễn Văn A">Nguyễn Văn A</option>
-                    </select>
-                  </div>
+
                   <div className="flex items-center gap-2 text-gray-600">
                     <span className="text-gray-500">Ngày trả:</span>
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
@@ -666,19 +655,6 @@ export default function PurchaseReturnsPage() {
               />
             </div>
 
-            <hr className="border-gray-100 my-2" />
-
-            {/* Received By Filter */}
-            <div>
-              <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Người trả</span>
-              <input 
-                type="text"
-                placeholder="Chọn người trả"
-                value={filters.receivedBy}
-                onChange={(e) => setFilters(prev => ({ ...prev, receivedBy: e.target.value }))}
-                className="w-full py-1 px-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-800 focus:outline-none focus:border-primary shadow-sm placeholder-gray-400"
-              />
-            </div>
           </div>
         </div>
 

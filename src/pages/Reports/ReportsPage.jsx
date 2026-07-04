@@ -13,7 +13,6 @@ const TABS = [
   { key: 'orders', label: 'Đơn hàng', icon: ShoppingCart },
   { key: 'products', label: 'Hàng hóa', icon: Package },
   { key: 'customers', label: 'Khách hàng', icon: Users },
-  { key: 'employees', label: 'Nhân viên', icon: BarChart3 },
 ];
 
 import Dropdown from '../../components/ui/Dropdown';
