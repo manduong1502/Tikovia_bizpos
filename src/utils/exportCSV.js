@@ -93,7 +93,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
       }
       
       // Debt Summary formatting
-      if (R >= headerRowIndex - 4 && R < headerRowIndex && (C === range.e.c - 2 || C === range.e.c - 1)) {
+      if (R >= headerRowIndex - 4 && R < headerRowIndex && C >= range.e.c - 3) {
         cellStyle.font.bold = true;
       }
 

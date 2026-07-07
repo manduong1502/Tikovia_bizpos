@@ -1848,7 +1848,7 @@ export default function CustomersPage() {
              if (columns.total) headerRow.push('Thành tiền');
              if (columns.note) headerRow.push('Ghi chú');
           }
-          headerRow.push('Ghi nợ', 'Ghi có');
+          headerRow.push('Ghi nợ', 'Ghi có', 'Dư nợ');
           const totalCols = headerRow.length;
 
           const createRow = () => new Array(totalCols).fill('');
@@ -1870,9 +1870,9 @@ export default function CustomersPage() {
           let row6 = createRow(); row6[0] = dateStr; exportData.push(row6);
 
           // Customer & Debt Summary Info
-          let row7 = createRow(); row7[0] = 'Khách hàng'; row7[1] = c.name; row7[totalCols - 3] = 'Nợ đầu kỳ'; row7[totalCols - 2] = noDauKy; exportData.push(row7);
-          let row8 = createRow(); row8[0] = 'Mã KH'; row8[1] = custCode; row8[totalCols - 3] = 'Phát sinh trong'; row8[totalCols - 2] = totalGhiNo; row8[totalCols - 1] = totalGhiCo; exportData.push(row8);
-          let row9 = createRow(); row9[0] = 'Điện thoại'; row9[1] = c.phone || ''; row9[totalCols - 3] = 'Nợ cuối kỳ'; row9[totalCols - 2] = noCuoiKy; exportData.push(row9);
+          let row7 = createRow(); row7[0] = 'Khách hàng'; row7[1] = c.name; row7[totalCols - 2] = 'Nợ đầu kỳ'; row7[totalCols - 1] = noDauKy; exportData.push(row7);
+          let row8 = createRow(); row8[0] = 'Mã KH'; row8[1] = custCode; row8[totalCols - 4] = 'Phát sinh trong'; row8[totalCols - 3] = totalGhiNo; row8[totalCols - 2] = totalGhiCo; exportData.push(row8);
+          let row9 = createRow(); row9[0] = 'Điện thoại'; row9[1] = c.phone || ''; row9[totalCols - 2] = 'Nợ cuối kỳ'; row9[totalCols - 1] = noCuoiKy; exportData.push(row9);
           exportData.push(createRow()); // Empty Row 10
           
           // Table Headers
@@ -1889,8 +1889,9 @@ export default function CustomersPage() {
             summaryRow[0] = txTime;
             summaryRow[1] = tx.code;
             summaryRow[2] = tx.type;
-            summaryRow[totalCols - 2] = ghiNo || '';
-            summaryRow[totalCols - 1] = ghiCo || '';
+            summaryRow[totalCols - 3] = ghiNo || '';
+            summaryRow[totalCols - 2] = ghiCo || '';
+            summaryRow[totalCols - 1] = tx.runningDebt || 0;
             exportData.push(summaryRow);
 
             
@@ -1953,7 +1954,7 @@ export default function CustomersPage() {
                if (columns.total) autoCols.push({ wch: 14 });
                if (columns.note) autoCols.push({ wch: 14 });
             }
-            autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+            autoCols.push({ wch: 14 }, { wch: 14 }, { wch: 16 }); // Ghi nợ, Ghi có, Dư nợ
             
             // Dynamic merges for Title and Date
             const merges = [

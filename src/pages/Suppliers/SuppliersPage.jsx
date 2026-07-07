@@ -715,7 +715,7 @@ export default function SuppliersPage() {
        if (columns.total) headerRow.push('Thành tiền');
        if (columns.note) headerRow.push('Ghi chú');
     }
-    headerRow.push('Ghi nợ', 'Ghi có');
+    headerRow.push('Ghi nợ', 'Ghi có', 'Dư nợ');
     const totalCols = headerRow.length;
 
     const createRow = () => new Array(totalCols).fill('');
@@ -752,9 +752,9 @@ export default function SuppliersPage() {
     const noCuoiKy = noDauKy + totalGhiCo - totalGhiNo;
 
     // Supplier & Debt Summary Info
-    let row6 = createRow(); row6[0] = 'Tên NCC'; row6[1] = s.name; row6[totalCols - 3] = 'Nợ đầu kỳ'; row6[totalCols - 2] = noDauKy; exportData.push(row6);
-    let row7 = createRow(); row7[0] = 'Mã NCC'; row7[1] = supCode; row7[totalCols - 3] = 'Phát sinh trong'; row7[totalCols - 2] = totalGhiNo; row7[totalCols - 1] = totalGhiCo; exportData.push(row7);
-    let row8 = createRow(); row8[0] = 'Điện thoại'; row8[1] = s.phone || ''; row8[totalCols - 3] = 'Nợ cuối kỳ'; row8[totalCols - 2] = noCuoiKy; exportData.push(row8);
+    let row6 = createRow(); row6[0] = 'Tên NCC'; row6[1] = s.name; row6[totalCols - 2] = 'Nợ đầu kỳ'; row6[totalCols - 1] = noDauKy; exportData.push(row6);
+    let row7 = createRow(); row7[0] = 'Mã NCC'; row7[1] = supCode; row7[totalCols - 4] = 'Phát sinh trong'; row7[totalCols - 3] = totalGhiNo; row7[totalCols - 2] = totalGhiCo; exportData.push(row7);
+    let row8 = createRow(); row8[0] = 'Điện thoại'; row8[1] = s.phone || ''; row8[totalCols - 2] = 'Nợ cuối kỳ'; row8[totalCols - 1] = noCuoiKy; exportData.push(row8);
     exportData.push(createRow()); // Empty Row 9
     
     // Table Headers
@@ -772,8 +772,9 @@ export default function SuppliersPage() {
       summaryRow[0] = txTimeStr;
       summaryRow[1] = tx.code;
       summaryRow[2] = tx.type;
-      summaryRow[totalCols - 2] = ghiNo || '';
-      summaryRow[totalCols - 1] = ghiCo || '';
+      summaryRow[totalCols - 3] = ghiNo || '';
+      summaryRow[totalCols - 2] = ghiCo || '';
+      summaryRow[totalCols - 1] = tx.runningDebt || 0;
       exportData.push(summaryRow);
 
       // Dòng sản phẩm (Item rows)
@@ -843,7 +844,7 @@ export default function SuppliersPage() {
          if (columns.total) autoCols.push({ wch: 14 });
          if (columns.note) autoCols.push({ wch: 14 });
       }
-      autoCols.push({ wch: 14 }, { wch: 14 }); // Ghi nợ, Ghi có
+      autoCols.push({ wch: 14 }, { wch: 14 }, { wch: 16 }); // Ghi nợ, Ghi có, Dư nợ
       
       // Dynamic merges for Title and Date
       const merges = [
