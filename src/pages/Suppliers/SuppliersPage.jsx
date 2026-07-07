@@ -581,16 +581,23 @@ export default function SuppliersPage() {
     const now = new Date();
     let startDate = new Date(0);
     let endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
     if (timeRange === 'today') {
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      startDate.setHours(0, 0, 0, 0);
     } else if (timeRange === 'this_week') {
       const day = now.getDay() || 7;
       startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+      startDate.setHours(0, 0, 0, 0);
     } else if (timeRange === 'this_month') {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate.setHours(0, 0, 0, 0);
     } else if (timeRange === 'last_month') {
       startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      startDate.setHours(0, 0, 0, 0);
       endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+      endDate.setHours(23, 59, 59, 999);
     } else if (typeof timeRange === 'object' && timeRange !== null && timeRange.mode === 'custom') {
       if (timeRange.start) {
         startDate = new Date(timeRange.start);
@@ -611,52 +618,90 @@ export default function SuppliersPage() {
       return cb.partnerName === s.name;
     });
 
-    const noDauKy = [
-      ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => ({ 
-        date: new Date(po.created_at || po.createdAt), debtIncrease: 0, debtDecrease: Number(po.total || 0)
-      })),
-      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        date: new Date(pr.created_at || pr.createdAt), debtIncrease: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), debtDecrease: 0
-      })),
-      ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => {
-        const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
-        return {
-          date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
-          debtIncrease: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : 0,
-          debtDecrease: cb.type === 'INCOME' ? Number(cb.amount || 0) : 0
-        };
-      })
-    ].filter(tx => tx.date < startDate).reduce((sum, tx) => sum + tx.debtIncrease - tx.debtDecrease, 0);
-
-    const transactions = [
+    // Build all transactions from scratch to calculate running debt backward
+    const allTxs = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
         const total = Number(po.total || 0);
-        return { 
-          code: po.po_code || po.code, type: 'Nhập hàng', date: new Date(po.created_at || po.createdAt), 
-          total: total, paid: 0, items: po.items || [] 
+        return {
+          code: po.po_code || po.code,
+          type: 'Nhập hàng',
+          date: new Date(po.created_at || po.createdAt),
+          total: total,
+          debt: total, // Nhập hàng increases what we owe (+total) under positive convention
+          cashbookType: null,
+          items: po.items || []
         };
       }),
-      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => ({ 
-        code: pr.code, type: 'Trả hàng', date: new Date(pr.created_at || pr.createdAt), 
-        total: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0), paid: 0, items: pr.items || [] 
-      })),
+      ...supPRs.filter(pr => pr.status !== 'CANCELLED').map(pr => {
+        const total = pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0);
+        return {
+          code: pr.code,
+          type: 'Trả hàng',
+          date: new Date(pr.created_at || pr.createdAt),
+          total: total,
+          debt: -total, // Trả hàng decreases what we owe (-total)
+          cashbookType: null,
+          items: pr.items || []
+        };
+      }),
       ...supCashbooks.filter(cb => cb.status === 'completed').map(cb => {
         const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
+        const amount = Number(cb.amount || 0);
         return {
-          code: cb.code, type: 'Thanh toán', 
+          code: cb.code,
+          type: 'Thanh toán',
           date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
-          total: Number(cb.amount || 0), 
-          paid: 0, items: [], cashbookType: cb.type
+          total: amount,
+          debt: cb.type === 'INCOME' ? amount : -amount, // EXPENSE decreases debt (-amount), INCOME increases debt (+amount)
+          cashbookType: cb.type,
+          items: []
         };
       })
-    ].filter(tx => {
+    ];
+
+    // Sort new-to-old to compute runningDebt backward
+    const sortedNewFirst = [...allTxs].sort((a, b) => {
+      const timeDiff = b.date - a.date;
+      if (timeDiff !== 0) return timeDiff;
+      const getPriority = (type) => {
+        if (type === 'Thanh toán') return 1;
+        if (type === 'Trả hàng') return 2;
+        if (type === 'Nhập hàng') return 3;
+        return 4;
+      };
+      return getPriority(a.type) - getPriority(b.type);
+    });
+
+    // In the database, s.debt is negative when we owe them (e.g. -1,500,000).
+    // For standard reporting, we treat "Nợ cần trả" as a positive value.
+    const currentFinalDebt = -Number(s.debt || s.totalDebt || 0);
+    let tempDebt = currentFinalDebt;
+    const allTxsWithDebt = sortedNewFirst.map(tx => {
+      const runningDebt = tempDebt;
+      tempDebt -= tx.debt;
+      return { ...tx, runningDebt, debtBefore: tempDebt };
+    });
+
+    // Calculate noDauKy at startDate
+    const txsBefore = allTxsWithDebt.filter(tx => tx.date < startDate);
+    let noDauKy = currentFinalDebt;
+    if (txsBefore.length > 0) {
+      noDauKy = txsBefore[0].runningDebt;
+    } else if (allTxsWithDebt.length > 0) {
+      noDauKy = allTxsWithDebt[allTxsWithDebt.length - 1].debtBefore;
+    }
+
+    // Filter period transactions
+    const periodTxs = allTxsWithDebt.filter(tx => {
       if (timeRange === 'all') return true;
       if (timeRange === 'last_month') return tx.date >= startDate && tx.date <= endDate;
       if (typeof timeRange === 'object' && timeRange !== null && timeRange.mode === 'custom') {
         return tx.date >= startDate && tx.date <= endDate;
       }
       return tx.date >= startDate;
-    }).sort((a, b) => a.date - b.date);
+    });
+
+    const transactions = [...periodTxs].reverse(); // oldest to newest for Excel
 
     // 1. Build headers to know total columns
     const headerRow = ['Thời gian', 'Mã', 'Diễn giải'];
@@ -695,17 +740,16 @@ export default function SuppliersPage() {
     let row5 = createRow(); row5[0] = dateStr; exportData.push(row5);
 
     // Calculate totals for header
-    const totalGhiNo = transactions.reduce((s, tx) => {
-      if (tx.type === 'Nhập hàng') return s + tx.total;
-      if (tx.type === 'Thanh toán' && tx.cashbookType === 'INCOME') return s + tx.total;
-      return s;
-    }, 0);
-    const totalGhiCo = transactions.reduce((s, tx) => {
-      if (tx.type === 'Trả hàng') return s + tx.total;
-      if (tx.type === 'Thanh toán' && tx.cashbookType === 'EXPENSE') return s + tx.total;
-      return s;
-    }, 0);
-    const noCuoiKy = noDauKy + totalGhiNo - totalGhiCo;
+    let totalGhiNo = 0; // Debit: payments (EXPENSE) + returns
+    let totalGhiCo = 0; // Credit: imports + payments (INCOME)
+    transactions.forEach(tx => {
+      if (tx.debt > 0) {
+        totalGhiCo += tx.debt; // increases debt
+      } else {
+        totalGhiNo += Math.abs(tx.debt); // decreases debt
+      }
+    });
+    const noCuoiKy = noDauKy + totalGhiCo - totalGhiNo;
 
     // Supplier & Debt Summary Info
     let row6 = createRow(); row6[0] = 'Tên NCC'; row6[1] = s.name; row6[totalCols - 3] = 'Nợ đầu kỳ'; row6[totalCols - 2] = noDauKy; exportData.push(row6);
@@ -721,18 +765,8 @@ export default function SuppliersPage() {
       // Dòng phiếu (Summary row)
       const txTimeStr = `${formatDate(tx.date)} ${String(tx.date.getHours()).padStart(2, '0')}:${String(tx.date.getMinutes()).padStart(2, '0')}`;
       
-      let ghiNo = 0;
-      let ghiCo = 0;
-      if (tx.type === 'Nhập hàng') {
-        ghiNo = tx.total;
-        ghiCo = 0;
-      } else if (tx.type === 'Trả hàng') {
-        ghiNo = 0;
-        ghiCo = tx.total;
-      } else if (tx.type === 'Thanh toán') {
-        ghiNo = tx.cashbookType === 'INCOME' ? tx.total : 0;
-        ghiCo = tx.cashbookType === 'EXPENSE' ? tx.total : 0;
-      }
+      let ghiNo = tx.debt < 0 ? Math.abs(tx.debt) : 0;
+      let ghiCo = tx.debt > 0 ? tx.debt : 0;
 
       const summaryRow = createRow();
       summaryRow[0] = txTimeStr;

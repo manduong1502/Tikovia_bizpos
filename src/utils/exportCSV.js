@@ -93,7 +93,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
       }
       
       // Debt Summary formatting
-      if (R >= headerRowIndex - 4 && R < headerRowIndex && C === 8) { // Column I (Nợ đầu kỳ, etc)
+      if (R >= headerRowIndex - 4 && R < headerRowIndex && (C === range.e.c - 2 || C === range.e.c - 1)) {
         cellStyle.font.bold = true;
       }
 
@@ -142,12 +142,19 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         // Alignment
         if (C === 0) cellStyle.alignment.horizontal = 'right';
         if (C === 1) cellStyle.alignment.horizontal = 'center';
-        if (C >= 4 && C <= 11) cellStyle.alignment.horizontal = 'right'; // Number columns
+        if (C >= 4 && C <= range.e.c) cellStyle.alignment.horizontal = 'right'; // Number columns
+      }
+
+      // Apply currency formatting to numeric values
+      if (typeof val === 'number') {
+        worksheet[cellRef].z = '#,##0';
+        cellStyle.alignment = cellStyle.alignment || {};
+        cellStyle.alignment.horizontal = 'right';
       }
 
       // Footer formatting
       if (R >= range.e.r - 3) {
-        if (R === range.e.r - 3 && C === 10) { // Ngày tháng năm
+        if (R === range.e.r - 3 && C === range.e.c - 1) { // Ngày tháng năm
           cellStyle.alignment.horizontal = 'center';
           cellStyle.font.italic = true;
         }
@@ -167,14 +174,14 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 
   // Draw full borders for the table outer box to be safe
   for (let R = headerRowIndex; R <= range.e.r - 4; ++R) {
-    for (let C = 0; C <= 11; ++C) {
+    for (let C = 0; C <= range.e.c; ++C) {
       const cellRef = XLSX.utils.encode_cell({c:C, r:R});
       if (!worksheet[cellRef]) worksheet[cellRef] = { v: '', t: 's' };
       worksheet[cellRef].s = worksheet[cellRef].s || {};
       worksheet[cellRef].s.border = worksheet[cellRef].s.border || {};
       
       if (C === 0) worksheet[cellRef].s.border.left = { style: "thin", color: { auto: 1 } };
-      if (C === 11) worksheet[cellRef].s.border.right = { style: "thin", color: { auto: 1 } };
+      if (C === range.e.c) worksheet[cellRef].s.border.right = { style: "thin", color: { auto: 1 } };
       if (R === range.e.r - 4) worksheet[cellRef].s.border.bottom = { style: "thin", color: { auto: 1 } };
     }
   }
