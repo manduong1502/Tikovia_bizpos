@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal, FolderOpen } from 'lucide-react';
+import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal, FolderOpen, RotateCcw } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -338,6 +338,15 @@ export default function PurchaseOrderDetail({
                 </div>
 
                 <div className="flex items-center gap-3">
+                  {o.status !== 'CANCELLED' && o.payment_status !== 'unpaid' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/purchase-returns/create?poId=${o.id}`)}
+                      className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold text-red-600 border border-red-100 hover:bg-red-50"
+                    >
+                      <RotateCcw size={14} /> Trả hàng
+                    </Button>
+                  )}
                   <Button
                     variant="primary"
                     onClick={() => navigate(`/purchase-orders/create?id=${o.id}&type=update`)}
