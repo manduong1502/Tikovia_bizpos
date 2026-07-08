@@ -108,9 +108,14 @@ export default function SuppliersPage() {
     }
     const tid = toast.loading('Đang tải chi tiết giao dịch...');
     try {
+      // Extract numeric/database ID if it contains a suffix (e.g. "12-import" -> "12")
+      const realId = typeof tx.id === 'string' && tx.id.includes('-') 
+        ? tx.id.split('-')[0] 
+        : tx.id;
+
       let detail = null;
       if (tx.type === 'import') {
-        detail = await purchaseOrderAPI.getById(tx.id);
+        detail = await purchaseOrderAPI.getById(realId);
         if (detail) {
           setSelectedTx({
             ...detail,
@@ -118,10 +123,10 @@ export default function SuppliersPage() {
             partnerName: partnerName
           });
         } else {
-          setSelectedTx({ ...tx, partnerName });
+          setSelectedTx({ ...tx, id: realId, partnerName });
         }
       } else if (tx.type === 'return') {
-        detail = await purchaseReturnAPI.getById(tx.id);
+        detail = await purchaseReturnAPI.getById(realId);
         if (detail) {
           // Ensure return items have SKU and product name
           const detailItems = (detail?.items || []).map(it => {
@@ -141,14 +146,17 @@ export default function SuppliersPage() {
             partnerName: partnerName
           });
         } else {
-          setSelectedTx({ ...tx, partnerName });
+          setSelectedTx({ ...tx, id: realId, partnerName });
         }
       } else {
-        setSelectedTx({ ...tx, partnerName });
+        setSelectedTx({ ...tx, id: realId, partnerName });
       }
     } catch (err) {
       console.error(err);
-      setSelectedTx({ ...tx, partnerName });
+      const realId = typeof tx.id === 'string' && tx.id.includes('-') 
+        ? tx.id.split('-')[0] 
+        : tx.id;
+      setSelectedTx({ ...tx, id: realId, partnerName });
     } finally {
       toast.dismiss(tid);
     }
