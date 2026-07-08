@@ -1,9 +1,11 @@
-import { X, Printer } from 'lucide-react';
+import { X, Printer, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function PurchaseOrderDetailModal({ open, onClose, data, partnerName }) {
+  const navigate = useNavigate();
   if (!open || !data) return null;
 
   const items = data.items || [];
@@ -81,6 +83,18 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
         </div>
 
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+          {data.status !== 'CANCELLED' && (
+            <Button
+              variant="secondary"
+              className="flex items-center gap-1.5 font-bold shadow-sm text-red-600 border-red-200 hover:bg-red-50"
+              onClick={() => {
+                onClose();
+                navigate(`/purchase-returns/create?poId=${data.id}`);
+              }}
+            >
+              <RotateCcw size={16} /> Trả hàng
+            </Button>
+          )}
           <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
           <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
         </div>
