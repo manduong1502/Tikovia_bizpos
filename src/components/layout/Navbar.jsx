@@ -77,7 +77,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
             </div>
           </div>
         </div>
-        <Link to="/pos" target="_blank" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-none rounded-lg px-3 lg:px-4 py-2 flex items-center gap-1.5 text-[13px] font-bold cursor-pointer transition-all no-underline shadow-sm hover:shadow-md transform hover:-translate-y-0.5 ml-3 shrink-0">
+        <Link to="/pos" className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-none rounded-lg px-3 lg:px-4 py-2 flex items-center gap-1.5 text-[13px] font-bold cursor-pointer transition-all no-underline shadow-sm hover:shadow-md transform hover:-translate-y-0.5 ml-3 shrink-0">
           <ShoppingCart size={16} /> BÁN HÀNG
         </Link>
       </nav>
@@ -93,7 +93,6 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
               </div>
               <Link 
                 to="/pos" 
-                target="_blank" 
                 className="bg-amber-500 hover:bg-amber-600 text-white border-none rounded-lg px-3 py-1.5 flex items-center gap-1 text-[12px] font-bold no-underline shadow-sm"
                 onClick={() => setMobileMenuOpen(false)}
               >

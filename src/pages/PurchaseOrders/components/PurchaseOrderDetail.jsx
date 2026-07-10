@@ -254,10 +254,8 @@ export default function PurchaseOrderDetail({
                       <tbody className="divide-y divide-gray-100 font-medium">
                         {items.length > 0 ? items.map((it, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="p-3 text-primary font-bold hover:underline cursor-pointer">
-                              <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
-                                {it.product_sku}
-                              </a>
+                            <td className="p-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${it.product_sku}`)}>
+                              {it.product_sku}
                             </td>
                             <td className="p-3 font-bold text-gray-900">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
                             <td className="p-3 text-right text-gray-800">{it.quantity}</td>

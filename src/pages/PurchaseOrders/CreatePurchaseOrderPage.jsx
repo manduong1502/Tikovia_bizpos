@@ -566,10 +566,8 @@ export default function CreatePurchaseOrderPage() {
                   {items.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="p-4 text-center text-gray-500 font-bold">{idx + 1}</td>
-                      <td className="p-4 font-bold text-primary hover:underline cursor-pointer">
-                        <a href={`/products?editSku=${item.sku}`} target="_blank" rel="noopener noreferrer">
-                          {item.sku}
-                        </a>
+                      <td className="p-4 font-bold text-primary hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${item.sku}`)}>
+                        {item.sku}
                       </td>
                       <td className="p-4 font-bold text-gray-800">{item.name} {item.unit ? `(${item.unit})` : ''}</td>
                       <td className="p-4 text-gray-600">{item.unit}</td>

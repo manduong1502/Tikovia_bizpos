@@ -101,16 +101,15 @@ export default function POSHeader() {
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-medium text-gray-800 truncate">{p.name} {p.unit ? `(${p.unit})` : ''}</div>
                   <div className="text-[11px] text-gray-500 font-bold hover:underline hover:text-primary">
-                    <a 
-                      href={`/products?editSku=${p.sku}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <span 
+                      className="cursor-pointer font-bold hover:underline text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
+                        navigate(`/products?editSku=${p.sku}`);
                       }}
                     >
                       {p.sku}
-                    </a>
+                    </span>
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-3">

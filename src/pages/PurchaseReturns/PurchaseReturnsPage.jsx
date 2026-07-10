@@ -200,10 +200,8 @@ export default function PurchaseReturnsPage() {
                   {o.purchaseOrder && (
                     <div>
                       <span className="text-gray-500">Đơn nhập liên kết:</span>{' '}
-                      <span className="font-bold text-primary hover:underline cursor-pointer">
-                        <a href={`/purchase-orders?poCode=${o.purchaseOrder.code}`} target="_blank" rel="noopener noreferrer">
-                          {o.purchaseOrder.code}
-                        </a>
+                      <span className="font-bold text-primary hover:underline cursor-pointer" onClick={() => navigate(`/purchase-orders?poCode=${o.purchaseOrder.code}`)}>
+                        {o.purchaseOrder.code}
                       </span>
                     </div>
                   )}
@@ -253,10 +251,8 @@ export default function PurchaseReturnsPage() {
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {items.map((it, idx) => (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-3 text-primary font-bold hover:underline cursor-pointer">
-                          <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
-                            {it.product_sku}
-                          </a>
+                        <td className="p-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${it.product_sku}`)}>
+                          {it.product_sku}
                         </td>
                         <td className="p-3 text-gray-800">{it.product_name}</td>
                         <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
