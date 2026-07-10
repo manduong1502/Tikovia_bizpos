@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -1151,9 +1150,9 @@ export default function SuppliersPage() {
                         />
                       </div>
                     </div>
-                    <Link to="/pricebook" className="text-primary text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                    <span onClick={() => navigate('/pricebook')} className="text-primary text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer">
                       <Tag size={12} /> Thiết lập giá
-                    </Link>
+                    </span>
                   </div>
 
                   <table className="w-full text-xs min-w-[700px] border-collapse">

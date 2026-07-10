@@ -555,7 +555,7 @@ export default function OrdersPage() {
               )}
             </div>
 
-            <Button variant="primary" onClick={() => window.open('/pos', '_blank')} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap shrink-0 cursor-pointer">
+            <Button variant="primary" onClick={() => navigate('/pos')} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap shrink-0 cursor-pointer">
               <Plus size={16} /> <span className="hidden sm:inline">Bán hàng</span>
             </Button>
 

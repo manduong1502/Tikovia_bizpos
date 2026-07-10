@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { returnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -461,10 +461,11 @@ export default function ReturnsPage() {
                   {o.order && (
                     <div>
                       <span className="text-gray-500">Hóa đơn liên kết:</span>{' '}
-                      <span className="font-bold text-primary hover:underline cursor-pointer">
-                        <Link to={`/orders?orderCode=${o.order.order_code || o.order.code}`}>
-                          {o.order.order_code || o.order.code}
-                        </Link>
+                      <span 
+                        onClick={() => navigate(`/orders?orderCode=${o.order.order_code || o.order.code}`)}
+                        className="font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        {o.order.order_code || o.order.code}
                       </span>
                     </div>
                   )}
