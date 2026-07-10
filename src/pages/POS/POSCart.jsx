@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { usePOS } from './POSContext';
 import { Trash2, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import NumericInput from '../../components/ui/NumericInput';
 
 export default function POSCart() {
-  const navigate = useNavigate();
   const { currentInvoice, updateCartItemQuantity, removeFromCart, updateCurrentInvoice, saleMode } = usePOS();
   const cart = currentInvoice?.cart || [];
   const [editingItemId, setEditingItemId] = useState(null);
@@ -59,8 +57,10 @@ export default function POSCart() {
                     <Trash2 size={16} />
                   </button>
                   
-                  <span className="pos-cart-item-sku font-bold text-primary hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${item.product.sku}`)}>
-                    {item.product.sku || ''}
+                  <span className="pos-cart-item-sku font-bold text-primary hover:underline cursor-pointer">
+                    <a href={`/products?editSku=${item.product.sku}`} target="_blank" rel="noopener noreferrer">
+                      {item.product.sku || ''}
+                    </a>
                   </span>
                   
                   <span className="pos-cart-item-name">

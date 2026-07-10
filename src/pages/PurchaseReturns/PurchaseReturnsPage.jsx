@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -201,9 +201,9 @@ export default function PurchaseReturnsPage() {
                     <div>
                       <span className="text-gray-500">Đơn nhập liên kết:</span>{' '}
                       <span className="font-bold text-primary hover:underline cursor-pointer">
-                        <Link to={`/purchase-orders?poCode=${o.purchaseOrder.code}`}>
+                        <a href={`/purchase-orders?poCode=${o.purchaseOrder.code}`} target="_blank" rel="noopener noreferrer">
                           {o.purchaseOrder.code}
-                        </Link>
+                        </a>
                       </span>
                     </div>
                   )}

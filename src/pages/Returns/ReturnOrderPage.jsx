@@ -588,8 +588,10 @@ export default function ReturnOrderPage() {
                       </td>
                       <td className="py-3 px-4 text-center font-bold text-gray-500">{idx + 1}</td>
                       {showSku && (
-                        <td className="py-3 px-4 font-bold text-primary hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${it.sku}`)}>
-                          {it.sku}
+                        <td className="py-3 px-4 font-bold text-primary hover:underline cursor-pointer">
+                          <a href={`/products?editSku=${it.sku}`} target="_blank" rel="noopener noreferrer">
+                            {it.sku}
+                          </a>
                         </td>
                       )}
                       <td className="py-3 px-4">
