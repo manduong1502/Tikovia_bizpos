@@ -969,9 +969,9 @@ export default function SuppliersPage() {
         type: 'return',
         typeName: 'Trả hàng',
         date: pr.created_at,
-        total: pr.paid > 0 ? pr.paid : pr.total,
-        paid: pr.paid || 0,
-        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
+        total: Number(pr.total || 0),
+        paid: Number(pr.paid || 0),
+        debt: -Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -983,13 +983,16 @@ export default function SuppliersPage() {
         if (cbSupCode) return cbSupCode === supCode;
         return cb.partnerName === s.name;
       }).filter(cb => cb.status === 'completed').map(cb => {
-        const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
+        const matchedPO = (cb.purchaseOrderId || cb.purchase_order_id)
+          ? supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id)
+          : null;
+        const usePODate = matchedPO && cb.type === 'EXPENSE';
         return {
           id: cb.id || cb.code,
           code: cb.code,
           type: 'payment',
           typeName: 'Thanh toán',
-          date: matchedPO ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
+          date: usePODate ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
           total: cb.amount,
           paid: cb.amount,
           debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
