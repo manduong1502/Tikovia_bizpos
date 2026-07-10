@@ -132,12 +132,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
         }
       }
 
-      // Update supplier debt to the exact final debt amount absolutely.
-      // This is safe in both online and offline modes since it overwrites the absolute debt value.
-      await supplierAPI.update(supplier.id, {
-        ...supplier,
-        debt: -remainingDebt
-      });
+
 
       toast.success('Thanh toán thành công');
       onSaved();
