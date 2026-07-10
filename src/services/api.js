@@ -662,6 +662,19 @@ export const supplierAPI = {
       }
     });
     list = list.map(normalizeSupplier);
+
+    // Clear local storage updates for these suppliers since we successfully synced with backend
+    let changed = false;
+    list.forEach(s => {
+      if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
+        delete LOCAL_UPDATED_SUPPLIERS[s.id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistSuppliers();
+    }
+
     list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
     list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
     const existingCodes = new Set(list.map(s => s.code));
@@ -682,6 +695,19 @@ export const supplierAPI = {
       }
     });
     list = list.map(normalizeSupplier);
+
+    // Clear local storage updates for these suppliers since we successfully synced with backend
+    let changed = false;
+    list.forEach(s => {
+      if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
+        delete LOCAL_UPDATED_SUPPLIERS[s.id];
+        changed = true;
+      }
+    });
+    if (changed) {
+      persistSuppliers();
+    }
+
     list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
     list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
     const existingCodes = new Set(list.map(s => s.code));
@@ -865,7 +891,7 @@ export const purchaseOrderAPI = {
   create: (data) => api.post('/purchase-orders', data, { hideErrorToast: true }).then(r => {
     const suppId = Number(data.supplierId || data.supplier_id);
     if (suppId) {
-      const spentAmount = Number(data.total || data.subtotal || 0);
+      const spentAmount = Number(data.total || data.subtotal || (data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.price || it.unit_price || 0)), 0) : 0));
       FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
         if (s.id === suppId) {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
@@ -884,7 +910,7 @@ export const purchaseOrderAPI = {
     console.warn("create purchase order API failed, using fallback memory", err);
     const suppId = Number(data.supplierId || data.supplier_id);
     if (suppId) {
-      const spentAmount = Number(data.total || data.subtotal || 0);
+      const spentAmount = Number(data.total || data.subtotal || (data.items ? data.items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.price || it.unit_price || 0)), 0) : 0));
       FALLBACK_SUPPLIERS = FALLBACK_SUPPLIERS.map(s => {
         if (s.id === suppId) {
           const existing = LOCAL_UPDATED_SUPPLIERS[suppId] || s;
