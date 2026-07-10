@@ -58,8 +58,8 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
                 {items.map((it, idx) => (
                   <tr key={idx} className="hover:bg-blue-50/30">
                     <td className="p-3 text-center text-gray-400">{idx + 1}</td>
-                    <td className="p-3 text-primary font-bold">{it.product_sku || it.sku || '---'}</td>
-                    <td className="p-3 text-gray-800">{it.product_name || it.name || '---'} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
+                    <td className="p-3 text-primary font-bold">{it.product?.sku || it.product_sku || it.sku || '---'}</td>
+                    <td className="p-3 text-gray-800">{it.product?.name || it.product_name || it.name || '---'} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
                     <td className="p-3 text-right">{fmt(it.quantity)}</td>
                     <td className="p-3 text-right">{fmt(it.unit_price || it.price)}</td>
                     <td className="p-3 text-right font-bold text-primary">{fmt((it.quantity || 0) * (it.unit_price || it.price || 0))}</td>
