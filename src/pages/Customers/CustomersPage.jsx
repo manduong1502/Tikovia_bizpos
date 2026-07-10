@@ -1522,7 +1522,11 @@ export default function CustomersPage() {
                 {visibleColumns.includes('phone') && <td></td>}
                 {visibleColumns.includes('email') && <td></td>}
                 {visibleColumns.includes('address') && <td></td>}
-                {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right text-red-500 font-extrabold">{fmt(sumDebt)}</td>}
+                {visibleColumns.includes('debt') && (
+                  <td className={`py-2.5 px-3 text-right font-extrabold ${sumDebt > 0 ? 'text-red-500' : sumDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>
+                    {fmt(sumDebt)}
+                  </td>
+                )}
                 {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
                 <td></td>
               </tr>
