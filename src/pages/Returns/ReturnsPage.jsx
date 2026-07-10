@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { returnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -461,8 +461,10 @@ export default function ReturnsPage() {
                   {o.order && (
                     <div>
                       <span className="text-gray-500">Hóa đơn liên kết:</span>{' '}
-                      <span className="font-bold text-primary hover:underline cursor-pointer" onClick={() => navigate(`/orders?orderCode=${o.order.order_code || o.order.code}`)}>
-                        {o.order.order_code || o.order.code}
+                      <span className="font-bold text-primary hover:underline cursor-pointer">
+                        <Link to={`/orders?orderCode=${o.order.order_code || o.order.code}`}>
+                          {o.order.order_code || o.order.code}
+                        </Link>
                       </span>
                     </div>
                   )}
@@ -509,8 +511,10 @@ export default function ReturnsPage() {
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {items.map((it, idx) => (
                       <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-3 text-primary font-bold hover:underline cursor-pointer" onClick={() => navigate(`/products?editSku=${it.product_sku}`)}>
-                          {it.product_sku}
+                        <td className="p-3 text-primary font-bold hover:underline cursor-pointer">
+                          <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
+                            {it.product_sku}
+                          </a>
                         </td>
                         <td className="p-3 text-gray-800">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
                         <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
