@@ -390,7 +390,7 @@ export default function CreatePurchaseReturnPage() {
     toast.success('Đã tải file mẫu Excel thành công');
   };
 
-  const currentDebt = selectedSupplier ? -Number(selectedSupplier.debt || selectedSupplier.totalDebt || selectedSupplier.total_debt || 0) : 0;
+  const currentDebt = selectedSupplier ? Number(selectedSupplier.debt || selectedSupplier.totalDebt || selectedSupplier.total_debt || 0) : 0;
 
   const totalReturnGoods = items.reduce((acc, it) => acc + ((parseFloat(it.return_quantity) || 0) * it.return_price), 0);
   const actualDiscount = Number(discountStr.replace(/\D/g, '')) || 0;

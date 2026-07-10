@@ -651,7 +651,7 @@ export default function CreatePurchaseOrderPage() {
                     </button>
                   </div>
                   <div className="text-sm font-bold text-gray-700 px-1 mt-1">
-                    Nợ: <span className={Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) < 0 ? "text-red-600" : Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) > 0 ? "text-green-600" : "text-gray-800"}>
+                    Nợ: <span className={Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) > 0 ? "text-red-600" : Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) < 0 ? "text-green-600" : "text-gray-800"}>
                       {fmt(selectedSupplier.debt || selectedSupplier.totalDebt)}
                     </span>
                   </div>

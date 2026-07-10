@@ -73,7 +73,7 @@ export default function PaymentModal({ open, onClose, supplier, purchaseOrders =
 
   if (!open || !supplier) return null;
 
-  const currentDebt = -Number(supplier.debt || supplier.totalDebt || 0);
+  const currentDebt = Number(supplier.debt || supplier.totalDebt || 0);
   const payAmount = Number(amount || 0);
   const remainingDebt = currentDebt - payAmount;
 

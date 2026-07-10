@@ -680,9 +680,9 @@ export default function SuppliersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
-    // In the database, s.debt is negative when we owe them (e.g. -1,500,000).
+    // In the database, s.debt is positive when we owe them (e.g. 1,500,000).
     // For standard reporting, we treat "Nợ cần trả" as a positive value.
-    const currentFinalDebt = -Number(s.debt || s.totalDebt || 0);
+    const currentFinalDebt = Number(s.debt || s.totalDebt || 0);
     let tempDebt = currentFinalDebt;
     const allTxsWithDebt = sortedNewFirst.map(tx => {
       const runningDebt = tempDebt;
@@ -958,7 +958,7 @@ export default function SuppliersPage() {
           date: po.created_at || po.createdAt,
           total: total,
           paid: 0,
-          debt: -total,
+          debt: total,
           status: po.payment_status || 'paid',
           items: po.items || []
         };
@@ -971,7 +971,7 @@ export default function SuppliersPage() {
         date: pr.created_at,
         total: pr.paid > 0 ? pr.paid : pr.total,
         paid: pr.paid || 0,
-        debt: pr.paid > 0 ? Number(pr.paid) : Number(pr.total || 0),
+        debt: pr.paid > 0 ? -Number(pr.paid) : -Number(pr.total || 0),
         status: pr.status,
         items: pr.items || []
       })),
@@ -992,7 +992,7 @@ export default function SuppliersPage() {
           date: matchedPO ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
           total: cb.amount,
           paid: cb.amount,
-          debt: cb.type === 'INCOME' ? -Number(cb.amount || 0) : Number(cb.amount || 0),
+          debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
           status: 'completed',
           items: []
         };
@@ -1427,10 +1427,10 @@ export default function SuppliersPage() {
                               {tx.typeName}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt < 0 ? 'text-red-600' : tx.debt > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
                             {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt < 0 ? 'text-red-600' : tx.runningDebt > 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : tx.runningDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))})()}
                       {transactions.length === 0 && (
@@ -1727,7 +1727,11 @@ export default function SuppliersPage() {
                   {visibleColumns.includes('phone') && <td></td>}
                   {visibleColumns.includes('email') && <td></td>}
                   {visibleColumns.includes('address') && <td></td>}
-                  {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right text-red-500 font-extrabold">{fmt(sumDebt)}</td>}
+                  {visibleColumns.includes('debt') && (
+                    <td className={`py-2.5 px-3 text-right font-extrabold ${sumDebt > 0 ? 'text-red-500' : sumDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>
+                      {fmt(sumDebt)}
+                    </td>
+                  )}
                   {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
                   {visibleColumns.includes('net_purchase') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumNetPurchase)}</td>}
                   {visibleColumns.includes('isActive') && <td></td>}
@@ -1802,7 +1806,7 @@ export default function SuppliersPage() {
                         <td className="py-2.5 px-3 text-gray-700">{s.address || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
-                        <td className={`py-2.5 px-3 text-right font-extrabold ${(s.debt || 0) < 0 ? 'text-red-500' : (s.debt || 0) > 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
+                        <td className={`py-2.5 px-3 text-right font-extrabold ${(s.debt || 0) > 0 ? 'text-red-500' : (s.debt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(s.debt || 0)}</td>
                       )}
                       {visibleColumns.includes('total_spent') && (
                         <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(s.total_spent || 0)}</td>
