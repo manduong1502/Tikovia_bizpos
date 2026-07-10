@@ -1271,15 +1271,15 @@ export default function SuppliersPage() {
             {detailTab === 'history' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in text-xs">
                 {/* Lịch sử giao dịch */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-56 overflow-y-auto">
-                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-56">
+                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center flex-none">
                     <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Lịch sử giao dịch nhập/trả</span>
                     <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary font-bold rounded-full">{transactions.length} giao dịch</span>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[31px] bg-white z-10">
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
                           <th className="py-2.5 px-3.5">Mã đơn</th>
                           <th className="py-2.5 px-3.5">Loại</th>
                           <th className="py-2.5 px-3.5">Thời gian</th>
@@ -1324,17 +1324,17 @@ export default function SuppliersPage() {
                 </div>
 
                 {/* Thống kê hàng nhập */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col max-h-56 overflow-y-auto">
-                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+                <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col h-56">
+                  <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center flex-none">
                     <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Thống kê hàng đã nhập từ NCC này</span>
                     <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 font-bold rounded-full">
                       {statsList.reduce((sum, it) => sum + it.qty, 0)} sản phẩm
                     </span>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-[31px] bg-white z-10">
+                        <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
                           <th className="py-2.5 px-3.5">Mã hàng</th>
                           <th className="py-2.5 px-3.5">Tên hàng</th>
                           <th className="py-2.5 px-3.5 text-right">Tổng số lượng đã nhập</th>
@@ -1361,8 +1361,8 @@ export default function SuppliersPage() {
             )}
 
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72 overflow-y-auto">
-                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center sticky top-0 bg-gray-50 z-10">
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs h-72">
+                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center flex-none">
                   <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần trả nhà cung cấp</span>
                   <select 
                     className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
@@ -1386,7 +1386,7 @@ export default function SuppliersPage() {
                     <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
-                <div className="overflow-x-auto max-h-56">
+                <div className="flex-1 overflow-y-auto overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
