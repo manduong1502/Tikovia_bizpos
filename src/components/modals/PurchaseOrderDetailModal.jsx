@@ -1,4 +1,4 @@
-import { X, Printer, RotateCcw } from 'lucide-react';
+import { X, Printer, RotateCcw, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
 
@@ -95,6 +95,16 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
               <RotateCcw size={16} /> Trả hàng
             </Button>
           )}
+          <Button
+            variant="primary"
+            className="flex items-center gap-1.5 font-bold shadow-sm bg-primary hover:bg-primary-hover text-white border-none"
+            onClick={() => {
+              onClose();
+              navigate(`/purchase-orders/create?id=${data.id}&type=update`);
+            }}
+          >
+            <FolderOpen size={16} /> Mở phiếu
+          </Button>
           <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
           <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
         </div>
