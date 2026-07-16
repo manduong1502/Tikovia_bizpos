@@ -209,23 +209,31 @@ export default function PurchaseOrdersPage() {
   useEffect(() => { reload(); }, [reload]);
 
   useEffect(() => {
+    const codeFromState = location.state?.openOrderCode || location.state?.openPOCode;
     const params = new URLSearchParams(location.search);
-    const poCode = params.get('poCode');
-    if (poCode && orders.length > 0) {
-      const matchedOrder = orders.find(o => String(o.po_code).toLowerCase() === String(poCode).toLowerCase());
-      if (matchedOrder) {
-        setFilters(prev => ({
-          ...prev,
-          dateRange: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
-        }));
-        setSearch(poCode);
-        setExpandedId(matchedOrder.id);
-        scrollRowIntoView(matchedOrder.id);
-        // Clean parameter from URL to prevent reopen on re-renders/back
+    const poCodeFromQuery = params.get('poCode');
+    const code = codeFromState || poCodeFromQuery;
+    
+    if (!code || orders.length === 0) return;
+
+    const matchedOrder = orders.find(o => String(o.po_code || o.code).toLowerCase() === String(code).toLowerCase());
+    if (matchedOrder) {
+      setFilters(prev => ({
+        ...prev,
+        dateRange: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
+        statuses: new Set(['partial', 'paid', 'unpaid', 'CANCELLED', 'cancelled', 'COMPLETED', 'completed', 'PENDING', 'pending'])
+      }));
+      setSearch(code);
+      setExpandedId(matchedOrder.id);
+      scrollRowIntoView(matchedOrder.id);
+      
+      if (codeFromState) {
+        navigate(location.pathname, { replace: true, state: {} });
+      } else {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
-  }, [location.search, orders]);
+  }, [location.state?.openOrderCode, location.state?.openPOCode, location.search, orders, navigate, location.pathname]);
 
   useEffect(() => {
     const onDocClick = (e) => {

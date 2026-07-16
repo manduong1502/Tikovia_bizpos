@@ -100,7 +100,7 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
             className="flex items-center gap-1.5 font-bold shadow-sm bg-primary hover:bg-primary-hover text-white border-none"
             onClick={() => {
               onClose();
-              navigate(`/purchase-orders/create?id=${data.id}&type=update`);
+              navigate('/purchase-orders', { state: { openOrderCode: data.code } });
             }}
           >
             <FolderOpen size={16} /> Mở phiếu

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { purchaseReturnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -87,6 +87,7 @@ const normalizePR = (o) => ({
 
 export default function PurchaseReturnsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [returns, setReturns] = useState([]);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -363,6 +364,33 @@ export default function PurchaseReturnsPage() {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const codeFromState = location.state?.openReturnCode;
+    const params = new URLSearchParams(location.search);
+    const codeFromQuery = params.get('returnCode');
+    const code = codeFromState || codeFromQuery;
+    
+    if (!code || returns.length === 0) return;
+
+    const matchedReturn = returns.find(r => String(r.code).toLowerCase() === String(code).toLowerCase());
+    if (matchedReturn) {
+      setFilters(prev => ({
+        ...prev,
+        dateRange: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
+        statuses: new Set(['COMPLETED', 'CANCELLED'])
+      }));
+      setSearch(code);
+      setExpandedId(matchedReturn.id);
+      scrollRowIntoView(matchedReturn.id);
+      
+      if (codeFromState) {
+        navigate(location.pathname, { replace: true, state: {} });
+      } else {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [location.state?.openReturnCode, location.search, returns, navigate, location.pathname]);
 
   useEffect(() => {
     const onDocClick = (e) => {

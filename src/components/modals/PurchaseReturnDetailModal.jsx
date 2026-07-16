@@ -1,9 +1,11 @@
-import { X, Printer } from 'lucide-react';
+import { X, Printer, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function PurchaseReturnDetailModal({ open, onClose, data, partnerName }) {
+  const navigate = useNavigate();
   if (!open || !data) return null;
 
   const items = data.items || [];
@@ -79,7 +81,17 @@ export default function PurchaseReturnDetailModal({ open, onClose, data, partner
 
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
           <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
-          <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              navigate('/purchase-returns', { state: { openReturnCode: data.code } });
+              onClose();
+            }}
+            className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6 flex items-center gap-1.5"
+          >
+            <ExternalLink size={16} /> Mở phiếu
+          </Button>
+          <Button variant="secondary" onClick={onClose} className="border border-gray-200">Đóng</Button>
         </div>
       </div>
     </div>
