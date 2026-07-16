@@ -13,6 +13,7 @@ import CustomerPaymentModal from './CustomerPaymentModal';
 import CustomerAdjustDebtModal from './CustomerAdjustDebtModal';
 import CustomerExportDebtModal from './CustomerExportDebtModal';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
+import SalesReturnDetailModal from '../../components/modals/SalesReturnDetailModal';
 import PaymentDetailModal from '../../components/modals/PaymentDetailModal';
 import Pagination from '../../components/common/Pagination';
 import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
@@ -113,7 +114,10 @@ export default function CustomersPage() {
     }
     const tid = toast.loading('Đang tải chi tiết hóa đơn...');
     try {
-      const detail = await orderAPI.getById(orderId);
+      const realId = typeof orderId === 'string' && orderId.includes('-')
+        ? Number(orderId.split('-')[0])
+        : orderId;
+      const detail = await orderAPI.getById(realId);
       if (detail) {
         setSelectedTx({
           ...defaultData,
@@ -132,6 +136,41 @@ export default function CustomersPage() {
         setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
       } else {
         toast.error('Không thể tải chi tiết hóa đơn');
+      }
+    } finally {
+      toast.dismiss(tid);
+    }
+  };
+
+  const handleOpenReturn = async (returnId, partnerName, defaultData = null) => {
+    if (!returnId) {
+      if (defaultData) setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
+      return;
+    }
+    const tid = toast.loading('Đang tải chi tiết phiếu trả hàng...');
+    try {
+      const realId = typeof returnId === 'string' && returnId.includes('-')
+        ? Number(returnId.split('-')[0])
+        : returnId;
+      const detail = await returnAPI.getById(realId);
+      if (detail) {
+        setSelectedTx({
+          ...defaultData,
+          ...detail,
+          type: 'Trả hàng',
+          partnerName: partnerName
+        });
+      } else if (defaultData) {
+        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
+      } else {
+        toast.error('Không tìm thấy chi tiết phiếu trả hàng');
+      }
+    } catch (err) {
+      console.error(err);
+      if (defaultData) {
+        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
+      } else {
+        toast.error('Không thể tải chi tiết phiếu trả hàng');
       }
     } finally {
       toast.dismiss(tid);
@@ -859,93 +898,143 @@ export default function CustomersPage() {
               </div>
             )}
 
-            {detailTab === 'history' && (
-              <div className="flex flex-col gap-3 p-1">
-                {/* Micro metrics */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                    <span className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng hóa đơn</span>
-                    <span className="text-sm sm:text-base font-extrabold text-gray-800">{custOrders.length} hóa đơn</span>
-                  </div>
-                  <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                    <span className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
-                    <span className="text-sm sm:text-base font-extrabold text-primary">{fmt(baseAmt)}</span>
-                  </div>
-                  <div className="bg-emerald-50/40 border border-emerald-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                    <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider mb-0.5">Khách đã trả</span>
-                    <span className="text-sm sm:text-base font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
-                  </div>
-                  <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                    <span className="text-rose-600 font-bold text-xs uppercase tracking-wider mb-0.5">Còn nợ lại</span>
-                    <span className={`text-sm sm:text-base font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
-                  </div>
-                </div>
+            {detailTab === 'history' && (() => {
+              const combinedHistory = [
+                ...custOrders.map(o => ({
+                  id: o.id,
+                  code: o.order_code || o.code,
+                  type: 'Bán hàng',
+                  typeName: 'Bán hàng',
+                  date: o.createdAt || o.created_at,
+                  branch: o.branch || 'Chi nhánh trung tâm',
+                  total: Number(o.total || 0),
+                  paid: Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0)),
+                  status: o.status,
+                  raw: o
+                })),
+                ...custReturns.map(r => ({
+                  id: r.id,
+                  code: r.code,
+                  type: 'Trả hàng',
+                  typeName: 'Trả hàng',
+                  date: r.createdAt || r.created_at,
+                  branch: r.branch || 'Chi nhánh trung tâm',
+                  total: -Number(r.total || 0),
+                  paid: -Number(r.paid || 0),
+                  status: r.status,
+                  raw: r
+                }))
+              ].sort((a, b) => {
+                const dateA = a.date ? new Date(a.date).getTime() : 0;
+                const dateB = b.date ? new Date(b.date).getTime() : 0;
+                return dateB - dateA;
+              });
 
-                {custOrders.length > 0 ? (
-                  <div className="border border-gray-200 rounded-lg overflow-x-auto shadow-sm bg-white max-h-56 overflow-y-auto">
-                    <table className="w-full text-xs min-w-[700px] border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                          <th className="py-2.5 px-3.5">Mã hóa đơn</th>
-                          <th className="py-2.5 px-3.5">Thời gian</th>
-                          <th className="py-2.5 px-3.5">Chi nhánh</th>
-                          <th className="py-2.5 px-3.5 text-right">Giảm giá</th>
-                          <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
-                          <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
-                          <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 font-medium">
-                        {custOrders.map((o, i) => (
-                          <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                            <td className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer" onClick={() => handleOpenOrder(o.id, c.name, o)}>{o.order_code || o.code}</td>
-                            <td className="py-2 px-3.5 text-gray-500">{(o.createdAt || o.created_at) ? new Date(o.createdAt || o.created_at).toLocaleString('vi-VN') : ''}</td>
-                            <td className="py-2 px-3.5 text-gray-600">{o.branch || 'Chi nhánh trung tâm'}</td>
-                            <td className="py-2 px-3.5 text-right text-gray-500">{o.discount > 0 ? fmt(o.discount) : '-'}</td>
-                            <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(o.total)}</td>
-                            <td className="py-2 px-3.5 text-right font-extrabold text-green-600">{fmt(o.paid)}</td>
-                            <td className="py-2 px-3.5 text-center">
-                              {o.status === 'CANCELLED' || o.status === 'cancelled' ? (
-                                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
-                                  Đã hủy
-                                </span>
-                              ) : (() => {
-                                const total = Number(o.total || 0);
-                                const paid = Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0));
-                                if (paid >= total && total > 0) {
-                                  return (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                      Hoàn thành
-                                    </span>
-                                  );
-                                } else if (paid > 0 && paid < total) {
-                                  return (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
-                                      Một phần
-                                    </span>
-                                  );
-                                } else {
-                                  return (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-                                      Chưa trả
-                                    </span>
-                                  );
-                                }
-                              })()}
-                            </td>
+              return (
+                <div className="flex flex-col gap-3 p-1">
+                  {/* Micro metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng giao dịch</span>
+                      <span className="text-sm sm:text-base font-extrabold text-gray-800">{combinedHistory.length} giao dịch</span>
+                    </div>
+                    <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
+                      <span className="text-sm sm:text-base font-extrabold text-primary">{fmt(baseAmt)}</span>
+                    </div>
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider mb-0.5">Khách đã trả</span>
+                      <span className="text-sm sm:text-base font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
+                    </div>
+                    <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-rose-600 font-bold text-xs uppercase tracking-wider mb-0.5">Còn nợ lại</span>
+                      <span className={`text-sm sm:text-base font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
+                    </div>
+                  </div>
+
+                  {combinedHistory.length > 0 ? (
+                    <div className="border border-gray-200 rounded-lg overflow-x-auto shadow-sm bg-white max-h-56 overflow-y-auto">
+                      <table className="w-full text-xs min-w-[700px] border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
+                            <th className="py-2.5 px-3.5">Mã hóa đơn</th>
+                            <th className="py-2.5 px-3.5">Thời gian</th>
+                            <th className="py-2.5 px-3.5">Chi nhánh</th>
+                            <th className="py-2.5 px-3.5">Loại</th>
+                            <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
+                            <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
+                            <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-lg text-gray-400 font-medium">
-                    <User size={36} className="mx-auto mb-2 text-gray-300" />
-                    Khách hàng chưa phát sinh hóa đơn mua hàng nào
-                  </div>
-                )}
-              </div>
-            )}
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-medium">
+                          {combinedHistory.map((item, i) => (
+                            <tr key={i} className="hover:bg-blue-50/20 transition-colors">
+                              <td
+                                className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer"
+                                onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
+                              >
+                                {item.code}
+                              </td>
+                              <td className="py-2 px-3.5 text-gray-500">{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</td>
+                              <td className="py-2 px-3.5 text-gray-600">{item.branch}</td>
+                              <td className="py-2 px-3.5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                  {item.typeName}
+                                </span>
+                              </td>
+                              <td className={`py-2 px-3.5 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
+                              </td>
+                              <td className={`py-2 px-3.5 text-right font-extrabold ${item.paid < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                {item.paid < 0 ? '-' : ''}{fmt(Math.abs(item.paid))}
+                              </td>
+                              <td className="py-2 px-3.5 text-center">
+                                {item.status === 'CANCELLED' || item.status === 'cancelled' ? (
+                                  <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+                                    Đã hủy
+                                  </span>
+                                ) : item.type === 'Trả hàng' ? (
+                                  <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                    Hoàn thành
+                                  </span>
+                                ) : (() => {
+                                  const total = Number(item.total || 0);
+                                  const paid = Number(item.paid);
+                                  if (paid >= total && total > 0) {
+                                    return (
+                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                        Hoàn thành
+                                      </span>
+                                    );
+                                  } else if (paid > 0 && paid < total) {
+                                    return (
+                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
+                                        Một phần
+                                      </span>
+                                    );
+                                  } else {
+                                    return (
+                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
+                                        Chưa trả
+                                      </span>
+                                    );
+                                  }
+                                })()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-lg text-gray-400 font-medium">
+                      <User size={36} className="mx-auto mb-2 text-gray-300" />
+                      Khách hàng chưa phát sinh hóa đơn giao dịch nào
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {detailTab === 'address' && (
               <div className="flex flex-col gap-3 p-1 text-xs">
@@ -1018,6 +1107,8 @@ export default function CustomersPage() {
                           <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
                             if (tx.type === 'Bán hàng') {
                               handleOpenOrder(tx.id, c.name, tx);
+                            } else if (tx.type === 'Trả hàng') {
+                              handleOpenReturn(tx.id, c.name, tx);
                             } else {
                               setSelectedTx({ ...tx, partnerName: c.name });
                             }
@@ -2119,6 +2210,12 @@ export default function CustomersPage() {
       {/* Transaction Detail Modals */}
       <SalesOrderDetailModal 
         open={!!selectedTx && selectedTx.type === 'Bán hàng'} 
+        onClose={() => setSelectedTx(null)} 
+        data={selectedTx} 
+        partnerName={selectedTx?.partnerName} 
+      />
+      <SalesReturnDetailModal 
+        open={!!selectedTx && selectedTx.type === 'Trả hàng'} 
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
