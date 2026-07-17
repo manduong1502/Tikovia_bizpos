@@ -724,9 +724,12 @@ export default function CustomersPage() {
         if (paid > 0) {
           const matchedCB = cashbooks.find(cb => cb.orderId === o.id || cb.order_id === o.id);
           txs.push({
-            id: `${o.id}-payment`,
+            id: matchedCB ? matchedCB.id : `${o.id}-payment`,
             code: matchedCB ? matchedCB.code : `PT${o.order_code || o.code}`,
             type: 'Thanh toán',
+            cashbookType: matchedCB ? matchedCB.type : 'INCOME',
+            status: matchedCB ? matchedCB.status : 'completed',
+            note: matchedCB ? matchedCB.note : 'Thanh toán công nợ',
             date: o.created_at || o.createdAt,
             total: paid,
             paid: paid,
@@ -758,8 +761,12 @@ export default function CustomersPage() {
         if (cbCustCode) return cbCustCode === custCode;
         return cb.partnerName === c.name;
       }).filter(cb => cb.status === 'completed').map(cb => ({
+        id: cb.id,
         code: cb.code,
         type: 'Thanh toán',
+        cashbookType: cb.type,
+        status: cb.status,
+        note: cb.note,
         date: cb.createdAt || cb.created_at || cb.date,
         total: Number(cb.amount || 0),
         paid: cb.amount,

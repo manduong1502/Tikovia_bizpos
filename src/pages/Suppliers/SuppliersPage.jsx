@@ -656,12 +656,15 @@ export default function SuppliersPage() {
         const matchedPO = supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id);
         const amount = Number(cb.amount || 0);
         return {
+          id: cb.id,
           code: cb.code,
           type: 'Thanh toán',
           date: matchedPO ? new Date(matchedPO.created_at || matchedPO.createdAt) : new Date(cb.createdAt || cb.created_at || cb.date),
           total: amount,
           debt: cb.type === 'INCOME' ? amount : -amount, // EXPENSE decreases debt (-amount), INCOME increases debt (+amount)
           cashbookType: cb.type,
+          status: cb.status,
+          note: cb.note,
           items: []
         };
       })
@@ -996,7 +999,9 @@ export default function SuppliersPage() {
           total: cb.amount,
           paid: cb.amount,
           debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
-          status: 'completed',
+          cashbookType: cb.type,
+          status: cb.status,
+          note: cb.note,
           items: []
         };
       })
