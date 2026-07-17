@@ -1,12 +1,30 @@
 import { X, Printer, RotateCcw, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
+import { purchaseOrderAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
-export default function PurchaseOrderDetailModal({ open, onClose, data, partnerName }) {
+export default function PurchaseOrderDetailModal({ open, onClose, data, partnerName, onRefresh }) {
   const navigate = useNavigate();
   if (!open || !data) return null;
+
+  const handleCancel = async () => {
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy phiếu nhập ${data.code} này? Giao dịch này sẽ bị hủy hoàn toàn, tồn kho và công nợ sẽ được hoàn lại.`)) {
+      return;
+    }
+    try {
+      const realId = typeof data.id === 'string' ? parseInt(data.id.split('-')[0], 10) : data.id;
+      await purchaseOrderAPI.cancel(realId);
+      toast.success('Hủy phiếu nhập hàng thành công');
+      if (onRefresh) onRefresh();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast.error('Hủy phiếu nhập hàng thất bại');
+    }
+  };
 
   const items = data.items || [];
   const statusLabels = {
@@ -82,31 +100,43 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
-          {data.status !== 'CANCELLED' && (
+        <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+          <div>
+            {data.status !== 'CANCELLED' && data.status !== 'cancelled' && (
+              <button 
+                onClick={handleCancel}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md border-none"
+              >
+                Hủy phiếu
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            {data.status !== 'CANCELLED' && (
+              <Button
+                variant="secondary"
+                className="flex items-center gap-1.5 font-bold shadow-sm text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => {
+                  onClose();
+                  navigate(`/purchase-returns/create?poId=${data.id}`);
+                }}
+              >
+                <RotateCcw size={16} /> Trả hàng
+              </Button>
+            )}
             <Button
-              variant="secondary"
-              className="flex items-center gap-1.5 font-bold shadow-sm text-red-600 border-red-200 hover:bg-red-50"
+              variant="primary"
+              className="flex items-center gap-1.5 font-bold shadow-sm bg-primary hover:bg-primary-hover text-white border-none"
               onClick={() => {
                 onClose();
-                navigate(`/purchase-returns/create?poId=${data.id}`);
+                navigate('/purchase-orders', { state: { openOrderCode: data.code } });
               }}
             >
-              <RotateCcw size={16} /> Trả hàng
+              <FolderOpen size={16} /> Mở phiếu
             </Button>
-          )}
-          <Button
-            variant="primary"
-            className="flex items-center gap-1.5 font-bold shadow-sm bg-primary hover:bg-primary-hover text-white border-none"
-            onClick={() => {
-              onClose();
-              navigate('/purchase-orders', { state: { openOrderCode: data.code } });
-            }}
-          >
-            <FolderOpen size={16} /> Mở phiếu
-          </Button>
-          <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
-          <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
+            <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}><Printer size={16} /> In phiếu</Button>
+            <Button variant="primary" onClick={onClose} className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6">Đóng</Button>
+          </div>
         </div>
       </div>
     </div>

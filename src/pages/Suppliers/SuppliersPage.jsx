@@ -2021,18 +2021,21 @@ export default function SuppliersPage() {
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
       <PurchaseReturnDetailModal 
         open={!!selectedTx && selectedTx.type === 'return'} 
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
       <PaymentDetailModal 
         open={!!selectedTx && selectedTx.type === 'payment'} 
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
 
     </div>

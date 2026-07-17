@@ -2213,18 +2213,21 @@ export default function CustomersPage() {
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
       <SalesReturnDetailModal 
         open={!!selectedTx && selectedTx.type === 'Trả hàng'} 
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
       <PaymentDetailModal 
         open={!!selectedTx && selectedTx.type === 'Thanh toán'} 
         onClose={() => setSelectedTx(null)} 
         data={selectedTx} 
         partnerName={selectedTx?.partnerName} 
+        onRefresh={reload}
       />
 
     </div>
