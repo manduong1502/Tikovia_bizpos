@@ -105,7 +105,7 @@ export default function PurchaseOrderDetailModal({ open, onClose, data, partnerN
             {data.status !== 'CANCELLED' && data.status !== 'cancelled' && (
               <button 
                 onClick={handleCancel}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-md border-none"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-md border-none"
               >
                 Hủy phiếu
               </button>
