@@ -761,258 +761,239 @@ export default function CreatePurchaseReturnPage() {
           )}
         </div>
 
-        {/* Right Panel Section */}
-        <div className="w-[380px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-lg z-10 shrink-0 overflow-y-auto">
-          <div className="space-y-5">
-            {/* Employee & Date */}
-            <div className="flex items-center gap-3 justify-end">
+        {/* Right Panel Section - Compact Layout matching Image 2 */}
+        <div className="w-[320px] bg-white border-l border-gray-200 p-4 flex flex-col justify-between shadow-sm shrink-0 overflow-y-auto">
+          <div className="flex flex-col gap-3">
+            {/* Store Branch & Date Picker Header */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 cursor-pointer shadow-sm">
+                <User size={14} className="text-gray-500" />
+                <span className="truncate max-w-[130px]">Thực phẩm Tích Đ</span>
+              </div>
               <input 
                 type="datetime-local" 
                 value={returnDate} 
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="w-36 py-2 px-2 bg-gray-50 border border-gray-300 rounded-xl text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-sm"
+                className="w-36 border border-gray-200 rounded-xl px-2 py-1 text-[11px] font-bold text-gray-600 outline-none focus:border-primary shadow-sm bg-gray-50"
               />
             </div>
 
             {/* Supplier Search / Info */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Nhà cung cấp</label>
-              <div className="relative">
-                {selectedSupplier ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
-                      <div className="flex flex-col">
-                        <span className="font-extrabold text-sm text-gray-800">{selectedSupplier.name}</span>
-                        <span className="text-xs text-gray-500 font-medium">{selectedSupplier.phone || selectedSupplier.code}</span>
-                      </div>
-                      <button 
-                        onClick={() => setSelectedSupplier(null)} 
-                        className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
-                        title="Xóa nhà cung cấp"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                    <div className="text-sm font-bold text-gray-700 px-1 mt-1">
-                      Nợ: <span className={Number(currentDebt) > 0 ? "text-red-600" : Number(currentDebt) < 0 ? "text-green-600" : "text-gray-800"}>
-                        {fmt(-currentDebt)}
-                      </span>
-                    </div>
+            <div className="relative">
+              {selectedSupplier ? (
+                <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 truncate">
+                    <User size={16} className="text-primary shrink-0" />
+                    <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
                   </div>
-                ) : (
-                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
-                    <Search size={16} className="text-gray-400 shrink-0" />
-                    <input 
-                      type="text" 
-                      placeholder="Tìm nhà cung cấp" 
-                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
-                      value={supplierSearch}
-                      onChange={e => setSupplierSearch(e.target.value)}
-                    />
-                    <button 
-                      onClick={handleCreateSupplier}
-                      className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors border-none"
-                      title="Thêm nhà cung cấp mới"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                )}
+                  <button 
+                    onClick={() => setSelectedSupplier(null)} 
+                    className="p-1 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors text-gray-500 border-none bg-transparent shrink-0"
+                    title="Xóa nhà cung cấp"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center bg-white border border-gray-300 rounded-xl px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-sm gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Tìm nhà cung cấp" 
+                    className="w-full bg-transparent text-xs outline-none font-medium text-gray-800 placeholder-gray-400"
+                    value={supplierSearch}
+                    onChange={e => setSupplierSearch(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleCreateSupplier}
+                    className="p-0.5 text-gray-500 hover:text-primary cursor-pointer border-none bg-transparent"
+                    title="Thêm nhà cung cấp mới"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              )}
 
-                {!selectedSupplier && filteredSuppliers.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
-                    {filteredSuppliers.map(s => (
-                      <div 
-                        key={s.id}
-                        onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
-                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
-                      >
-                        <span className="font-extrabold text-sm text-gray-800">{s.name}</span>
-                        <span className="text-xs text-gray-500 font-medium">{s.phone} - {s.code}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {!selectedSupplier && filteredSuppliers.length > 0 && (
+                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-52 overflow-y-auto z-50 divide-y divide-gray-50">
+                  {filteredSuppliers.map(s => (
+                    <div 
+                      key={s.id}
+                      onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
+                      className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                    >
+                      <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
+                      <span className="text-[11px] text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Purchase Order Search */}
-            <div ref={poDropdownRef}>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Chọn phiếu nhập (Tùy chọn)</label>
-              <div className="relative">
-                {po ? (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 shadow-inner">
-                    <span className="font-extrabold text-sm text-emerald-800">{po.po_code || po.code}</span>
-                    <button 
-                      onClick={() => {
-                        setPo(null);
-                        setItems([]);
-                        setSelectedSupplier(null);
-                      }} 
-                      className="p-1.5 hover:bg-emerald-100 rounded-xl cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
-                      title="Bỏ chọn phiếu nhập"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <div 
-                    className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2 cursor-pointer"
-                    onClick={() => setPoDropdownOpen(true)}
+            {/* Purchase Order Selector (Optional) */}
+            <div ref={poDropdownRef} className="relative">
+              {po ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 shadow-sm">
+                  <span className="font-extrabold text-xs text-emerald-800">PN: {po.po_code || po.code}</span>
+                  <button 
+                    onClick={() => {
+                      setPo(null);
+                      setItems([]);
+                      setSelectedSupplier(null);
+                    }} 
+                    className="p-0.5 hover:bg-emerald-100 rounded-lg cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
+                    title="Bỏ chọn phiếu nhập"
                   >
-                    <Search size={16} className="text-gray-400 shrink-0" />
-                    <input 
-                      type="text" 
-                      placeholder="Tìm theo mã hoặc chọn từ danh sách..." 
-                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
-                      value={poSearch}
-                      onChange={e => {
-                        setPoSearch(e.target.value);
-                        setPoDropdownOpen(true);
-                      }}
-                      onFocus={() => setPoDropdownOpen(true)}
-                    />
-                    <button 
-                      type="button"
-                      className="p-0.5 text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPoDropdownOpen(!poDropdownOpen);
-                      }}
-                    >
-                      {poDropdownOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-                  </div>
-                )}
+                    <X size={15} />
+                  </button>
+                </div>
+              ) : (
+                <div 
+                  className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 focus-within:border-primary shadow-sm gap-2 cursor-pointer"
+                  onClick={() => setPoDropdownOpen(true)}
+                >
+                  <Search size={14} className="text-gray-400 shrink-0" />
+                  <input 
+                    type="text" 
+                    placeholder="Chọn phiếu nhập (Tùy chọn)" 
+                    className="w-full bg-transparent text-xs outline-none font-medium text-gray-700 placeholder-gray-400"
+                    value={poSearch}
+                    onChange={e => {
+                      setPoSearch(e.target.value);
+                      setPoDropdownOpen(true);
+                    }}
+                    onFocus={() => setPoDropdownOpen(true)}
+                  />
+                  <button 
+                    type="button"
+                    className="p-0.5 text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer flex items-center justify-center shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPoDropdownOpen(!poDropdownOpen);
+                    }}
+                  >
+                    {poDropdownOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                </div>
+              )}
 
-                {poDropdownOpen && !po && (
-                  <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
-                    {filteredPOs.map(o => (
-                      <div 
-                        key={o.id}
-                        onClick={() => {
-                          handleSelectPO(o);
-                          setPoDropdownOpen(false);
-                        }}
-                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="font-extrabold text-sm text-gray-800">{o.po_code || o.code}</span>
-                          <span className="text-[10px] font-bold text-gray-400">
-                            {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-500 font-medium truncate">
-                          {o.supplier_name || o.supplier?.name || 'Không rõ NCC'} - {fmt(o.total)} đ
+              {poDropdownOpen && !po && (
+                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-52 overflow-y-auto z-50 divide-y divide-gray-50">
+                  {filteredPOs.map(o => (
+                    <div 
+                      key={o.id}
+                      onClick={() => {
+                        handleSelectPO(o);
+                        setPoDropdownOpen(false);
+                      }}
+                      className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-extrabold text-xs text-gray-800">{o.po_code || o.code}</span>
+                        <span className="text-[10px] font-bold text-gray-400">
+                          {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
                         </span>
                       </div>
-                    ))}
-                    {filteredPOs.length === 0 && (
-                      <div className="p-4 text-center text-xs font-bold text-gray-400">
-                        {selectedSupplier ? `Nhà cung cấp "${selectedSupplier.name}" chưa có phiếu nhập nào` : 'Không tìm thấy phiếu nhập nào'}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      <span className="text-[11px] text-gray-500 font-medium truncate">
+                        {o.supplier_name || o.supplier?.name || 'Không rõ NCC'} - {fmt(o.total)} đ
+                      </span>
+                    </div>
+                  ))}
+                  {filteredPOs.length === 0 && (
+                    <div className="p-3 text-center text-xs font-bold text-gray-400">
+                      {selectedSupplier ? `NCC "${selectedSupplier.name}" chưa có phiếu nhập` : 'Không có phiếu nhập nào'}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Return Code */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Mã trả hàng nhập</label>
-              <input 
-                type="text" 
-                disabled 
-                placeholder="Mã phiếu tự động" 
-                className="w-full py-1 px-2.5.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
-              />
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">Trạng thái</label>
-              <div className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 py-1.5 px-3.5 rounded-xl inline-block shadow-sm">
-                Phiếu tạm / Đã trả hàng
-              </div>
-            </div>
-
-            <hr className="border-gray-100 my-2" />
-
-            {/* Financial Summary */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Tổng tiền hàng</span>
-                <span className="font-extrabold text-gray-900 text-sm">{fmt(totalReturnGoods)}</span>
+            {/* Compact Key-Value Rows */}
+            <div className="space-y-2.5 pt-2 border-t border-gray-100 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">Mã trả hàng nhập</span>
+                <input 
+                  type="text" 
+                  disabled 
+                  placeholder="Mã phiếu tự động" 
+                  className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-right font-medium text-gray-500 placeholder-gray-400 bg-gray-50 cursor-not-allowed"
+                />
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Giảm giá</span>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">Trạng thái</span>
+                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">
+                  Phiếu tạm
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-medium text-gray-700">Tổng tiền hàng ({items.length})</span>
+                <span className="font-bold text-gray-900 text-sm">{fmt(totalReturnGoods)}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">Giảm giá</span>
                 <NumericInput 
                   value={Number(String(discountStr).replace(/\D/g, '')) || 0}
                   onChange={(e) => {
                     setDiscountStr(String(e.target.value));
                   }}
                   placeholder="0"
-                  className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
+                  className="w-36 py-1 px-2.5 text-right font-bold text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-primary shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-800 font-extrabold">Nhà cung cấp cần trả</span>
-                <span className="font-extrabold text-primary text-base">{fmt(supplierMustPay)}</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-extrabold text-gray-900">Nhà cung cấp cần trả</span>
+                <span className="font-extrabold text-base text-primary">{fmt(supplierMustPay)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex flex-col">
-                  <span className="text-gray-800 font-extrabold">Tiền nhà cung cấp trả (F8)</span>
-                  <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium text-gray-700">Tiền NCC trả (F8)</span>
+                  <span className="text-gray-400">💳</span>
                 </div>
                 <NumericInput 
                   value={paidAmountStr === '' ? Math.max(0, supplierMustPay - currentDebt) : (Number(String(paidAmountStr).replace(/\D/g, '')) || 0)}
                   onChange={(e) => {
                     setPaidAmountStr(String(e.target.value));
                   }}
-                  className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
+                  className="w-36 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:border-primary shadow-sm bg-blue-50/40 text-xs"
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-800 font-bold flex items-center gap-2">
-                  Tính vào công nợ
-                  <span className="text-[10px] text-gray-400 font-normal">(Nợ hiện tại: {fmt(currentDebt)})</span>
-                </span>
-                <span className={`font-extrabold text-sm ${debtCalculation > currentDebt ? 'text-red-500' : 'text-gray-900'}`}>{fmt(debtCalculation)}</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-medium text-gray-700">Tính vào công nợ</span>
+                <span className={`font-bold text-xs ${debtCalculation > currentDebt ? 'text-red-500' : 'text-gray-900'}`}>{fmt(debtCalculation)}</span>
               </div>
-            </div>
 
-            {/* Note */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Ghi chú</label>
-              <textarea 
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                placeholder="Ghi chú..." 
-                className="w-full p-3.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary shadow-inner resize-none font-medium"
-              />
+              <div>
+                <textarea 
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  placeholder="Ghi chú..." 
+                  className="w-full p-2.5 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 focus:outline-none focus:border-primary shadow-inner resize-none font-medium"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Bottom Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-4">
+          {/* Sticky Bottom Action Buttons */}
+          <div className="flex gap-2 pt-3 border-t border-gray-100 mt-2 shrink-0">
             <button 
               disabled={saving}
               onClick={() => handleSaveReturn('PENDING')}
-              className="px-6 py-3 border border-primary text-primary hover:bg-primary/5 rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-sm disabled:opacity-50 bg-transparent"
+              className="px-4 py-2.5 border border-primary text-primary hover:bg-primary/5 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-sm disabled:opacity-50 bg-transparent whitespace-nowrap"
             >
               Lưu tạm
             </button>
             <button 
               disabled={saving}
               onClick={() => handleSaveReturn('COMPLETED')}
-              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
+              className="flex-1 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none whitespace-nowrap"
             >
-              {saving ? 'Đang xử lý...' : 'Hoàn thành'}
+              {saving ? 'Đang xử lý...' : 'Trả hàng'}
             </button>
           </div>
         </div>

@@ -582,11 +582,36 @@ export default function CreatePurchaseOrderPage() {
                         />
                       </td>
                       <td className="p-4 text-right">
-                        <NumericInput
-                          className="w-28 text-right border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm"
-                          value={item.unit_price}
-                          onChange={e => handleUpdateItem(item.id, 'unit_price', e.target.value)}
-                        />
+                        {(() => {
+                          const prod = products.find(p => p.id === item.id);
+                          const costPrice = Number(prod?.costPrice || prod?.cost_price || 0);
+                          const sellPrice = Number(prod?.sellPrice || prod?.sell_price || 0);
+                          const isHigherSell = sellPrice > 0 && item.unit_price > sellPrice;
+                          const isLowerCost = costPrice > 0 && item.unit_price < costPrice;
+                          return (
+                            <div className="flex flex-col items-end">
+                              <NumericInput
+                                className={`w-28 text-right border rounded-lg px-2.5 py-1.5 text-sm font-bold outline-none shadow-sm transition-colors ${
+                                  isHigherSell || isLowerCost 
+                                    ? 'border-red-500 text-red-600 bg-red-50 focus:border-red-500 focus:ring-1 focus:ring-red-300' 
+                                    : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary/30'
+                                }`}
+                                value={item.unit_price}
+                                onChange={e => handleUpdateItem(item.id, 'unit_price', e.target.value)}
+                              />
+                              {isHigherSell && (
+                                <span className="text-[10px] text-red-500 font-bold mt-0.5 whitespace-nowrap">
+                                  Giá nhập &gt; Giá bán ({fmt(sellPrice)})
+                                </span>
+                              )}
+                              {!isHigherSell && isLowerCost && (
+                                <span className="text-[10px] text-amber-600 font-bold mt-0.5 whitespace-nowrap">
+                                  Giá nhập &lt; Giá vốn ({fmt(costPrice)})
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="p-4 text-right">
                         <NumericInput
@@ -615,112 +640,102 @@ export default function CreatePurchaseOrderPage() {
           )}
         </div>
 
-        {/* Right Sidebar Area */}
-        <div className="w-[360px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-sm overflow-y-auto shrink-0">
-          <div className="flex flex-col gap-5">
-            {/* Date Row */}
-            <div>
+        {/* Right Sidebar Area - Compact Layout matching Image 1 */}
+        <div className="w-[320px] bg-white border-l border-gray-200 p-4 flex flex-col justify-between shadow-sm overflow-y-auto shrink-0">
+          <div className="flex flex-col gap-3">
+            {/* Store Branch & Date Picker Header */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 cursor-pointer shadow-sm">
+                <User size={14} className="text-gray-500" />
+                <span className="truncate max-w-[130px]">Thực phẩm Tích Đ</span>
+              </div>
               <input 
                 type="datetime-local" 
-                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm bg-white"
+                className="w-36 border border-gray-200 rounded-xl px-2 py-1 text-[11px] font-bold text-gray-600 outline-none focus:border-primary shadow-sm bg-gray-50"
                 value={importDate}
                 onChange={e => setImportDate(e.target.value)}
               />
             </div>
 
-            {/* Supplier Selector Box */}
+            {/* Supplier Search Input */}
             <div className="relative">
               {selectedSupplier ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between bg-blue-50/60 border border-blue-200 rounded-2xl p-4 shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center font-bold shadow-md">
-                        <User size={20} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-extrabold text-sm text-gray-800">{selectedSupplier.name}</span>
-                        <span className="text-xs text-gray-500 font-medium">{selectedSupplier.phone || selectedSupplier.code}</span>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedSupplier(null)}
-                      className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
-                      title="Xóa nhà cung cấp"
-                    >
-                      <X size={18} />
-                    </button>
+                <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 truncate">
+                    <User size={16} className="text-primary shrink-0" />
+                    <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
                   </div>
-                  <div className="text-sm font-bold text-gray-700 px-1 mt-1">
-                    Nợ: <span className={Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) > 0 ? "text-red-600" : Number(selectedSupplier.debt || selectedSupplier.totalDebt || 0) < 0 ? "text-green-600" : "text-gray-800"}>
-                      {fmt(selectedSupplier.debt || selectedSupplier.totalDebt)}
-                    </span>
-                  </div>
+                  <button 
+                    onClick={() => setSelectedSupplier(null)}
+                    className="p-1 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors text-gray-500 border-none bg-transparent shrink-0"
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
               ) : (
-                <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
-                  <Search size={16} className="text-gray-400 shrink-0" />
+                <div className="flex items-center bg-white border border-gray-300 rounded-xl px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-sm gap-2">
                   <input 
                     type="text" 
-                    placeholder="Tìm nhà cung cấp (F4)" 
-                    className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                    placeholder="Tìm nhà cung cấp" 
+                    className="w-full bg-transparent text-xs outline-none font-medium text-gray-800 placeholder-gray-400"
                     value={supplierSearch}
                     onChange={e => setSupplierSearch(e.target.value)}
                   />
                   <button 
                     onClick={handleCreateSupplier}
-                    className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors"
+                    className="p-0.5 text-gray-500 hover:text-primary cursor-pointer border-none bg-transparent"
                     title="Thêm nhà cung cấp mới"
                   >
-                    <Plus size={16} />
+                    <Plus size={18} />
                   </button>
                 </div>
               )}
 
               {/* Supplier Suggestions Dropdown */}
               {!selectedSupplier && filteredSuppliers.length > 0 && (
-                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-60 overflow-y-auto z-50 divide-y divide-gray-50">
+                <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-52 overflow-y-auto z-50 divide-y divide-gray-50">
                   {filteredSuppliers.map(s => (
                     <div 
                       key={s.id}
                       onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
-                      className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                      className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                     >
-                      <span className="font-extrabold text-sm text-gray-800">{s.name}</span>
-                      <span className="text-xs text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                      <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
+                      <span className="text-[11px] text-gray-500 font-medium">{s.phone} - {s.code}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Summary Fields */}
-            <div className="space-y-4 pt-2 border-t border-gray-100">
+            {/* Compact Key-Value Rows */}
+            <div className="space-y-2.5 pt-2 border-t border-gray-100 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-600">Mã phiếu nhập</span>
+                <span className="font-medium text-gray-700">Mã phiếu nhập</span>
                 <input 
                   type="text" 
                   placeholder="Mã phiếu tự động" 
-                  className="w-44 border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-right outline-none focus:border-primary font-bold"
+                  className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-right outline-none focus:border-primary font-medium placeholder-gray-400 bg-gray-50/50"
                   value={poCode}
                   onChange={e => setPoCode(e.target.value)}
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-600">Mã đặt hàng nhập</span>
+                <span className="font-medium text-gray-700">Mã đặt hàng nhập</span>
                 <input 
                   type="text" 
                   placeholder="" 
-                  className="w-44 border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-right outline-none focus:border-primary font-bold"
+                  className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-right outline-none focus:border-primary font-medium bg-gray-50/50"
                   value={orderCode}
                   onChange={e => setOrderCode(e.target.value)}
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-600">Trạng thái</span>
+                <span className="font-medium text-gray-700">Trạng thái</span>
                 <select 
-                  className="w-44 border border-gray-300 rounded px-3 py-1.5 text-xs font-bold text-primary outline-none focus:border-primary shadow-sm cursor-pointer bg-white text-right"
+                  className="w-36 border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm cursor-pointer bg-white text-right"
                   value={status}
                   onChange={e => setStatus(e.target.value)}
                 >
@@ -729,30 +744,39 @@ export default function CreatePurchaseOrderPage() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs font-bold text-gray-700">Tổng tiền hàng</span>
-                <span className="font-extrabold text-base text-gray-800">{fmt(totalGoods)}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">Số hóa đơn đầu vào</span>
+                <input 
+                  type="text" 
+                  placeholder="Nhập số hóa đơn..." 
+                  className="w-36 border border-gray-200 rounded-lg px-2.5 py-1 text-xs text-right outline-none focus:border-primary font-medium placeholder-gray-400 bg-gray-50/50"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-medium text-gray-700">Tổng tiền hàng ({items.length})</span>
+                <span className="font-bold text-gray-900 text-sm">{fmt(totalGoods)}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">Giảm giá</span>
+                <span className="font-medium text-gray-700">Giảm giá</span>
                 <NumericInput 
-                  className="w-32 text-right border border-gray-300 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-primary font-bold"
+                  className="w-36 text-right border border-gray-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-primary font-bold shadow-sm"
                   value={discountStr}
                   onChange={e => setDiscountStr(String(e.target.value))}
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <span className="text-xs font-extrabold text-gray-800">Cần trả nhà cung cấp</span>
-                <span className="font-extrabold text-lg text-primary">{fmt(needToPay)}</span>
+              <div className="flex items-center justify-between pt-1">
+                <span className="font-extrabold text-gray-900">Cần trả nhà cung cấp</span>
+                <span className="font-extrabold text-base text-primary">{fmt(needToPay)}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">Tiền trả nhà cung cấp</span>
+                <span className="font-medium text-gray-700">Tiền trả nhà cung cấp</span>
                 <NumericInput 
                   placeholder={fmt(needToPay)}
-                  className="w-36 text-right border border-gray-300 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary font-extrabold text-primary shadow-sm"
+                  className="w-36 text-right border border-gray-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:border-primary font-extrabold text-primary shadow-sm"
                   value={paidAmountStr === '' ? '' : paidAmountStr}
                   onChange={e => setPaidAmountStr(String(e.target.value))}
                 />
@@ -761,8 +785,8 @@ export default function CreatePurchaseOrderPage() {
               <div>
                 <textarea 
                   placeholder="Ghi chú" 
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-xl p-3 text-xs outline-none focus:border-primary shadow-sm resize-none font-medium"
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none focus:border-primary shadow-inner resize-none font-medium text-gray-700"
                   value={note}
                   onChange={e => setNote(e.target.value)}
                 />
@@ -770,13 +794,13 @@ export default function CreatePurchaseOrderPage() {
             </div>
           </div>
 
-          {/* Bottom Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-4">
+          {/* Sticky Bottom Action Buttons */}
+          <div className="flex gap-2 pt-3 border-t border-gray-100 mt-2 shrink-0">
             {isUpdate ? (
               <button 
                 onClick={() => handleSaveOrder(status)}
                 disabled={saving}
-                className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
+                className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
               >
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </button>
@@ -785,14 +809,14 @@ export default function CreatePurchaseOrderPage() {
                 <button 
                   onClick={() => handleSaveOrder('PENDING')}
                   disabled={saving}
-                  className="px-6 py-3 border border-primary text-primary hover:bg-primary/5 rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-sm disabled:opacity-50 bg-transparent"
+                  className="px-4 py-2.5 border border-primary text-primary hover:bg-primary/5 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-sm disabled:opacity-50 bg-transparent whitespace-nowrap"
                 >
                   Lưu tạm
                 </button>
                 <button 
                   onClick={() => handleSaveOrder('COMPLETED')}
                   disabled={saving}
-                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none"
+                  className="flex-1 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md disabled:opacity-50 border-none whitespace-nowrap"
                 >
                   {saving ? 'Đang xử lý...' : 'Hoàn thành'}
                 </button>
