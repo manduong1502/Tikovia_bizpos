@@ -58,14 +58,13 @@ export function applyExcelStyles(worksheet, autoCols = []) {
 export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, merges = []) {
   const range = XLSX.utils.decode_range(worksheet['!ref']);
   
-  // Set merges
   if (merges.length > 0) {
     worksheet['!merges'] = merges;
   }
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = {c:C, r:R};
+      const cellAddress = { c: C, r: R };
       const cellRef = XLSX.utils.encode_cell(cellAddress);
       if (!worksheet[cellRef]) continue;
       
@@ -78,29 +77,30 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 
       // Title formatting
       if (typeof val === 'string' && val.includes('Công nợ chi tiết')) {
-        cellStyle.font = { name: 'Arial', sz: 14, bold: true };
+        cellStyle.font = { name: 'Arial', sz: 15, bold: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
       // Date range formatting
       if (typeof val === 'string' && (val.includes('Từ ngày') || val.includes('Toàn thời gian'))) {
-        cellStyle.font = { name: 'Arial', sz: 11, bold: true };
+        cellStyle.font = { name: 'Arial', sz: 11, italic: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
       
-      // Store/Customer Info formatting
-      if (R < headerRowIndex && C === 0) {
-        cellStyle.font.bold = true;
-      }
-      
-      // Debt Summary formatting
-      if (R >= headerRowIndex - 4 && R < headerRowIndex && C >= range.e.c - 3) {
-        cellStyle.font.bold = true;
+      // Store / Customer Info section above table
+      if (R < headerRowIndex) {
+        if (C === 0 || C === range.e.c - 4 || C === range.e.c - 2) {
+          cellStyle.font = { name: 'Arial', sz: 10, bold: true };
+        }
       }
 
       // Table Header formatting
       if (R === headerRowIndex) {
-        cellStyle.font.bold = true;
-        cellStyle.alignment.horizontal = 'center';
+        cellStyle.font = { name: 'Arial', sz: 10, bold: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
+        cellStyle.fill = {
+          patternType: "solid",
+          fgColor: { rgb: "E5E7EB" }
+        };
         cellStyle.border = {
           top: { style: "thin", color: { auto: 1 } },
           bottom: { style: "thin", color: { auto: 1 } },
@@ -111,8 +111,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 
       // Table Data formatting
       if (R > headerRowIndex && R <= range.e.r - 4) {
-        // A row is a transaction header row if Column A (Thời gian) is not empty
-        const timeCell = worksheet[XLSX.utils.encode_cell({c:0, r:R})];
+        const timeCell = worksheet[XLSX.utils.encode_cell({ c: 0, r: R })];
         const isTxRow = timeCell && timeCell.v !== '' && timeCell.v !== undefined;
         
         cellStyle.border = {
@@ -121,7 +120,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         };
 
         if (isTxRow) {
-          cellStyle.font.bold = true;
+          cellStyle.font = { name: 'Arial', sz: 10, bold: true };
           cellStyle.border.top = { style: "thin", color: { auto: 1 } };
           cellStyle.border.bottom = { style: "thin", color: { auto: 1 } };
           cellStyle.fill = {
@@ -129,41 +128,46 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
             fgColor: { rgb: "F9FAFB" }
           };
         } else {
-          cellStyle.font.bold = false;
-          cellStyle.font.italic = true;
+          cellStyle.font = { name: 'Arial', sz: 9.5, italic: true };
           cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
         }
         
-        // Final bottom border for the table
         if (R === range.e.r - 4) {
           cellStyle.border.bottom = { style: "thin", color: { auto: 1 } };
         }
         
-        // Alignment
-        if (C === 0) cellStyle.alignment.horizontal = 'right';
-        if (C === 1) cellStyle.alignment.horizontal = 'center';
-        if (C >= 4 && C <= range.e.c) cellStyle.alignment.horizontal = 'right'; // Number columns
+        // Alignments per column
+        if (C === 0) cellStyle.alignment.horizontal = 'center'; // Thời gian
+        else if (C === 1) cellStyle.alignment.horizontal = 'center'; // Mã SKU / Mã HĐ
+        else if (C === 2) cellStyle.alignment.horizontal = 'left'; // Diễn giải / Tên SP
+        else if (C === 3) cellStyle.alignment.horizontal = 'center'; // ĐVT
+        else cellStyle.alignment.horizontal = 'right'; // Number columns
       }
 
-      // Apply currency formatting to numeric values
-      if (typeof val === 'number') {
+      // Format pure numeric values to comma separated currency format
+      let numVal = val;
+      if (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(val.trim())) {
+        numVal = Number(val.trim());
+        worksheet[cellRef].v = numVal;
+        worksheet[cellRef].t = 'n';
+      }
+
+      if (typeof numVal === 'number') {
         worksheet[cellRef].z = '#,##0';
         cellStyle.alignment = cellStyle.alignment || {};
         cellStyle.alignment.horizontal = 'right';
       }
 
-      // Footer formatting
+      // Footer formatting (Date and Signature section)
       if (R >= range.e.r - 3) {
-        if (R === range.e.r - 3 && C === range.e.c - 1) { // Ngày tháng năm
+        if (R === range.e.r - 3) { // Date line
           cellStyle.alignment.horizontal = 'center';
-          cellStyle.font.italic = true;
-        }
-        if (R === range.e.r - 1) { // Người lập biểu
-          cellStyle.font.bold = true;
+          cellStyle.font = { name: 'Arial', sz: 10, italic: true };
+        } else if (R === range.e.r - 1) { // Signature Title
+          cellStyle.font = { name: 'Arial', sz: 10, bold: true };
           cellStyle.alignment.horizontal = 'center';
-        }
-        if (R === range.e.r) { // Ký tên
-          cellStyle.font.italic = true;
+        } else if (R === range.e.r) { // Signature Subtitle
+          cellStyle.font = { name: 'Arial', sz: 9.5, italic: true };
           cellStyle.alignment.horizontal = 'center';
         }
       }
@@ -172,10 +176,10 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
     }
   }
 
-  // Draw full borders for the table outer box to be safe
+  // Draw full borders for outer box of table
   for (let R = headerRowIndex; R <= range.e.r - 4; ++R) {
     for (let C = 0; C <= range.e.c; ++C) {
-      const cellRef = XLSX.utils.encode_cell({c:C, r:R});
+      const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
       if (!worksheet[cellRef]) worksheet[cellRef] = { v: '', t: 's' };
       worksheet[cellRef].s = worksheet[cellRef].s || {};
       worksheet[cellRef].s.border = worksheet[cellRef].s.border || {};

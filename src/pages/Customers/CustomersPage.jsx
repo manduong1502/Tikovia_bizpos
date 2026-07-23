@@ -2018,33 +2018,36 @@ export default function CustomersPage() {
           transactions.forEach(tx => {
             const txTime = `${formatDate(tx.date)} ${String(tx.date.getHours()).padStart(2,'0')}:${String(tx.date.getMinutes()).padStart(2,'0')}`;
             
-            let ghiNo = tx.debt > 0 ? tx.debt : 0;
-            let ghiCo = tx.debt < 0 ? Math.abs(tx.debt) : 0;
+            let ghiNo = tx.debt > 0 ? Number(tx.debt) : 0;
+            let ghiCo = tx.debt < 0 ? Math.abs(Number(tx.debt)) : 0;
 
             const summaryRow = createRow();
             summaryRow[0] = txTime;
-            summaryRow[1] = tx.code;
-            summaryRow[2] = tx.type;
-            summaryRow[totalCols - 3] = ghiNo || '';
-            summaryRow[totalCols - 2] = ghiCo || '';
-            summaryRow[totalCols - 1] = tx.runningDebt || 0;
+            summaryRow[1] = tx.code || '';
+            summaryRow[2] = tx.type || '';
+            summaryRow[totalCols - 3] = ghiNo || 0;
+            summaryRow[totalCols - 2] = ghiCo || 0;
+            summaryRow[totalCols - 1] = Number(tx.runningDebt || 0);
             exportData.push(summaryRow);
 
             
             // Build item rows
             if (columns.detail && tx.items && tx.items.length > 0) {
               tx.items.forEach(it => {
+                const sku = it.product?.sku || it.product_sku || it.sku || it.productSku || '';
+                const name = it.product?.name || it.product_name || it.name || it.productName || '';
+                
                 const itemRow = createRow();
-                itemRow[1] = it.product_sku || it.sku || '';
-                itemRow[2] = it.product_name || it.name || '';
+                itemRow[1] = sku;
+                itemRow[2] = name;
                 let colIdx = 3;
-                if (columns.unit) itemRow[colIdx++] = it.unit || 'Cái';
-                if (columns.quantity) itemRow[colIdx++] = it.quantity || 0;
-                if (columns.price) itemRow[colIdx++] = it.unit_price || it.price || 0;
-                if (columns.discount) itemRow[colIdx++] = it.discount || 0;
+                if (columns.unit) itemRow[colIdx++] = it.product?.unit || it.unit || 'Cái';
+                if (columns.quantity) itemRow[colIdx++] = Number(it.quantity || 0);
+                if (columns.price) itemRow[colIdx++] = Number(it.unit_price || it.price || 0);
+                if (columns.discount) itemRow[colIdx++] = Number(it.discount || 0);
                 itemRow[colIdx++] = 0; // VAT
-                if (columns.importPrice) itemRow[colIdx++] = it.unit_price || it.price || 0;
-                if (columns.total) itemRow[colIdx++] = it.total || ((it.unit_price || it.price || 0) * (it.quantity || 0));
+                if (columns.importPrice) itemRow[colIdx++] = Number(it.unit_price || it.price || 0);
+                if (columns.total) itemRow[colIdx++] = Number(it.total || ((Number(it.unit_price || it.price || 0)) * Number(it.quantity || 0)));
                 if (columns.note) itemRow[colIdx++] = it.note || '';
                 exportData.push(itemRow);
               });
@@ -2060,13 +2063,13 @@ export default function CustomersPage() {
           exportData.push(createRow());
           
           let signRow1 = createRow();
-          signRow1[0] = 'Khách hàng';
+          signRow1[1] = 'Khách hàng';
           signRow1[Math.floor(totalCols / 2)] = 'Người lập biểu';
           signRow1[totalCols - 2] = 'TM Công ty';
           exportData.push(signRow1);
 
           let signRow2 = createRow();
-          signRow2[0] = '(Ký, họ tên)';
+          signRow2[1] = '(Ký, họ tên)';
           signRow2[Math.floor(totalCols / 2)] = '(Ký, họ tên)';
           signRow2[totalCols - 2] = '(Ký, họ tên)';
           exportData.push(signRow2);
@@ -2077,20 +2080,20 @@ export default function CustomersPage() {
             const ws = XLSX.utils.aoa_to_sheet(exportData);
             
             const autoCols = [];
-            autoCols.push({ wch: 14 }); // Thời gian
-            autoCols.push({ wch: 14 }); // Mã
-            autoCols.push({ wch: 28 }); // Diễn giải
+            autoCols.push({ wch: 18 }); // Thời gian
+            autoCols.push({ wch: 16 }); // Mã SKU / Mã HĐ
+            autoCols.push({ wch: 38 }); // Diễn giải / Tên SP
             if (columns.detail) {
-               if (columns.unit) autoCols.push({ wch: 8 });
-               if (columns.quantity) autoCols.push({ wch: 8 });
-               if (columns.price) autoCols.push({ wch: 12 });
-               if (columns.discount) autoCols.push({ wch: 10 });
-               autoCols.push({ wch: 8 }); // VAT
-               if (columns.importPrice) autoCols.push({ wch: 14 });
-               if (columns.total) autoCols.push({ wch: 14 });
-               if (columns.note) autoCols.push({ wch: 14 });
+               if (columns.unit) autoCols.push({ wch: 10 });
+               if (columns.quantity) autoCols.push({ wch: 10 });
+               if (columns.price) autoCols.push({ wch: 15 });
+               if (columns.discount) autoCols.push({ wch: 14 });
+               autoCols.push({ wch: 10 }); // VAT
+               if (columns.importPrice) autoCols.push({ wch: 15 });
+               if (columns.total) autoCols.push({ wch: 16 });
+               if (columns.note) autoCols.push({ wch: 18 });
             }
-            autoCols.push({ wch: 14 }, { wch: 14 }, { wch: 16 }); // Ghi nợ, Ghi có, Dư nợ
+            autoCols.push({ wch: 16 }, { wch: 16 }, { wch: 18 }); // Ghi nợ, Ghi có, Dư nợ
             
             // Dynamic merges for Title and Date
             const merges = [

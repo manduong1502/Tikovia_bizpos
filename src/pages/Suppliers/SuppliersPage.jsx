@@ -791,20 +791,20 @@ export default function SuppliersPage() {
       // Dòng sản phẩm (Item rows)
       if (columns.detail && tx.items && tx.items.length > 0) {
         tx.items.forEach(it => {
-            const sku = it.product_sku || it.product?.sku || it.sku || '';
-            const name = it.product_name || it.product?.name || it.name || '';
+            const sku = it.product?.sku || it.product_sku || it.sku || it.productSku || '';
+            const name = it.product?.name || it.product_name || it.name || it.productName || '';
             
             const itemRow = createRow();
             itemRow[1] = sku;
             itemRow[2] = name;
             let colIdx = 3;
             if (columns.unit) itemRow[colIdx++] = it.product?.unit || it.unit || 'Cái';
-            if (columns.quantity) itemRow[colIdx++] = it.quantity || 0;
-            if (columns.price) itemRow[colIdx++] = it.price || it.unit_price || 0;
-            if (columns.discount) itemRow[colIdx++] = it.discount || 0;
+            if (columns.quantity) itemRow[colIdx++] = Number(it.quantity || 0);
+            if (columns.price) itemRow[colIdx++] = Number(it.price || it.unit_price || 0);
+            if (columns.discount) itemRow[colIdx++] = Number(it.discount || 0);
             itemRow[colIdx++] = 0; // VAT
-            if (columns.importPrice) itemRow[colIdx++] = it.returnPrice || it.price || it.unit_price || 0;
-            if (columns.total) itemRow[colIdx++] = it.total || ((it.price || it.unit_price || 0) * (it.quantity || 0));
+            if (columns.importPrice) itemRow[colIdx++] = Number(it.returnPrice || it.price || it.unit_price || 0);
+            if (columns.total) itemRow[colIdx++] = Number(it.total || ((Number(it.price || it.unit_price || 0)) * Number(it.quantity || 0)));
             if (columns.note) itemRow[colIdx++] = it.note || '';
             exportData.push(itemRow);
         });
@@ -824,13 +824,13 @@ export default function SuppliersPage() {
     exportData.push(createRow());
     
     let signRow1 = createRow();
-    signRow1[0] = 'Nhà cung cấp';
+    signRow1[1] = 'Nhà cung cấp';
     signRow1[Math.floor(totalCols / 2)] = 'Người lập biểu';
     signRow1[totalCols - 2] = 'TM Công ty';
     exportData.push(signRow1);
 
     let signRow2 = createRow();
-    signRow2[0] = '(Ký, họ tên)';
+    signRow2[1] = '(Ký, họ tên)';
     signRow2[Math.floor(totalCols / 2)] = '(Ký, họ tên)';
     signRow2[totalCols - 2] = '(Ký, họ tên)';
     exportData.push(signRow2);
@@ -842,20 +842,20 @@ export default function SuppliersPage() {
       const ws = XLSX.utils.aoa_to_sheet(exportData);
       
       const autoCols = [];
-      autoCols.push({ wch: 14 }); // Thời gian
-      autoCols.push({ wch: 14 }); // Mã
-      autoCols.push({ wch: 28 }); // Diễn giải
+      autoCols.push({ wch: 18 }); // Thời gian
+      autoCols.push({ wch: 16 }); // Mã SKU / Mã HĐ
+      autoCols.push({ wch: 38 }); // Diễn giải / Tên SP
       if (columns.detail) {
-         if (columns.unit) autoCols.push({ wch: 8 });
-         if (columns.quantity) autoCols.push({ wch: 8 });
-         if (columns.price) autoCols.push({ wch: 12 });
-         if (columns.discount) autoCols.push({ wch: 10 });
-         autoCols.push({ wch: 8 }); // VAT
-         if (columns.importPrice) autoCols.push({ wch: 14 });
-         if (columns.total) autoCols.push({ wch: 14 });
-         if (columns.note) autoCols.push({ wch: 14 });
+         if (columns.unit) autoCols.push({ wch: 10 });
+         if (columns.quantity) autoCols.push({ wch: 10 });
+         if (columns.price) autoCols.push({ wch: 15 });
+         if (columns.discount) autoCols.push({ wch: 14 });
+         autoCols.push({ wch: 10 }); // VAT
+         if (columns.importPrice) autoCols.push({ wch: 15 });
+         if (columns.total) autoCols.push({ wch: 16 });
+         if (columns.note) autoCols.push({ wch: 18 });
       }
-      autoCols.push({ wch: 14 }, { wch: 14 }, { wch: 16 }); // Ghi nợ, Ghi có, Dư nợ
+      autoCols.push({ wch: 16 }, { wch: 16 }, { wch: 18 }); // Ghi nợ, Ghi có, Dư nợ
       
       // Dynamic merges for Title and Date
       const merges = [
