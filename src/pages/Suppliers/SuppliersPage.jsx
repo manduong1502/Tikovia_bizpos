@@ -833,17 +833,20 @@ export default function SuppliersPage() {
     const midCol = Math.floor(totalCols / 2);
     const signRow1Idx = exportData.length;
     let signRow1 = createRow();
-    signRow1[1] = 'Nhà cung cấp';
-    signRow1[midCol] = 'Người lập biểu';
-    signRow1[totalCols - 2] = 'TM Công ty';
+    signRow1[0] = 'Nhà cung cấp';
+    signRow1[midCol - 1] = 'Người lập biểu';
+    signRow1[totalCols - 3] = 'TM Công ty';
     exportData.push(signRow1);
 
     const signRow2Idx = exportData.length;
     let signRow2 = createRow();
-    signRow2[1] = '(Ký, họ tên)';
-    signRow2[midCol] = '(Ký, họ tên)';
-    signRow2[totalCols - 2] = '(Ký, họ tên)';
+    signRow2[0] = '(Ký, họ tên)';
+    signRow2[midCol - 1] = '(Ký, họ tên)';
+    signRow2[totalCols - 3] = '(Ký, họ tên)';
     exportData.push(signRow2);
+
+    exportData.push(createRow()); // Extra padding row
+    exportData.push(createRow());
 
     try {
       const XLSX = await import('xlsx-js-style');

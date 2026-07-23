@@ -159,17 +159,15 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
       }
 
       // Footer formatting (Date and Signature section)
-      if (R >= range.e.r - 3) {
-        if (R === range.e.r - 3) { // Date line
-          cellStyle.alignment.horizontal = 'center';
-          cellStyle.font = { name: 'Arial', sz: 10, italic: true };
-        } else if (R === range.e.r - 1) { // Signature Title
-          cellStyle.font = { name: 'Arial', sz: 10, bold: true };
-          cellStyle.alignment.horizontal = 'center';
-        } else if (R === range.e.r) { // Signature Subtitle
-          cellStyle.font = { name: 'Arial', sz: 9.5, italic: true };
-          cellStyle.alignment.horizontal = 'center';
-        }
+      if (typeof val === 'string' && val.includes('Ngày ') && val.includes('tháng ') && val.includes('năm ')) {
+        cellStyle.font = { name: 'Arial', sz: 10, italic: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
+      } else if (typeof val === 'string' && (val === 'Khách hàng' || val === 'Nhà cung cấp' || val === 'Người lập biểu' || val === 'TM Công ty')) {
+        cellStyle.font = { name: 'Arial', sz: 10, bold: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
+      } else if (typeof val === 'string' && val === '(Ký, họ tên)') {
+        cellStyle.font = { name: 'Arial', sz: 9.5, italic: true };
+        cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
 
       worksheet[cellRef].s = cellStyle;
