@@ -198,7 +198,20 @@ export default function PurchaseOrderDetail({
               {/* Header Info */}
               <div className="flex flex-wrap items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs gap-4">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold text-gray-800 tracking-tight">{o.po_code}</span>
+                  {o.supplier_name ? (
+                    <button 
+                      onClick={() => navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } })}
+                      className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                      title="Xem chi tiết nhà cung cấp tại trang Nhà cung cấp"
+                    >
+                      {o.supplier_name}
+                    </button>
+                  ) : (
+                    <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">NCC không rõ</span>
+                  )}
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                    {o.po_code}
+                  </span>
                   <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${PAY_BADGE[o.payment_status]}`}>
                     {PAY_LABEL[o.payment_status]}
                   </span>

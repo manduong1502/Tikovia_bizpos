@@ -803,19 +803,7 @@ export default function PurchaseReturnsPage() {
                             {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
                           </td>
                         )}
-                        {visibleColumns.includes('supplier_name') && (
-                          <td 
-                            className={`py-2.5 px-3 font-bold ${o.supplier_name ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
-                            onClick={(e) => {
-                              if (o.supplier_name) {
-                                e.stopPropagation();
-                                navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } });
-                              }
-                            }}
-                          >
-                            {o.supplier_name}
-                          </td>
-                        )}
+                        {visibleColumns.includes('supplier_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.supplier_name}</td>}
                         {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
                         {visibleColumns.includes('discount') && <td className="py-2.5 px-3 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
                         {visibleColumns.includes('supplier_must_pay') && <td className="py-2.5 px-3 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}

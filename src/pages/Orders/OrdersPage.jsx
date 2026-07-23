@@ -739,28 +739,12 @@ export default function OrdersPage() {
                         <td className="py-2.5 px-3 text-gray-500 font-medium">{o.return_code || '---'}</td>
                       )}
                       {visibleColumns.includes('customer_code') && (
-                        <td 
-                          className={`py-2.5 px-3 ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary font-bold hover:underline cursor-pointer' : 'text-gray-700'}`}
-                          onClick={(e) => {
-                            if (o.customer_name && o.customer_name !== 'Khách lẻ') {
-                              e.stopPropagation();
-                              navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
-                            }
-                          }}
-                        >
+                        <td className="py-2.5 px-3 font-medium text-gray-700">
                           {o.customer_code || `KH${String(o.id).padStart(6, '0')}`}
                         </td>
                       )}
                       {visibleColumns.includes('customer_name') && (
-                        <td 
-                          className={`py-2.5 px-3 font-bold ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
-                          onClick={(e) => {
-                            if (o.customer_name && o.customer_name !== 'Khách lẻ') {
-                              e.stopPropagation();
-                              navigate('/customers', { state: { searchCustomer: o.customer_name || o.customer_code, customerId: o.customerId || o.customer_id } });
-                            }
-                          }}
-                        >
+                        <td className="py-2.5 px-3 font-bold text-gray-800">
                           {o.customer_name || 'Khách lẻ'}
                         </td>
                       )}
