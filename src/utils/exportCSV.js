@@ -55,8 +55,9 @@ export function applyExcelStyles(worksheet, autoCols = []) {
   }
 }
 
-export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, merges = []) {
+export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, merges = [], lastDataRowIndex) {
   const range = XLSX.utils.decode_range(worksheet['!ref']);
+  const maxTableR = lastDataRowIndex || (range.e.r - 5);
   
   if (merges.length > 0) {
     worksheet['!merges'] = merges;
@@ -81,20 +82,20 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
       // Date range formatting
-      if (typeof val === 'string' && (val.includes('Từ ngày') || val.includes('Toàn thời gian'))) {
+      else if (typeof val === 'string' && (val.includes('Từ ngày') || val.includes('Toàn thời gian'))) {
         cellStyle.font = { name: 'Arial', sz: 11, italic: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
       }
       
       // Store / Customer Info section above table
-      if (R < headerRowIndex) {
+      else if (R < headerRowIndex) {
         if (C === 0 || C === range.e.c - 4 || C === range.e.c - 2) {
           cellStyle.font = { name: 'Arial', sz: 10, bold: true };
         }
       }
 
       // Table Header formatting
-      if (R === headerRowIndex) {
+      else if (R === headerRowIndex) {
         cellStyle.font = { name: 'Arial', sz: 10, bold: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
         cellStyle.fill = {
@@ -109,8 +110,8 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
         };
       }
 
-      // Table Data formatting
-      if (R > headerRowIndex && R <= range.e.r - 4) {
+      // Table Data formatting (STRICTLY up to maxTableR)
+      else if (R > headerRowIndex && R <= maxTableR) {
         const timeCell = worksheet[XLSX.utils.encode_cell({ c: 0, r: R })];
         const isTxRow = timeCell && timeCell.v !== '' && timeCell.v !== undefined;
         
@@ -132,7 +133,7 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
           cellStyle.border.bottom = { style: "dashed", color: { auto: 1 } };
         }
         
-        if (R === range.e.r - 4) {
+        if (R === maxTableR) {
           cellStyle.border.bottom = { style: "thin", color: { auto: 1 } };
         }
         
@@ -154,11 +155,13 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 
       if (typeof numVal === 'number') {
         worksheet[cellRef].z = '#,##0';
-        cellStyle.alignment = cellStyle.alignment || {};
-        cellStyle.alignment.horizontal = 'right';
+        if (R > headerRowIndex && R <= maxTableR) {
+          cellStyle.alignment = cellStyle.alignment || {};
+          cellStyle.alignment.horizontal = 'right';
+        }
       }
 
-      // Footer formatting (Date and Signature section)
+      // Footer formatting (Date and Signature section) - OUTSIDE TABLE, NO BORDERS
       if (typeof val === 'string' && val.includes('Ngày ') && val.includes('tháng ') && val.includes('năm ')) {
         cellStyle.font = { name: 'Arial', sz: 10, italic: true };
         cellStyle.alignment = { horizontal: 'center', vertical: 'center' };
@@ -174,8 +177,8 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
     }
   }
 
-  // Draw full borders for outer box of table
-  for (let R = headerRowIndex; R <= range.e.r - 4; ++R) {
+  // Draw full outer borders ONLY for the data table (headerRowIndex to maxTableR)
+  for (let R = headerRowIndex; R <= maxTableR; ++R) {
     for (let C = 0; C <= range.e.c; ++C) {
       const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
       if (!worksheet[cellRef]) worksheet[cellRef] = { v: '', t: 's' };
@@ -184,9 +187,14 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
       
       if (C === 0) worksheet[cellRef].s.border.left = { style: "thin", color: { auto: 1 } };
       if (C === range.e.c) worksheet[cellRef].s.border.right = { style: "thin", color: { auto: 1 } };
-      if (R === range.e.r - 4) worksheet[cellRef].s.border.bottom = { style: "thin", color: { auto: 1 } };
+      if (R === maxTableR) worksheet[cellRef].s.border.bottom = { style: "thin", color: { auto: 1 } };
     }
   }
+
+  if (autoCols.length > 0) {
+    worksheet['!cols'] = autoCols;
+  }
+}
 
   if (autoCols.length > 0) {
     worksheet['!cols'] = autoCols;

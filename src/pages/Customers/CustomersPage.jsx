@@ -2057,6 +2057,8 @@ export default function CustomersPage() {
             }
           });
 
+          const lastDataRowIndex = exportData.length - 1;
+
           if (transactions.length === 0) { toast.error('Không có giao dịch nào'); return; }
 
           exportData.push(createRow());
@@ -2134,7 +2136,7 @@ export default function CustomersPage() {
               { s: { r: signRow2Idx, c: totalCols - 3 }, e: { r: signRow2Idx, c: totalCols - 1 } },
             ];
 
-            applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
+            applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges, lastDataRowIndex);
             
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'CongNo');
