@@ -1619,7 +1619,7 @@ export default function CustomersPage() {
                   return (
                     <th 
                       key={c.key} 
-                      className={`py-2.5 px-3 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors ${c.align === 'right' ? 'text-right' : 'text-left'}`}
+                      className={`py-2.5 px-3 font-extrabold cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap ${c.align === 'right' ? 'text-right' : 'text-left'}`}
                       onClick={() => handleSort(c.key)}
                     >
                       <div className={`flex items-center gap-1.5 inline-flex ${c.align === 'right' ? 'flex-row-reverse' : ''}`}>
@@ -1637,7 +1637,7 @@ export default function CustomersPage() {
                     </th>
                   );
                 })}
-                <th className="py-2.5 px-3 text-center w-24 font-extrabold">Thao tác</th>
+                <th className="py-2.5 px-3 text-center w-24 font-extrabold whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 font-medium">
@@ -1717,10 +1717,10 @@ export default function CustomersPage() {
                         <td className="py-2.5 px-3 text-gray-700">{c.email || '---'}</td>
                       )}
                       {visibleColumns.includes('address') && (
-                        <td className="py-2.5 px-3 text-gray-700">{c.address || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700 max-w-[220px] truncate" title={c.address || ''}>{c.address || '---'}</td>
                       )}
                       {visibleColumns.includes('note') && (
-                        <td className="py-2.5 px-3 text-gray-700 max-w-[200px] truncate" title={c.note || ''}>{c.note || '---'}</td>
+                        <td className="py-2.5 px-3 text-gray-700 min-w-[150px] max-w-[300px] truncate" title={c.note || ''}>{c.note || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
                         <td className={`py-2.5 px-3 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>
