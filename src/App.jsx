@@ -137,6 +137,7 @@ function App() {
       <SocketProvider>
         <Toaster
           position="top-right"
+          containerStyle={{ zIndex: 999999 }}
           toastOptions={{
             duration: 3000,
             style: { fontFamily: 'Inter, sans-serif', fontSize: '13px', borderRadius: '10px', padding: '12px 16px' },

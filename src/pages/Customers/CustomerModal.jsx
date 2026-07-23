@@ -18,7 +18,10 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   const [saving, setSaving] = useState(false);
   const [existingNames, setExistingNames] = useState([]);
   const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
+  const phoneInputRef = useRef(null);
+  const nameInputRef = useRef(null);
   const mapRef = useRef(null);
   const mapId = `customer-map-${customer?.id || 'new'}`;
 
@@ -31,6 +34,8 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
 
   useEffect(() => {
     if (open) {
+      setNameError('');
+      setPhoneError('');
       customerAPI.getAllSimple().then(res => {
         const list = Array.isArray(res) ? res : (res?.data || []);
         setExistingNames(list.map(c => c.name.trim().toLowerCase()));
@@ -39,6 +44,8 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   }, [open]);
 
   useEffect(() => {
+    setNameError('');
+    setPhoneError('');
     if (customer) {
       setForm({
         name: customer.name || '',
@@ -195,9 +202,26 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Vui lòng nhập tên khách hàng'); return; }
-    if (!form.phone.trim()) { toast.error('Vui lòng nhập số điện thoại khách hàng'); return; }
-    if (nameError) { toast.error('Tên khách hàng đã tồn tại'); return; }
+    let hasErr = false;
+    if (!form.name.trim()) { 
+      setNameError('Vui lòng nhập tên khách hàng'); 
+      hasErr = true; 
+    }
+    if (!form.phone.trim()) { 
+      setPhoneError('Vui lòng nhập số điện thoại (bắt buộc)'); 
+      hasErr = true; 
+    }
+    if (nameError) {
+      hasErr = true;
+    }
+
+    if (hasErr) {
+      if (!form.phone.trim()) phoneInputRef.current?.focus();
+      else if (!form.name.trim()) nameInputRef.current?.focus();
+      toast.error('Vui lòng nhập đầy đủ Tên và Số điện thoại khách hàng');
+      return;
+    }
+
     setSaving(true);
     try {
       const data = {
@@ -237,14 +261,29 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   const nameInput = (
     <div>
       <input 
+        ref={nameInputRef}
         type="text" 
-        className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none transition-colors font-medium text-gray-800 ${nameError ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500/30' : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary/30'}`} 
+        className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none transition-colors font-medium text-gray-800 ${nameError ? 'border-2 border-red-500 bg-red-50/50 text-red-700 focus:ring-2 focus:ring-red-300' : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary/30'}`} 
         value={form.name} 
         onChange={e => { u('name', e.target.value); setNameError(''); }} 
         onBlur={handleNameBlur}
         placeholder="Nhập tên khách hàng" 
       />
-      {nameError && <p className="text-red-500 text-[11px] font-bold mt-1.5">{nameError}</p>}
+      {nameError && <p className="text-red-600 text-xs font-extrabold mt-1.5 flex items-center gap-1">⚠️ {nameError}</p>}
+    </div>
+  );
+
+  const phoneInput = (
+    <div>
+      <input 
+        ref={phoneInputRef}
+        type="tel" 
+        className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none transition-colors font-medium text-gray-800 ${phoneError ? 'border-2 border-red-500 bg-red-50/50 text-red-700 focus:ring-2 focus:ring-red-300' : 'border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary/30'}`} 
+        value={form.phone} 
+        onChange={e => { u('phone', e.target.value); if (e.target.value.trim()) setPhoneError(''); }} 
+        placeholder="Nhập số điện thoại (Bắt buộc)" 
+      />
+      {phoneError && <p className="text-red-600 text-xs font-extrabold mt-1.5 flex items-center gap-1">⚠️ {phoneError}</p>}
     </div>
   );
 
@@ -252,10 +291,16 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
     <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="lg"
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        {(nameError || phoneError) && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl text-xs font-bold text-red-700 flex items-center gap-2 shadow-sm animate-pulse">
+            <span className="text-base">⚠️</span>
+            <span>{phoneError || nameError}</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 font-sans">
           <FormField label="Tên khách hàng" required>{nameInput}</FormField>
           <FormField label="Mã khách hàng">{inp('code', 'Mã mặc định')}</FormField>
-          <FormField label="Điện thoại" required>{inp('phone', 'Nhập số điện thoại (Bắt buộc)', 'tel')}</FormField>
+          <FormField label="Điện thoại" required>{phoneInput}</FormField>
           <FormField label="Email">{inp('email', 'email@gmail.com', 'email')}</FormField>
           
           <div className="md:col-span-2">
