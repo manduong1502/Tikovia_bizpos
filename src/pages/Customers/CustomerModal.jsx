@@ -196,13 +196,14 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên khách hàng'); return; }
+    if (!form.phone.trim()) { toast.error('Vui lòng nhập số điện thoại khách hàng'); return; }
     if (nameError) { toast.error('Tên khách hàng đã tồn tại'); return; }
     setSaving(true);
     try {
       const data = {
         name: form.name.trim(),
         code: form.code.trim() || undefined,
-        phone: form.phone.trim() || null,
+        phone: form.phone.trim(),
         email: form.email.trim() || null,
         address: form.address.trim() || null,
         note: form.note.trim() || null,
@@ -254,7 +255,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-4 font-sans">
           <FormField label="Tên khách hàng" required>{nameInput}</FormField>
           <FormField label="Mã khách hàng">{inp('code', 'Mã mặc định')}</FormField>
-          <FormField label="Điện thoại">{inp('phone', 'Nhập số điện thoại', 'tel')}</FormField>
+          <FormField label="Điện thoại" required>{inp('phone', 'Nhập số điện thoại (Bắt buộc)', 'tel')}</FormField>
           <FormField label="Email">{inp('email', 'email@gmail.com', 'email')}</FormField>
           
           <div className="md:col-span-2">

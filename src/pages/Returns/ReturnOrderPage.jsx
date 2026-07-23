@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus } from 'lucide-react';
+import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI, returnAPI, customerAPI } from '../../services/api';
 import { printHTML } from '../../utils/exportUtils';
@@ -235,11 +235,16 @@ export default function ReturnOrderPage() {
   const handleCreateCustomer = async () => {
     const name = window.prompt('Nhập tên khách hàng mới:');
     if (!name || !name.trim()) return;
+    const phone = window.prompt('Nhập số điện thoại khách hàng:');
+    if (!phone || !phone.trim()) {
+      toast.error('Số điện thoại khách hàng là bắt buộc!');
+      return;
+    }
     try {
       const res = await customerAPI.create({ 
         name: name.trim(), 
         code: `KH${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-        phone: '0901234567',
+        phone: phone.trim(),
       });
       setCustomers(prev => [...prev, res]);
       setCustomer(res);

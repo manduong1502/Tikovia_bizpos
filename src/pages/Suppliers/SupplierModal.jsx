@@ -65,6 +65,7 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
 
   const handleSubmit = async () => {
     if (!form.name.trim()) { toast.error('Vui lòng nhập tên nhà cung cấp'); return; }
+    if (!form.phone.trim()) { toast.error('Vui lòng nhập số điện thoại nhà cung cấp'); return; }
     if (nameError) { toast.error('Tên nhà cung cấp đã tồn tại'); return; }
     setSaving(true);
     try {
@@ -119,7 +120,7 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
             />
             {nameError && <p className="text-red-500 text-[11px] font-bold mt-1.5">{nameError}</p>}
           </div>
-          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Điện thoại</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.phone} onChange={e => f('phone', e.target.value)} placeholder="Số điện thoại" /></div>
+          <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Điện thoại *</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.phone} onChange={e => f('phone', e.target.value)} placeholder="Số điện thoại (Bắt buộc)" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Email</label><input type="email" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.email} onChange={e => f('email', e.target.value)} placeholder="Email liên hệ" /></div>
           <div className="col-span-2"><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Địa chỉ</label><input className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.address} onChange={e => f('address', e.target.value)} placeholder="Địa chỉ chi tiết" /></div>
           <div><label className="text-[13px] font-bold text-gray-700 mb-1.5 block">Tổng mua</label><NumericInput className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm" value={form.total_spent} onChange={e => f('total_spent', Number(e.target.value))} placeholder="0" /></div>
