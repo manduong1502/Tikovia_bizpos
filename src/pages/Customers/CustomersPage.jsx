@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { customerAPI, orderAPI, cashbookAPI, returnAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -53,11 +54,13 @@ const ALL_COLUMNS = [
   { key: 'phone', label: 'Điện thoại', default: true },
   { key: 'email', label: 'Email', default: false },
   { key: 'address', label: 'Địa chỉ', default: true },
+  { key: 'note', label: 'Ghi chú', default: true },
   { key: 'debt', label: 'Nợ hiện tại', default: true, align: 'right' },
   { key: 'total_spent', label: 'Tổng bán', default: true, align: 'right' },
 ];
 
 export default function CustomersPage() {
+  const location = useLocation();
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -409,6 +412,32 @@ export default function CustomersPage() {
   }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const searchFromState = location.state?.searchCustomer || location.state?.customerCode || location.state?.customerName;
+    const idFromState = location.state?.customerId;
+
+    if (searchFromState) {
+      setSearch(searchFromState);
+    }
+
+    if (!isLoading && customers.length > 0) {
+      if (idFromState) {
+        const found = customers.find(c => c.id === Number(idFromState) || String(c.id) === String(idFromState));
+        if (found) {
+          setExpandedId(found.id);
+          scrollRowIntoView(found.id);
+        }
+      } else if (searchFromState) {
+        const q = String(searchFromState).toLowerCase();
+        const found = customers.find(c => (c.name && c.name.toLowerCase().includes(q)) || (c.code && c.code.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
+        if (found) {
+          setExpandedId(found.id);
+          scrollRowIntoView(found.id);
+        }
+      }
+    }
+  }, [location.state, customers, isLoading]);
 
   useEffect(() => {
     const onDocClick = (e) => {
@@ -1620,6 +1649,7 @@ export default function CustomersPage() {
                 {visibleColumns.includes('phone') && <td></td>}
                 {visibleColumns.includes('email') && <td></td>}
                 {visibleColumns.includes('address') && <td></td>}
+                {visibleColumns.includes('note') && <td></td>}
                 {visibleColumns.includes('debt') && (
                   <td className={`py-2.5 px-3 text-right font-extrabold ${sumDebt > 0 ? 'text-red-500' : sumDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>
                     {fmt(sumDebt)}
@@ -1638,6 +1668,7 @@ export default function CustomersPage() {
                     {visibleColumns.includes('phone') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-20" /></td>}
                     {visibleColumns.includes('email') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-28" /></td>}
                     {visibleColumns.includes('address') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-36" /></td>}
+                    {visibleColumns.includes('note') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
                     {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
                     {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
                     <td className="py-2.5 px-3 text-center"><div className="h-5 bg-gray-200 rounded-lg w-12 mx-auto" /></td>
@@ -1687,6 +1718,9 @@ export default function CustomersPage() {
                       )}
                       {visibleColumns.includes('address') && (
                         <td className="py-2.5 px-3 text-gray-700">{c.address || '---'}</td>
+                      )}
+                      {visibleColumns.includes('note') && (
+                        <td className="py-2.5 px-3 text-gray-700 max-w-[200px] truncate" title={c.note || ''}>{c.note || '---'}</td>
                       )}
                       {visibleColumns.includes('debt') && (
                         <td className={`py-2.5 px-3 text-right font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-500' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</td>

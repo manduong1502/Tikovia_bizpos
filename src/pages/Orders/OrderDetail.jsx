@@ -222,7 +222,17 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
             {/* Header Info */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
+                {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
+                  <button 
+                    onClick={() => navigate('/customers', { state: { searchCustomer: o.customer_name, customerId: o.customerId || o.customer_id } })}
+                    className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                    title="Xem chi tiết khách hàng tại trang Khách hàng"
+                  >
+                    {o.customer_name}
+                  </button>
+                ) : (
+                  <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
+                )}
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                   {o.order_code}
                 </span>

@@ -646,42 +646,50 @@ export default function ReturnOrderPage() {
         </div>
 
         {/* Right Panel Section */}
-        <div className="w-[380px] bg-white border-l border-gray-200 p-6 flex flex-col justify-between shadow-lg z-10 shrink-0 overflow-y-auto">
-          <div className="space-y-5">
-            <div className="flex items-center gap-3 justify-end">
+        <div className="w-[360px] bg-white border-l border-gray-200 p-4 flex flex-col justify-between shadow-sm z-10 shrink-0 overflow-y-auto">
+          <div className="space-y-3.5">
+            <div className="flex items-center gap-2 justify-between border-b border-gray-100 pb-2.5">
+              <span className="text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1 px-2.5 rounded-lg">
+                Trả hàng {order ? `/ ${order.order_code || order.code}` : ''}
+              </span>
               <input 
                 type="datetime-local" 
                 value={returnDate} 
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="w-36 py-2 px-2 bg-gray-50 border border-gray-300 rounded-xl text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-sm"
+                className="w-36 py-1 px-2 bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-700 focus:outline-none focus:border-primary shadow-sm"
               />
             </div>
 
             {/* Customer Search / Info */}
             <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Khách hàng</label>
               <div className="relative">
                 {customer ? (
-                  <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-xl p-2.5 shadow-inner">
+                  <div className="flex items-center justify-between bg-blue-50/50 border border-blue-200 rounded-lg p-2 shadow-inner">
                     <div className="flex flex-col">
-                      <span className="font-extrabold text-sm text-gray-800">{customer.name}</span>
-                      <span className="text-xs text-gray-500 font-medium">{customer.phone || customer.code}</span>
+                      <span className="font-extrabold text-xs text-primary flex items-center gap-1">
+                        <User size={13} /> {customer.name}
+                      </span>
+                      {(customer.totalDebt || customer.debt || 0) > 0 && (
+                        <span className="text-[11px] text-red-500 font-semibold pl-4">
+                          Nợ: {fmt(customer.totalDebt || customer.debt)}
+                        </span>
+                      )}
                     </div>
                     <button 
                       onClick={() => setCustomer(null)} 
-                      className="p-1.5 hover:bg-blue-100 rounded-xl cursor-pointer transition-colors text-gray-500 border-none bg-transparent"
+                      className="p-1 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors text-gray-400 hover:text-red-500 border-none bg-transparent"
                       title="Xóa khách hàng"
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
-                    <Search size={16} className="text-gray-400 shrink-0" />
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
+                    <Search size={15} className="text-gray-400 shrink-0" />
                     <input 
                       type="text" 
-                      placeholder="Tìm khách hàng" 
-                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                      placeholder="Tìm khách hàng (F4)" 
+                      className="w-full bg-transparent text-xs outline-none font-medium text-gray-800"
                       value={customerSearch}
                       onChange={e => setCustomerSearch(e.target.value)}
                       onFocus={() => setCustomerFocused(true)}
@@ -689,10 +697,10 @@ export default function ReturnOrderPage() {
                     />
                     <button 
                       onClick={handleCreateCustomer}
-                      className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg cursor-pointer transition-colors border-none"
+                      className="p-1 bg-primary/10 text-primary hover:bg-primary/20 rounded-md cursor-pointer transition-colors border-none"
                       title="Thêm khách hàng mới"
                     >
-                      <Plus size={16} />
+                      <Plus size={14} />
                     </button>
                   </div>
                 )}
@@ -703,10 +711,10 @@ export default function ReturnOrderPage() {
                       <div 
                         key={c.id}
                         onClick={() => handleSelectCustomer(c)}
-                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                        className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                       >
-                        <span className="font-extrabold text-sm text-gray-800">{c.name}</span>
-                        <span className="text-xs text-gray-500 font-medium">{c.phone} - {c.code}</span>
+                        <span className="font-extrabold text-xs text-gray-800">{c.name}</span>
+                        <span className="text-[11px] text-gray-500 font-medium">{c.phone} - {c.code}</span>
                       </div>
                     ))}
                   </div>
@@ -716,29 +724,28 @@ export default function ReturnOrderPage() {
 
             {/* Order Search */}
             <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Chọn hóa đơn bán (Tùy chọn)</label>
               <div className="relative">
                 {order ? (
-                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 shadow-inner">
-                    <span className="font-extrabold text-sm text-emerald-800">{order.order_code || order.code}</span>
+                  <div className="flex items-center justify-between bg-emerald-50/70 border border-emerald-200 rounded-lg p-2 shadow-inner">
+                    <span className="font-extrabold text-xs text-emerald-800">Hóa đơn: {order.order_code || order.code}</span>
                     <button 
                       onClick={() => {
                         setOrder(null);
                         setItems([]);
                       }} 
-                      className="p-1.5 hover:bg-emerald-100 rounded-xl cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
+                      className="p-1 hover:bg-emerald-100 rounded-lg cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
                       title="Bỏ chọn hóa đơn"
                     >
-                      <X size={18} />
+                      <X size={16} />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
-                    <Search size={16} className="text-gray-400 shrink-0" />
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-inner gap-2">
+                    <Search size={15} className="text-gray-400 shrink-0" />
                     <input 
                       type="text" 
-                      placeholder="Tìm theo mã hóa đơn..." 
-                      className="w-full bg-transparent text-sm outline-none font-medium text-gray-800"
+                      placeholder="Chọn hóa đơn bán (Tùy chọn)" 
+                      className="w-full bg-transparent text-xs outline-none font-medium text-gray-800"
                       value={orderSearch}
                       onChange={e => setOrderSearch(e.target.value)}
                       onFocus={() => setOrderFocused(true)}
@@ -753,10 +760,10 @@ export default function ReturnOrderPage() {
                       <div 
                         key={o.id}
                         onClick={() => handleSelectOrder(o)}
-                        className="p-3 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                        className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                       >
-                        <span className="font-extrabold text-sm text-gray-800">{o.order_code || o.code}</span>
-                        <span className="text-xs text-gray-500 font-medium">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''} - {o.customer_name || o.customer?.name || 'Khách lẻ'}</span>
+                        <span className="font-extrabold text-xs text-gray-800">{o.order_code || o.code}</span>
+                        <span className="text-[11px] text-gray-500 font-medium">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''} - {o.customer_name || o.customer?.name || 'Khách lẻ'}</span>
                       </div>
                     ))}
                   </div>
@@ -764,94 +771,84 @@ export default function ReturnOrderPage() {
               </div>
             </div>
 
-            {/* Return Code */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Mã trả hàng</label>
-              <input 
-                type="text" 
-                disabled 
-                placeholder="Mã phiếu tự động" 
-                className="w-full py-1 px-2.5.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 placeholder-gray-400 shadow-inner cursor-not-allowed"
-              />
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">Trạng thái</label>
-              <div className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 py-1.5 px-3.5 rounded-xl inline-block shadow-sm">
-                Đã trả hàng
-              </div>
-            </div>
-
-            <hr className="border-gray-100 my-2" />
+            <hr className="border-gray-100 my-1" />
 
             {/* Financial Summary */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Tổng tiền hàng trả</span>
-                <span className="font-extrabold text-gray-900 text-sm">{fmt(totalReturnGoods)}</span>
+            <div className="space-y-2.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 font-medium">Tổng giá gốc hàng mua</span>
+                <span className="font-bold text-gray-800">0</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-bold">Phí trả hàng</span>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 font-medium">Tổng tiền hàng trả</span>
+                <span className="font-bold text-gray-800">{fmt(totalReturnGoods)}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 font-medium">Giảm giá</span>
+                <span className="font-bold text-gray-800">0</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 font-medium">Phí trả hàng</span>
                 <NumericInput 
                   value={Number(String(discountStr).replace(/\D/g, '')) || 0}
                   onChange={(e) => {
                     setDiscountStr(String(e.target.value));
                   }}
                   placeholder="0"
-                  className="w-28 py-1.5 px-3 text-right font-bold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-inner"
+                  className="w-24 py-0.5 px-2 text-right font-bold text-gray-800 border-b border-gray-200 focus:border-primary outline-none bg-transparent"
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-800 font-extrabold">Khách cần trả (hoàn lại)</span>
-                <span className="font-extrabold text-primary text-base">{fmt(customerMustReceive)}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-dashed border-gray-200">
+                <span className="text-gray-900 font-extrabold text-sm">Cần trả khách</span>
+                <span className="font-extrabold text-primary text-lg">{fmt(customerMustReceive)}</span>
               </div>
 
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between pt-1">
                 <div className="flex flex-col">
-                  <span className="text-gray-800 font-extrabold">Tiền đã trả khách</span>
-                  <span className="text-[10px] text-gray-400 font-medium">Tiền mặt</span>
+                  <span className="text-gray-800 font-bold">Tiền đã trả khách</span>
+                  <span className="text-[10px] text-gray-400">Tiền mặt</span>
                 </div>
                 <NumericInput 
                   value={paidAmountStr === '' ? Math.max(0, customerMustReceive - currentDebt) : (Number(String(paidAmountStr).replace(/\D/g, '')) || 0)}
                   onChange={(e) => {
                     setPaidAmountStr(String(e.target.value));
                   }}
-                  className="w-32 py-1 px-2.5 text-right font-extrabold text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:border-primary shadow-sm bg-blue-50/30 text-sm"
+                  className="w-28 py-0.5 px-2 text-right font-extrabold text-gray-900 border-b border-gray-200 focus:border-primary outline-none bg-transparent text-sm"
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-100">
-                <span className="text-gray-800 font-bold flex items-center gap-2">
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-gray-700 font-semibold flex items-center gap-1">
                   Tính vào công nợ
-                  <span className="text-[10px] text-gray-400 font-normal">(Nợ hiện tại: {fmt(currentDebt)})</span>
+                  <span className="text-[10px] text-gray-400 font-normal">(Nợ cũ: {fmt(currentDebt)})</span>
                 </span>
-                <span className={`font-extrabold text-sm ${debtCalculation > currentDebt ? 'text-red-500' : 'text-gray-900'}`}>{fmt(debtCalculation)}</span>
+                <span className={`font-extrabold text-xs ${debtCalculation > currentDebt ? 'text-red-500' : 'text-gray-800'}`}>{fmt(debtCalculation)}</span>
               </div>
             </div>
 
             {/* Note */}
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1.5 block">Ghi chú</label>
+            <div className="pt-1">
               <textarea 
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 rows={2}
                 placeholder="Ghi chú phiếu trả hàng..."
-                className="w-full py-1 px-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner resize-none"
+                className="w-full py-1.5 px-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none"
               />
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-2">
+          <div className="mt-4">
             <button 
               disabled={saving}
               onClick={handleSaveReturn}
-              className="w-full py-3.5 bg-primary hover:bg-primary-hover text-white font-extrabold rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3 bg-primary hover:bg-primary-hover text-white font-extrabold rounded-lg shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed border-none cursor-pointer text-base tracking-wider"
             >
-              {saving ? 'ĐANG XỬ LÝ...' : 'HOÀN THÀNH TRẢ HÀNG'}
+              {saving ? 'ĐANG XỬ LÝ...' : 'TRẢ HÀNG'}
             </button>
           </div>
         </div>
