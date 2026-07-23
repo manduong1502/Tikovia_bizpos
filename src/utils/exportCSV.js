@@ -196,11 +196,6 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
   }
 }
 
-  if (autoCols.length > 0) {
-    worksheet['!cols'] = autoCols;
-  }
-}
-
 export function exportCSV(filename, headers, rows) {
   // Create a worksheet from the data array (prepend headers)
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
