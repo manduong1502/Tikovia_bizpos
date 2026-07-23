@@ -486,7 +486,19 @@ export default function ReturnsPage() {
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
                     <Calendar size={14} className="text-primary ml-1" />
                   </div>
-                  <div><span className="text-gray-500">Khách hàng:</span> <span className="font-bold text-primary">{o.customer_name}</span></div>
+                  <div>
+                    <span className="text-gray-500">Khách hàng:</span>{' '}
+                    <span 
+                      onClick={() => {
+                        if (o.customer_name && o.customer_name !== 'Khách lẻ') {
+                          navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
+                        }
+                      }}
+                      className={`font-bold ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                    >
+                      {o.customer_name}
+                    </span>
+                  </div>
                   {o.order && (
                     <div>
                       <span className="text-gray-500">Hóa đơn liên kết:</span>{' '}
@@ -888,8 +900,32 @@ export default function ReturnsPage() {
                             {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
                           </td>
                         )}
-                        {visibleColumns.includes('customer_code') && <td className="py-2.5 px-3 font-bold text-gray-600">{o.customer_code}</td>}
-                        {visibleColumns.includes('customer_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.customer_name}</td>}
+                        {visibleColumns.includes('customer_code') && (
+                          <td 
+                            className={`py-2.5 px-3 font-bold ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-600'}`}
+                            onClick={(e) => {
+                              if (o.customer_name && o.customer_name !== 'Khách lẻ') {
+                                e.stopPropagation();
+                                navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
+                              }
+                            }}
+                          >
+                            {o.customer_code}
+                          </td>
+                        )}
+                        {visibleColumns.includes('customer_name') && (
+                          <td 
+                            className={`py-2.5 px-3 font-bold ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                            onClick={(e) => {
+                              if (o.customer_name && o.customer_name !== 'Khách lẻ') {
+                                e.stopPropagation();
+                                navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
+                              }
+                            }}
+                          >
+                            {o.customer_name}
+                          </td>
+                        )}
                         {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
                         {visibleColumns.includes('must_pay_customer') && <td className="py-2.5 px-3 text-right font-extrabold text-amber-600">{fmt(o.must_pay_customer)}</td>}
                         {visibleColumns.includes('paid_customer') && <td className="py-2.5 px-3 text-right font-extrabold text-emerald-600">{fmt(o.paid_customer)}</td>}

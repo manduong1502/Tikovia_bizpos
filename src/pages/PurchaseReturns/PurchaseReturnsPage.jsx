@@ -197,7 +197,19 @@ export default function PurchaseReturnsPage() {
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
                     <Calendar size={14} className="text-primary ml-1" />
                   </div>
-                  <div><span className="text-gray-500">Tên NCC:</span> <span className="font-bold text-primary">{o.supplier_name}</span></div>
+                  <div>
+                    <span className="text-gray-500">Tên NCC:</span>{' '}
+                    <span 
+                      onClick={() => {
+                        if (o.supplier_name) {
+                          navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } });
+                        }
+                      }}
+                      className={`font-bold ${o.supplier_name ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                    >
+                      {o.supplier_name}
+                    </span>
+                  </div>
                   {o.purchaseOrder && (
                     <div>
                       <span className="text-gray-500">Đơn nhập liên kết:</span>{' '}
@@ -791,7 +803,19 @@ export default function PurchaseReturnsPage() {
                             {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
                           </td>
                         )}
-                        {visibleColumns.includes('supplier_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.supplier_name}</td>}
+                        {visibleColumns.includes('supplier_name') && (
+                          <td 
+                            className={`py-2.5 px-3 font-bold ${o.supplier_name ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                            onClick={(e) => {
+                              if (o.supplier_name) {
+                                e.stopPropagation();
+                                navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } });
+                              }
+                            }}
+                          >
+                            {o.supplier_name}
+                          </td>
+                        )}
                         {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
                         {visibleColumns.includes('discount') && <td className="py-2.5 px-3 text-right font-bold text-gray-600">{fmt(o.discount)}</td>}
                         {visibleColumns.includes('supplier_must_pay') && <td className="py-2.5 px-3 text-right font-extrabold text-amber-600">{fmt(o.supplier_must_pay)}</td>}
