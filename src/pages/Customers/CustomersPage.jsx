@@ -2001,18 +2001,21 @@ export default function CustomersPage() {
           let dateStr = `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`;
           if (timeRange === 'all') dateStr = `Toàn thời gian`;
 
-          // Title & Date (Merged dynamically later)
-          let row5 = createRow(); row5[0] = 'Công nợ chi tiết khách hàng'; exportData.push(row5);
-          let row6 = createRow(); row6[0] = dateStr; exportData.push(row6);
+          // Title & Date
+          let row5 = createRow(); exportData.push(row5); // Empty row 4
+          let row6 = createRow(); row6[0] = 'CÔNG NỢ CHI TIẾT KHÁCH HÀNG'; exportData.push(row6);
+          let row7 = createRow(); row7[0] = dateStr; exportData.push(row7);
+          let row8 = createRow(); exportData.push(row8); // Empty row 7
 
           // Customer & Debt Summary Info
-          let row7 = createRow(); row7[0] = 'Khách hàng'; row7[1] = c.name; row7[totalCols - 2] = 'Nợ đầu kỳ'; row7[totalCols - 1] = noDauKy; exportData.push(row7);
-          let row8 = createRow(); row8[0] = 'Mã KH'; row8[1] = custCode; row8[totalCols - 4] = 'Phát sinh trong'; row8[totalCols - 3] = totalGhiNo; row8[totalCols - 2] = totalGhiCo; exportData.push(row8);
-          let row9 = createRow(); row9[0] = 'Điện thoại'; row9[1] = c.phone || ''; row9[totalCols - 2] = 'Nợ cuối kỳ'; row9[totalCols - 1] = noCuoiKy; exportData.push(row9);
-          exportData.push(createRow()); // Empty Row 10
+          let row9 = createRow(); row9[0] = 'Khách hàng:'; row9[1] = c.name; row9[totalCols - 3] = 'Nợ đầu kỳ:'; row9[totalCols - 1] = Number(noDauKy || 0); exportData.push(row9);
+          let row10 = createRow(); row10[0] = 'Mã KH:'; row10[1] = custCode; row10[totalCols - 3] = 'Tổng phát sinh Nợ:'; row10[totalCols - 1] = Number(totalGhiNo || 0); exportData.push(row10);
+          let row11 = createRow(); row11[0] = 'Điện thoại:'; row11[1] = c.phone || ''; row11[totalCols - 3] = 'Tổng phát sinh Có:'; row11[totalCols - 1] = Number(totalGhiCo || 0); exportData.push(row11);
+          let row12 = createRow(); row12[totalCols - 3] = 'Nợ cuối kỳ:'; row12[totalCols - 1] = Number(noCuoiKy || 0); exportData.push(row12);
+          exportData.push(createRow()); // Empty Row 12
           
           // Table Headers
-          const headerRowIndex = 10; // 0-based, so Row 11
+          const headerRowIndex = 13; // 0-based, Row 14
           exportData.push(headerRow);
 
           transactions.forEach(tx => {
@@ -2057,20 +2060,26 @@ export default function CustomersPage() {
           if (transactions.length === 0) { toast.error('Không có giao dịch nào'); return; }
 
           exportData.push(createRow());
+          
+          const dateRowIdx = exportData.length;
           let dateRow = createRow();
-          dateRow[totalCols - 2] = `Ngày ${now.getDate()} tháng ${now.getMonth()+1} năm ${now.getFullYear()}`;
+          dateRow[totalCols - 4] = `Ngày ${now.getDate()} tháng ${now.getMonth()+1} năm ${now.getFullYear()}`;
           exportData.push(dateRow);
+          
           exportData.push(createRow());
           
+          const midCol = Math.floor(totalCols / 2);
+          const signRow1Idx = exportData.length;
           let signRow1 = createRow();
           signRow1[1] = 'Khách hàng';
-          signRow1[Math.floor(totalCols / 2)] = 'Người lập biểu';
+          signRow1[midCol] = 'Người lập biểu';
           signRow1[totalCols - 2] = 'TM Công ty';
           exportData.push(signRow1);
 
+          const signRow2Idx = exportData.length;
           let signRow2 = createRow();
           signRow2[1] = '(Ký, họ tên)';
-          signRow2[Math.floor(totalCols / 2)] = '(Ký, họ tên)';
+          signRow2[midCol] = '(Ký, họ tên)';
           signRow2[totalCols - 2] = '(Ký, họ tên)';
           exportData.push(signRow2);
 
@@ -2095,10 +2104,31 @@ export default function CustomersPage() {
             }
             autoCols.push({ wch: 16 }, { wch: 16 }, { wch: 18 }); // Ghi nợ, Ghi có, Dư nợ
             
-            // Dynamic merges for Title and Date
+            // Dynamic merges for Title, Date, Summary Box, and Signatures
             const merges = [
-              { s: { r: 4, c: 0 }, e: { r: 4, c: totalCols - 1 } },
-              { s: { r: 5, c: 0 }, e: { r: 5, c: totalCols - 1 } }
+              { s: { r: 5, c: 0 }, e: { r: 5, c: totalCols - 1 } },
+              { s: { r: 6, c: 0 }, e: { r: 6, c: totalCols - 1 } },
+              
+              { s: { r: 8, c: 1 }, e: { r: 8, c: 3 } },
+              { s: { r: 8, c: totalCols - 3 }, e: { r: 8, c: totalCols - 2 } },
+              
+              { s: { r: 9, c: 1 }, e: { r: 9, c: 3 } },
+              { s: { r: 9, c: totalCols - 3 }, e: { r: 9, c: totalCols - 2 } },
+              
+              { s: { r: 10, c: 1 }, e: { r: 10, c: 3 } },
+              { s: { r: 10, c: totalCols - 3 }, e: { r: 10, c: totalCols - 2 } },
+              
+              { s: { r: 11, c: totalCols - 3 }, e: { r: 11, c: totalCols - 2 } },
+
+              { s: { r: dateRowIdx, c: totalCols - 4 }, e: { r: dateRowIdx, c: totalCols - 1 } },
+
+              { s: { r: signRow1Idx, c: 0 }, e: { r: signRow1Idx, c: 2 } },
+              { s: { r: signRow1Idx, c: midCol - 1 }, e: { r: signRow1Idx, c: midCol + 1 } },
+              { s: { r: signRow1Idx, c: totalCols - 3 }, e: { r: signRow1Idx, c: totalCols - 1 } },
+
+              { s: { r: signRow2Idx, c: 0 }, e: { r: signRow2Idx, c: 2 } },
+              { s: { r: signRow2Idx, c: midCol - 1 }, e: { r: signRow2Idx, c: midCol + 1 } },
+              { s: { r: signRow2Idx, c: totalCols - 3 }, e: { r: signRow2Idx, c: totalCols - 1 } },
             ];
 
             applyDebtExcelStyles(ws, autoCols, headerRowIndex, merges);
