@@ -92,8 +92,7 @@ export function POSProvider({ children }) {
     setActiveTabId(nextTabId);
     setNextTabId(prev => prev + 1);
     
-    const isDelivery = !!(targetOrder.deliveryAddress || targetOrder.driverId || (targetOrder.deliveryAddress && targetOrder.deliveryStatus) || (targetOrder.status && targetOrder.status.toUpperCase() === 'SHIPPING'));
-    setSaleMode(isDelivery ? 'delivery' : 'fast');
+    setSaleMode('fast');
     
     // Clear the state so it doesn't re-trigger
     navigate(location.pathname, { replace: true, state: {} });

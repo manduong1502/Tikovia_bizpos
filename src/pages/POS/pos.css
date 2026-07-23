@@ -547,10 +547,84 @@
   font-size: 11px;
   font-weight: 700;
   margin-right: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   height: 24px;
   min-width: 32px;
+}
+
+/* Delivery Panel Styles */
+.pos-delivery-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  background: #ffffff;
+  overflow-y: auto;
+}
+
+.pos-delivery-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--pos-border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.pos-del-tab {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pos-text-body);
+  background: var(--pos-surface-muted);
+  border: 1px solid var(--pos-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pos-del-tab:hover {
+  background: #e2e8f0;
+  color: var(--pos-text-main);
+}
+
+.pos-del-tab.active {
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.pos-del-tab span {
+  background: var(--pos-primary);
+  color: #fff;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.pos-delivery-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pos-input, .pos-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--pos-border);
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--pos-text-main);
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pos-input:focus, .pos-select:focus {
+  border-color: var(--pos-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
