@@ -764,17 +764,13 @@ export default function CreatePurchaseReturnPage() {
         {/* Right Panel Section - Compact Layout matching Image 2 */}
         <div className="w-[320px] bg-white border-l border-gray-200 p-4 flex flex-col justify-between shadow-sm shrink-0 overflow-y-auto">
           <div className="flex flex-col gap-3">
-            {/* Store Branch & Date Picker Header */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 cursor-pointer shadow-sm">
-                <User size={14} className="text-gray-500" />
-                <span className="truncate max-w-[130px]">Thực phẩm Tích Đ</span>
-              </div>
+            {/* Date Picker Header */}
+            <div className="flex justify-end">
               <input 
                 type="datetime-local" 
                 value={returnDate} 
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="w-36 border border-gray-200 rounded-xl px-2 py-1 text-[11px] font-bold text-gray-600 outline-none focus:border-primary shadow-sm bg-gray-50"
+                className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-primary shadow-sm bg-gray-50/50"
               />
             </div>
 
