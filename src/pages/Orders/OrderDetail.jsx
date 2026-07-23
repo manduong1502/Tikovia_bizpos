@@ -67,51 +67,8 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
 
   const handleExportSingleInvoice = async () => {
     try {
-      const XLSX = await import('xlsx-js-style');
-      const dateStr = o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : '';
-      
-      const rows = [
-        ['HÓA ĐƠN BÁN HÀNG'],
-        [`Mã hóa đơn: ${o.order_code || o.id}`, '', `Thời gian: ${dateStr}`],
-        [`Khách hàng: ${o.customer_name || 'Khách lẻ'}`, '', `Số điện thoại: ${o.customer?.phone || o.customer_phone || ''}`],
-        [`Địa chỉ: ${o.customer?.address || ''}`],
-        [],
-        ['STT', 'Mã sản phẩm', 'Tên sản phẩm', 'ĐVT', 'Số lượng', 'Đơn giá', 'Giảm giá', 'Thành tiền'],
-      ];
-
-      items.forEach((it, index) => {
-        const price = Number(it.unit_price || it.price || 0);
-        const discount = Number(it.discount || 0);
-        const actualPrice = price - discount;
-        const qty = Number(it.quantity || 0);
-        const itemTotal = Number(it.total || actualPrice * qty);
-        
-        rows.push([
-          index + 1,
-          it.product?.sku || it.product_sku || `SP00${index + 1}`,
-          it.product_name || it.product?.name || '',
-          it.product?.unit || it.unit || 'cái',
-          qty,
-          price,
-          discount,
-          itemTotal
-        ]);
-      });
-
-      rows.push([]);
-      rows.push(['', '', '', '', '', '', 'Tổng tiền hàng:', Number(o.total || 0)]);
-      rows.push(['', '', '', '', '', '', 'Giảm giá hóa đơn:', Number(o.discount_amount || o.discount || 0)]);
-      rows.push(['', '', '', '', '', '', 'Khách đã trả:', Number(o.paid_amount || o.paid || 0)]);
-      if (o.note) {
-        rows.push([]);
-        rows.push([`Ghi chú: ${o.note}`]);
-      }
-
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'HoaDon');
-      XLSX.writeFile(wb, `HoaDon_${o.order_code || o.id}.xlsx`);
-      toast.success('Đã xuất file hóa đơn thành công!');
+      const { exportSingleInvoiceExcel } = await import('../../utils/exportCSV');
+      exportSingleInvoiceExcel(o);
     } catch (err) {
       console.error(err);
       toast.error('Có lỗi xảy ra khi xuất file hóa đơn');
