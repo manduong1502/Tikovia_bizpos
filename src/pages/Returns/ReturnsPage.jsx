@@ -61,7 +61,7 @@ const normalizeReturn = (o) => {
     code: o.code || '',
     user_name: o.order?.user?.fullName || o.createdBy || 'Admin',
     created_at: o.createdAt || o.created_at || null,
-    customer_code: o.customer?.code || `KH${String(o.customer?.id || 0).padStart(6, '0')}`,
+    customer_code: o.customer?.code || o.customer_code || (o.customer?.id ? `KH${String(o.customer.id).padStart(6, '0')}` : '---'),
     customer_name: o.customer?.name || o.customer_name || 'Khách lẻ',
     total,
     must_pay_customer: total,
