@@ -59,46 +59,7 @@ const ALL_COLUMNS = [
   { key: 'status', label: 'Trạng thái' }
 ];
 
-const fallbackEntries = [
-  {
-    id: 1,
-    code: 'TTM000001',
-    type: 'INCOME',
-    amount: 1000000,
-    category: 'Thu nhập khác',
-    partnerType: 'other',
-    partnerName: 'Mẫn',
-    partnerPhone: '0903555444',
-    partnerAddress: 'quang châu hòa xuân, Xã Hòa Châu, Huyện Hòa Vang, Đà Nẵng',
-    paymentMethod: 'cash',
-    isAccounting: true,
-    status: 'completed',
-    branch: 'Chi nhánh trung tâm',
-    createdBy: 'Võ Thành Huy',
-    note: 'tiền xăng xe dư',
-    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-  },
-  {
-    id: 2,
-    code: 'TCM000001',
-    type: 'EXPENSE',
-    amount: 250000,
-    category: 'Chi phí điện',
-    partnerType: 'other',
-    partnerName: 'Công ty Điện lực Đà Nẵng',
-    partnerPhone: '0236199999',
-    partnerAddress: 'Hải Châu, Đà Nẵng',
-    paymentMethod: 'cash',
-    isAccounting: true,
-    status: 'completed',
-    branch: 'Chi nhánh trung tâm',
-    createdBy: 'Võ Thành Huy',
-    note: 'Thanh toán tiền điện tháng 5/2026',
-    createdAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-  }
-];
+const fallbackEntries = [];
 
 export default function CashbookPage() {
   const navigate = useNavigate();
@@ -161,13 +122,9 @@ export default function CashbookPage() {
       const r = await cashbookAPI.getAll(params);
       const data = r.data || (Array.isArray(r) ? r : []);
       
-      if (!data || data.length === 0) {
-        setEntries(fallbackEntries);
-      } else {
-        setEntries(data);
-      }
+      setEntries(Array.isArray(data) ? data : []);
     } catch { 
-      setEntries(fallbackEntries); 
+      setEntries([]); 
     } finally {
       setIsLoading(false);
     }

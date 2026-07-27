@@ -94,18 +94,7 @@ const loadLocalState = (key, def) => { try { const val = localStorage.getItem('T
 const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key, JSON.stringify(val)); } catch {} };
 
 // ─── Products ───
-const FALLBACK_PRODUCTS = [
-  { id: 1, sku: 'SP001', name: 'Coca Cola 330ml', barcode: '8935049500100', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 7000, sellPrice: 10000, stock: 200, minStock: 10, maxStock: 500, unit: 'Lon', direct_sale: true, isActive: true, createdAt: '2026-05-15T07:00:00Z', brand: 'Coca Cola', location: 'Kho A', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
-  { id: 2, sku: 'SP002', name: 'Pepsi 330ml', barcode: '8935049500200', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 7000, sellPrice: 10000, stock: 150, minStock: 10, maxStock: 500, unit: 'Lon', direct_sale: true, isActive: true, createdAt: '2026-05-15T08:00:00Z', brand: 'Pepsi', location: 'Kho B', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
-  { id: 3, sku: 'SP003', name: 'Nước suối Aquafina 500ml', barcode: '8935049500300', categoryId: 1, category_id: 1, category: { id: 1, name: 'Đồ uống' }, costPrice: 3000, sellPrice: 5000, stock: 300, minStock: 10, maxStock: 500, unit: 'Chai', direct_sale: true, isActive: true, createdAt: '2026-05-15T09:00:00Z', brand: 'Suntory', location: 'Kho A', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
-  { id: 4, sku: 'SP004', name: 'Mì Hảo Hảo tôm chua cay', barcode: '8935049500400', categoryId: 2, category_id: 2, category: { id: 2, name: 'Thực phẩm' }, costPrice: 3500, sellPrice: 5000, stock: 500, minStock: 20, maxStock: 1000, unit: 'Gói', direct_sale: true, isActive: true, createdAt: '2026-05-15T10:00:00Z', brand: 'Acecook', location: 'Kho C', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
-  { id: 5, sku: 'SP005', name: 'Snack Oishi tôm', barcode: '8935049500500', categoryId: 2, category_id: 2, category: { id: 2, name: 'Thực phẩm' }, costPrice: 5000, sellPrice: 8000, stock: 100, minStock: 15, maxStock: 300, unit: 'Gói', direct_sale: true, isActive: true, createdAt: '2026-05-15T11:00:00Z', brand: 'Liwayway', location: 'Kho C', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
-  { id: 6, sku: 'SP006', name: 'Bột giặt OMO 3kg', barcode: '8935049500600', categoryId: 3, category_id: 3, category: { id: 3, name: 'Gia dụng' }, costPrice: 65000, sellPrice: 85000, stock: 30, minStock: 5, maxStock: 100, unit: 'Bịch', direct_sale: true, isActive: true, createdAt: '2026-05-15T12:00:00Z', brand: 'Unilever', location: 'Kho D', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
-  { id: 7, sku: 'SP007', name: 'Nước rửa chén Sunlight', barcode: '8935049500700', categoryId: 3, category_id: 3, category: { id: 3, name: 'Gia dụng' }, costPrice: 25000, sellPrice: 35000, stock: 50, minStock: 10, maxStock: 200, unit: 'Chai', direct_sale: true, isActive: true, createdAt: '2026-05-15T13:00:00Z', brand: 'Unilever', location: 'Kho D', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
-  { id: 8, sku: 'SP008', name: 'Pin AA Panasonic (vỉ 4)', barcode: '8935049500800', categoryId: 4, category_id: 4, category: { id: 4, name: 'Điện tử' }, costPrice: 20000, sellPrice: 30000, stock: 80, minStock: 10, maxStock: 300, unit: 'Vỉ', direct_sale: true, isActive: true, createdAt: '2026-05-15T14:00:00Z', brand: 'Panasonic', location: 'Kho E', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
-  { id: 9, sku: 'SP009', name: 'Bút bi Thiên Long TL-027', barcode: '8935049500900', categoryId: 5, category_id: 5, category: { id: 5, name: 'Văn phòng phẩm' }, costPrice: 3000, sellPrice: 5000, stock: 200, minStock: 20, maxStock: 1000, unit: 'Cây', direct_sale: true, isActive: true, createdAt: '2026-05-15T15:00:00Z', brand: 'Thiên Long', location: 'Kho F', supplierId: 1, supplierName: 'Công ty TNHH Phân phối ABC', supplier: { id: 1, name: 'Công ty TNHH Phân phối ABC' } },
-  { id: 10, sku: 'SP010', name: 'Vở Campus 200 trang', barcode: '8935049501000', categoryId: 5, category_id: 5, category: { id: 5, name: 'Văn phòng phẩm' }, costPrice: 10000, sellPrice: 15000, stock: 150, minStock: 15, maxStock: 500, unit: 'Cuốn', direct_sale: true, isActive: true, createdAt: '2026-05-15T16:00:00Z', brand: 'Kokuyo', location: 'Kho F', supplierId: 2, supplierName: 'Đại lý XYZ', supplier: { id: 2, name: 'Đại lý XYZ' } },
-];
+const FALLBACK_PRODUCTS = [];
 
 export const productAPI = {
   getAll: () => api.get('/products/all', { hideErrorToast: true }).then(r => {
@@ -142,13 +131,7 @@ export const productAPI = {
 
 
 // ─── Categories ───
-const FALLBACK_CATEGORIES = [
-  { id: 1, name: 'Đồ uống' },
-  { id: 2, name: 'Thực phẩm' },
-  { id: 3, name: 'Gia dụng' },
-  { id: 4, name: 'Điện tử' },
-  { id: 5, name: 'Văn phòng phẩm' },
-];
+const FALLBACK_CATEGORIES = [];
 
 export const categoryAPI = {
   getAll: () => api.get('/categories').then(r => r.data).catch(() => FALLBACK_CATEGORIES),
@@ -211,10 +194,7 @@ function normalizeOrderDetail(o) {
 }
 
 // ─── Orders ───
-const FALLBACK_ORDERS = [
-  { id: 1, code: 'HD0001', order_code: 'HD0001', customer_name: 'Trần Thị B', customer_code: 'KH001', user_name: 'Nguyễn Văn A', total: 150000, subtotal: 150000, discount_amount: 0, paid_amount: 150000, payment_method: 'cash', payment_status: 'completed', status: 'completed', created_at: '2026-05-15T10:30:00Z', items: [{ id: 1, product_name: 'Coca Cola 330ml', product_sku: 'SP001', quantity: 15, unit_price: 10000, total: 150000 }] },
-  { id: 2, code: 'HD0002', order_code: 'HD0002', customer_name: 'Lê Văn C', customer_code: 'KH002', user_name: 'Nguyễn Văn A', total: 350000, subtotal: 350000, discount_amount: 0, paid_amount: 350000, payment_method: 'transfer', payment_status: 'completed', status: 'completed', created_at: '2026-05-15T14:15:00Z', items: [{ id: 2, product_name: 'Bột giặt OMO 3kg', product_sku: 'SP006', quantity: 4, unit_price: 85000, total: 340000 }, { id: 3, product_name: 'Coca Cola 330ml', product_sku: 'SP001', quantity: 1, unit_price: 10000, total: 10000 }] },
-];
+const FALLBACK_ORDERS = [];
 
 let LOCAL_ADDED_ORDERS = loadLocalState('ADDED_ORDERS', []);
 let LOCAL_UPDATED_ORDERS = loadLocalState('UPD_ORDERS', {});
@@ -543,11 +523,7 @@ export const returnAPI = {
 };
 
 // ─── Customers ───
-const FALLBACK_CUSTOMERS = [
-  { id: 1, code: 'KH001', name: 'Trần Thị B', phone: '0912345678', address: 'Q.1, TP.HCM', total_spent: 1500000, debt: 0, total_return: 0 },
-  { id: 2, code: 'KH002', name: 'Lê Văn C', phone: '0923456789', address: 'Q.3, TP.HCM', total_spent: 3200000, debt: 500000, total_return: 0 },
-  { id: 3, code: 'KH003', name: 'Phạm Thị D', phone: '0934567890', address: 'Q.7, TP.HCM', total_spent: 800000, debt: 0, total_return: 0 },
-];
+const FALLBACK_CUSTOMERS = [];
 
 let LOCAL_ADDED_CUSTOMERS = loadLocalState('ADDED_CUST', []);
 let LOCAL_UPDATED_CUSTOMERS = loadLocalState('UPD_CUST', {});
@@ -640,10 +616,7 @@ export const customerAPI = {
 };
 
 // ─── Suppliers ───
-let FALLBACK_SUPPLIERS = [
-  { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 0, net_purchase: 12500000, isActive: true, note: 'Nhà cung cấp uy tín', created_by: 'Admin', created_at: '2026-05-15' },
-  { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000, isActive: true, note: 'Giao hàng nhanh', created_by: 'Admin', created_at: '2026-05-15' },
-];
+let FALLBACK_SUPPLIERS = [];
 
 let LOCAL_ADDED_SUPPLIERS = loadLocalState('ADDED_SUPP', []);
 let LOCAL_UPDATED_SUPPLIERS = loadLocalState('UPD_SUPP', {});
@@ -862,26 +835,7 @@ export const supplierAPI = {
   }),
 };
 
-let FALLBACK_PURCHASE_ORDERS = [
-  { id: 1, po_code: 'PN000042', created_at: '2026-05-11T11:35:00Z', supplier_code: 'NCC001', supplier_name: 'Công ty TNHH Citigo', total: 4550000, paid_amount: 4550000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-    { id: 1, product_sku: 'SP001', product_name: 'Coca Cola 330ml', quantity: 250, unit_price: 10000, total: 2500000 },
-    { id: 6, product_sku: 'SP006', product_name: 'Bột giặt OMO 3kg', quantity: 24, unit_price: 85000, total: 2040000 }
-  ] },
-  { id: 2, po_code: 'PN000041', created_at: '2026-05-10T11:35:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 3200000, paid_amount: 3200000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-    { id: 2, product_sku: 'SP002', product_name: 'Pepsi 330ml', quantity: 320, unit_price: 10000, total: 3200000 }
-  ] },
-  { id: 3, po_code: 'PN000040', created_at: '2026-05-09T11:34:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 1850000, paid_amount: 1850000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-    { id: 7, product_sku: 'SP007', product_name: 'Nước rửa chén Sunlight', quantity: 50, unit_price: 35000, total: 1750000 },
-    { id: 1, product_sku: 'SP001', product_name: 'Coca Cola 330ml', quantity: 10, unit_price: 10000, total: 100000 }
-  ] },
-  { id: 4, po_code: 'PN000039', created_at: '2026-05-08T11:33:00Z', supplier_code: 'NCC002', supplier_name: 'Công ty Hoàng Gia', total: 5400000, paid_amount: 5400000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-    { id: 4, product_sku: 'SP004', product_name: 'Mì Hảo Hảo tôm chua cay', quantity: 1000, unit_price: 5000, total: 5000000 },
-    { id: 5, product_sku: 'SP005', product_name: 'Snack Oishi tôm', quantity: 50, unit_price: 8000, total: 400000 }
-  ] },
-  { id: 5, po_code: 'PN000038', created_at: '2026-05-07T11:32:00Z', supplier_code: 'NCC003', supplier_name: 'Công ty Pharmedic', total: 2100000, paid_amount: 2100000, payment_status: 'paid', created_by: 'Võ Thành Huy', received_by: 'Võ Thành Huy', note: '', items: [
-    { id: 10, product_sku: 'SP010', product_name: 'Vở Campus 200 trang', quantity: 140, unit_price: 15000, total: 2100000 }
-  ] },
-];
+let FALLBACK_PURCHASE_ORDERS = [];
 let LOCAL_ADDED_PURCHASE_ORDERS = loadLocalState('ADDED_PO', []);
 let LOCAL_UPDATED_PURCHASE_ORDERS = loadLocalState('UPD_PO', {});
 
