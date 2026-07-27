@@ -205,18 +205,28 @@ export default function POSPaymentPanel({ forceShow = false }) {
               </tr>
             </thead>
             <tbody>
-              ${cart.map(i => {
-                const itemTotal = (i.price - (i.discount || 0)) * i.quantity;
-                return `
-                <tr>
-                  <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
-                  <td style="text-align: center;">${i.quantity}</td>
-                  <td style="text-align: center;">${i.product.unit || 'cái'}</td>
-                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(i.price)}</td>
-                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(i.discount || 0)}</td>
-                  <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
-                </tr>
-                `;
+              ${cart.flatMap(i => {
+                const weighings = i.weighings && i.weighings.length > 0 
+                  ? i.weighings 
+                  : [{ quantity: i.quantity, price: i.price, discount: i.discount }];
+
+                return weighings.map(w => {
+                  const qty = parseFloat(w.quantity) || 0;
+                  const pr = Number(w.price || 0);
+                  const disc = Number(w.discount || 0);
+                  const itemTotal = (pr - disc) * qty;
+
+                  return `
+                  <tr>
+                    <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
+                    <td style="text-align: center;">${qty}</td>
+                    <td style="text-align: center;">${i.product.unit || 'cái'}</td>
+                    <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(pr)}</td>
+                    <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(disc)}</td>
+                    <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(itemTotal)}</td>
+                  </tr>
+                  `;
+                });
               }).join('')}
             </tbody>
           </table>
