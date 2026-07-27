@@ -52,16 +52,27 @@ export function POSProvider({ children }) {
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
   }, [loadData]);
 
-  // Handle editOrder or copyOrder from navigation state
+  // Handle editOrder or copyOrder from navigation state or URL query params
   useEffect(() => {
     const editOrder = location.state?.editOrder;
-    const copyOrder = location.state?.copyOrder;
+    let copyOrder = location.state?.copyOrder;
+
+    const params = new URLSearchParams(location.search);
+    const copyOrderCode = params.get('copyOrderCode');
+    if (!copyOrder && copyOrderCode) {
+      const stored = sessionStorage.getItem(`copy_order_${copyOrderCode}`);
+      if (stored) {
+        try { copyOrder = JSON.parse(stored); } catch {}
+      }
+    }
+
     const targetOrder = editOrder || copyOrder;
     if (!targetOrder || products.length === 0) return;
 
     const prefix = editOrder ? 'Update' : 'Copy';
+    const tabLabel = `${prefix}_${targetOrder.code}`;
     // Avoid re-creating if tab already exists
-    const existingTab = invoices.find(inv => inv.label === `${prefix}_${targetOrder.code}`);
+    const existingTab = invoices.find(inv => inv.label === tabLabel);
     if (existingTab) { setActiveTabId(existingTab.id); return; }
 
     const editCart = (targetOrder.items || []).map(it => {
@@ -76,7 +87,7 @@ export function POSProvider({ children }) {
 
     const editInvoice = {
       id: nextTabId,
-      label: `${prefix}_${targetOrder.code}`,
+      label: tabLabel,
       cart: editCart,
       customer: targetOrder.customer || null,
       note: targetOrder.note || '',
@@ -94,15 +105,28 @@ export function POSProvider({ children }) {
       driverName: targetOrder.driverId ? (targetOrder.driverName || 'Chưa gán') : '',
       deliveryStatus: targetOrder.deliveryAddress ? (targetOrder.deliveryStatus || 'ASSIGNED') : '',
     };
-    setInvoices(prev => [...prev, editInvoice]);
-    setActiveTabId(nextTabId);
-    setNextTabId(prev => prev + 1);
+
+    const isDefaultTabEmpty = invoices.length === 1 && invoices[0].id === 1 && invoices[0].cart.length === 0 && !invoices[0].customer;
+
+    setInvoices(prev => {
+      if (isDefaultTabEmpty) {
+        return [{ ...editInvoice, id: 1, label: tabLabel }];
+      }
+      return [...prev, editInvoice];
+    });
+
+    setActiveTabId(isDefaultTabEmpty ? 1 : nextTabId);
+    if (!isDefaultTabEmpty) setNextTabId(prev => prev + 1);
     
     setSaleMode('fast');
     
-    // Clear the state so it doesn't re-trigger
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.state, products]);
+    // Clean URL query params / state
+    if (copyOrderCode) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.search, products]);
 
   // --- Tab Actions ---
   const addTab = () => {

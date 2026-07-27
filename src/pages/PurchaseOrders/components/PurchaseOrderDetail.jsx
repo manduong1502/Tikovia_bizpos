@@ -78,8 +78,9 @@ export default function PurchaseOrderDetail({
   };
 
   const handleClonePO = () => {
-    navigate('/purchase-orders/create', { state: { cloneFrom: o } });
-    toast.success('Đang tạo phiếu nhập mới từ dữ liệu sao chép');
+    sessionStorage.setItem(`clone_po_${o.id}`, JSON.stringify(o));
+    window.open(`/purchase-orders/create?clonePoId=${o.id}`, '_blank');
+    toast.success('Đã mở phiếu nhập sao chép ở tab mới');
   };
 
   const handlePrintPO = () => {

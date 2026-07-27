@@ -94,9 +94,17 @@ export default function CreatePurchaseOrderPage() {
   }, [isUpdate, updateId]);
 
   useEffect(() => {
-    if (location.state?.cloneFrom) {
-      const po = location.state.cloneFrom;
-      
+    let po = location.state?.cloneFrom;
+    const params = new URLSearchParams(location.search);
+    const clonePoId = params.get('clonePoId');
+    if (!po && clonePoId) {
+      const stored = sessionStorage.getItem(`clone_po_${clonePoId}`);
+      if (stored) {
+        try { po = JSON.parse(stored); } catch {}
+      }
+    }
+
+    if (po) {
       // Khôi phục nhà cung cấp
       if (po.supplier) {
         setSelectedSupplier(po.supplier);
@@ -126,10 +134,14 @@ export default function CreatePurchaseOrderPage() {
         })));
       }
       
-      // Xoá state để không bị khôi phục lại khi reload/back
-      navigate(location.pathname, { replace: true, state: {} });
+      // Xoá state/query param để không bị khôi phục lại khi reload/back
+      if (clonePoId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     }
-  }, [location.state, suppliers]);
+  }, [location.state, location.search, suppliers]);
 
   // Lọc sản phẩm
   const filteredProducts = useMemo(() => {

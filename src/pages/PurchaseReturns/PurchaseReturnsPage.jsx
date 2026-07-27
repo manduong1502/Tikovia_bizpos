@@ -158,8 +158,9 @@ export default function PurchaseReturnsPage() {
   };
 
   const handleClonePR = (o) => {
-    navigate('/purchase-returns/create', { state: { cloneFrom: o } });
-    toast.success('Đang tạo phiếu trả hàng nhập mới từ dữ liệu sao chép');
+    sessionStorage.setItem(`clone_pr_${o.id}`, JSON.stringify(o));
+    window.open(`/purchase-returns/create?clonePrId=${o.id}`, '_blank');
+    toast.success('Đã mở phiếu trả hàng nhập sao chép ở tab mới');
   };
 
   const renderDetail = (o) => {

@@ -35,23 +35,29 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
   };
 
   const handleCopy = () => {
-    navigate('/pos', {
-      state: {
-        copyOrder: {
-          id: o.id,
-          code: o.order_code,
-          items: items,
-          customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null,
-          note: o.note,
-          deliveryAddress: o.deliveryAddress || '',
-          receiverName: o.receiverName || '',
-          receiverPhone: o.receiverPhone || '',
-          driverId: o.driverId || '',
-          driverName: o.deliveryAddress ? (o.driverName || 'Chưa gán') : '',
-          deliveryStatus: o.deliveryAddress ? (o.deliveryStatus || 'ASSIGNED') : ''
-        }
-      }
-    });
+    const custId = o.customerId || o.customer_id || o.customer?.id;
+    const copyData = {
+      id: o.id,
+      code: o.order_code || o.code,
+      items: items,
+      customer: (o.customer_name && o.customer_name !== 'Khách lẻ') ? {
+        id: custId,
+        name: o.customer_name,
+        phone: o.customer_phone || o.customer?.phone || '',
+        debt: o.customer_debt || o.customer?.debt || o.customer?.totalDebt || 0
+      } : null,
+      note: o.note,
+      deliveryAddress: o.deliveryAddress || '',
+      receiverName: o.receiverName || '',
+      receiverPhone: o.receiverPhone || '',
+      driverId: o.driverId || '',
+      driverName: o.deliveryAddress ? (o.driverName || 'Chưa gán') : '',
+      deliveryStatus: o.deliveryAddress ? (o.deliveryStatus || 'ASSIGNED') : ''
+    };
+    const orderCode = o.order_code || o.code || o.id;
+    sessionStorage.setItem(`copy_order_${orderCode}`, JSON.stringify(copyData));
+    window.open(`/pos?copyOrderCode=${encodeURIComponent(orderCode)}`, '_blank');
+    toast.success('Đã mở đơn sao chép ở tab mới');
   };
 
   const handleSaveNote = async () => {

@@ -234,8 +234,9 @@ export default function ReturnsPage() {
   };
 
   const handleCloneReturn = (o) => {
-    navigate('/returns/new', { state: { cloneFrom: o } });
-    toast.success('Đang tạo phiếu trả hàng mới từ dữ liệu sao chép');
+    sessionStorage.setItem(`clone_return_${o.id}`, JSON.stringify(o));
+    window.open(`/returns/new?cloneReturnId=${o.id}`, '_blank');
+    toast.success('Đã mở phiếu trả hàng sao chép ở tab mới');
   };
 
   const handlePrintReturn = (o) => {

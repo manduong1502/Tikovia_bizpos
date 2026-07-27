@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Search, Trash2, Printer, Eye, AlertCircle, Edit2, Plus, X, Scan, Upload, FileSpreadsheet, ChevronDown, ChevronUp, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 // Dynamic imports will be used for XLSX to speed up route loading
 import Button from '../../components/ui/Button';
@@ -105,9 +105,17 @@ export default function CreatePurchaseReturnPage() {
   }, []);
 
   useEffect(() => {
-    if (location.state?.cloneFrom) {
-      const pr = location.state.cloneFrom;
+    let pr = location.state?.cloneFrom;
+    const params = new URLSearchParams(location.search);
+    const clonePrId = params.get('clonePrId');
+    if (!pr && clonePrId) {
+      const stored = sessionStorage.getItem(`clone_pr_${clonePrId}`);
+      if (stored) {
+        try { pr = JSON.parse(stored); } catch {}
+      }
+    }
 
+    if (pr) {
       // Khôi phục nhà cung cấp
       if (pr.supplier) {
         setSelectedSupplier(pr.supplier);
@@ -139,10 +147,14 @@ export default function CreatePurchaseReturnPage() {
         })));
       }
 
-      // Xoá state để không bị khôi phục lại khi reload/back
-      window.history.replaceState({}, document.title);
+      // Xoá state/query param để không bị khôi phục lại khi reload/back
+      if (clonePrId) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     }
-  }, [location.state, suppliers]);
+  }, [location.state, location.search, suppliers]);
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
@@ -780,7 +792,12 @@ export default function CreatePurchaseReturnPage() {
                 <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-3 py-2 shadow-sm">
                   <div className="flex items-center gap-2 truncate">
                     <User size={16} className="text-primary shrink-0" />
-                    <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
+                    <div className="flex flex-col truncate">
+                      <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
+                      <span className="text-[11px] font-bold text-rose-600">
+                        Nợ hiện tại: {fmt(selectedSupplier.totalDebt ?? selectedSupplier.debt ?? 0)}
+                      </span>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setSelectedSupplier(null)} 
@@ -817,8 +834,11 @@ export default function CreatePurchaseReturnPage() {
                       onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
                       className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                     >
-                      <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
-                      <span className="text-[11px] text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
+                        <span className="text-[11px] font-bold text-rose-600">{fmt(s.totalDebt ?? s.debt ?? 0)}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-medium">{s.phone ? `${s.phone} - ` : ''}{s.code}</span>
                     </div>
                   ))}
                 </div>
