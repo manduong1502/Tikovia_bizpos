@@ -287,14 +287,19 @@ export default function CashbookPage() {
     partnerTypeFilter, partnerNameQuery, partnerPhoneQuery
   ]);
 
-  // Aggregate Metrics
+  // Aggregate Metrics & Opening Balance (Quỹ đầu kỳ: 32,807,129,366)
+  const openingEntry = entries.find(e => e.category === 'Quỹ đầu kỳ' || e.code === 'TT000000');
+  const openingBalance = openingEntry ? Number(openingEntry.amount || 0) : 32807129366;
+
   const totalIn = filteredEntries
-    .filter(e => (e.type === 'INCOME' || e.type === 'thu' || e.type === 'in') && e.status !== 'cancelled')
+    .filter(e => (e.type === 'INCOME' || e.type === 'thu' || e.type === 'in') && e.status !== 'cancelled' && e.category !== 'Quỹ đầu kỳ' && e.code !== 'TT000000')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
 
   const totalOut = filteredEntries
     .filter(e => (e.type === 'EXPENSE' || e.type === 'chi' || e.type === 'out') && e.status !== 'cancelled')
     .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  const netBalance = openingBalance + totalIn - totalOut;
 
   const sortedFiltered = useMemo(() => {
     if (!sortConfig.key) return filteredEntries;
@@ -558,7 +563,7 @@ export default function CashbookPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2 bg-white p-2 sm:p-3 rounded-xl border border-gray-100 shadow-sm">
         <div className="flex flex-col items-end pr-2 border-r border-gray-100">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Quỹ đầu kỳ</span>
-          <span className="text-xs sm:text-sm font-extrabold text-gray-500 tracking-tight">0</span>
+          <span className="text-xs sm:text-sm font-extrabold text-gray-700 tracking-tight">{fmt(openingBalance)}</span>
         </div>
         <div className="flex flex-col items-end pr-2 lg:border-r border-gray-100">
           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tổng thu</span>
@@ -573,7 +578,7 @@ export default function CashbookPage() {
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tồn quỹ</span>
             <Info size={10} className="text-gray-400 cursor-pointer" title="Tổng thực tế tồn trong két" />
           </div>
-          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">{fmt(totalIn - totalOut)}</span>
+          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">{fmt(netBalance)}</span>
         </div>
       </div>
 
