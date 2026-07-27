@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import toast from 'react-hot-toast';
 import { 
   Plus, Download, Search, ArrowUpRight, ArrowDownLeft, 
   FileText, Wallet, Filter, X, SlidersHorizontal, Info, 
-  Star, Printer, Edit, Trash2, Calendar, MapPin
+  Star, Printer, Edit, Trash2, Calendar, MapPin, ExternalLink
 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportUtils';
 import Pagination from '../../components/common/Pagination';
@@ -100,6 +101,7 @@ const fallbackEntries = [
 ];
 
 export default function CashbookPage() {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -1140,7 +1142,27 @@ export default function CashbookPage() {
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 pt-4 border-t border-dashed border-gray-100">
                                     <div className="flex flex-col gap-1">
                                       <span className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Người nộp/nhận</span>
-                                      <span className="text-xs font-black text-gray-800">{e.partnerName}</span>
+                                      {e.partnerType === 'customer' || e.partnerType === 'khach_hang' ? (
+                                        <button 
+                                          onClick={() => navigate('/customers', { state: { searchCustomer: e.partnerName } })}
+                                          className="text-xs font-black text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left inline-flex items-center gap-1"
+                                          title="Xem chi tiết khách hàng tại trang Khách hàng"
+                                        >
+                                          <span>{e.partnerName}</span>
+                                          <ExternalLink size={14} className="text-primary shrink-0" />
+                                        </button>
+                                      ) : (e.partnerType === 'supplier' || e.partnerType === 'nha_cung_cap') ? (
+                                        <button 
+                                          onClick={() => navigate('/suppliers', { state: { searchSupplier: e.partnerName } })}
+                                          className="text-xs font-black text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left inline-flex items-center gap-1"
+                                          title="Xem chi tiết nhà cung cấp tại trang Nhà cung cấp"
+                                        >
+                                          <span>{e.partnerName}</span>
+                                          <ExternalLink size={14} className="text-primary shrink-0" />
+                                        </button>
+                                      ) : (
+                                        <span className="text-xs font-black text-gray-800">{e.partnerName}</span>
+                                      )}
                                       {e.partnerPhone && <span className="text-xs font-bold text-gray-500">SĐT: {e.partnerPhone}</span>}
                                       {e.partnerAddress && <span className="text-xs font-medium text-gray-500 mt-0.5">{e.partnerAddress}</span>}
                                     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal } from 'lucide-react';
+import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI } from '../../services/api';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
@@ -235,10 +235,11 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                 {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
                   <button 
                     onClick={() => navigate('/customers', { state: { searchCustomer: o.customer_name, customerId: o.customerId || o.customer_id } })}
-                    className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                    className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left inline-flex items-center gap-1"
                     title="Xem chi tiết khách hàng tại trang Khách hàng"
                   >
-                    {o.customer_name}
+                    <span>{o.customer_name}</span>
+                    <ExternalLink size={14} className="text-primary shrink-0" />
                   </button>
                 ) : (
                   <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>

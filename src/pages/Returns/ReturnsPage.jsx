@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, Trash2, Copy, Save, MoreHorizontal, Calendar, X, SlidersHorizontal, Eye, Printer
+  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, Trash2, Copy, Save, MoreHorizontal, Calendar, X, SlidersHorizontal, Eye, Printer, ExternalLink
 } from 'lucide-react';
 // Dynamic imports will be used for exportCSV to speed up route loading
 import { copyToClipboard } from '../../utils/exportUtils';
@@ -503,9 +503,10 @@ export default function ReturnsPage() {
                           navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
                         }
                       }}
-                      className={`font-bold ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                      className={`font-bold inline-flex items-center gap-1 ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
                     >
-                      {o.customer_name}
+                      <span>{o.customer_name}</span>
+                      {o.customer_name && o.customer_name !== 'Khách lẻ' && <ExternalLink size={14} className="text-primary shrink-0" />}
                     </span>
                   </div>
                   {o.order && (
@@ -513,9 +514,10 @@ export default function ReturnsPage() {
                       <span className="text-gray-500">Hóa đơn liên kết:</span>{' '}
                       <span 
                         onClick={() => navigate(`/orders?orderCode=${o.order.order_code || o.order.code}`)}
-                        className="font-bold text-primary hover:underline cursor-pointer"
+                        className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1"
                       >
-                        {o.order.order_code || o.order.code}
+                        <span>{o.order.order_code || o.order.code}</span>
+                        <ExternalLink size={14} className="text-primary shrink-0" />
                       </span>
                     </div>
                   )}

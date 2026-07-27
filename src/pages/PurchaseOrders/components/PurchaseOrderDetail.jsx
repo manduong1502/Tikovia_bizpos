@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal, FolderOpen, RotateCcw } from 'lucide-react';
+import { Eye, Printer, Copy, Save, XCircle, Search, ClipboardList, MoreHorizontal, FolderOpen, RotateCcw, ExternalLink } from 'lucide-react';
 import Button from '../../../components/ui/Button';
 import toast from 'react-hot-toast';
 
@@ -201,10 +201,11 @@ export default function PurchaseOrderDetail({
                   {o.supplier_name ? (
                     <button 
                       onClick={() => navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } })}
-                      className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                      className="text-lg sm:text-sm font-bold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left inline-flex items-center gap-1"
                       title="Xem chi tiết nhà cung cấp tại trang Nhà cung cấp"
                     >
-                      {o.supplier_name}
+                      <span>{o.supplier_name}</span>
+                      <ExternalLink size={14} className="text-primary shrink-0" />
                     </button>
                   ) : (
                     <span className="text-lg sm:text-sm font-bold text-gray-800 tracking-tight">NCC không rõ</span>

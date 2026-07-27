@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Calendar, ChevronRight, Eye, Settings, HelpCircle, X, SlidersHorizontal
+  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Calendar, ChevronRight, Eye, Settings, HelpCircle, X, SlidersHorizontal, ExternalLink
 } from 'lucide-react';
 // Dynamic imports will be used for exportCSV to speed up route loading
 import Pagination from '../../components/common/Pagination';
@@ -205,17 +205,19 @@ export default function PurchaseReturnsPage() {
                           navigate('/suppliers', { state: { searchSupplier: o.supplier_name, supplierId: o.supplierId || o.supplier_id } });
                         }
                       }}
-                      className={`font-bold ${o.supplier_name ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
+                      className={`font-bold inline-flex items-center gap-1 ${o.supplier_name ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
                     >
-                      {o.supplier_name}
+                      <span>{o.supplier_name}</span>
+                      {o.supplier_name && <ExternalLink size={14} className="text-primary shrink-0" />}
                     </span>
                   </div>
                   {o.purchaseOrder && (
                     <div>
                       <span className="text-gray-500">Đơn nhập liên kết:</span>{' '}
-                      <span className="font-bold text-primary hover:underline cursor-pointer">
-                        <a href={`/purchase-orders?poCode=${o.purchaseOrder.code}`} target="_blank" rel="noopener noreferrer">
-                          {o.purchaseOrder.code}
+                      <span className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1">
+                        <a href={`/purchase-orders?poCode=${o.purchaseOrder.code}`} target="_blank" rel="noopener noreferrer" className="no-underline text-primary inline-flex items-center gap-1">
+                          <span>{o.purchaseOrder.code}</span>
+                          <ExternalLink size={14} className="text-primary shrink-0" />
                         </a>
                       </span>
                     </div>
