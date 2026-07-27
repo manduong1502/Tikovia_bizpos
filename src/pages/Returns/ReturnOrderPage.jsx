@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Trash2, Printer, Eye, AlertCircle, Edit2, Search, X, Plus, User } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { orderAPI, returnAPI, customerAPI } from '../../services/api';
+import { orderAPI, returnAPI, customerAPI, productAPI } from '../../services/api';
 import { printHTML } from '../../utils/exportUtils';
 import NumericInput from '../../components/ui/NumericInput';
 
@@ -36,19 +36,28 @@ export default function ReturnOrderPage() {
   // New state for searching
   const [customers, setCustomers] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
   const [customerFocused, setCustomerFocused] = useState(false);
   const [orderFocused, setOrderFocused] = useState(false);
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const [orderDropdownOpen, setOrderDropdownOpen] = useState(false);
+
+  const productDropdownRef = useRef(null);
+  const orderDropdownRef = useRef(null);
 
   const loadInitialData = async () => {
     try {
-      const [custRes, ordRes] = await Promise.all([
+      const [custRes, ordRes, prodRes] = await Promise.all([
         customerAPI.getAll().catch(() => []),
-        orderAPI.getAll({ limit: 500 }).catch(() => [])
+        orderAPI.getAll({ limit: 500 }).catch(() => []),
+        productAPI.getAll().catch(() => [])
       ]);
       setCustomers(Array.isArray(custRes?.data) ? custRes.data : (Array.isArray(custRes) ? custRes : []));
       setOrders(Array.isArray(ordRes?.data) ? ordRes.data : (Array.isArray(ordRes) ? ordRes : []));
+      setProducts(Array.isArray(prodRes?.data) ? prodRes.data : (Array.isArray(prodRes) ? prodRes : []));
     } catch (e) {
       console.error(e);
     }
@@ -57,6 +66,42 @@ export default function ReturnOrderPage() {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (productDropdownRef.current && !productDropdownRef.current.contains(e.target)) setProductDropdownOpen(false);
+      if (orderDropdownRef.current && !orderDropdownRef.current.contains(e.target)) setOrderDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const handleAddProductItem = (p) => {
+    if (!p) return;
+    const existing = items.find(it => String(it.id) === String(p.id) || String(it.sku) === String(p.sku));
+    if (existing) {
+      setItems(prev => prev.map(it => 
+        (String(it.id) === String(p.id) || String(it.sku) === String(p.sku))
+          ? { ...it, return_quantity: (parseFloat(it.return_quantity) || 0) + 1 }
+          : it
+      ));
+    } else {
+      setItems(prev => [
+        ...prev,
+        {
+          id: p.id,
+          sku: p.sku || `SP00${prev.length + 1}`,
+          name: p.name,
+          unit: p.unit || 'Cái',
+          max_quantity: 999999,
+          return_quantity: 1,
+          return_price: Number(p.sellPrice || p.price || 0),
+          note: ''
+        }
+      ]);
+    }
+    toast.success(`Đã thêm ${p.name} vào danh sách trả hàng`);
+  };
 
   const loadOrderDetails = async (id) => {
     try {
@@ -192,6 +237,17 @@ export default function ReturnOrderPage() {
 
     restoreCloneData();
   }, [location.state]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch.trim()) return [];
+    const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const q = norm(productSearch);
+    return products.filter(p => 
+      norm(p.name).includes(q) || 
+      norm(p.sku).includes(q) || 
+      norm(p.barcode).includes(q)
+    ).slice(0, 10);
+  }, [productSearch, products]);
 
   const filteredCustomers = useMemo(() => {
     let list = customers;
@@ -542,18 +598,123 @@ export default function ReturnOrderPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-90px)] -m-5 bg-gray-100 font-sans">
       {/* Top Action Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm z-20 shrink-0 gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-1">
           <button 
             onClick={() => navigate('/returns')}
-            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent"
+            className="flex items-center gap-2 text-gray-700 hover:text-primary font-extrabold text-lg tracking-tight cursor-pointer transition-colors border-none bg-transparent shrink-0"
           >
             <ArrowLeft size={20} className="text-gray-500" />
             <span>Trả hàng</span>
           </button>
+
+          {/* Product Search Input (F3) */}
+          <div className="flex-1 max-w-md relative" ref={productDropdownRef}>
+            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/30 shadow-sm gap-2">
+              <Search size={16} className="text-gray-400 shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Tìm sản phẩm trả (theo tên, mã SKU...) (F3)" 
+                className="w-full bg-transparent text-xs outline-none font-medium text-gray-800 placeholder-gray-400"
+                value={productSearch}
+                onChange={e => {
+                  setProductSearch(e.target.value);
+                  setProductDropdownOpen(true);
+                }}
+                onFocus={() => setProductDropdownOpen(true)}
+              />
+            </div>
+
+            {productDropdownOpen && filteredProducts.length > 0 && (
+              <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-64 overflow-y-auto z-50 divide-y divide-gray-50">
+                {filteredProducts.map(p => (
+                  <div 
+                    key={p.id}
+                    onClick={() => {
+                      handleAddProductItem(p);
+                      setProductSearch('');
+                      setProductDropdownOpen(false);
+                    }}
+                    className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex justify-between items-center transition-colors"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-xs text-gray-800">{p.name} {p.unit ? `(${p.unit})` : ''}</span>
+                      <span className="text-[11px] text-gray-400 font-medium">{p.sku}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="font-extrabold text-xs text-primary">{fmt(p.sellPrice || p.price)} đ</span>
+                      <span className="text-[10px] text-gray-500 font-semibold">Tồn: {p.stock || 0}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Invoice Selector (Optional) */}
+          <div ref={orderDropdownRef} className="relative w-64 shrink-0">
+            {order ? (
+              <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 shadow-sm">
+                <span className="font-extrabold text-xs text-emerald-800 truncate">HĐ: {order.order_code || order.code}</span>
+                <button 
+                  onClick={() => {
+                    setOrder(null);
+                    setItems([]);
+                  }} 
+                  className="p-0.5 hover:bg-emerald-100 rounded-lg cursor-pointer transition-colors text-emerald-600 border-none bg-transparent"
+                  title="Bỏ chọn hóa đơn"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus-within:border-primary shadow-sm gap-2 cursor-pointer"
+                onClick={() => setOrderDropdownOpen(true)}
+              >
+                <Search size={14} className="text-gray-400 shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="Chọn hóa đơn mua (Tùy chọn)" 
+                  className="w-full bg-transparent text-xs outline-none font-medium text-gray-700 placeholder-gray-400"
+                  value={orderSearch}
+                  onChange={e => {
+                    setOrderSearch(e.target.value);
+                    setOrderDropdownOpen(true);
+                  }}
+                  onFocus={() => setOrderDropdownOpen(true)}
+                />
+              </div>
+            )}
+
+            {orderDropdownOpen && !order && (
+              <div className="absolute right-0 top-full mt-1 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 max-h-52 overflow-y-auto z-50 divide-y divide-gray-50">
+                {filteredOrders.map(o => (
+                  <div 
+                    key={o.id}
+                    onClick={() => {
+                      loadOrderDetails(o.id);
+                      setOrderDropdownOpen(false);
+                    }}
+                    className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-xs text-gray-800">{o.order_code || o.code}</span>
+                      <span className="text-[10px] font-bold text-gray-400">
+                        {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-gray-500 font-medium truncate">
+                      {o.customer_name || 'Khách lẻ'} - {fmt(o.total)} đ
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-600">
+        <div className="flex items-center gap-2 text-gray-600 shrink-0">
           <button onClick={handlePrintPreview} className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors border-none bg-transparent" title="In phiếu"><Printer size={18} /></button>
           <button onClick={() => setShowSku(!showSku)} className={`p-2 rounded-xl cursor-pointer transition-colors border-none bg-transparent ${showSku ? 'text-primary bg-primary/10' : 'text-gray-600 hover:bg-gray-100'}`} title="Ẩn/hiện cột Mã hàng"><Eye size={18} /></button>
           <button className="p-2 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors text-amber-600 border-none bg-transparent" title="Thông tin trợ giúp"><AlertCircle size={18} /></button>
@@ -644,8 +805,14 @@ export default function ReturnOrderPage() {
               </table>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500 font-bold">
-              Chưa có sản phẩm nào để trả. Vui lòng chọn hóa đơn!
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center bg-gray-50/40">
+              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-primary mb-1 shadow-sm">
+                <Search size={30} />
+              </div>
+              <h4 className="text-sm font-extrabold text-gray-800 m-0">Chưa có sản phẩm nào trong phiếu trả</h4>
+              <p className="text-xs text-gray-500 max-w-sm m-0 leading-relaxed">
+                Bạn hãy gõ tìm sản phẩm ở ô <span className="font-bold text-gray-700">"Tìm sản phẩm trả"</span> ở góc trên, hoặc chọn <span className="font-bold text-gray-700">"Chọn hóa đơn mua"</span> để tự động điền danh sách mua cũ.
+              </p>
             </div>
           )}
         </div>
