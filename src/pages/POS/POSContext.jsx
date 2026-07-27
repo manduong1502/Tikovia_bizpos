@@ -173,6 +173,18 @@ export function POSProvider({ children }) {
     setProducts(prev => [newProduct, ...prev]);
   };
 
+  const normalizeItemWeighings = (item) => {
+    if (!item.weighings || item.weighings.length === 0) {
+      return [{
+        id: item._weighingId || 1,
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || item.product?.sellPrice || 0),
+        discount: Number(item.discount || 0)
+      }];
+    }
+    return item.weighings;
+  };
+
   const addToCart = (product) => {
     if (!product) return;
 
@@ -180,18 +192,98 @@ export function POSProvider({ children }) {
     const existing = cart.find(item => item.product.id === product.id);
 
     if (existing) {
+      const weighings = normalizeItemWeighings(existing);
+      const updatedWeighings = weighings.map((w, idx) => 
+        idx === 0 ? { ...w, quantity: (parseFloat(w.quantity) || 0) + 1 } : w
+      );
       updateCurrentInvoice({
         cart: cart.map(item => 
           item.product.id === product.id 
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, weighings: updatedWeighings, quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0) }
             : item
         )
       });
     } else {
+      const initialWeighing = { id: Date.now(), quantity: 1, price: Number(product.sellPrice || 0), discount: 0 };
       updateCurrentInvoice({
-        cart: [...cart, { product, quantity: 1, price: product.sellPrice, discount: 0 }]
+        cart: [...cart, { 
+          product, 
+          quantity: 1, 
+          price: Number(product.sellPrice || 0), 
+          discount: 0,
+          weighings: [initialWeighing]
+        }]
       });
     }
+  };
+
+  const addWeighingSubRow = (productId) => {
+    const cart = currentInvoice.cart;
+    const existing = cart.find(item => item.product.id === productId);
+    if (!existing) return;
+
+    const weighings = normalizeItemWeighings(existing);
+    const lastPrice = weighings[weighings.length - 1]?.price ?? Number(existing.product.sellPrice || 0);
+    const newSubRow = { id: Date.now() + Math.random(), quantity: 1, price: lastPrice, discount: 0 };
+    const updatedWeighings = [...weighings, newSubRow];
+
+    updateCurrentInvoice({
+      cart: cart.map(item => 
+        item.product.id === productId 
+          ? { ...item, weighings: updatedWeighings, quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0) }
+          : item
+      )
+    });
+    toast.success('Đã thêm 1 định lượng cân mới');
+  };
+
+  const updateWeighingSubRow = (productId, weighingId, updates) => {
+    const cart = currentInvoice.cart;
+    const existing = cart.find(item => item.product.id === productId);
+    if (!existing) return;
+
+    const weighings = normalizeItemWeighings(existing);
+    const updatedWeighings = weighings.map(w => w.id === weighingId ? { ...w, ...updates } : w);
+
+    updateCurrentInvoice({
+      cart: cart.map(item => 
+        item.product.id === productId 
+          ? { 
+              ...item, 
+              weighings: updatedWeighings, 
+              quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0),
+              price: updatedWeighings[0]?.price ?? item.price,
+              discount: updatedWeighings[0]?.discount ?? item.discount,
+            }
+          : item
+      )
+    });
+  };
+
+  const removeWeighingSubRow = (productId, weighingId) => {
+    const cart = currentInvoice.cart;
+    const existing = cart.find(item => item.product.id === productId);
+    if (!existing) return;
+
+    const weighings = normalizeItemWeighings(existing);
+    if (weighings.length <= 1) {
+      // Remove entire product card
+      removeFromCart(productId);
+      return;
+    }
+
+    const updatedWeighings = weighings.filter(w => w.id !== weighingId);
+    updateCurrentInvoice({
+      cart: cart.map(item => 
+        item.product.id === productId 
+          ? { 
+              ...item, 
+              weighings: updatedWeighings, 
+              quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0) 
+            }
+          : item
+      )
+    });
   };
 
   const removeFromCart = (productId) => {
@@ -204,13 +296,9 @@ export function POSProvider({ children }) {
     const item = currentInvoice.cart.find(i => i.product.id === productId);
     if (!item) return;
 
-    let val = newQuantity;
-
-    updateCurrentInvoice({
-      cart: currentInvoice.cart.map(i => 
-        i.product.id === productId ? { ...i, quantity: val } : i
-      )
-    });
+    const weighings = normalizeItemWeighings(item);
+    const firstWeighing = weighings[0];
+    updateWeighingSubRow(productId, firstWeighing.id, { quantity: newQuantity });
   };
 
   const setCustomer = (customer) => {
@@ -239,19 +327,22 @@ export function POSProvider({ children }) {
       invoices,
       activeTabId,
       currentInvoice,
+      saleMode,
+      setSaleMode,
       addTab,
       removeTab,
       switchTab,
+      updateCurrentInvoice,
+      addProduct,
       addToCart,
+      addWeighingSubRow,
+      updateWeighingSubRow,
+      removeWeighingSubRow,
       removeFromCart,
       updateCartItemQuantity,
       setCustomer,
-      updateCurrentInvoice,
       clearCurrentInvoice,
       togglePaymentMode,
-      saleMode,
-      setSaleMode,
-      addProduct
     }}>
       {children}
     </POSContext.Provider>

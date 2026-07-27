@@ -34,7 +34,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
   const cart = currentInvoice?.cart || [];
   const customer = currentInvoice?.customer;
-  const subtotal = cart.reduce((s, i) => s + (i.price - i.discount) * i.quantity, 0);
+  const subtotal = cart.reduce((s, i) => {
+    const weighings = i.weighings || [{ quantity: i.quantity, price: i.price, discount: i.discount }];
+    return s + weighings.reduce((ws, w) => ws + (Number(w.price || 0) - Number(w.discount || 0)) * (parseFloat(w.quantity) || 0), 0);
+  }, 0);
   const discountAmount = Math.round(subtotal * (currentInvoice.discount || 0) / 100);
   const total = subtotal - discountAmount;
   
@@ -98,12 +101,15 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
-        items: cart.map(i => ({
-          productId: Number(i.product.id),
-          quantity: Number(i.quantity),
-          price: Number(i.price),
-          discount: Number(i.discount || 0)
-        })),
+        items: cart.flatMap(i => {
+          const weighings = i.weighings || [{ quantity: i.quantity, price: i.price, discount: i.discount }];
+          return weighings.map(w => ({
+            productId: Number(i.product.id),
+            quantity: Number(w.quantity),
+            price: Number(w.price),
+            discount: Number(w.discount || 0)
+          }));
+        }),
         paymentMethod: 'CASH',
         discount: Number(discountAmount || 0),
         paid: finalPaid,
