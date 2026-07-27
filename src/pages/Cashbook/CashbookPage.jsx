@@ -171,7 +171,16 @@ export default function CashbookPage() {
     }
   }, [search]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { 
+    reload();
+    const handleDataChanged = (e) => {
+      if (!e.detail || e.detail.type === 'cashbook' || e.detail.type === 'order' || e.detail.type === 'purchase_order' || e.detail.type === 'general') {
+        reload();
+      }
+    };
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [reload]);
 
   // Click outside listener
   useEffect(() => {

@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { api, productAPI } from '../../services/api';
 
 const POSContext = createContext();
 
@@ -28,23 +28,29 @@ export function POSProvider({ children }) {
   const currentInvoice = invoices.find(inv => inv.id === activeTabId);
 
   // Fetch initial data
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          api.get('/products'),
-          api.get('/categories')
-        ]);
-        setProducts(prodRes.data?.data || prodRes.data || []);
-        setCategories(catRes.data?.data || catRes.data || []);
-      } catch (err) {
-        toast.error('Lỗi tải dữ liệu: ' + err.message);
-      } finally {
-        setLoading(false);
-      }
+  const loadData = useCallback(async () => {
+    try {
+      const [prodRes, catRes] = await Promise.all([
+        productAPI.getAll().catch(() => []),
+        api.get('/categories').catch(() => ({ data: [] }))
+      ]);
+      const prodList = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+      const catList = Array.isArray(catRes?.data) ? catRes.data : (catRes?.data?.data || []);
+      setProducts(prodList);
+      setCategories(catList);
+    } catch (err) {
+      toast.error('Lỗi tải dữ liệu: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+    const handleDataChanged = () => loadData();
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [loadData]);
 
   // Handle editOrder or copyOrder from navigation state
   useEffect(() => {

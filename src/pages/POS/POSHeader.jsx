@@ -24,10 +24,11 @@ export default function POSHeader() {
       return;
     }
 
-    const s = val.toLowerCase();
+    const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const s = norm(val);
     
     // Check exact match first
-    const exact = products.find(p => p.barcode === s || p.sku?.toLowerCase() === s);
+    const exact = products.find(p => p.barcode === val.trim() || norm(p.sku) === s);
     if (exact) {
       addToCart(exact);
       setSearchTerm('');
@@ -36,10 +37,10 @@ export default function POSHeader() {
     }
 
     const filtered = products.filter(p => 
-      p.name.toLowerCase().includes(s) || 
-      p.sku?.toLowerCase().includes(s) || 
-      p.barcode?.includes(s)
-    ).slice(0, 8);
+      norm(p.name).includes(s) || 
+      norm(p.sku).includes(s) || 
+      norm(p.barcode).includes(s)
+    ).slice(0, 12);
     
     setSuggestions(filtered);
   };

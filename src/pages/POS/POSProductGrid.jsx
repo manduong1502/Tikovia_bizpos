@@ -15,10 +15,12 @@ export default function POSProductGrid() {
       : products;
     
     if (searchText.trim()) {
-      const q = searchText.trim().toLowerCase();
+      const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+      const q = norm(searchText.trim());
       list = list.filter(p => 
-        p.name?.toLowerCase().includes(q) || 
-        p.sku?.toLowerCase().includes(q)
+        norm(p.name).includes(q) || 
+        norm(p.sku).includes(q) ||
+        norm(p.barcode).includes(q)
       );
     }
 

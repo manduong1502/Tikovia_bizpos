@@ -327,7 +327,16 @@ export default function OrdersPage() {
     }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { 
+    reload();
+    const handleDataChanged = (e) => {
+      if (!e.detail || e.detail.type === 'order' || e.detail.type === 'general') {
+        reload();
+      }
+    };
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [reload]);
 
   useEffect(() => {
     const codeFromState = location.state?.openOrderCode;

@@ -305,7 +305,16 @@ export default function ProductsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => { 
+    fetchProducts();
+    const handleDataChanged = (e) => {
+      if (!e.detail || e.detail.type === 'product' || e.detail.type === 'order' || e.detail.type === 'purchase_order' || e.detail.type === 'return' || e.detail.type === 'general') {
+        fetchProducts();
+      }
+    };
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [fetchProducts]);
 
   useEffect(() => {
     if (products.length > 0) {

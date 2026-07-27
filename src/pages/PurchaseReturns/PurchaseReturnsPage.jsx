@@ -375,7 +375,16 @@ export default function PurchaseReturnsPage() {
     }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { 
+    reload();
+    const handleDataChanged = (e) => {
+      if (!e.detail || e.detail.type === 'purchase_return' || e.detail.type === 'purchase_order' || e.detail.type === 'supplier' || e.detail.type === 'general') {
+        reload();
+      }
+    };
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [reload]);
 
   useEffect(() => {
     const codeFromState = location.state?.openReturnCode;

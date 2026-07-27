@@ -134,23 +134,25 @@ export default function CreatePurchaseOrderPage() {
   // Lọc sản phẩm
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
-    const q = productSearch.toLowerCase();
+    const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const q = norm(productSearch);
     return products.filter(p => 
-      (p.name || '').toLowerCase().includes(q) || 
-      (p.sku || '').toLowerCase().includes(q) ||
-      (p.barcode || '').toLowerCase().includes(q)
-    ).slice(0, 8);
+      norm(p.name).includes(q) || 
+      norm(p.sku).includes(q) ||
+      norm(p.barcode).includes(q)
+    ).slice(0, 10);
   }, [productSearch, products]);
 
   // Lọc nhà cung cấp
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearch.trim()) return [];
-    const q = supplierSearch.toLowerCase();
+    const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+    const q = norm(supplierSearch);
     return suppliers.filter(s => 
-      (s.name || '').toLowerCase().includes(q) || 
-      (s.code || '').toLowerCase().includes(q) ||
-      (s.phone || '').toLowerCase().includes(q)
-    ).slice(0, 6);
+      norm(s.name).includes(q) || 
+      norm(s.code).includes(q) ||
+      norm(s.phone).includes(q)
+    ).slice(0, 8);
   }, [supplierSearch, suppliers]);
 
   // Thêm sản phẩm vào bảng
@@ -659,7 +661,12 @@ export default function CreatePurchaseOrderPage() {
                 <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-3 py-2 shadow-sm">
                   <div className="flex items-center gap-2 truncate">
                     <User size={16} className="text-primary shrink-0" />
-                    <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
+                    <div className="flex flex-col truncate">
+                      <span className="font-extrabold text-xs text-gray-800 truncate">{selectedSupplier.name}</span>
+                      <span className="text-[11px] font-bold text-rose-600">
+                        Nợ hiện tại: {fmt(selectedSupplier.totalDebt ?? selectedSupplier.debt ?? 0)}
+                      </span>
+                    </div>
                   </div>
                   <button 
                     onClick={() => setSelectedSupplier(null)}
@@ -696,8 +703,11 @@ export default function CreatePurchaseOrderPage() {
                       onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
                       className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                     >
-                      <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
-                      <span className="text-[11px] text-gray-500 font-medium">{s.phone} - {s.code}</span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-gray-800">{s.name}</span>
+                        <span className="text-[11px] font-bold text-rose-600">{fmt(s.totalDebt ?? s.debt ?? 0)}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-500 font-medium">{s.phone ? `${s.phone} - ` : ''}{s.code}</span>
                     </div>
                   ))}
                 </div>

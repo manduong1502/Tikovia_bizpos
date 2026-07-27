@@ -31,9 +31,32 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ─── Response Interceptor: handle errors globally ───
+export const notifyDataChanged = (type = 'general') => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type } }));
+  }
+};
+
+// ─── Response Interceptor: handle errors globally & emit realtime data change events ───
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    const method = res.config?.method?.toLowerCase();
+    if (['post', 'put', 'delete', 'patch'].includes(method)) {
+      const url = res.config?.url || '';
+      let type = 'general';
+      if (url.includes('/orders')) type = 'order';
+      else if (url.includes('/purchase-orders')) type = 'purchase_order';
+      else if (url.includes('/returns')) type = 'return';
+      else if (url.includes('/purchase-returns')) type = 'purchase_return';
+      else if (url.includes('/cashbook')) type = 'cashbook';
+      else if (url.includes('/customers')) type = 'customer';
+      else if (url.includes('/suppliers')) type = 'supplier';
+      else if (url.includes('/products')) type = 'product';
+
+      notifyDataChanged(type);
+    }
+    return res;
+  },
   (error) => {
     const status = error.response?.status;
     const message = error.response?.data?.message || error.message;
