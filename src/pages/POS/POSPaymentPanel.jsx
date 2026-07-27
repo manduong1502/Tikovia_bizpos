@@ -210,7 +210,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
                   ? i.weighings 
                   : [{ quantity: i.quantity, price: i.price, discount: i.discount }];
 
-                return weighings.map(w => {
+                return weighings.map((w, wIdx) => {
                   const qty = parseFloat(w.quantity) || 0;
                   const pr = Number(w.price || 0);
                   const disc = Number(w.discount || 0);
@@ -218,7 +218,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
                   return `
                   <tr>
-                    <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
+                    <td>${wIdx === 0 ? `${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}` : ''}</td>
                     <td style="text-align: center;">${qty}</td>
                     <td style="text-align: center;">${i.product.unit || 'cái'}</td>
                     <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(pr)}</td>

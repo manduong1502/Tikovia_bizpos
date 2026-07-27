@@ -162,15 +162,16 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               </tr>
             </thead>
             <tbody>
-              ${items.map(it => {
-                const price = Number(it.unit_price || 0) - Number(it.discount || 0);
+              ${items.map((it, idx) => {
+                const isFirstOfProduct = idx === 0 || String(it.productId || it.product_id || it.product?.id) !== String(items[idx - 1]?.productId || items[idx - 1]?.product_id || items[idx - 1]?.product?.id);
+                const price = Number(it.unit_price || it.price || 0) - Number(it.discount || 0);
                 const itemTotal = Number(it.total || price * it.quantity);
                 return `
                 <tr>
-                  <td>${it.product_name || ''} ${it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
+                  <td>${isFirstOfProduct ? `${it.product_name || it.product?.name || ''} ${it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}` : ''}</td>
                   <td style="text-align: center;">${it.quantity}</td>
-                  <td style="text-align: center;">${it.unit || 'cái'}</td>
-                  <td style="text-align: right;">${f(it.unit_price || 0)}</td>
+                  <td style="text-align: center;">${it.unit || it.product?.unit || 'cái'}</td>
+                  <td style="text-align: right;">${f(it.unit_price || it.price || 0)}</td>
                   <td style="text-align: right;">${f(it.discount || 0)}</td>
                   <td style="text-align: right;">${f(itemTotal)}</td>
                 </tr>
