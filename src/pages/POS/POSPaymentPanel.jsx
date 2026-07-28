@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { usePOS } from './POSContext';
+import { usePOS, getLocalDateString, getLocalTimeString } from './POSContext';
 import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus } from 'lucide-react';
 import api, { customerAPI, orderAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -99,6 +99,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       const isDeliveryMode = saleMode === 'delivery' || finalPaid < total;
 
+      const customDate = currentInvoice?.customDate || getLocalDateString();
+      const customTime = currentInvoice?.customTime || getLocalTimeString();
+      const customCreatedAt = new Date(`${customDate}T${customTime}:00`).toISOString();
+
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
         items: cart.flatMap(i => {
@@ -110,6 +114,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
             discount: Number(w.discount || 0)
           }));
         }),
+        createdAt: customCreatedAt,
         paymentMethod: 'CASH',
         discount: Number(discountAmount || 0),
         paid: finalPaid,
@@ -302,6 +307,26 @@ export default function POSPaymentPanel({ forceShow = false }) {
         </div>
       )}
       
+      {/* Top Header Row with Date & Time Picker */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--pos-border-light)', background: '#fafafa' }}>
+        <span style={{ fontSize: '12px', fontWeight: '600', color: '#555' }}>
+          {isEditMode ? `Sửa đơn: ${currentInvoice._editOrderCode}` : 'Thời gian tạo'}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input 
+            type="date"
+            style={{ border: 'none', borderBottom: '1px solid #999', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '600', color: '#1a73e8', cursor: 'pointer', padding: '1px 2px' }}
+            value={currentInvoice?.customDate || getLocalDateString()}
+            onChange={(e) => updateCurrentInvoice({ customDate: e.target.value })}
+          />
+          <input 
+            type="time"
+            style={{ border: 'none', borderBottom: '1px solid #999', background: 'transparent', outline: 'none', fontSize: '13px', fontWeight: '600', color: '#1a73e8', cursor: 'pointer', padding: '1px 2px' }}
+            value={currentInvoice?.customTime || getLocalTimeString()}
+            onChange={(e) => updateCurrentInvoice({ customTime: e.target.value })}
+          />
+        </div>
+      </div>
 
       {customer ? (
         <div style={{ display: 'flex', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--pos-border-light)' }}>

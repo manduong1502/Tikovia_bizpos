@@ -346,6 +346,7 @@ export default function CreatePurchaseOrderPage() {
           quantity: Number(it.quantity),
           price: Number(it.unit_price),
         })),
+        createdAt: importDate ? new Date(importDate).toISOString() : new Date().toISOString(),
         paid: actualPaid,
         note: note || '',
         status: saveStatus, // PENDING | COMPLETED

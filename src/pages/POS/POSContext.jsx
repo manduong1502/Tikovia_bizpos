@@ -9,6 +9,21 @@ export function usePOS() {
   return useContext(POSContext);
 }
 
+export function getLocalDateString(d = new Date()) {
+  const dateObj = d instanceof Date ? (isNaN(d.getTime()) ? new Date() : d) : new Date(d);
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getLocalTimeString(d = new Date()) {
+  const dateObj = d instanceof Date ? (isNaN(d.getTime()) ? new Date() : d) : new Date(d);
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
 export function POSProvider({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -19,7 +34,17 @@ export function POSProvider({ children }) {
 
   // Invoices (Tabs) state
   const [invoices, setInvoices] = useState([
-    { id: 1, label: 'Hóa đơn 1', cart: [], customer: null, note: '', discount: 0, isPaymentMode: false }
+    { 
+      id: 1, 
+      label: 'Hóa đơn 1', 
+      cart: [], 
+      customer: null, 
+      note: '', 
+      discount: 0, 
+      isPaymentMode: false,
+      customDate: getLocalDateString(),
+      customTime: getLocalTimeString(),
+    }
   ]);
   const [activeTabId, setActiveTabId] = useState(1);
   const [nextTabId, setNextTabId] = useState(2);
@@ -85,6 +110,8 @@ export function POSProvider({ children }) {
       };
     });
 
+    const targetDateObj = (targetOrder.createdAt || targetOrder.created_at) ? new Date(targetOrder.createdAt || targetOrder.created_at) : new Date();
+
     const editInvoice = {
       id: nextTabId,
       label: tabLabel,
@@ -93,6 +120,8 @@ export function POSProvider({ children }) {
       note: targetOrder.note || '',
       discount: 0,
       isPaymentMode: false,
+      customDate: getLocalDateString(targetDateObj),
+      customTime: getLocalTimeString(targetDateObj),
       ...(editOrder ? {
         _editOrderId: editOrder.id,
         _editOrderCode: editOrder.code,
@@ -141,7 +170,9 @@ export function POSProvider({ children }) {
       customer: null,
       note: '',
       discount: 0,
-      isPaymentMode: false
+      isPaymentMode: false,
+      customDate: getLocalDateString(),
+      customTime: getLocalTimeString(),
     };
     setInvoices([...invoices, newInvoice]);
     setActiveTabId(nextTabId);

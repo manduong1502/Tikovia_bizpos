@@ -574,6 +574,7 @@ export default function ReturnOrderPage() {
           quantity: Number(it.return_quantity),
           price: Number(it.return_price)
         })),
+        createdAt: returnDate ? new Date(returnDate).toISOString() : new Date().toISOString(),
         discount: returnFee,
         paid: actualPaid,
         reason: note || ''
