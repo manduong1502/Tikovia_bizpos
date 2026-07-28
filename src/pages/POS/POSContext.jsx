@@ -342,7 +342,18 @@ export function POSProvider({ children }) {
       customer: null,
       note: '',
       discount: 0,
-      isPaymentMode: false
+      isPaymentMode: false,
+      customDate: getLocalDateString(),
+      customTime: getLocalTimeString(),
+      _editOrderId: undefined,
+      _editOrderCode: undefined,
+      _editOrderStatus: undefined,
+      deliveryAddress: '',
+      receiverName: '',
+      receiverPhone: '',
+      driverId: '',
+      driverName: '',
+      deliveryStatus: '',
     });
   };
 

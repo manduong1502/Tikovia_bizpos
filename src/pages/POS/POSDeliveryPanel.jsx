@@ -101,7 +101,6 @@ export default function POSDeliveryPanel() {
       
       toast.success('Tạo đơn giao hàng thành công!', { id: toastId });
       clearCurrentInvoice();
-      navigate('/invoices');
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn giao hàng', { id: toastId });

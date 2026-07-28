@@ -277,14 +277,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
       `;
       printHTML(invoiceHTML, 'In Hóa Đơn');
       
-      // Clear and return
+      // Reset and stay on POS interface
       clearCurrentInvoice();
       togglePaymentMode(false);
       if (isEditMode) {
         removeTab(activeTabId);
       }
       setShowUpdateModal(false);
-      navigate('/invoices');
+      setPaidAmountStr('');
+      setCustomerSearch('');
+      setCustomerSuggestions([]);
       
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lỗi khi tạo đơn hàng');
