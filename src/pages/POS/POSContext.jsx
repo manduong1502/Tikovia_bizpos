@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { api, productAPI } from '../../services/api';
+import { api, productAPI, customerAPI } from '../../services/api';
 
 const POSContext = createContext();
 
@@ -100,61 +100,90 @@ export function POSProvider({ children }) {
     const existingTab = invoices.find(inv => inv.label === tabLabel);
     if (existingTab) { setActiveTabId(existingTab.id); return; }
 
-    const editCart = (targetOrder.items || []).map(it => {
-      const prod = products.find(p => p.id === it.productId || p.sku === it.product_sku);
-      return {
-        product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: Number(it.unit_price || it.price || 0), stock: 9999 },
-        quantity: Number(it.quantity),
-        price: Number(it.unit_price || it.price || 0),
-        discount: Number(it.discount || 0),
+    const initTargetTab = async () => {
+      let freshCustomer = targetOrder.customer || null;
+      const custId = targetOrder.customer?.id || targetOrder.customerId;
+      const custCode = targetOrder.customer?.code || targetOrder.customer_code;
+      const custName = targetOrder.customer?.name || targetOrder.customer_name;
+
+      if (custId) {
+        try {
+          const res = await customerAPI.getById(custId);
+          if (res && res.id) freshCustomer = res;
+        } catch (err) {
+          console.error("Failed to fetch fresh customer debt by ID:", err);
+        }
+      } else if (custCode || (custName && custName !== 'Khách lẻ')) {
+        try {
+          const res = await customerAPI.getAll({ search: custCode || custName, limit: 5 });
+          const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+          const match = list.find(c => (custCode && c.code === custCode) || (custName && c.name === custName));
+          if (match) freshCustomer = match;
+        } catch (err) {
+          console.error("Failed to fetch fresh customer debt by search:", err);
+        }
+      }
+
+      const editCart = (targetOrder.items || []).map(it => {
+        const prod = products.find(p => p.id === it.productId || p.sku === it.product_sku);
+        return {
+          product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: Number(it.unit_price || it.price || 0), stock: 9999 },
+          quantity: Number(it.quantity),
+          price: Number(it.unit_price || it.price || 0),
+          discount: Number(it.discount || 0),
+        };
+      });
+
+      const targetDateObj = (targetOrder.createdAt || targetOrder.created_at) ? new Date(targetOrder.createdAt || targetOrder.created_at) : new Date();
+
+      const editInvoice = {
+        id: nextTabId,
+        label: tabLabel,
+        cart: editCart,
+        customer: freshCustomer,
+        note: targetOrder.note || '',
+        discount: 0,
+        isPaymentMode: false,
+        customDate: getLocalDateString(targetDateObj),
+        customTime: getLocalTimeString(targetDateObj),
+        ...(editOrder ? {
+          _editOrderId: editOrder.id,
+          _editOrderCode: editOrder.code,
+          _editOrderStatus: targetOrder.status || editOrder.status || null,
+        } : {}),
+        deliveryAddress: targetOrder.deliveryAddress || '',
+        receiverName: targetOrder.receiverName || '',
+        receiverPhone: targetOrder.receiverPhone || '',
+        driverId: targetOrder.driverId || '',
+        driverName: targetOrder.driverId ? (targetOrder.driverName || 'Chưa gán') : '',
+        deliveryStatus: targetOrder.deliveryAddress ? (targetOrder.deliveryStatus || 'ASSIGNED') : '',
       };
-    });
 
-    const targetDateObj = (targetOrder.createdAt || targetOrder.created_at) ? new Date(targetOrder.createdAt || targetOrder.created_at) : new Date();
+      setInvoices(prev => {
+        const isDefaultTabEmpty = prev.length === 1 && prev[0].id === 1 && prev[0].cart.length === 0 && !prev[0].customer;
+        if (isDefaultTabEmpty) {
+          return [{ ...editInvoice, id: 1, label: tabLabel }];
+        }
+        return [...prev, editInvoice];
+      });
 
-    const editInvoice = {
-      id: nextTabId,
-      label: tabLabel,
-      cart: editCart,
-      customer: targetOrder.customer || null,
-      note: targetOrder.note || '',
-      discount: 0,
-      isPaymentMode: false,
-      customDate: getLocalDateString(targetDateObj),
-      customTime: getLocalTimeString(targetDateObj),
-      ...(editOrder ? {
-        _editOrderId: editOrder.id,
-        _editOrderCode: editOrder.code,
-        _editOrderStatus: targetOrder.status || editOrder.status || null,
-      } : {}),
-      deliveryAddress: targetOrder.deliveryAddress || '',
-      receiverName: targetOrder.receiverName || '',
-      receiverPhone: targetOrder.receiverPhone || '',
-      driverId: targetOrder.driverId || '',
-      driverName: targetOrder.driverId ? (targetOrder.driverName || 'Chưa gán') : '',
-      deliveryStatus: targetOrder.deliveryAddress ? (targetOrder.deliveryStatus || 'ASSIGNED') : '',
+      setActiveTabId(prev => {
+        const isDefaultTabEmpty = invoices.length === 1 && invoices[0].id === 1 && invoices[0].cart.length === 0 && !invoices[0].customer;
+        return isDefaultTabEmpty ? 1 : nextTabId;
+      });
+      setNextTabId(prev => prev + 1);
+      
+      setSaleMode('fast');
+      
+      // Clean URL query params / state
+      if (copyOrderCode) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     };
 
-    const isDefaultTabEmpty = invoices.length === 1 && invoices[0].id === 1 && invoices[0].cart.length === 0 && !invoices[0].customer;
-
-    setInvoices(prev => {
-      if (isDefaultTabEmpty) {
-        return [{ ...editInvoice, id: 1, label: tabLabel }];
-      }
-      return [...prev, editInvoice];
-    });
-
-    setActiveTabId(isDefaultTabEmpty ? 1 : nextTabId);
-    if (!isDefaultTabEmpty) setNextTabId(prev => prev + 1);
-    
-    setSaleMode('fast');
-    
-    // Clean URL query params / state
-    if (copyOrderCode) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      navigate(location.pathname, { replace: true, state: {} });
-    }
+    initTargetTab();
   }, [location.state, location.search, products]);
 
   // --- Tab Actions ---

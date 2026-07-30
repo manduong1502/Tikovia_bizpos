@@ -344,26 +344,51 @@ export default function OrdersPage() {
     const codeFromQuery = params.get('orderCode');
     const code = codeFromState || codeFromQuery;
     
-    if (!code || orders.length === 0) return;
+    if (!code) return;
 
-    const matchedOrder = orders.find(o => String(o.order_code).toLowerCase() === String(code).toLowerCase());
-    if (matchedOrder) {
-      setFilters(prev => ({
-        ...prev,
-        orderDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
-      }));
-      setSearch(code);
-      setExpandedId(matchedOrder.id);
-      loadDetail(matchedOrder.id);
-      scrollRowIntoView(matchedOrder.id);
+    const findAndOpenOrder = async () => {
+      let matchedOrder = orders.find(o => 
+        String(o.order_code || o.code || '').toLowerCase() === String(code).toLowerCase()
+      );
+
+      if (!matchedOrder) {
+        try {
+          const res = await orderAPI.getAll({ search: code, limit: 10 });
+          const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+          matchedOrder = list.find(o => 
+            String(o.order_code || o.code || '').toLowerCase() === String(code).toLowerCase()
+          );
+          if (matchedOrder) {
+            setOrders(prev => {
+              const exists = prev.some(item => item.id === matchedOrder.id);
+              return exists ? prev : [matchedOrder, ...prev];
+            });
+          }
+        } catch (err) {
+          console.error('Lỗi khi tìm hóa đơn:', err);
+        }
+      }
+
+      if (matchedOrder) {
+        setFilters(prev => ({
+          ...prev,
+          orderDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
+        }));
+        setSearch(code);
+        setExpandedId(matchedOrder.id);
+        loadDetail(matchedOrder.id);
+        scrollRowIntoView(matchedOrder.id);
+      }
       
       if (codeFromState) {
         navigate(location.pathname, { replace: true, state: {} });
       } else {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-    }
-  }, [location.state?.openOrderCode, location.search, orders, navigate, location.pathname]);
+    };
+
+    findAndOpenOrder();
+  }, [location.state?.openOrderCode, location.search, orders.length, navigate, location.pathname]);
 
   useEffect(() => {
     if (!registerOrderUpdateCallback) return;
