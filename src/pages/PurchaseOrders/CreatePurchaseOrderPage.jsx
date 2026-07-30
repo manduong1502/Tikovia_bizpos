@@ -70,7 +70,8 @@ export default function CreatePurchaseOrderPage() {
           if (poRes.status) setStatus(poRes.status);
           if (poRes.discount) setDiscountStr(String(poRes.discount));
           if (poRes.paid) setPaidAmountStr(String(poRes.paid));
-          if (poRes.createdAt) setImportDate(toLocalISOString(poRes.createdAt));
+          const poDateVal = poRes.createdAt || poRes.created_at || poRes.date;
+          if (poDateVal) setImportDate(toLocalISOString(poDateVal));
           if (Array.isArray(poRes.items)) {
             setItems(poRes.items.map(it => ({
               id: it.productId || it.product?.id || it.id,
@@ -105,6 +106,9 @@ export default function CreatePurchaseOrderPage() {
     }
 
     if (po) {
+      const cloneDateVal = po.createdAt || po.created_at || po.date;
+      if (cloneDateVal) setImportDate(toLocalISOString(cloneDateVal));
+
       // Khôi phục nhà cung cấp
       if (po.supplier) {
         setSelectedSupplier(po.supplier);

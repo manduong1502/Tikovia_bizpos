@@ -116,6 +116,9 @@ export default function CreatePurchaseReturnPage() {
     }
 
     if (pr) {
+      const prDateVal = pr.createdAt || pr.created_at || pr.date;
+      if (prDateVal) setReturnDate(toLocalISOString(prDateVal));
+
       // Khôi phục nhà cung cấp
       if (pr.supplier) {
         setSelectedSupplier(pr.supplier);

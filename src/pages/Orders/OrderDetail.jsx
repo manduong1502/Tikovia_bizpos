@@ -385,7 +385,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <Button
                   variant="primary"
-                  onClick={() => navigate('/pos', { state: { editOrder: { id: o.id, code: o.order_code, items: items, customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, note: o.note } } })}
+                  onClick={() => navigate('/pos', { state: { editOrder: { id: o.id, code: o.order_code, items: items, customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, note: o.note, createdAt: o.created_at || o.createdAt || o.date } } })}
                   className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap"
                 >
                   <Pencil size={14} /> Chỉnh sửa
