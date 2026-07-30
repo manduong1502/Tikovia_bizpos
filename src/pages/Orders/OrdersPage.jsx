@@ -291,7 +291,7 @@ export default function OrdersPage() {
   const reload = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = { page: 1, limit: 150 };
+      const params = { page: 1, limit: 5000 };
       const r = await orderAPI.getAll(params);
       const rawList = Array.isArray(r) ? r : (r?.data || []);
       if (rawList.length === 0) {
@@ -337,6 +337,28 @@ export default function OrdersPage() {
     window.addEventListener('app:data-changed', handleDataChanged);
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
   }, [reload]);
+
+  // Debounced search to fetch from backend when user types code or customer name
+  useEffect(() => {
+    const q = search.trim();
+    if (!q || q.length < 2) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await orderAPI.getAll({ search: q, limit: 500 });
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (list.length > 0) {
+          setOrders(prev => {
+            const existingIds = new Set(prev.map(o => o.id));
+            const newItems = list.filter(o => !existingIds.has(o.id));
+            return newItems.length > 0 ? [...newItems, ...prev] : prev;
+          });
+        }
+      } catch (err) {
+        console.warn('Backend order search failed:', err);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     const codeFromState = location.state?.openOrderCode;
