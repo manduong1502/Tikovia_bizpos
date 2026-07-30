@@ -168,31 +168,69 @@ export default function ReturnsPage() {
 
   useEffect(() => {
     const codeFromState = location.state?.openReturnCode;
+    const returnIdFromState = location.state?.openReturnId;
     const params = new URLSearchParams(location.search);
-    const codeFromQuery = params.get('returnCode');
-    const code = codeFromState || codeFromQuery;
-    
-    if (!code || returns.length === 0) return;
+    const codeFromQuery = params.get('returnCode') || params.get('code');
+    const idFromQuery = params.get('id') || params.get('returnId');
+    const targetCode = codeFromState || codeFromQuery;
+    const targetId = returnIdFromState || idFromQuery;
 
-    const matchedReturn = returns.find(r => String(r.code).toLowerCase() === String(code).toLowerCase());
-    if (matchedReturn) {
+    if (!targetCode && !targetId) return;
+
+    const findAndOpenReturn = async () => {
       setFilters(prev => ({
         ...prev,
         dateRange: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
         statuses: new Set(['COMPLETED', 'CANCELLED'])
       }));
-      setSearch(code);
-      setExpandedId(matchedReturn.id);
-      loadDetail(matchedReturn.id);
-      scrollRowIntoView(matchedReturn.id);
-      
-      if (codeFromState) {
+      if (targetCode) setSearch(targetCode);
+
+      let matchedReturn = null;
+      if (targetId) {
+        matchedReturn = returns.find(r => String(r.id) === String(targetId));
+      }
+      if (!matchedReturn && targetCode) {
+        matchedReturn = returns.find(r => String(r.code || '').toLowerCase() === String(targetCode).toLowerCase());
+      }
+
+      if (!matchedReturn && targetId) {
+        try {
+          const single = await returnAPI.getById(targetId);
+          if (single && single.id) matchedReturn = single;
+        } catch (err) {
+          console.warn('Lỗi khi fetch phiếu trả theo ID:', err);
+        }
+      }
+
+      if (!matchedReturn && targetCode) {
+        try {
+          const res = await returnAPI.getAll({ search: targetCode, limit: 10 });
+          const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+          matchedReturn = list.find(r => String(r.code || '').toLowerCase() === String(targetCode).toLowerCase()) || list[0];
+        } catch (err) {
+          console.warn('Lỗi khi search phiếu trả theo mã:', err);
+        }
+      }
+
+      if (matchedReturn) {
+        setReturns(prev => {
+          const exists = prev.some(item => String(item.id) === String(matchedReturn.id));
+          return exists ? prev : [matchedReturn, ...prev];
+        });
+        setExpandedId(matchedReturn.id);
+        loadDetail(matchedReturn.id);
+        scrollRowIntoView(matchedReturn.id);
+      }
+
+      if (codeFromState || returnIdFromState) {
         navigate(location.pathname, { replace: true, state: {} });
       } else {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
-    }
-  }, [location.state?.openReturnCode, location.search, returns, navigate, location.pathname]);
+    };
+
+    findAndOpenReturn();
+  }, [location.state, location.search, navigate, location.pathname]);
 
   const loadDetail = async (id) => {
     try {

@@ -340,47 +340,76 @@ export default function OrdersPage() {
 
   useEffect(() => {
     const codeFromState = location.state?.openOrderCode;
+    const orderIdFromState = location.state?.openOrderId;
     const params = new URLSearchParams(location.search);
-    const codeFromQuery = params.get('orderCode');
-    const code = codeFromState || codeFromQuery;
-    
-    if (!code) return;
+    const codeFromQuery = params.get('orderCode') || params.get('code');
+    const idFromQuery = params.get('id') || params.get('orderId');
+    const targetCode = codeFromState || codeFromQuery;
+    const targetId = orderIdFromState || idFromQuery;
+
+    if (!targetCode && !targetId) return;
 
     const findAndOpenOrder = async () => {
-      let matchedOrder = orders.find(o => 
-        String(o.order_code || o.code || '').toLowerCase() === String(code).toLowerCase()
-      );
+      // 1. Reset date & status filters so target order is not filtered out
+      setFilters(prev => ({
+        ...prev,
+        orderDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null },
+        statuses: null,
+        deliveryStatus: null,
+        deliveryPartner: null,
+      }));
 
-      if (!matchedOrder) {
+      if (targetCode) setSearch(targetCode);
+
+      let matchedOrder = null;
+
+      // 2. Try finding in loaded list
+      if (targetId) {
+        matchedOrder = orders.find(o => String(o.id) === String(targetId));
+      }
+      if (!matchedOrder && targetCode) {
+        matchedOrder = orders.find(o => 
+          String(o.order_code || o.code || '').toLowerCase() === String(targetCode).toLowerCase()
+        );
+      }
+
+      // 3. Direct fetch by ID if not in memory
+      if (!matchedOrder && targetId) {
         try {
-          const res = await orderAPI.getAll({ search: code, limit: 10 });
-          const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-          matchedOrder = list.find(o => 
-            String(o.order_code || o.code || '').toLowerCase() === String(code).toLowerCase()
-          );
-          if (matchedOrder) {
-            setOrders(prev => {
-              const exists = prev.some(item => item.id === matchedOrder.id);
-              return exists ? prev : [matchedOrder, ...prev];
-            });
+          const single = await orderAPI.getById(targetId);
+          if (single && (single.id || single.order_code || single.code)) {
+            matchedOrder = single;
           }
         } catch (err) {
-          console.error('Lỗi khi tìm hóa đơn:', err);
+          console.warn('Lỗi khi fetch hóa đơn theo ID:', err);
         }
       }
 
+      // 4. Direct search/fetch by Code if not found by ID
+      if (!matchedOrder && targetCode) {
+        try {
+          const res = await orderAPI.getAll({ search: targetCode, limit: 10 });
+          const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+          matchedOrder = list.find(o => 
+            String(o.order_code || o.code || '').toLowerCase() === String(targetCode).toLowerCase()
+          ) || (list.length > 0 ? list[0] : null);
+        } catch (err) {
+          console.warn('Lỗi khi search hóa đơn theo mã:', err);
+        }
+      }
+
+      // 5. Open matched order
       if (matchedOrder) {
-        setFilters(prev => ({
-          ...prev,
-          orderDate: { mode: 'all', label: 'Toàn thời gian', start: null, end: null }
-        }));
-        setSearch(code);
+        setOrders(prev => {
+          const exists = prev.some(item => String(item.id) === String(matchedOrder.id));
+          return exists ? prev : [matchedOrder, ...prev];
+        });
         setExpandedId(matchedOrder.id);
         loadDetail(matchedOrder.id);
         scrollRowIntoView(matchedOrder.id);
       }
-      
-      if (codeFromState) {
+
+      if (codeFromState || orderIdFromState) {
         navigate(location.pathname, { replace: true, state: {} });
       } else {
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -388,7 +417,7 @@ export default function OrdersPage() {
     };
 
     findAndOpenOrder();
-  }, [location.state?.openOrderCode, location.search, orders.length, navigate, location.pathname]);
+  }, [location.state, location.search, navigate, location.pathname]);
 
   useEffect(() => {
     if (!registerOrderUpdateCallback) return;
