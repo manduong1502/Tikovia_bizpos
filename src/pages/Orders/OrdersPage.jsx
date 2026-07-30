@@ -338,13 +338,13 @@ export default function OrdersPage() {
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
   }, [reload]);
 
-  // Debounced search to fetch from backend when user types code or customer name
+  // Debounced search to fetch from backend when user types in search or advanced search fields
   useEffect(() => {
-    const q = search.trim();
+    const q = (search || searchCode || searchCustomer || searchProduct || '').trim();
     if (!q || q.length < 2) return;
     const timer = setTimeout(async () => {
       try {
-        const res = await orderAPI.getAll({ search: q, limit: 500 });
+        const res = await orderAPI.getAll({ search: q, limit: 1000 });
         const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
         if (list.length > 0) {
           setOrders(prev => {
@@ -358,7 +358,7 @@ export default function OrdersPage() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, searchCode, searchCustomer, searchProduct]);
 
   useEffect(() => {
     const codeFromState = location.state?.openOrderCode;
