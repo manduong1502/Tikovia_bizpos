@@ -713,7 +713,100 @@ export default function PurchaseReturnsPage() {
         {/* Main Table Area */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
           <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((o) => {
+                const isExpanded = expandedId === o.id;
+                const isSelected = selectedIds.has(o.id);
+                return (
+                  <div key={o.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
+                    {/* Top Row: Code + Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(o.id)}
+                        />
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : o.id)}
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          {o.code}
+                        </button>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {STATUS_LABEL[o.status] || o.status}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Supplier & Date */}
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span className="font-bold text-gray-800 truncate max-w-[180px]">
+                        {o.supplier_name || 'Khách/NCC'}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Total & Action */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[11px]">NCC cần trả: </span>
+                        <span className="font-extrabold text-primary text-xs">{fmt(o.supplier_must_pay || o.total)}</span>
+                      </div>
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : o.id)}
+                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Thu gọn' : 'Chi tiết'}
+                        <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Mobile Full-Screen Detail Modal Sheet Overlay */}
+                    {isExpanded && (
+                      <div className="md:hidden fixed inset-0 z-[10000] bg-white flex flex-col font-sans animate-fade-in text-left">
+                        {/* Sticky Top Header Bar */}
+                        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setExpandedId(null)}
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                            >
+                              <X size={20} />
+                            </button>
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-gray-900 text-sm">Chi tiết trả hàng nhập</span>
+                              <span className="text-xs font-bold text-primary">{o.code}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setExpandedId(null)}
+                            className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold border-none cursor-pointer"
+                          >
+                            Đóng
+                          </button>
+                        </div>
+
+                        {/* Full Screen Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
+                          {renderDetail(o)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {paginated.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy phiếu trả hàng nhập nào</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-left border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-12 text-center">

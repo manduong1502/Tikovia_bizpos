@@ -594,7 +594,43 @@ export default function PriceBooksPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
           <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
-            <table className="w-full text-xs border-collapse min-w-[800px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((p) => (
+                <div key={p.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-primary">{p.sku || `SP${p.id}`}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-gray-500 font-medium">Giá bán:</span>
+                      <input
+                        type="text"
+                        className="w-28 border border-gray-200 rounded-lg px-2 py-1 text-right text-xs font-bold text-gray-800 focus:border-primary outline-none shadow-sm bg-white"
+                        defaultValue={fmt(p.sellPrice)}
+                        onBlur={(e) => {
+                          const newVal = e.target.value;
+                          if (newVal !== fmt(p.sellPrice)) {
+                              handlePriceChange(p.id, newVal);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="font-bold text-gray-800">
+                    {p.name}
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 pt-0.5 border-t border-gray-50">
+                    <span>Giá vốn: <strong className="text-gray-700">{fmt(p.costPrice)}</strong></span>
+                    <span>Giá nhập sau cùng: <strong className="text-gray-700">{fmt(p.lastImportPrice)}</strong></span>
+                  </div>
+                </div>
+              ))}
+              {filteredProducts.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy dữ liệu hàng hóa nào phù hợp</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 {shownColumns.map((col) => (
