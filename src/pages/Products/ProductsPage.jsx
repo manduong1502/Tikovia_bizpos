@@ -535,14 +535,14 @@ export default function ProductsPage() {
     return (
       <tr key={`detail-${p.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-1.5 px-3">
-            {/* Tabs */}
-            <div className="flex gap-3 border-b border-gray-200 mb-3 px-2">
+          <div className="p-2 sm:p-3 max-w-full overflow-x-hidden">
+            {/* Tabs: Horizontal scrollable on mobile */}
+            <div className="flex gap-3 border-b border-gray-200 mb-3 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
               {tabs.map(t => (
                 <button
                   key={t.key}
                   onClick={(e) => { e.stopPropagation(); setDetailTab(t.key); }}
-                  className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                     detailTab === t.key
                       ? 'border-primary text-primary'
                       : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -555,34 +555,34 @@ export default function ProductsPage() {
 
             {/* Tab content */}
             {detailTab === 'info' && (
-              <div className="flex gap-8 pb-2 items-start">
-                <div className="w-[80px] h-[80px] bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm overflow-hidden">
+              <div className="flex flex-col sm:flex-row gap-4 pb-2 items-start">
+                <div className="w-[70px] h-[70px] sm:w-[80px] sm:h-[80px] bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm overflow-hidden mx-auto sm:mx-0">
                   {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={32} />}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs mb-6">
-                    <div className="flex items-center gap-4">
+                <div className="flex-1 w-full">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 text-xs mb-3 gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-bold text-gray-800 tracking-tight">{p.name}</span>
                       <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                         {p.sku || ''}
                       </span>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
                         Đang kinh doanh
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-primary bg-white px-2 py-1 text-[10px] rounded-lg border border-blue-200 shadow-sm">
+                    <span className="text-xs font-bold text-primary bg-white px-2 py-1 text-[10px] rounded-lg border border-blue-200 shadow-sm self-start sm:self-auto">
                       Chi nhánh trung tâm
                     </span>
                   </div>
 
                   <div className="text-xs text-gray-500 mb-2 font-medium">Nhóm hàng: <span className="text-primary font-bold">{catName(p.categoryId)}</span></div>
                   <div className="flex gap-1.5 mb-3 flex-wrap">
-                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Hàng hóa thường</span>
-                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg text-xs font-bold border border-blue-100 shadow-sm">Bán trực tiếp</span>
-                    <span className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
+                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-sm">Hàng hóa thường</span>
+                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-sm">Bán trực tiếp</span>
+                    <span className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 rounded-lg font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50/50 p-4 sm:p-6 rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50/50 p-3 sm:p-4 rounded-xl border border-gray-200">
                     {[
                       ['Mã hàng', p.sku || ''],
                       ['Mã vạch', p.barcode || '---'],
@@ -595,8 +595,8 @@ export default function ProductsPage() {
                       ['Vị trí', p.location || 'Chưa có'],
                     ].map(([label, val]) => (
                       <div key={label}>
-                        <div className="text-gray-500 font-medium mb-1">{label}</div>
-                        <div className="font-extrabold text-gray-800 text-sm truncate">{val}</div>
+                        <div className="text-gray-500 font-medium mb-0.5 text-[11px]">{label}</div>
+                        <div className="font-extrabold text-gray-800 text-xs truncate">{val}</div>
                       </div>
                     ))}
                   </div>
@@ -604,89 +604,106 @@ export default function ProductsPage() {
               </div>
             )}
             {detailTab === 'desc' && (
-              <div className="p-4 sm:p-6 text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-xl border border-gray-200 leading-relaxed font-medium overflow-x-auto max-w-full">
+              <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200 text-xs">
                 {p.description ? (
-                  <div dangerouslySetInnerHTML={{ __html: p.description }} />
+                  <p className="text-gray-700 whitespace-pre-wrap">{p.description}</p>
                 ) : (
                   <em className="text-gray-400">Chưa có mô tả chi tiết cho sản phẩm này</em>
                 )}
               </div>
             )}
             {detailTab === 'stock_card' && (
-              <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 overflow-x-auto max-w-full">
+              <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 text-xs">
                 <ClipboardList size={32} className="mx-auto mb-3 text-gray-300" />
                 Không tìm thấy thẻ kho nào phù hợp
               </div>
             )}
             {detailTab === 'inventory' && (
-              <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-w-full w-full max-h-40 overflow-y-auto">
-                <table className="w-full text-[11px] border-collapse min-w-[600px]">
-                  <thead>
-                    <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                      <th className="p-1.5 px-3 pl-4">Chi nhánh</th>
-                      <th className="p-1.5 px-3 text-right">Tồn kho</th>
-                      <th className="p-1.5 px-3 text-right">KH đặt</th>
-                      <th className="p-1.5 px-3 text-left pl-6">Dự kiến hết hàng</th>
-                      <th className="p-1.5 px-3 text-left">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 font-medium">
-                    <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
-                      <td className="p-1.5 px-3 pl-4">Tổng cộng</td>
-                      <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
-                      <td className="text-right p-3 text-primary font-extrabold">0</td>
-                      <td></td>
-                      <td></td>
-                    </tr>
-                    <tr className="hover:bg-blue-50/30 transition-colors">
-                      <td className="p-1.5 px-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
-                      <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
-                      <td className="text-right p-3 text-gray-400 font-bold">0</td>
-                      <td className="p-3 pl-6 text-gray-400">---</td>
-                      <td className="p-3 text-green-600 font-bold">Đang kinh doanh</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                {/* Mobile Card View */}
+                <div className="block md:hidden divide-y divide-gray-100 text-xs p-3 flex flex-col gap-2">
+                  <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 font-bold">
+                    <span>Tổng cộng tồn kho</span>
+                    <span className="text-primary font-extrabold text-sm">{fmtStock(p.stock)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <div>
+                      <span className="font-bold text-gray-800 block">Chi nhánh trung tâm</span>
+                      <span className="text-[11px] text-green-600 font-bold">Đang kinh doanh</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-gray-500 text-[11px] block">Tồn kho:</span>
+                      <span className="font-extrabold text-gray-800">{fmtStock(p.stock)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto max-h-40">
+                  <table className="w-full text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-1.5 px-3 pl-4">Chi nhánh</th>
+                        <th className="p-1.5 px-3 text-right">Tồn kho</th>
+                        <th className="p-1.5 px-3 text-right">KH đặt</th>
+                        <th className="p-1.5 px-3 text-left pl-6">Dự kiến hết hàng</th>
+                        <th className="p-1.5 px-3 text-left">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
+                        <td className="p-1.5 px-3 pl-4">Tổng cộng</td>
+                        <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
+                        <td className="text-right p-3 text-primary font-extrabold">0</td>
+                        <td></td>
+                        <td></td>
+                      </tr>
+                      <tr className="hover:bg-blue-50/30 transition-colors">
+                        <td className="p-1.5 px-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
+                        <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
+                        <td className="text-right p-3 text-gray-400 font-bold">0</td>
+                        <td className="p-3 pl-6 text-gray-400">---</td>
+                        <td className="p-3 text-green-600 font-bold">Đang kinh doanh</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
             {/* Action bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-gray-200 pt-3 mt-3" onClick={e => e.stopPropagation()}>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button variant="danger" onClick={() => deleteProduct(p.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
-                  <Trash2 size={14} /> Xóa
-                </Button>
-                <Button variant="secondary" onClick={() => { setEditProduct(p); setIsClone(true); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
-                  <Copy size={14} /> Sao chép
-                </Button>
-                <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-2.5 shadow-sm font-bold whitespace-nowrap">
-                  <Tag size={14} /> In tem mã
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button variant="primary" onClick={() => { setEditProduct(p); setIsClone(false); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-[11px] py-1 px-3.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap">
-                  <Edit size={14} /> Chỉnh sửa
-                </Button>
-                 <Button 
-                   variant="secondary" 
-                   className="p-2 shadow-sm flex-none"
-                   onClick={async (e) => {
-                     e.stopPropagation();
-                     const nextSale = p.direct_sale === false ? true : false;
-                     const tid = toast.loading('Đang cập nhật trạng thái...');
-                     try {
-                       await productAPI.update(p.id, { directSale: nextSale });
-                       setProducts(prev => prev.map(item => item.id === p.id ? { ...item, direct_sale: nextSale, directSale: nextSale } : item));
-                       toast.success(nextSale ? 'Đã cho phép bán trực tiếp' : 'Đã ngừng bán trực tiếp', { id: tid });
-                     } catch (err) {
-                       toast.error('Cập nhật trạng thái thất bại', { id: tid });
-                     }
-                   }}
-                   title="Bật/Tắt bán trực tiếp"
-                 >
-                   <SlidersHorizontal size={14} />
-                 </Button>
-              </div>
+            <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-3" onClick={e => e.stopPropagation()}>
+              <Button variant="danger" onClick={() => deleteProduct(p.id)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                <Trash2 size={13} /> Xóa
+              </Button>
+              <Button variant="secondary" onClick={() => { setEditProduct(p); setIsClone(true); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                <Copy size={13} /> Sao chép
+              </Button>
+              <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                <Tag size={13} /> In tem
+              </Button>
+              <Button variant="primary" onClick={() => { setEditProduct(p); setIsClone(false); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white col-span-2 sm:col-span-1">
+                <Edit size={13} /> Chỉnh sửa
+              </Button>
+              <Button 
+                variant="secondary" 
+                className="p-1.5 shadow-sm flex-none justify-center items-center"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const nextSale = p.direct_sale === false ? true : false;
+                  const tid = toast.loading('Đang cập nhật trạng thái...');
+                  try {
+                    await productAPI.update(p.id, { directSale: nextSale });
+                    setProducts(prev => prev.map(item => item.id === p.id ? { ...item, direct_sale: nextSale, directSale: nextSale } : item));
+                    toast.success(nextSale ? 'Đã cho phép bán trực tiếp' : 'Đã ngừng bán trực tiếp', { id: tid });
+                  } catch (err) {
+                    toast.error('Cập nhật trạng thái thất bại', { id: tid });
+                  }
+                }}
+                title="Bật/Tắt bán trực tiếp"
+              >
+                <SlidersHorizontal size={13} />
+              </Button>
             </div>
           </div>
         </td>

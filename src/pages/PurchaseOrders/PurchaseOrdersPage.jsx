@@ -538,7 +538,9 @@ export default function PurchaseOrdersPage() {
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((po) => {
                 const isExpanded = expandedId === po.id;
-                const statusBadge = getPOStatusBadge(po.status);
+                const statusKey = po.payment_status || po.status || 'paid';
+                const statusClass = PAY_BADGE[statusKey] || 'bg-gray-100 text-gray-700';
+                const statusText = PAY_LABEL[statusKey] || statusKey;
                 const code = po.po_code || po.code;
                 return (
                   <div key={po.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
@@ -559,8 +561,8 @@ export default function PurchaseOrdersPage() {
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge.bg} ${statusBadge.color}`}>
-                          {statusBadge.text}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}`}>
+                          {statusText}
                         </span>
                         <span className="text-[11px] text-gray-400 font-medium">
                           {po.created_at ? new Date(po.created_at).toLocaleDateString('vi-VN') : ''}
