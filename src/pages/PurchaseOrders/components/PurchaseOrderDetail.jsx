@@ -254,7 +254,32 @@ export default function PurchaseOrderDetail({
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  {/* Mobile Items View */}
+                  <div className="block md:hidden divide-y divide-gray-100 bg-white max-h-60 overflow-y-auto custom-scrollbar">
+                    {items.map((it, idx) => (
+                      <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer" className="font-extrabold text-primary hover:underline">
+                            {it.product_sku}
+                          </a>
+                          <span className="font-extrabold text-primary">{fmt(it.total)}</span>
+                        </div>
+                        <div className="font-bold text-gray-800">
+                          {it.product_name} {it.unit ? `(${it.unit})` : ''}
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-gray-500 pt-0.5">
+                          <span>Số lượng: <strong className="text-gray-800">{it.quantity}</strong></span>
+                          <span>Đơn giá: {fmt(it.unit_price)} {it.discount > 0 ? `(Giảm ${fmt(it.discount)})` : ''}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {items.length === 0 && (
+                      <div className="p-6 text-center text-gray-400 text-xs">Không tìm thấy hàng hóa</div>
+                    )}
+                  </div>
+
+                  {/* Desktop Items Table */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50 border-b border-gray-200">
                         <tr className="text-left text-gray-600 font-bold uppercase tracking-wide">
@@ -331,7 +356,7 @@ export default function PurchaseOrderDetail({
                     <textarea
                       readOnly
                       value={currentNote}
-                      className="w-full h-24 p-3 text-sm border border-gray-300 rounded-lg bg-white outline-none focus:border-primary resize-none shadow-sm"
+                      className="w-full h-20 p-3 text-sm border border-gray-300 rounded-lg bg-white outline-none focus:border-primary resize-none shadow-sm"
                       placeholder="Không có ghi chú..."
                     />
                   </div>
@@ -339,47 +364,37 @@ export default function PurchaseOrderDetail({
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="flex items-center justify-between border-t border-gray-200 pt-3 mt-3">
-                <div className="flex items-center gap-3">
-                  <Button variant="danger" onClick={() => deletePO(o.id)} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100">
-                    <XCircle size={14} /> Hủy phiếu
+              <div className="grid grid-cols-3 sm:flex sm:items-center justify-between border-t border-gray-200 pt-3 mt-3 gap-2">
+                {o.status !== 'CANCELLED' && (
+                  <Button variant="danger" onClick={() => deletePO(o.id)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 whitespace-nowrap">
+                    <XCircle size={13} /> Hủy
                   </Button>
-                  <Button variant="secondary" onClick={handleClonePO} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
-                    <Copy size={14} /> Sao chép
-                  </Button>
-                  <Button variant="secondary" onClick={handlePrintBarcodes} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
-                    <Printer size={14} /> In mã vạch
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {o.status !== 'CANCELLED' && o.payment_status !== 'unpaid' && (
-                    <Button
-                      variant="secondary"
-                      onClick={() => navigate(`/purchase-returns/create?poId=${o.id}`)}
-                      className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold text-red-600 border border-red-100 hover:bg-red-50"
-                    >
-                      <RotateCcw size={14} /> Trả hàng
-                    </Button>
-                  )}
-                  <Button
-                    variant="primary"
-                    onClick={() => navigate(`/purchase-orders/create?id=${o.id}&type=update`)}
-                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold bg-primary hover:bg-primary-hover text-white"
-                  >
-                    <FolderOpen size={14} /> Mở phiếu
-                  </Button>
-                  <Button variant="secondary" onClick={handlePrintPO} className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold">
-                    <Printer size={14} /> In đơn
-                  </Button>
+                )}
+                <Button variant="secondary" onClick={handleClonePO} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                  <Copy size={13} /> Sao chép
+                </Button>
+                <Button variant="secondary" onClick={handlePrintBarcodes} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                  Mã vạch
+                </Button>
+                {o.status !== 'CANCELLED' && o.payment_status !== 'unpaid' && (
                   <Button
                     variant="secondary"
-                    onClick={() => alert(`Mã đơn nhập: ${o.po_code}\nNgười nhận: ${currentReceivedBy}`)}
-                    className="p-2 shadow-sm border border-gray-200"
+                    onClick={() => navigate(`/purchase-returns/create?poId=${o.id}`)}
+                    className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold text-red-600 border border-red-100 hover:bg-red-50 whitespace-nowrap"
                   >
-                    <MoreHorizontal size={14} />
+                    <RotateCcw size={13} /> Trả hàng
                   </Button>
-                </div>
+                )}
+                <Button
+                  variant="primary"
+                  onClick={() => navigate(`/purchase-orders/create?id=${o.id}&type=update`)}
+                  className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap"
+                >
+                  <FolderOpen size={13} /> Mở phiếu
+                </Button>
+                <Button variant="secondary" onClick={handlePrintPO} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap col-span-2 sm:col-span-1">
+                  <Printer size={13} /> In đơn
+                </Button>
               </div>
             </div>
           ) : detailTab === 'history' ? (

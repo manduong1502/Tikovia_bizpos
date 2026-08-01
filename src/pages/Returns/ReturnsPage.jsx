@@ -521,18 +521,17 @@ export default function ReturnsPage() {
           <div className="p-1.5 px-3">
             <div className="flex flex-col gap-4">
               {/* Header Info */}
-              <div className="flex items-center justify-between bg-blue-50/50 p-2 px-3 rounded-lg border border-blue-100 text-xs">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-bold text-gray-800 tracking-tight">{o.code}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-50/50 p-2.5 px-3 rounded-xl border border-blue-100 text-xs gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-extrabold text-gray-800 tracking-tight">{o.code}</span>
                   <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${STATUS_BADGE[o.status] || 'bg-gray-100 text-gray-600'}`}>
                     {STATUS_LABEL[o.status] || o.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1 text-gray-600">
                     <span className="text-gray-500">Ngày trả:</span>
                     <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
-                    <Calendar size={14} className="text-primary ml-1" />
                   </div>
                   <div>
                     <span className="text-gray-500">Khách hàng:</span>{' '}
@@ -550,7 +549,7 @@ export default function ReturnsPage() {
                   </div>
                   {o.order && (
                     <div>
-                      <span className="text-gray-500">Hóa đơn liên kết:</span>{' '}
+                      <span className="text-gray-500">Hóa đơn:</span>{' '}
                       <span 
                         onClick={() => navigate(`/orders?orderCode=${o.order.order_code || o.order.code}`)}
                         className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1"
@@ -563,119 +562,120 @@ export default function ReturnsPage() {
                 </div>
               </div>
 
-              {/* Items Table Section */}
-              <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm max-h-40 overflow-y-auto">
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50/50 gap-4">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="relative w-64">
-                      <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Tìm mã hàng"
-                        className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                        value={detailSearchSku}
-                        onChange={e => setDetailSearchSku(e.target.value)}
-                      />
-                    </div>
-                    <div className="relative w-64">
-                      <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Tìm tên hàng"
-                        className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                        value={detailSearchName}
-                        onChange={e => setDetailSearchName(e.target.value)}
-                      />
-                    </div>
-                  </div>
+              {/* Items Section: Mobile Card List vs Desktop Table */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm max-w-full w-full">
+                <div className="p-3 bg-gray-50 border-b border-gray-100 text-xs font-extrabold text-gray-700 flex justify-between items-center">
+                  <span>Mặt hàng trả ({items.length})</span>
                 </div>
 
-                <table className="w-full text-[11px] border-collapse">
-                  <thead>
-                    <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                      <th className="p-1.5 px-3">Mã hàng</th>
-                      <th className="p-1.5 px-3">Tên hàng</th>
-                      <th className="p-1.5 px-3 text-right">Số lượng</th>
-                      <th className="p-1.5 px-3 text-right">Đơn giá</th>
-                      <th className="p-1.5 px-3 text-right">Thành tiền</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 font-medium">
-                    {items.map((it, idx) => (
-                      <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-3 text-primary font-bold hover:underline cursor-pointer">
-                          <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
-                            {it.product_sku}
-                          </a>
-                        </td>
-                        <td className="p-3 text-gray-800">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
-                        <td className="p-1.5 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
-                        <td className="p-1.5 px-3 text-right text-gray-600">{fmt(it.price)}</td>
-                        <td className="p-1.5 px-3 text-right text-primary font-bold">{fmt(it.total)}</td>
+                {/* Mobile View */}
+                <div className="block md:hidden divide-y divide-gray-100 bg-white max-h-60 overflow-y-auto custom-scrollbar">
+                  {items.map((it, idx) => (
+                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer" className="font-extrabold text-primary hover:underline">
+                          {it.product_sku}
+                        </a>
+                        <span className="font-extrabold text-primary">{fmt(it.total)}</span>
+                      </div>
+                      <div className="font-bold text-gray-800">
+                        {it.product_name} {it.unit ? `(${it.unit})` : ''}
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-gray-500 pt-0.5">
+                        <span>Số lượng trả: <strong className="text-gray-800">{it.quantity}</strong></span>
+                        <span>Đơn giá: {fmt(it.price)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {items.length === 0 && (
+                    <div className="p-6 text-center text-gray-400 text-xs">Không có mặt hàng nào</div>
+                  )}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto max-h-40 overflow-y-auto custom-scrollbar">
+                  <table className="w-full text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-2 px-3">Mã hàng</th>
+                        <th className="p-2 px-3">Tên hàng</th>
+                        <th className="p-2 px-3 text-right">Số lượng</th>
+                        <th className="p-2 px-3 text-right">Đơn giá</th>
+                        <th className="p-2 px-3 text-right">Thành tiền</th>
                       </tr>
-                    ))}
-                    {items.length === 0 && (
-                      <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có mặt hàng nào</td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      {items.map((it, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="p-2 px-3 text-primary font-bold hover:underline cursor-pointer">
+                            <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
+                              {it.product_sku}
+                            </a>
+                          </td>
+                          <td className="p-2 px-3 text-gray-800">{it.product_name} {it.unit ? `(${it.unit})` : ''}</td>
+                          <td className="p-2 px-3 text-right text-gray-800 font-bold">{it.quantity}</td>
+                          <td className="p-2 px-3 text-right text-gray-600">{fmt(it.price)}</td>
+                          <td className="p-2 px-3 text-right text-primary font-bold">{fmt(it.total)}</td>
+                        </tr>
+                      ))}
+                      {items.length === 0 && (
+                        <tr><td colSpan={5} className="p-8 text-center text-gray-400">Không có mặt hàng nào</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Bottom Section: Note & Summary Box */}
-              <div className="grid grid-cols-3 gap-8 items-start">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-8 items-start">
+                <div className="sm:col-span-2">
                   <textarea
                     placeholder="Ghi chú..."
-                    className="w-full h-12 sm:h-16 border border-gray-300 rounded-lg p-2 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                    className="w-full h-14 sm:h-16 border border-gray-300 rounded-xl p-2.5 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                     value={currentNote}
                     onChange={(e) => setReturnNotes(prev => ({ ...prev, [o.id]: e.target.value }))}
                   />
                 </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 flex flex-col gap-1.5 text-[11px] shadow-sm">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] shadow-sm">
                   <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Số lượng mặt hàng</span><span className="font-bold text-gray-800">{items.length}</span></div>
                   <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng tiền hàng ({totalQty})</span><span className="font-bold text-gray-800">{fmt(subtotal)}</span></div>
-                  <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Khách cần trả</span><span className="font-extrabold text-primary">{fmt(o.must_pay_customer)}</span></div>
-                  <div className="flex justify-between items-center text-sm"><span className="font-bold text-gray-800">Khách đã trả</span><span className="font-extrabold text-green-600">{fmt(o.paid_customer)}</span></div>
+                  <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5"><span className="font-bold text-gray-800">Cần trả khách</span><span className="font-extrabold text-primary">{fmt(o.must_pay_customer)}</span></div>
+                  <div className="flex justify-between items-center text-sm"><span className="font-bold text-gray-800">Đã trả khách</span><span className="font-extrabold text-green-600">{fmt(o.paid_customer)}</span></div>
                 </div>
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="flex items-center justify-between border-t border-gray-200 pt-3 mt-1.5">
-                <div className="flex items-center gap-2">
-                  {o.status !== 'CANCELLED' && (
-                    <Button 
-                      variant="danger" 
-                      onClick={() => handleCancelReturn(o.id, o.code)} 
-                      className="flex items-center gap-1.5 text-xs py-1 px-3 shadow-sm font-bold whitespace-nowrap"
-                    >
-                      <Trash2 size={14} /> Hủy phiếu
-                    </Button>
-                  )}
+              <div className="grid grid-cols-2 sm:flex sm:items-center justify-between border-t border-gray-200 pt-3 mt-1.5 gap-2">
+                {o.status !== 'CANCELLED' && (
                   <Button 
-                    variant="secondary" 
-                    onClick={() => handleCloneReturn(o)} 
-                    className="flex items-center gap-1.5 text-xs py-1 px-3 shadow-sm font-bold whitespace-nowrap"
+                    variant="danger" 
+                    onClick={() => handleCancelReturn(o.id, o.code)} 
+                    className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap"
                   >
-                    <Copy size={14} /> Sao chép
+                    <Trash2 size={13} /> Hủy phiếu
                   </Button>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => handleSaveNote(o.id)} 
-                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold whitespace-nowrap"
-                  >
-                    <Save size={14} /> Lưu
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => handlePrintReturn(o)} 
-                    className="flex items-center gap-1.5 text-xs py-1 px-3.5 shadow-sm font-bold whitespace-nowrap"
-                  >
-                    <Printer size={14} /> In
-                  </Button>
-                </div>
+                )}
+                <Button 
+                  variant="secondary" 
+                  onClick={() => handleCloneReturn(o)} 
+                  className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap"
+                >
+                  <Copy size={13} /> Sao chép
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => handleSaveNote(o.id)} 
+                  className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap"
+                >
+                  <Save size={13} /> Lưu
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={() => handlePrintReturn(o)} 
+                  className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap"
+                >
+                  <Printer size={13} /> In
+                </Button>
               </div>
             </div>
           </div>
