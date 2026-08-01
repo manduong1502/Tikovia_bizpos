@@ -593,6 +593,48 @@ export default function PurchaseOrdersPage() {
                         <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
+
+                    {/* Mobile Full-Screen Detail Modal Sheet Overlay */}
+                    {isExpanded && (
+                      <div className="md:hidden fixed inset-0 z-[10000] bg-white flex flex-col font-sans animate-fade-in text-left">
+                        {/* Sticky Top Header Bar */}
+                        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setExpandedId(null)}
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                            >
+                              <X size={20} />
+                            </button>
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-gray-900 text-sm">Chi tiết phiếu nhập</span>
+                              <span className="text-xs font-bold text-primary">{code}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setExpandedId(null)}
+                            className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold border-none cursor-pointer"
+                          >
+                            Đóng
+                          </button>
+                        </div>
+
+                        {/* Full Screen Scrollable Body */}
+                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
+                          <PurchaseOrderDetail
+                            order={po}
+                            visibleColumns={visibleColumns}
+                            PAY_BADGE={PAY_BADGE}
+                            PAY_LABEL={PAY_LABEL}
+                            poNotes={poNotes}
+                            poReceivedBy={poReceivedBy}
+                            handleUpdateReceivedBy={handleUpdateReceivedBy}
+                            deletePO={deletePO}
+                            purchaseReturns={purchaseReturns.filter(pr => pr.purchaseOrderId === po.id || pr.purchase_order_id === po.id || (pr.purchaseOrder && pr.purchaseOrder.id === po.id))}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
