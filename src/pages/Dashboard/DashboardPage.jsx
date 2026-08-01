@@ -104,34 +104,6 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5 max-w-full font-sans pb-6">
-      {/* Top Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-          <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 m-0">
-            Tổng quan kinh doanh <Sparkles size={18} className="text-amber-500" />
-          </h1>
-          <p className="text-xs text-gray-500 mt-1 font-medium m-0">
-            Theo dõi doanh thu, hóa đơn & lợi nhuận thời gian thực
-          </p>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => navigate('/pos')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-hover active:scale-[0.98] text-white text-xs font-extrabold rounded-xl shadow-md transition-all border-none cursor-pointer"
-          >
-            <Plus size={16} /> Bán hàng POS
-          </button>
-          <button
-            onClick={() => navigate('/purchase-orders/create')}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition-all border-none cursor-pointer"
-          >
-            <ShoppingCart size={15} /> Nhập hàng
-          </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 min-w-0">
         {/* Left Area */}
         <div className="flex flex-col gap-5 min-w-0">
