@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, ClipboardList, Star, Filter, Upload, Settings, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Tag, XCircle, HelpCircle, ChevronUp, Calendar, ChevronRight, Eye, X, SlidersHorizontal
+  Plus, Download, Search, ClipboardList, Star, Filter, Upload, Settings, Columns3, ChevronDown, Trash2, Copy, Printer, MoreHorizontal, Save, Tag, XCircle, HelpCircle, ChevronUp, Calendar, ChevronRight, Eye, X, SlidersHorizontal, User
 } from 'lucide-react';
 // Dynamic imports will be used for exportCSV to speed up route loading
 import PurchaseOrderModal from './PurchaseOrderModal';

@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { 
   Plus, Download, Search, ArrowUpRight, ArrowDownLeft, 
   FileText, Wallet, Filter, X, SlidersHorizontal, Info, 
-  Star, Printer, Edit, Trash2, Calendar, MapPin, ExternalLink
+  Star, Printer, Edit, Trash2, Calendar, MapPin, ExternalLink, User, ChevronDown
 } from 'lucide-react';
 import { exportCSV } from '../../utils/exportUtils';
 import Pagination from '../../components/common/Pagination';

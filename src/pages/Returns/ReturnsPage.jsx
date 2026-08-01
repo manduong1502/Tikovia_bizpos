@@ -5,7 +5,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, Trash2, Copy, Save, MoreHorizontal, Calendar, X, SlidersHorizontal, Eye, Printer, ExternalLink
+  Plus, Download, Search, ClipboardList, Star, Filter, Columns3, Trash2, Copy, Save, MoreHorizontal, Calendar, X, SlidersHorizontal, Eye, Printer, ExternalLink, User, ChevronDown
 } from 'lucide-react';
 // Dynamic imports will be used for exportCSV to speed up route loading
 import { copyToClipboard } from '../../utils/exportUtils';
