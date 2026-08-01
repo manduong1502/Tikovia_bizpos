@@ -19,6 +19,21 @@ import {
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const getStatusBadge = (status, paidAmount, totalAmount) => {
+  const total = Number(totalAmount || 0);
+  const paid = Number(paidAmount || 0);
+  if (status === 'cancelled') {
+    return { text: 'Đã hủy', bg: 'bg-gray-100 text-gray-600 border border-gray-200', color: 'text-gray-600' };
+  }
+  if (paid >= total && total > 0) {
+    return { text: 'Hoàn thành', bg: 'bg-emerald-50 text-emerald-700 border border-emerald-200', color: 'text-emerald-700' };
+  }
+  if (paid > 0 && paid < total) {
+    return { text: 'Thanh toán 1 phần', bg: 'bg-amber-50 text-amber-700 border border-amber-200', color: 'text-amber-700' };
+  }
+  return { text: 'Hoàn thành', bg: 'bg-emerald-50 text-emerald-700 border border-emerald-200', color: 'text-emerald-700' };
+};
+
 const scrollRowIntoView = (id) => {
   setTimeout(() => {
     const rowEl = document.getElementById(`row-${id}`);
@@ -719,7 +734,7 @@ export default function OrdersPage() {
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((o) => {
                 const isExpanded = expandedId === o.id;
-                const statusBadge = getStatusBadge(o.status);
+                const statusBadge = getStatusBadge(o.status, o.paid_amount, o.total);
                 const itemsCount = o.items?.length || o._items?.length || 0;
                 return (
                   <div key={o.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">

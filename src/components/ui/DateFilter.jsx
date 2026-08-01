@@ -161,13 +161,13 @@ export default function DateFilter({ label, type = 'created', value, onChange })
 
       {/* Preset Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'preset'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="ml-2 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 flex p-5 gap-6 min-w-[420px]">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl z-[10000] grid grid-cols-2 sm:flex p-3 sm:p-5 gap-3 sm:gap-6 max-w-[calc(100vw-20px)] sm:min-w-[420px] max-h-[80vh] overflow-y-auto custom-scrollbar">
           {Object.entries(presets).map(([title, items], idx, arr) => {
             const isLast = idx === arr.length - 1;
             return (
-              <div key={title} className="flex flex-col min-w-[120px]">
-                <div className="text-sm font-bold text-gray-800 mb-3 text-left">{title}</div>
-                <div className="flex flex-col gap-2 flex-1">
+              <div key={title} className="flex flex-col min-w-0 sm:min-w-[120px]">
+                <div className="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 text-left">{title}</div>
+                <div className="flex flex-col gap-1.5 sm:gap-2 flex-1">
                   {items.map(item => {
                     const isSelected = value?.label === item && mode === 'all';
                     return (
@@ -175,7 +175,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
                         key={item}
                         type="button"
                         onClick={() => selectPreset(item)}
-                        className={`w-full text-center px-4 py-2 text-xs rounded-full transition-all cursor-pointer ${
+                        className={`w-full text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-full transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20'
                             : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-primary hover:text-primary hover:shadow-sm'
@@ -190,7 +190,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
                   <button
                     type="button"
                     onClick={() => selectPreset('Toàn thời gian')}
-                    className={`mt-3 w-full text-center px-4 py-2 text-xs rounded-full transition-all cursor-pointer ${
+                    className={`mt-2 sm:mt-3 w-full text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-full transition-all cursor-pointer ${
                       value?.label === 'Toàn thời gian' || !value?.label
                         ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20'
                         : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-primary hover:text-primary hover:shadow-sm'
@@ -207,7 +207,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
 
       {/* Calendar Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'calendar'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="ml-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50 w-[480px]">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl z-[10000] w-[calc(100vw-20px)] sm:w-[480px] max-w-full p-2 sm:p-4 overflow-y-auto max-h-[85vh]">
           {/* Header range display */}
           <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs text-gray-600 rounded-t-lg">
             Từ ngày: {startDate ? startDate.toLocaleDateString('vi-VN') : '--/--/----'} - Đến ngày: {endDate ? endDate.toLocaleDateString('vi-VN') : '--/--/----'}
