@@ -847,9 +847,9 @@ export default function CustomersPage() {
     return (
       <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
         <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-4 bg-gray-50/10">
-            {/* Top Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 mb-4 px-2">
+          <div className="p-3 sm:p-4 bg-gray-50/10 max-w-full overflow-x-hidden">
+            {/* Top Tabs: Horizontal scrollable on mobile */}
+            <div className="flex gap-3 border-b border-gray-200 mb-4 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
               {[
                 { key: 'info', label: 'Thông tin' },
                 { key: 'history', label: 'Lịch sử mua hàng' },
@@ -859,7 +859,7 @@ export default function CustomersPage() {
                 <button
                   key={t.key}
                   onClick={() => setDetailTab(t.key)}
-                  className={`py-1.5 px-0.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+                  className={`py-1.5 px-1 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                     detailTab === t.key ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
                   }`}
                 >
@@ -868,17 +868,18 @@ export default function CustomersPage() {
               ))}
             </div>
 
+            {/* Tab: Thông tin */}
             {detailTab === 'info' && (
               <div className="flex flex-col gap-3">
                 {/* Header Info */}
-                <div className="flex items-center justify-between bg-blue-50/50 p-3 px-4 rounded-lg border border-blue-100 text-xs sm:text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-base font-extrabold text-gray-800 tracking-tight">{c.name}</span>
-                    <span className="px-2 py-0.5 text-xs font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/50 p-3 rounded-xl border border-blue-100 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold text-gray-800 tracking-tight">{c.name}</span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                       {code}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs sm:text-sm">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
                     <div><span className="text-gray-500">Điện thoại:</span> <span className="font-bold text-gray-800">{c.phone || '---'}</span></div>
                     <div><span className="text-gray-500">Email:</span> <span className="font-bold text-gray-800">{c.email || '---'}</span></div>
                     <div><span className="text-gray-500">Địa chỉ:</span> <span className="font-bold text-gray-800">{c.address || '---'}</span></div>
@@ -886,66 +887,76 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 sm:p-4 bg-gray-50/50 rounded-lg border border-gray-200 text-xs">
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Nhóm khách hàng</span><span className="font-bold text-gray-800 truncate block">Khách hàng chung</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Loại khách hàng</span><span className="font-bold text-gray-800 truncate block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Giới tính</span><span className="font-bold text-gray-800 truncate block">{c.gender || '---'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Ngày sinh</span><span className="font-bold text-gray-800 truncate block">---</span></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-gray-50/50 rounded-xl border border-gray-200 text-[11px]">
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Nhóm khách hàng</span><span className="font-bold text-gray-800 block">Khách hàng chung</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Loại khách hàng</span><span className="font-bold text-gray-800 block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Giới tính</span><span className="font-bold text-gray-800 block">{c.gender || '---'}</span></div>
+                  <div><span className="text-gray-500 font-medium block mb-0.5">Ngày sinh</span><span className="font-bold text-gray-800 block">---</span></div>
                 </div>
 
                 {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-start text-xs mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start text-xs mt-1">
                   <div className="sm:col-span-2">
                     <textarea
                       placeholder="Ghi chú..."
-                      className="w-full h-16 sm:h-20 border border-gray-300 rounded-lg p-2.5 text-xs sm:text-sm text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                      className="w-full h-16 sm:h-20 border border-gray-300 rounded-xl p-2.5 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                       value={currentNote}
                       onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
                     />
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex flex-col gap-1.5 text-xs shadow-sm">
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] shadow-sm">
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
                     <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán trừ trả hàng</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs sm:text-sm border-t border-gray-200 pt-2 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className={`font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</span></div>
+                    <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className={`font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</span></div>
                   </div>
                 </div>
 
                 {/* Bottom Action Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1.5">
-                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="danger" onClick={() => handleDelete(c.id)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
-                      <Trash2 size={13} /> Xóa khách hàng
-                    </Button>
-                    <Button variant="secondary" className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
-                      <Copy size={13} /> Sao chép
-                    </Button>
-                    <Button variant="secondary" onClick={handleExport} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
-                      <Download size={13} /> Xuất file
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-4 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
-                      <Edit size={13} /> Chỉnh sửa
-                    </Button>
-                    <Button variant="secondary" onClick={() => handleSaveNote(c.id, currentNote)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
-                      <Save size={13} /> Lưu
-                    </Button>
-                    <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
-                      Thanh toán nợ
-                    </Button>
-                    <Button variant="secondary" onClick={() => handlePrintCustomer(c)} className="flex-1 sm:flex-none justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold whitespace-nowrap">
-                      <Printer size={13} /> In
-                    </Button>
-                    <Button variant="secondary" className="p-1.5 shadow-sm flex-none">
-                      <MoreHorizontal size={13} />
-                    </Button>
-                  </div>
+                <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1">
+                  <Button variant="danger" onClick={() => handleDelete(c.id)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                    <Trash2 size={13} /> Xóa
+                  </Button>
+                  <Button variant="secondary" className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                    <Copy size={13} /> Sao chép
+                  </Button>
+                  <Button variant="secondary" onClick={handleExport} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                    <Download size={13} /> Xuất file
+                  </Button>
+                  <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
+                    <Edit size={13} /> Sửa
+                  </Button>
+                  <Button variant="secondary" onClick={() => handleSaveNote(c.id, currentNote)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
+                    <Save size={13} /> Lưu
+                  </Button>
+                  <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
+                    Thanh toán
+                  </Button>
+                  <Button variant="secondary" onClick={() => handlePrintCustomer(c)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap col-span-2 sm:col-span-1">
+                    <Printer size={13} /> In
+                  </Button>
                 </div>
               </div>
             )}
 
+            {/* Tab: Lịch sử mua hàng */}
             {detailTab === 'history' && (() => {
+              const custOrders = orders.filter(o => {
+                const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
+                const cNameMatches = o.customer_name && o.customer_name === c.name;
+                const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
+                return cIdMatches || cNameMatches || cCodeMatches;
+              });
+
+              const custReturns = returns.filter(r => {
+                const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
+                const cNameMatches = r.customer_name && r.customer_name === c.name;
+                const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
+                return cIdMatches || cNameMatches || cCodeMatches;
+              });
+
+              const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+              const dVal = Number(c.debt || c.totalDebt || 0);
+
               const combinedHistory = [
                 ...custOrders.map(o => ({
                   id: o.id,
@@ -979,103 +990,135 @@ export default function CustomersPage() {
 
               return (
                 <div className="flex flex-col gap-3 p-1">
-                  {/* Micro metrics */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-gray-50 border border-gray-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-gray-500 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng giao dịch</span>
-                      <span className="text-sm sm:text-base font-extrabold text-gray-800">{combinedHistory.length} giao dịch</span>
+                  {/* Micro metrics: 2 cols on mobile, 4 on desktop */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng giao dịch</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-gray-800">{combinedHistory.length} giao dịch</span>
                     </div>
-                    <div className="bg-blue-50/40 border border-blue-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
-                      <span className="text-sm sm:text-base font-extrabold text-primary">{fmt(baseAmt)}</span>
+                    <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-primary">{fmt(baseAmt)}</span>
                     </div>
-                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider mb-0.5">Khách đã trả</span>
-                      <span className="text-sm sm:text-base font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
+                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-emerald-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Khách đã trả</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
                     </div>
-                    <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-rose-600 font-bold text-xs uppercase tracking-wider mb-0.5">Còn nợ lại</span>
-                      <span className={`text-sm sm:text-base font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
+                    <div className="bg-rose-50/40 border border-rose-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
+                      <span className="text-rose-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Còn nợ lại</span>
+                      <span className={`text-xs sm:text-sm font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
                     </div>
                   </div>
 
                   {combinedHistory.length > 0 ? (
-                    <div className="border border-gray-200 rounded-lg overflow-x-auto shadow-sm bg-white max-h-56 overflow-y-auto">
-                      <table className="w-full text-xs min-w-[700px] border-collapse">
-                        <thead>
-                          <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                            <th className="py-2.5 px-3.5">Mã hóa đơn</th>
-                            <th className="py-2.5 px-3.5">Thời gian</th>
-                            <th className="py-2.5 px-3.5">Chi nhánh</th>
-                            <th className="py-2.5 px-3.5">Loại</th>
-                            <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
-                            <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
-                            <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 font-medium">
-                          {combinedHistory.map((item, i) => (
-                            <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                              <td
-                                className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer"
+                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                      {/* Mobile View: Cards */}
+                      <div className="block md:hidden divide-y divide-gray-100 max-h-60 overflow-y-auto custom-scrollbar">
+                        {combinedHistory.map((item, i) => (
+                          <div key={i} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                            <div className="flex items-center justify-between gap-2">
+                              <span 
+                                className="font-extrabold text-primary hover:underline cursor-pointer"
                                 onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
                               >
                                 {item.code}
-                              </td>
-                              <td className="py-2 px-3.5 text-gray-500">{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</td>
-                              <td className="py-2 px-3.5 text-gray-600">{item.branch}</td>
-                              <td className="py-2 px-3.5">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                  {item.typeName}
-                                </span>
-                              </td>
-                              <td className={`py-2 px-3.5 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                {item.typeName}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] text-gray-500">
+                              <span>{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</span>
+                              <span className={`font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
                                 {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
-                              </td>
-                              <td className={`py-2 px-3.5 text-right font-extrabold ${item.paid < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {item.paid < 0 ? '-' : ''}{fmt(Math.abs(item.paid))}
-                              </td>
-                              <td className="py-2 px-3.5 text-center">
-                                {item.status === 'CANCELLED' || item.status === 'cancelled' ? (
-                                  <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
-                                    Đã hủy
-                                  </span>
-                                ) : item.type === 'Trả hàng' ? (
-                                  <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                    Hoàn thành
-                                  </span>
-                                ) : (() => {
-                                  const total = Number(item.total || 0);
-                                  const paid = Number(item.paid);
-                                  if (paid >= total && total > 0) {
-                                    return (
-                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                        Hoàn thành
-                                      </span>
-                                    );
-                                  } else if (paid > 0 && paid < total) {
-                                    return (
-                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
-                                        Một phần
-                                      </span>
-                                    );
-                                  } else {
-                                    return (
-                                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-                                        Chưa trả
-                                      </span>
-                                    );
-                                  }
-                                })()}
-                              </td>
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
+                              <span className="text-gray-500">Đã trả: <strong className="text-emerald-600">{fmt(Math.abs(item.paid))}</strong></span>
+                              <span className="text-gray-400">{item.branch}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden md:block overflow-x-auto max-h-56">
+                        <table className="w-full text-xs min-w-[700px] border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
+                              <th className="py-2.5 px-3.5">Mã hóa đơn</th>
+                              <th className="py-2.5 px-3.5">Thời gian</th>
+                              <th className="py-2.5 px-3.5">Chi nhánh</th>
+                              <th className="py-2.5 px-3.5">Loại</th>
+                              <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
+                              <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
+                              <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 font-medium">
+                            {combinedHistory.map((item, i) => (
+                              <tr key={i} className="hover:bg-blue-50/20 transition-colors">
+                                <td
+                                  className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer"
+                                  onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
+                                >
+                                  {item.code}
+                                </td>
+                                <td className="py-2 px-3.5 text-gray-500">{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</td>
+                                <td className="py-2 px-3.5 text-gray-600">{item.branch}</td>
+                                <td className="py-2 px-3.5">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                    {item.typeName}
+                                  </span>
+                                </td>
+                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                  {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
+                                </td>
+                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.paid < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                  {item.paid < 0 ? '-' : ''}{fmt(Math.abs(item.paid))}
+                                </td>
+                                <td className="py-2 px-3.5 text-center">
+                                  {item.status === 'CANCELLED' || item.status === 'cancelled' ? (
+                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
+                                      Đã hủy
+                                    </span>
+                                  ) : item.type === 'Trả hàng' ? (
+                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                      Hoàn thành
+                                    </span>
+                                  ) : (() => {
+                                    const total = Number(item.total || 0);
+                                    const paid = Number(item.paid);
+                                    if (paid >= total && total > 0) {
+                                      return (
+                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                          Hoàn thành
+                                        </span>
+                                      );
+                                    } else if (paid > 0 && paid < total) {
+                                      return (
+                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
+                                          Một phần
+                                        </span>
+                                      );
+                                    } else {
+                                      return (
+                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
+                                          Chưa trả
+                                        </span>
+                                      );
+                                    }
+                                  })()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-lg text-gray-400 font-medium">
-                      <User size={36} className="mx-auto mb-2 text-gray-300" />
+                    <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-400 font-medium text-xs">
+                      <User size={32} className="mx-auto mb-2 text-gray-300" />
                       Khách hàng chưa phát sinh hóa đơn giao dịch nào
                     </div>
                   )}
@@ -1083,6 +1126,7 @@ export default function CustomersPage() {
               );
             })()}
 
+            {/* Tab: Địa chỉ nhận hàng */}
             {detailTab === 'address' && (
               <div className="flex flex-col gap-3 p-1 text-xs">
                 <div className="flex justify-between items-center">
@@ -1094,7 +1138,7 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-lg p-4 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
+                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
                     <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
                       Mặc định
                     </div>
@@ -1111,24 +1155,27 @@ export default function CustomersPage() {
               </div>
             )}
 
+            {/* Tab: Nợ cần thu từ khách */}
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72 overflow-y-auto">
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72">
                 <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
                   <select 
                     className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
                     onChange={(e) => {
                       const tbody = e.target.closest('.border').querySelector('tbody');
-                      const rows = Array.from(tbody.querySelectorAll('tr'));
-                      const val = e.target.value;
-                      rows.forEach(r => {
-                        if (r.querySelector('td[colspan]')) return;
-                        if (val === 'all') r.style.display = '';
-                        else {
-                           const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
-                           r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
-                        }
-                      });
+                      if (tbody) {
+                        const rows = Array.from(tbody.querySelectorAll('tr'));
+                        const val = e.target.value;
+                        rows.forEach(r => {
+                          if (r.querySelector('td[colspan]')) return;
+                          if (val === 'all') r.style.display = '';
+                          else {
+                             const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
+                             r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
+                          }
+                        });
+                      }
                     }}
                   >
                     <option value="all">Tất cả giao dịch</option>
@@ -1137,7 +1184,37 @@ export default function CustomersPage() {
                     <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
-                <div className="overflow-x-auto max-h-56">
+
+                {/* Mobile View: Cards */}
+                <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
+                  {transactionsWithDebt.map((tx, idx) => (
+                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => {
+                          if (tx.type === 'Bán hàng') handleOpenOrder(tx.id, c.name, tx);
+                          else if (tx.type === 'Trả hàng') handleOpenReturn(tx.id, c.name, tx);
+                          else setSelectedTx({ ...tx, partnerName: c.name });
+                        }}>{tx.code}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                          {tx.type}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</span>
+                        <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                          {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
+                        <span className="text-gray-500">Dư nợ sau giao dịch:</span>
+                        <span className={`font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto max-h-56">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">

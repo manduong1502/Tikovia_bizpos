@@ -52,23 +52,23 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
   const refundAmount = Number(data.total || 0) - discountVal;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-[900px] max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-extrabold text-gray-800 tracking-tight">Phiếu trả hàng</h2>
-            <span className="font-bold text-gray-600">{data.code}</span>
-            <span className={`px-2 py-0.5 text-xs font-bold rounded ${status.bg} ${status.color}`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2 sm:p-4 animate-fade-in" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[900px] max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h2 className="text-base sm:text-lg font-extrabold text-gray-800 tracking-tight">Phiếu trả hàng</h2>
+            <span className="font-bold text-gray-600 text-xs sm:text-sm">{data.code}</span>
+            <span className={`px-2 py-0.5 text-[10px] sm:text-xs font-bold rounded ${status.bg} ${status.color}`}>
               {status.text}
             </span>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors">
-            <X size={20} className="text-gray-400" />
+            <X size={18} className="text-gray-400" />
           </button>
         </div>
         
-        <div className="p-6 flex flex-col gap-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[13px]">
+        <div className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs sm:text-[13px]">
             <div>
               <span className="text-gray-500 block">Ngày trả:</span>
               <span className="font-bold text-gray-800">
@@ -86,43 +86,66 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
           </div>
 
           <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider text-[11px]">
-                  <th className="p-3 w-12 text-center">STT</th>
-                  <th className="p-3">Mã hàng</th>
-                  <th className="p-3">Tên hàng</th>
-                  <th className="p-3 text-right">Số lượng</th>
-                  <th className="p-3 text-right">Giá trả lại</th>
-                  <th className="p-3 text-right">Thành tiền</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 font-medium">
-                {items.map((it, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/30">
-                    <td className="p-3 text-center text-gray-400">{idx + 1}</td>
-                    <td className="p-3 text-primary font-bold">{it.product?.sku || it.product_sku || it.sku || '---'}</td>
-                    <td className="p-3 text-gray-800">
-                      {it.product?.name || it.product_name || it.name || '---'} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}
-                    </td>
-                    <td className="p-3 text-right">{fmt(it.quantity)}</td>
-                    <td className="p-3 text-right">{fmt(it.unit_price || it.price)}</td>
-                    <td className="p-3 text-right font-bold text-primary">
-                      {fmt((it.quantity || 0) * (it.unit_price || it.price || 0))}
-                    </td>
+            {/* Mobile View: Cards */}
+            <div className="block sm:hidden divide-y divide-gray-100">
+              {items.map((it, idx) => (
+                <div key={idx} className="p-3 flex flex-col gap-1 text-xs hover:bg-gray-50/50">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-bold text-primary">{it.product?.sku || it.product_sku || it.sku || '---'}</span>
+                    <span className="font-bold text-gray-800">{it.product?.name || it.product_name || it.name || '---'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] text-gray-500 pt-1 border-t border-gray-50">
+                    <span>Số lượng: <strong className="text-gray-800">{fmt(it.quantity)}</strong></span>
+                    <span>Đơn giá: <strong className="text-gray-800">{fmt(it.unit_price || it.price)}</strong></span>
+                    <span>Thành tiền: <strong className="text-primary">{fmt((it.quantity || 0) * (it.unit_price || it.price || 0))}</strong></span>
+                  </div>
+                </div>
+              ))}
+              {items.length === 0 && (
+                <div className="p-4 text-center text-gray-400 text-xs">Không có mặt hàng nào</div>
+              )}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider text-[11px]">
+                    <th className="p-3 w-12 text-center">STT</th>
+                    <th className="p-3">Mã hàng</th>
+                    <th className="p-3">Tên hàng</th>
+                    <th className="p-3 text-right">Số lượng</th>
+                    <th className="p-3 text-right">Giá trả lại</th>
+                    <th className="p-3 text-right">Thành tiền</th>
                   </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-400">Không có mặt hàng nào</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium">
+                  {items.map((it, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50/30">
+                      <td className="p-3 text-center text-gray-400">{idx + 1}</td>
+                      <td className="p-3 text-primary font-bold">{it.product?.sku || it.product_sku || it.sku || '---'}</td>
+                      <td className="p-3 text-gray-800">
+                        {it.product?.name || it.product_name || it.name || '---'} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}
+                      </td>
+                      <td className="p-3 text-right">{fmt(it.quantity)}</td>
+                      <td className="p-3 text-right">{fmt(it.unit_price || it.price)}</td>
+                      <td className="p-3 text-right font-bold text-primary">
+                        {fmt((it.quantity || 0) * (it.unit_price || it.price || 0))}
+                      </td>
+                    </tr>
+                  ))}
+                  {items.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-gray-400">Không có mặt hàng nào</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-16 text-[13px]">
-            <div className="flex flex-col gap-2 w-72">
+          <div className="flex justify-end text-xs sm:text-[13px]">
+            <div className="flex flex-col gap-1.5 w-full sm:w-72">
               <div className="flex justify-between">
                 <span className="text-gray-500">Số lượng mặt hàng</span>
                 <span className="font-bold">{items.length}</span>
@@ -141,7 +164,7 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
                   <span className="font-bold text-red-600">-{fmt(discountVal)}</span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-gray-100 pt-2 font-bold">
+              <div className="flex justify-between border-t border-gray-100 pt-1.5 font-bold">
                 <span className="text-gray-700">Cần trả khách</span>
                 <span className="text-primary">{fmt(refundAmount)}</span>
               </div>
@@ -153,29 +176,29 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
           </div>
         </div>
 
-        <div className="flex justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+        <div className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-3 border-t border-gray-100 bg-gray-50/50 mt-auto">
           <div>
             {data.status !== 'CANCELLED' && data.status !== 'cancelled' && (
               <button 
                 onClick={handleCancel}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-md border-none"
+                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-md border-none"
               >
                 Hủy phiếu
               </button>
             )}
           </div>
-          <div className="flex gap-3">
-            <Button variant="secondary" className="flex items-center gap-1.5 font-bold shadow-sm" onClick={onClose}>
-              <Printer size={16} /> In phiếu
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" className="flex items-center gap-1 font-bold shadow-sm text-xs py-1.5 px-3" onClick={onClose}>
+              <Printer size={14} /> In phiếu
             </Button>
             <Button
               variant="primary"
               onClick={handleOpenTicket}
-              className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-6 flex items-center gap-1.5"
+              className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-4 flex items-center gap-1 text-xs py-1.5"
             >
-              <ExternalLink size={16} /> Mở phiếu
+              <ExternalLink size={14} /> Mở phiếu
             </Button>
-            <Button variant="secondary" onClick={onClose} className="border border-gray-200">Đóng</Button>
+            <Button variant="secondary" onClick={onClose} className="border border-gray-200 text-xs py-1.5 px-3">Đóng</Button>
           </div>
         </div>
       </div>
