@@ -662,51 +662,48 @@ export default function PurchaseReturnsPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
+        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-4 font-sans`}>
+          <div className="flex items-center justify-between lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
           
-          <div className="w-64 shrink-0 flex flex-col gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
-            {/* Status Filter */}
-            <div>
-              <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>
-              <div className="flex flex-col gap-2.5">
-                {[
-                  { value: 'PENDING', label: 'Phiếu tạm' },
-                  { value: 'COMPLETED', label: 'Đã trả hàng' },
-                  { value: 'CANCELLED', label: 'Đã hủy' },
-                ].map(st => (
-                  <label key={st.value} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={filters.statuses.has(st.value)}
-                      onChange={() => handleToggleStatus(st.value)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                    />
-                    <span>{st.label}</span>
-                  </label>
-                ))}
-              </div>
+          {/* Status Filter */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái</span>
+            <div className="flex flex-col gap-2.5">
+              {[
+                { value: 'PENDING', label: 'Phiếu tạm' },
+                { value: 'COMPLETED', label: 'Đã trả hàng' },
+                { value: 'CANCELLED', label: 'Đã hủy' },
+              ].map(st => (
+                <label key={st.value} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={filters.statuses.has(st.value)}
+                    onChange={() => handleToggleStatus(st.value)}
+                    className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                  />
+                  <span>{st.label}</span>
+                </label>
+              ))}
             </div>
+          </div>
 
-            <hr className="border-gray-100 my-2" />
+          <hr className="border-gray-100" />
 
-            {/* Date Filter */}
-            <div>
-              <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian</span>
-              <DateFilter 
-                value={filters.dateRange}
-                onChange={(val) => setFilters(prev => ({ ...prev, dateRange: val }))}
-                buttonClassName="w-full justify-between border-gray-200 text-xs py-2 bg-gray-50 hover:bg-gray-100 font-bold text-gray-700 rounded-xl shadow-sm"
-              />
-            </div>
-
+          {/* Date Filter */}
+          <div>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian</span>
+            <DateFilter 
+              value={filters.dateRange}
+              onChange={(val) => setFilters(prev => ({ ...prev, dateRange: val }))}
+              buttonClassName="w-full justify-between border-gray-200 text-xs py-2 bg-gray-50 hover:bg-gray-100 font-bold text-gray-700 rounded-xl shadow-sm"
+            />
           </div>
         </div>
 
