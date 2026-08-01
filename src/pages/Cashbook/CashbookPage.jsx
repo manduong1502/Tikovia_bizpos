@@ -392,168 +392,26 @@ export default function CashbookPage() {
     const labels = {
       customer: 'Khách hàng',
       supplier: 'Nhà cung cấp',
-      staff: 'Nhân viên',
-      delivery: 'Đối tác giao hàng',
-      other: 'Khác'
+        staff: 'Nhân viên',
+        delivery: 'Đối tác giao hàng',
+        other: 'Khác'
+      };
+      return labels[type] || 'Khác';
     };
-    return labels[type] || 'Khác';
-  };
 
-  const getPaymentMethodLabel = (method) => {
-    const labels = {
-      cash: 'Tiền mặt',
-      bank: 'Ngân hàng/Thẻ',
-      wallet: 'Ví điện tử'
-    };
-    return labels[method] || 'Tiền mặt';
-  };
-
-  return (
-    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
-      {/* Top Search and Action bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 w-full">
-          <div className="flex items-center gap-2 flex-1 w-full lg:w-auto">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              title="Bộ lọc tìm kiếm"
-            >
-              <Filter size={16} />
-            </button>
-            <div className="relative flex-1 max-w-md">
-              <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Theo mã phiếu, người nộp/nhận..."
-                className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              {search && (
-                <button 
-                  onClick={() => setSearch('')}
-                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600 text-xs font-bold bg-transparent border-none cursor-pointer"
-                >
-                  X
-                </button>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <button 
-              onClick={() => openModal('thu')} 
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-primary text-primary hover:bg-primary/5 rounded-lg transition-all shadow-sm cursor-pointer"
-            >
-              <Plus size={14} /> Phiếu thu
-            </button>
-            <button 
-              onClick={() => openModal('chi')} 
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-primary text-primary hover:bg-primary/5 rounded-lg transition-all shadow-sm cursor-pointer"
-            >
-              <Plus size={14} /> Phiếu chi
-            </button>
-            <button 
-              onClick={handleExport}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 rounded-lg transition-all shadow-sm cursor-pointer"
-            >
-              <Download size={14} /> Xuất file
-            </button>
-
-            {/* Column visibility menu matching illustration */}
-            <div className="relative" ref={columnMenuRef}>
+    // Top Search and Action bar
+    return (
+      <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
+        <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-2 flex-1 w-full lg:w-auto">
               <button
-                onClick={() => setShowColumnMenu(!showColumnMenu)}
-                className="p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                title="Bộ lọc tìm kiếm"
               >
-                <SlidersHorizontal size={16} />
+                <Filter size={16} />
               </button>
-
-              {showColumnMenu && (
-                <div className="absolute right-0 top-full mt-2 w-[460px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in font-sans">
-                  <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
-                    {/* Left Column (0-9) */}
-                    <div className="flex flex-col gap-2.5">
-                      {ALL_COLUMNS.slice(0, 9).map(c => (
-                        <label key={c.key} className="flex items-center gap-3 text-xs font-semibold text-gray-600 cursor-pointer hover:text-primary transition-colors select-none">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                            checked={visibleColumns.includes(c.key)}
-                            onChange={(ev) => {
-                              if (ev.target.checked) setVisibleColumns([...visibleColumns, c.key]);
-                              else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
-                            }}
-                          />
-                          <span>{c.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                    {/* Right Column (9-18) */}
-                    <div className="flex flex-col gap-2.5">
-                      {ALL_COLUMNS.slice(9).map(c => (
-                        <label key={c.key} className="flex items-center gap-3 text-xs font-semibold text-gray-600 cursor-pointer hover:text-primary transition-colors select-none">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                            checked={visibleColumns.includes(c.key)}
-                            onChange={(ev) => {
-                              if (ev.target.checked) setVisibleColumns([...visibleColumns, c.key]);
-                              else setVisibleColumns(visibleColumns.filter(k => k !== c.key));
-                            }}
-                          />
-                          <span>{c.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Aggregate Statistics Header */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2 bg-white p-2 sm:p-3 rounded-xl border border-gray-100 shadow-sm">
-        <div className="flex flex-col items-end pr-2 border-r border-gray-100">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Quỹ đầu kỳ</span>
-          <span className="text-xs sm:text-sm font-extrabold text-gray-700 tracking-tight">{fmt(openingBalance)}</span>
-        </div>
-        <div className="flex flex-col items-end pr-2 lg:border-r border-gray-100">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tổng thu</span>
-          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">+{fmt(totalIn)}</span>
-        </div>
-        <div className="flex flex-col items-end pr-2 border-r border-gray-100">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tổng chi</span>
-          <span className="text-xs sm:text-sm font-extrabold text-red-500 tracking-tight">-{fmt(totalOut)}</span>
-        </div>
-        <div className="flex flex-col items-end">
-          <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tồn quỹ</span>
-            <Info size={10} className="text-gray-400 cursor-pointer" title="Tổng thực tế tồn trong két" />
-          </div>
-          <span className="text-xs sm:text-sm font-extrabold text-green-600 tracking-tight">{fmt(netBalance)}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
-        {/* Mobile Filter Sidebar backdrop */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/40 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
-        )}
-
-        {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex items-center justify-between lg:hidden border-b border-gray-100 pb-3">
-            <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
-          </div>
-          
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-5 overflow-y-auto max-h-full custom-scrollbar">
-            {/* 1. Quỹ tiền */}
             <div>
               <span className="text-[13px] font-extrabold text-gray-800 mb-2.5 block">Quỹ tiền</span>
               <div className="flex flex-col gap-2">

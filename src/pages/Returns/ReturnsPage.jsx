@@ -690,7 +690,7 @@ export default function ReturnsPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
         <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Trả hàng
         </h1>
@@ -730,18 +730,22 @@ export default function ReturnsPage() {
                     <input type="text" placeholder="Nhập mã phiếu" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary font-medium" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Khách hàng (Tên)</label>
-                    <input type="text" placeholder="Tên khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary font-medium" value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} />
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Hàng hóa (Tên / Mã)</label>
+                    <input type="text" placeholder="Tên hoặc mã hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary font-medium" value={searchProduct} onChange={e => setSearchProduct(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Khách hàng (Tên / Mã)</label>
+                    <input type="text" placeholder="Tên hoặc mã khách hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary font-medium" value={searchCustomer} onChange={e => setSearchCustomer(e.target.value)} />
                   </div>
                   <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchCustomer(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchProduct(''); setSearchCustomer(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
                   </div>
                 </div>
               )}
             </div>
             
-            <Button variant="primary" onClick={() => navigate('/returns/new')} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap cursor-pointer shrink-0">
-              <Plus size={16} /> <span className="hidden sm:inline">Trả hàng</span>
+            <Button variant="primary" onClick={() => navigate('/returns/create')} className="flex items-center justify-center gap-1 shadow-md bg-primary hover:bg-primary-hover font-bold py-1.5 px-3 rounded-lg text-xs whitespace-nowrap cursor-pointer shrink-0">
+              <Plus size={16} /> <span className="hidden sm:inline">Tạo trả hàng</span>
             </Button>
           </div>
 
@@ -759,7 +763,7 @@ export default function ReturnsPage() {
               </button>
 
               {showColumnMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 animate-fade-in">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 z-50 animate-fade-in">
                   <div className="text-xs font-bold text-gray-700 mb-3 border-b border-gray-100 pb-2">Ẩn/hiện cột</div>
                   <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                     {ALL_COLUMNS.map(c => (
@@ -786,13 +790,13 @@ export default function ReturnsPage() {
 
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
           
           <div className="w-64 shrink-0 flex flex-col gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 font-sans">
@@ -831,7 +835,76 @@ export default function ReturnsPage() {
 
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
           <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((o) => {
+                const isExpanded = expandedId === o.id;
+                const statusLabel = STATUS_LABEL[o.status] || o.status;
+                return (
+                  <div key={o.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
+                    {/* Top Row: Code + Status + Date */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={selectedIds.has(o.id)}
+                          onChange={() => toggleSelect(o.id)}
+                        />
+                        <button
+                          onClick={() => { setExpandedId(isExpanded ? null : o.id); if (!isExpanded) loadDetail(o.id); }}
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          {o.code}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${o.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {statusLabel}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-medium">
+                          {o.created_at ? new Date(o.created_at).toLocaleDateString('vi-VN') : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Customer Name */}
+                    <div className="flex items-center justify-between text-xs text-gray-700">
+                      <span className="font-bold text-gray-800 flex items-center gap-1">
+                        <User size={13} className="text-gray-400" />
+                        {o.customer_name || 'Khách lẻ'}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Total & Action */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[11px]">Cần trả khách: </span>
+                        <span className="font-extrabold text-primary text-xs">{fmt(o.must_pay_customer || o.total)}</span>
+                      </div>
+                      <button
+                        onClick={() => { setExpandedId(isExpanded ? null : o.id); if (!isExpanded) loadDetail(o.id); }}
+                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Thu gọn' : 'Chi tiết'}
+                        <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="pt-2 border-t border-gray-50">
+                        {renderDetail(o)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {paginated.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy phiếu trả hàng nào phù hợp</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-left border-collapse min-w-[1000px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 text-gray-600 text-xs font-extrabold border-b border-gray-100 uppercase tracking-wider">
                   <th className="py-2.5 px-3 w-12 text-center">

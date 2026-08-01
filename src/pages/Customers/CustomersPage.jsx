@@ -1246,7 +1246,7 @@ export default function CustomersPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
         <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Khách hàng
         </h1>
@@ -1317,29 +1317,8 @@ export default function CustomersPage() {
                       onChange={e => setSearchNote(e.target.value)} 
                     />
                   </div>
-                  <div>
-                    <input 
-                      type="text" 
-                      placeholder="Theo mã hóa đơn" 
-                      className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium text-gray-800" 
-                      value={searchOrderCode} 
-                      onChange={e => setSearchOrderCode(e.target.value)} 
-                    />
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                    <button 
-                      onClick={() => { setSearch(''); setSearchEmail(''); setSearchAddress(''); setSearchNote(''); setSearchOrderCode(''); }} 
-                      className="text-xs text-gray-500 hover:text-red-500 bg-transparent border-none cursor-pointer font-bold transition-colors"
-                    >
-                      Xóa bộ lọc
-                    </button>
-                    <Button 
-                      variant="primary" 
-                      onClick={() => setSearchOpen(false)} 
-                      className="text-xs py-2 px-6 rounded-lg font-bold bg-primary hover:bg-primary-hover shadow-md text-white border-none cursor-pointer"
-                    >
-                      Tìm kiếm
-                    </Button>
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                    <Button variant="secondary" onClick={() => { setSearch(''); setSearchEmail(''); setSearchAddress(''); setSearchNote(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
                   </div>
                 </div>
               )}
@@ -1395,9 +1374,6 @@ export default function CustomersPage() {
                 </div>
               )}
             </div>
-
-            
-            
           </div>
         </div>
       </div>
@@ -1405,11 +1381,11 @@ export default function CustomersPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
+        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-3 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
@@ -1419,16 +1395,23 @@ export default function CustomersPage() {
           <div>
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm khách hàng</span>
-              <button onClick={() => toast.success('Mở form tạo nhóm mới')} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer font-bold">+ Tạo mới</button>
+              <button 
+                type="button" 
+                onClick={() => setGroupModalOpen(true)}
+                className="text-xs text-primary font-bold hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 p-0"
+              >
+                + Tạo mới
+              </button>
             </div>
             <select
-              className="w-full border border-gray-300 rounded px-3 py-2 min-h-[42px] text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white cursor-pointer"
+              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white font-medium text-gray-800"
               value={filterGroup}
               onChange={e => setFilterGroup(e.target.value)}
             >
-              <option value="">Tất cả các nhóm</option>
-              <option value="all">Khách hàng chung</option>
-              <option value="vip">Khách hàng VIP</option>
+              <option value="all">Tất cả các nhóm</option>
+              {customerGroups.map(g => (
+                <option key={g.id || g.name} value={g.name}>{g.name}</option>
+              ))}
             </select>
           </div>
 
@@ -1440,19 +1423,17 @@ export default function CustomersPage() {
             <DateFilter
               label="Ngày tạo"
               type="created"
-              value={filterDate}
-              onChange={setFilterDate}
+              value={filterCreatedDate}
+              onChange={setFilterCreatedDate}
             />
           </div>
 
           <hr className="border-gray-100" />
 
-
-
           {/* Loại khách hàng */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại khách hàng</span>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {['Tất cả', 'Cá nhân', 'Công ty'].map(t => (
                 <button
                   key={t}
@@ -1471,15 +1452,15 @@ export default function CustomersPage() {
           {/* Giới tính */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Giới tính</span>
-            <div className="flex flex-wrap gap-2">
-              {['Tất cả', 'Nam', 'Nữ'].map(t => (
+            <div className="flex gap-2">
+              {['Tất cả', 'Nam', 'Nữ'].map(g => (
                 <button
-                  key={t}
+                  key={g}
                   type="button"
-                  onClick={() => setFilterGender(t)}
-                  className={`px-3 py-1.5 text-xs rounded-lg border font-bold transition-all cursor-pointer ${filterGender === t ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50'}`}
+                  onClick={() => setFilterGender(g)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border font-bold transition-all cursor-pointer ${filterGender === g ? 'bg-primary/10 text-primary border-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-primary/50'}`}
                 >
-                  {t}
+                  {g}
                 </button>
               ))}
             </div>
@@ -1492,9 +1473,9 @@ export default function CustomersPage() {
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Sinh nhật</span>
             <DateFilter
               label="Sinh nhật"
-              type="birthday"
-              value={filterBirthdayDate}
-              onChange={setFilterBirthdayDate}
+              type="created"
+              value={filterDobDate}
+              onChange={setFilterDobDate}
             />
           </div>
 
@@ -1505,9 +1486,9 @@ export default function CustomersPage() {
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Ngày giao dịch cuối</span>
             <DateFilter
               label="Ngày giao dịch cuối"
-              type="lastTransaction"
-              value={filterLastTransactionDate}
-              onChange={setFilterLastTransactionDate}
+              type="created"
+              value={filterLastTxDate}
+              onChange={setFilterLastTxDate}
             />
           </div>
 
@@ -1516,33 +1497,21 @@ export default function CustomersPage() {
           {/* Tổng bán */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Tổng bán</span>
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-8">Từ</span>
-                <NumericInput
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
-                  value={filterTotalFrom}
-                  onChange={e => setFilterTotalFrom(e.target.value)}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-8">Tới</span>
-                <NumericInput
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
-                  value={filterTotalTo}
-                  onChange={e => setFilterTotalTo(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="mt-2.5">
-              <span className="text-xs font-bold text-gray-500 mb-1 block">Thời gian</span>
-              <DateFilter
-                label="Thời gian mua"
-                type="spentTime"
-                value={filterSpentTime}
-                onChange={setFilterSpentTime}
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                placeholder="Từ" 
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
+                value={filterTotalSpentFrom} 
+                onChange={e => setFilterTotalSpentFrom(e.target.value)} 
+              />
+              <span className="text-gray-400">-</span>
+              <input 
+                type="number" 
+                placeholder="Đến" 
+                className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
+                value={filterTotalSpentTo} 
+                onChange={e => setFilterTotalSpentTo(e.target.value)} 
               />
             </div>
           </div>
@@ -1552,40 +1521,35 @@ export default function CustomersPage() {
           {/* Nợ hiện tại */}
           <div>
             <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Nợ hiện tại</span>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <select
+                className="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-medium text-gray-700 outline-none focus:border-primary bg-white"
+                value={filterDebtStatus}
+                onChange={e => setFilterDebtStatus(e.target.value)}
+              >
+                <option value="all">Tất cả nợ</option>
+                <option value="has_debt">Có nợ ({'>'} 0)</option>
+                <option value="no_debt">Không nợ (= 0)</option>
+              </select>
+
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-8">Từ</span>
-                <NumericInput
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
-                  value={filterDebtFrom}
-                  onChange={e => setFilterDebtFrom(e.target.value)}
+                <input 
+                  type="number" 
+                  placeholder="Từ" 
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
+                  value={filterDebtFrom} 
+                  onChange={e => setFilterDebtFrom(e.target.value)} 
                 />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500 w-8">Tới</span>
-                <NumericInput
-                  placeholder="0"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary font-medium text-gray-800"
-                  value={filterDebtTo}
-                  onChange={e => setFilterDebtTo(e.target.value)}
+                <span className="text-gray-400">-</span>
+                <input 
+                  type="number" 
+                  placeholder="Đến" 
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
+                  value={filterDebtTo} 
+                  onChange={e => setFilterDebtTo(e.target.value)} 
                 />
               </div>
             </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
-          {/* Khu vực giao hàng */}
-          <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Khu vực giao hàng</span>
-            <input 
-              type="text" 
-              placeholder="Chọn Tỉnh/TP - Quận/Huyện" 
-              className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm font-medium text-gray-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white font-medium text-gray-800" 
-              value={filterDeliveryArea} 
-              onChange={e => setFilterDeliveryArea(e.target.value)} 
-            />
           </div>
 
           <hr className="border-gray-100" />
@@ -1611,7 +1575,70 @@ export default function CustomersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-xs min-w-[800px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((c) => {
+                const isExpanded = expandedId === c.id;
+                const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
+                const debt = Number(c.debt !== undefined ? c.debt : (c.totalDebt || 0));
+                return (
+                  <div key={c.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
+                    {/* Top Row: Name + Code */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={selectedIds.has(c.id)}
+                          onChange={(e) => toggleOne(c.id, e.target.checked)}
+                        />
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          {c.name}
+                        </button>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
+                        {code}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Phone & Address */}
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span className="font-medium flex items-center gap-1">
+                        <Phone size={12} className="text-gray-400" />
+                        {c.phone || '---'}
+                      </span>
+                      <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
+                        {c.address || '---'}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Total spent & Debt */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[11px]">Nợ hiện tại: </span>
+                        <span className={`font-extrabold text-xs ${debt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(debt)}</span>
+                      </div>
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Thu gọn' : 'Chi tiết'}
+                        <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {paginated.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy khách hàng nào phù hợp</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-xs min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="py-2.5 px-3 w-12 text-center">

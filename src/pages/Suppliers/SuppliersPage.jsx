@@ -1563,7 +1563,7 @@ export default function SuppliersPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
         <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Nhà cung cấp
         </h1>
@@ -1603,19 +1603,11 @@ export default function SuppliersPage() {
                     <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Mã NCC</label>
-                    <input type="text" placeholder="Nhập mã NCC" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchCode} onChange={e => setSearchCode(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Tên nhà cung cấp</label>
-                    <input type="text" placeholder="Nhập tên nhà cung cấp" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-700 mb-1 block">Điện thoại</label>
-                    <input type="text" placeholder="Nhập số điện thoại" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchPhone} onChange={e => setSearchPhone(e.target.value)} />
+                    <label className="text-xs font-bold text-gray-700 mb-1 block">Nhà cung cấp (Tên / Mã)</label>
+                    <input type="text" placeholder="Tên hoặc mã nhà cung cấp" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSupplier} onChange={e => setSearchSupplier(e.target.value)} />
                   </div>
                   <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <Button variant="secondary" onClick={() => { setSearchCode(''); setSearchName(''); setSearchPhone(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                    <Button variant="secondary" onClick={() => { setSearchSupplier(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
                   </div>
                 </div>
               )}
@@ -1671,9 +1663,6 @@ export default function SuppliersPage() {
                 </div>
               )}
             </div>
-
-            
-            
           </div>
         </div>
       </div>
@@ -1681,14 +1670,14 @@ export default function SuppliersPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
+        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col gap-2 font-sans`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
           {/* Group Filter */}
           <div>
@@ -1732,7 +1721,70 @@ export default function SuppliersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-xs min-w-[800px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((s) => {
+                const isExpanded = expandedId === s.id;
+                const code = s.code || `NCC${String(s.id).padStart(3, '0')}`;
+                const debt = Number(s.debt || s.totalDebt || 0);
+                return (
+                  <div key={s.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
+                    {/* Top Row: Name + Code */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={selectedIds.has(s.id)}
+                          onChange={(e) => toggleOne(s.id, e.target.checked)}
+                        />
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          {s.name}
+                        </button>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-100">
+                        {code}
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Phone & Address */}
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      <span className="font-medium flex items-center gap-1">
+                        <Phone size={12} className="text-gray-400" />
+                        {s.phone || '---'}
+                      </span>
+                      <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
+                        {s.address || '---'}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Debt & Action */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[11px]">Nợ cần trả: </span>
+                        <span className={`font-extrabold text-xs ${debt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(debt)}</span>
+                      </div>
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Thu gọn' : 'Chi tiết'}
+                        <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {paginated.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy nhà cung cấp nào phù hợp</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-xs min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="py-2.5 px-3 w-12 text-center">

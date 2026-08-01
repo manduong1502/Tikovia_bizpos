@@ -697,7 +697,7 @@ export default function ProductsPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
         <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Hàng hóa
         </h1>
@@ -752,19 +752,19 @@ export default function ProductsPage() {
                         <button onClick={() => setSearchOpen(false)} className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer">Đóng</button>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hàng</label>
-                        <input type="text" placeholder="Nhập mã hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSku} onChange={e => setSearchSku(e.target.value)} />
+                        <label className="text-xs font-bold text-gray-700 mb-1 block">Mã hàng hóa</label>
+                        <input type="text" placeholder="Nhập mã hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchSku} onChange={e => setSearchSku(e.target.value)} />
                       </div>
                       <div>
                         <label className="text-xs font-bold text-gray-700 mb-1 block">Tên hàng hóa</label>
-                        <input type="text" placeholder="Nhập tên hàng" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
+                        <input type="text" placeholder="Tên hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchName} onChange={e => setSearchName(e.target.value)} />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-gray-700 mb-1 block">Vị trí</label>
-                        <input type="text" placeholder="Nhập vị trí lưu trữ" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchLocation} onChange={e => setSearchLocation(e.target.value)} />
+                        <label className="text-xs font-bold text-gray-700 mb-1 block">Ghi chú hàng hóa</label>
+                        <input type="text" placeholder="Ghi chú hàng hóa" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-primary" value={searchNote} onChange={e => setSearchNote(e.target.value)} />
                       </div>
                       <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                        <Button variant="secondary" onClick={() => { setSearchSku(''); setSearchName(''); setSearchLocation(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
+                        <Button variant="secondary" onClick={() => { setSearchSku(''); setSearchName(''); setSearchNote(''); }} className="text-xs py-1.5 px-3">Xóa bộ lọc</Button>
                       </div>
                     </div>
                   )}
@@ -785,7 +785,7 @@ export default function ProductsPage() {
                   <Download size={14} /> Tải file mẫu
                 </Button>
 
-                <Button variant="secondary" onClick={async () => { const { exportProducts } = await import('../../utils/exportCSV'); exportProducts(selected.size > 0 ? filtered.filter(p => selected.has(p.id)) : filtered); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
+                <Button variant="secondary" onClick={async () => { const { exportProducts } = await import('../../utils/exportCSV'); exportProducts(filtered); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-2.5 sm:px-3 rounded-lg shadow-sm text-xs whitespace-nowrap cursor-pointer">
                   <Download size={14} /> Xuất file
                 </Button>
 
@@ -829,14 +829,14 @@ export default function ProductsPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-14 bottom-0 left-0 z-50 w-72 bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-transform duration-300 lg:static lg:w-64 lg:p-0 lg:shadow-none lg:bg-transparent lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-4 lg:hidden border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
-            <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
+            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center"><X size={20} /></button>
           </div>
           <FilterSidebar
             categories={categories}

@@ -409,7 +409,7 @@ export default function PurchaseOrdersPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
       {/* Top Header Bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-10 relative">
+      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
         <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
           Nhập hàng
         </h1>
@@ -519,7 +519,7 @@ export default function PurchaseOrdersPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         <AdvancedFilter 
@@ -534,7 +534,75 @@ export default function PurchaseOrdersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            <table className="w-full text-xs border-collapse min-w-[800px]">
+            {/* Mobile Card List View */}
+            <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
+              {paginated.map((po) => {
+                const isExpanded = expandedId === po.id;
+                const statusBadge = getPOStatusBadge(po.status);
+                const code = po.po_code || po.code;
+                return (
+                  <div key={po.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
+                    {/* Top Row: Code + Status + Date */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          checked={selectedIds.has(po.id)}
+                          onChange={(e) => toggleOne(po.id, e.target.checked)}
+                        />
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : po.id)}
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                        >
+                          {code}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusBadge.bg} ${statusBadge.color}`}>
+                          {statusBadge.text}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-medium">
+                          {po.created_at ? new Date(po.created_at).toLocaleDateString('vi-VN') : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle Row: Supplier Name */}
+                    <div className="flex items-center justify-between text-xs text-gray-700">
+                      <span className="font-bold text-gray-800 flex items-center gap-1">
+                        <User size={13} className="text-gray-400" />
+                        {po.supplier_name || 'Nhà cung cấp lẻ'}
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        {po.items?.length > 0 ? `${po.items.length} mặt hàng` : ''}
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Total & Action */}
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[11px]">Tổng tiền: </span>
+                        <span className="font-extrabold text-primary text-xs">{fmt(po.total)}</span>
+                      </div>
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : po.id)}
+                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Thu gọn' : 'Chi tiết'}
+                        <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {paginated.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-xs">Không tìm thấy phiếu nhập nào phù hợp</div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <table className="hidden md:table w-full text-xs border-collapse min-w-[800px]">
               <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
                 <th className="py-2.5 px-3 w-12 text-center">
