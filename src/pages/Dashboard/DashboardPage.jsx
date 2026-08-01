@@ -90,8 +90,16 @@ export default function DashboardPage() {
     { value: 'Hôm nay', label: 'Hôm nay' },
     { value: 'Hôm qua', label: 'Hôm qua' },
     { value: '7 ngày qua', label: '7 ngày qua' },
+    { value: '30 ngày qua', label: '30 ngày qua' },
+    { value: 'Tuần này', label: 'Tuần này' },
+    { value: 'Tuần trước', label: 'Tuần trước' },
     { value: 'Tháng này', label: 'Tháng này' },
     { value: 'Tháng trước', label: 'Tháng trước' },
+    { value: 'Quý này', label: 'Quý này' },
+    { value: 'Quý trước', label: 'Quý trước' },
+    { value: 'Năm nay', label: 'Năm nay' },
+    { value: 'Năm trước', label: 'Năm trước' },
+    { value: 'Toàn thời gian', label: 'Toàn thời gian' },
   ];
 
   return (
