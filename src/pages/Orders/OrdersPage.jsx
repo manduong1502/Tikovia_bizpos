@@ -730,6 +730,25 @@ export default function OrdersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
+            {/* Mobile Summary Card (KiotViet mobile app style) */}
+            <div className="block md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/40 p-3.5 border-b border-blue-100/60 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block tracking-tight">
+                    Tổng tiền hàng
+                  </span>
+                  <span className="text-[11px] font-extrabold text-primary block mt-0.5">
+                    {filtered.length} hóa đơn
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-black text-gray-900 tracking-tight">
+                    {fmt(sumTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Mobile Card List View (No horizontal scroll needed) */}
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((o) => {

@@ -835,6 +835,25 @@ export default function ReturnsPage() {
 
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden max-w-full w-full lg:h-full">
           <div className="overflow-x-auto overflow-y-auto flex-1 max-w-full w-full custom-scrollbar">
+            {/* Mobile Summary Card */}
+            <div className="block md:hidden bg-gradient-to-r from-amber-50/80 to-orange-50/40 p-3.5 border-b border-amber-100/60 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block tracking-tight">
+                    Tổng tiền trả hàng
+                  </span>
+                  <span className="text-[11px] font-extrabold text-amber-700 block mt-0.5">
+                    {filtered.length} phiếu trả
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-black text-gray-900 tracking-tight">
+                    {fmt(sumTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Mobile Card List View */}
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((o) => {
