@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal
+  Plus, Download, Search, Building2, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, Eye, Tag, AlertCircle, X, Upload, SlidersHorizontal, Phone, ChevronDown
 } from 'lucide-react';
 // Dynamic imports will be used for XLSX and exportCSV to speed up route loading
 import SupplierModal from './SupplierModal';
