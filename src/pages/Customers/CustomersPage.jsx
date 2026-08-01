@@ -321,6 +321,7 @@ export default function CustomersPage() {
   };
 
   const [filterGroup, setFilterGroup] = useState('');
+  const [customerGroups, setCustomerGroups] = useState([]);
   const [filterDate, setFilterDate] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
   const [filterType, setFilterType] = useState('Tất cả');
   const [filterGender, setFilterGender] = useState('Tất cả');
@@ -331,6 +332,7 @@ export default function CustomersPage() {
   const [filterSpentTime, setFilterSpentTime] = useState({ mode: 'all', label: 'Toàn thời gian', start: null, end: null });
   const [filterDebtFrom, setFilterDebtFrom] = useState('');
   const [filterDebtTo, setFilterDebtTo] = useState('');
+  const [filterDebtStatus, setFilterDebtStatus] = useState('all');
   const [filterDeliveryArea, setFilterDeliveryArea] = useState('');
   const [filterStatus, setFilterStatus] = useState('Tất cả');
 
@@ -1397,7 +1399,13 @@ export default function CustomersPage() {
               <span className="text-sm font-extrabold text-gray-800 tracking-tight">Nhóm khách hàng</span>
               <button 
                 type="button" 
-                onClick={() => setGroupModalOpen(true)}
+                onClick={() => {
+                  const gName = prompt('Nhập tên nhóm khách hàng mới:');
+                  if (gName && gName.trim()) {
+                    setCustomerGroups(prev => [...prev, { id: Date.now(), name: gName.trim() }]);
+                    toast.success('Đã thêm nhóm khách hàng mới');
+                  }
+                }}
                 className="text-xs text-primary font-bold hover:underline bg-transparent border-none cursor-pointer flex items-center gap-1 p-0"
               >
                 + Tạo mới
@@ -1423,8 +1431,8 @@ export default function CustomersPage() {
             <DateFilter
               label="Ngày tạo"
               type="created"
-              value={filterCreatedDate}
-              onChange={setFilterCreatedDate}
+              value={filterDate}
+              onChange={setFilterDate}
             />
           </div>
 
@@ -1474,8 +1482,8 @@ export default function CustomersPage() {
             <DateFilter
               label="Sinh nhật"
               type="created"
-              value={filterDobDate}
-              onChange={setFilterDobDate}
+              value={filterBirthdayDate}
+              onChange={setFilterBirthdayDate}
             />
           </div>
 
@@ -1487,8 +1495,8 @@ export default function CustomersPage() {
             <DateFilter
               label="Ngày giao dịch cuối"
               type="created"
-              value={filterLastTxDate}
-              onChange={setFilterLastTxDate}
+              value={filterLastTransactionDate}
+              onChange={setFilterLastTransactionDate}
             />
           </div>
 
@@ -1502,16 +1510,16 @@ export default function CustomersPage() {
                 type="number" 
                 placeholder="Từ" 
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
-                value={filterTotalSpentFrom} 
-                onChange={e => setFilterTotalSpentFrom(e.target.value)} 
+                value={filterTotalFrom} 
+                onChange={e => setFilterTotalFrom(e.target.value)} 
               />
               <span className="text-gray-400">-</span>
               <input 
                 type="number" 
                 placeholder="Đến" 
                 className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-medium outline-none focus:border-primary" 
-                value={filterTotalSpentTo} 
-                onChange={e => setFilterTotalSpentTo(e.target.value)} 
+                value={filterTotalTo} 
+                onChange={e => setFilterTotalTo(e.target.value)} 
               />
             </div>
           </div>
