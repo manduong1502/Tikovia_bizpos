@@ -5,18 +5,33 @@ import {
   Download, Printer, RotateCcw, ZoomIn, ZoomOut, Maximize2, 
   ChevronDown, ChevronRight, FileSpreadsheet, Calendar, 
   Search, Users, DollarSign, ArrowLeft, ArrowRight,
-  ChevronLeft, ChevronsLeft, ChevronsRight, FileText,
-  PlusSquare, MinusSquare
+  ChevronLeft, ChevronsLeft, ChevronsRight, FileText
 } from 'lucide-react';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
-const fmtQty = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(Number(n || 0));
+const fmt = (n) => {
+  const val = Math.round(Number(n || 0));
+  if (val < 0) {
+    return `-${new Intl.NumberFormat('vi-VN').format(Math.abs(val))}`;
+  }
+  return new Intl.NumberFormat('vi-VN').format(val);
+};
+
+const fmtQty = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(Number(n || 0));
 
 export default function EndOfDayReportPage() {
-  const [data, setData] = useState({ transactions: [], orderCount: 0, totalSales: 0, totalPaid: 0, totalReturns: 0, netRevenue: 0 });
+  const [data, setData] = useState({ 
+    transactions: [], 
+    returns: [],
+    orderCount: 0, 
+    returnCount: 0,
+    totalSales: 0, 
+    totalPaid: 0, 
+    totalReturns: 0, 
+    netRevenue: 0 
+  });
   const [loading, setLoading] = useState(false);
-  const [expandedOrders, setExpandedOrders] = useState({ group: true }); // Expand grouped invoice row by default like KiotViet Image 3
+  const [expandedOrders, setExpandedOrders] = useState({ invoices: true, returns: false }); // Expand invoices by default
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -88,17 +103,15 @@ export default function EndOfDayReportPage() {
 
   useEffect(() => {
     fetchData();
-    setCurrentPage(1); // Reset page on filter change
+    setCurrentPage(1);
   }, [timeRangeType, filterDate, customFromDate, customToDate]);
 
-  // Reset page when sub-filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [customerQuery, selectedEmployee, selectedCreator, paymentMethod, salesMethod, sortType, interestType]);
 
-  // Client-side sub-filtering
+  // Client-side sub-filtering for invoices
   const filteredTransactions = (data.transactions || []).filter(tx => {
-    // Filter customer
     if (customerQuery) {
       const q = customerQuery.toLowerCase();
       const nameMatch = tx.customerName?.toLowerCase().includes(q);
@@ -106,23 +119,34 @@ export default function EndOfDayReportPage() {
       const codeMatch = tx.code?.toLowerCase().includes(q);
       if (!nameMatch && !phoneMatch && !codeMatch) return false;
     }
-    // Filter employee / creator
-    if (selectedEmployee && tx.createdBy !== selectedEmployee) {
-      return false;
-    }
-    if (selectedCreator && tx.createdBy !== selectedCreator) {
-      return false;
-    }
-    // Filter payment method
-    if (paymentMethod && tx.paymentMethod !== paymentMethod) {
-      return false;
-    }
-    // Filter time range (hours) if specified
+    if (selectedEmployee && tx.createdBy !== selectedEmployee) return false;
+    if (selectedCreator && tx.createdBy !== selectedCreator) return false;
+    if (paymentMethod && tx.paymentMethod !== paymentMethod) return false;
     if (timeFrom || timeTo) {
       const txTime = new Date(tx.time);
       const txHours = String(txTime.getHours()).padStart(2, '0') + ':' + String(txTime.getMinutes()).padStart(2, '0');
       if (timeFrom && txHours < timeFrom) return false;
       if (timeTo && txHours > timeTo) return false;
+    }
+    return true;
+  });
+
+  // Client-side sub-filtering for returns
+  const filteredReturns = (data.returns || []).filter(ret => {
+    if (customerQuery) {
+      const q = customerQuery.toLowerCase();
+      const nameMatch = ret.customerName?.toLowerCase().includes(q);
+      const phoneMatch = ret.customerPhone?.includes(q);
+      const codeMatch = ret.code?.toLowerCase().includes(q);
+      if (!nameMatch && !phoneMatch && !codeMatch) return false;
+    }
+    if (selectedEmployee && ret.createdBy !== selectedEmployee) return false;
+    if (selectedCreator && ret.createdBy !== selectedCreator) return false;
+    if (timeFrom || timeTo) {
+      const retTime = new Date(ret.time);
+      const retHours = String(retTime.getHours()).padStart(2, '0') + ':' + String(retTime.getMinutes()).padStart(2, '0');
+      if (timeFrom && retHours < timeFrom) return false;
+      if (timeTo && retHours > timeTo) return false;
     }
     return true;
   });
@@ -138,15 +162,27 @@ export default function EndOfDayReportPage() {
     return 0;
   });
 
-  // Totals for current filter selection
+  const sortedReturns = [...filteredReturns].sort((a, b) => {
+    if (sortType === 'time-desc') return new Date(b.time) - new Date(a.time);
+    if (sortType === 'time-asc') return new Date(a.time) - new Date(b.time);
+    return 0;
+  });
+
+  // Invoice Summary Totals
   const totalInvoiceCount = filteredTransactions.length;
-  const totalQtySum = filteredTransactions.reduce((sum, tx) => sum + (tx.quantity || 0), 0);
-  const totalRevenueSum = filteredTransactions.reduce((sum, tx) => sum + (tx.revenue || 0), 0);
-  const totalOtherFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.otherFee || 0), 0);
-  const totalVatSum = filteredTransactions.reduce((sum, tx) => sum + (tx.vat || 0), 0);
-  const totalRoundingSum = filteredTransactions.reduce((sum, tx) => sum + (tx.rounding || 0), 0);
-  const totalReturnFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.returnFee || 0), 0);
-  const totalNetSum = filteredTransactions.reduce((sum, tx) => sum + (tx.netRevenue || 0), 0);
+  const totalInvoiceQtySum = filteredTransactions.reduce((sum, tx) => sum + (tx.quantity || 0), 0);
+  const totalInvoiceRevenueSum = filteredTransactions.reduce((sum, tx) => sum + (tx.revenue || 0), 0);
+  const totalInvoicePaidSum = filteredTransactions.reduce((sum, tx) => sum + (tx.paid || 0), 0);
+  const totalInvoiceOtherFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.otherFee || 0), 0);
+  const totalInvoiceVatSum = filteredTransactions.reduce((sum, tx) => sum + (tx.vat || 0), 0);
+  const totalInvoiceRoundingSum = filteredTransactions.reduce((sum, tx) => sum + (tx.rounding || 0), 0);
+  const totalInvoiceReturnFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.returnFee || 0), 0);
+
+  // Return Summary Totals
+  const totalReturnCount = filteredReturns.length;
+  const totalReturnQtySum = filteredReturns.reduce((sum, ret) => sum + (ret.quantity || 0), 0);
+  const totalReturnRevenueSum = filteredReturns.reduce((sum, ret) => sum + (ret.revenue || 0), 0);
+  const totalReturnPaidSum = filteredReturns.reduce((sum, ret) => sum + (ret.paid || 0), 0);
 
   // Pagination Calculations
   const totalPages = Math.max(1, Math.ceil(totalInvoiceCount / pageSize));
@@ -182,11 +218,12 @@ export default function EndOfDayReportPage() {
   const totalGoodsQty = goodsList.reduce((sum, g) => sum + g.qty, 0);
   const totalGoodsRevenue = goodsList.reduce((sum, g) => sum + g.revenue, 0);
 
-  const toggleExpandGroup = () => {
-    setExpandedOrders(prev => ({
-      ...prev,
-      group: !prev.group
-    }));
+  const toggleExpandInvoices = () => {
+    setExpandedOrders(prev => ({ ...prev, invoices: !prev.invoices }));
+  };
+
+  const toggleExpandReturns = () => {
+    setExpandedOrders(prev => ({ ...prev, returns: !prev.returns }));
   };
 
   const handleInvoiceClick = async (tx) => {
@@ -199,13 +236,11 @@ export default function EndOfDayReportPage() {
           code: tx.code,
           createdAt: tx.time,
           total: tx.revenue,
-          paid: tx.netRevenue,
+          paid: tx.paid,
           status: 'COMPLETED',
           customerName: tx.customerName,
           customerPhone: tx.customerPhone,
-          items: [
-            { id: 1, productName: 'Sản phẩm hóa đơn', quantity: tx.quantity, price: tx.revenue / (tx.quantity || 1) }
-          ]
+          items: []
         });
       }
     } catch (e) {
@@ -213,7 +248,7 @@ export default function EndOfDayReportPage() {
         code: tx.code,
         createdAt: tx.time,
         total: tx.revenue,
-        paid: tx.netRevenue,
+        paid: tx.paid,
         status: 'COMPLETED',
         customerName: tx.customerName,
         customerPhone: tx.customerPhone,
@@ -259,13 +294,13 @@ export default function EndOfDayReportPage() {
       aoa.push([
         `Hóa đơn: ${totalInvoiceCount}`,
         "",
-        totalQtySum,
-        totalRevenueSum,
-        totalOtherFeeSum,
-        totalVatSum,
-        totalRoundingSum,
-        totalReturnFeeSum,
-        totalNetSum
+        totalInvoiceQtySum,
+        totalInvoiceRevenueSum,
+        totalInvoiceOtherFeeSum,
+        totalInvoiceVatSum,
+        totalInvoiceRoundingSum,
+        totalInvoiceReturnFeeSum,
+        totalInvoicePaidSum
       ]);
 
       sortedTransactions.forEach(tx => {
@@ -278,9 +313,32 @@ export default function EndOfDayReportPage() {
           tx.vat || 0,
           tx.rounding || 0,
           tx.returnFee || 0,
-          tx.netRevenue
+          tx.paid || 0
         ]);
       });
+
+      if (totalReturnCount > 0) {
+        aoa.push([
+          `Trả hàng: ${totalReturnCount}`,
+          "",
+          totalReturnQtySum,
+          totalReturnRevenueSum,
+          0, 0, 0, 0,
+          totalReturnPaidSum
+        ]);
+
+        sortedReturns.forEach(ret => {
+          aoa.push([
+            `  ${ret.code}`,
+            new Date(ret.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            ret.quantity,
+            ret.revenue,
+            0, 0, 0, 0,
+            ret.paid || 0
+          ]);
+        });
+      }
+
       sheetName = "BanHang";
 
     } else if (interestType === 'Hàng hóa') {
@@ -312,9 +370,9 @@ export default function EndOfDayReportPage() {
       sheetName = "HangHoa";
 
     } else {
-      const cashPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + tx.netRevenue, 0);
-      const bankPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + tx.netRevenue, 0);
-      const cardPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + tx.netRevenue, 0);
+      const cashPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + (tx.paid || 0), 0);
+      const bankPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + (tx.paid || 0), 0);
+      const cardPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + (tx.paid || 0), 0);
 
       aoa = [
         [`Ngày lập: ${todayStr}`],
@@ -324,16 +382,16 @@ export default function EndOfDayReportPage() {
         ["", "", "Chi nhánh: Chi nhánh trung tâm"],
         [],
         ["Chỉ tiêu báo cáo", "Giá trị (VNĐ)"],
-        ["1. DOANH THU BÁN HÀNG", totalRevenueSum],
-        ["  - Doanh thu hóa đơn", totalRevenueSum],
-        ["  - Phí trả hàng nhận", totalReturnFeeSum],
-        ["2. PHƯƠNG THỨC THANH TOÁN THỰC THU", totalNetSum],
+        ["1. DOANH THU BÁN HÀNG", totalInvoiceRevenueSum],
+        ["  - Doanh thu hóa đơn", totalInvoiceRevenueSum],
+        ["  - Trả hàng", totalReturnRevenueSum],
+        ["2. PHƯƠNG THỨC THANH TOÁN THỰC THU", totalInvoicePaidSum],
         ["  - Thu Tiền mặt", cashPayments],
         ["  - Thu Chuyển khoản", bankPayments],
         ["  - Thu Thẻ tín dụng", cardPayments],
-        ["3. DÒNG TIỀN SỔ QUỸ", data.cashbookIncome - data.cashbookExpense],
-        ["  - Thu quỹ phát sinh", data.cashbookIncome],
-        ["  - Chi quỹ phát sinh", data.cashbookExpense]
+        ["3. DÒNG TIỀN SỔ QUỸ", (data.cashbookIncome || 0) - (data.cashbookExpense || 0)],
+        ["  - Thu quỹ phát sinh", data.cashbookIncome || 0],
+        ["  - Chi quỹ phát sinh", data.cashbookExpense || 0]
       ];
       sheetName = "TongHop";
     }
@@ -644,7 +702,6 @@ export default function EndOfDayReportPage() {
 
           {/* Right Controls: Document Setup, Download, Print, Zoom */}
           <div className="flex items-center gap-1.5">
-            {/* Page setup */}
             <button 
               className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer transition-colors"
               title="Cấu hình trang"
@@ -765,14 +822,14 @@ export default function EndOfDayReportPage() {
 
             {/* REPORT TABLES BASED ON INTEREST TYPE */}
             {interestType === 'Bán hàng' ? (
-              /* ─── VIEW: BÁN HÀNG (INVOICES TABLE - IMAGE 1, 2, 3) ─── */
+              /* ─── VIEW: BÁN HÀNG (INVOICES & RETURNS TABLE - EXACT MATCH WITH KIOTVIET IMAGES 1, 2, 3, 4) ─── */
               <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white">
                 <table className="w-full text-[11.5px] border-collapse">
                   <thead>
                     <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
                       <th className="px-3 py-2 text-left w-[180px]">Mã giao dịch</th>
                       <th className="px-2 py-2 text-left w-[100px]">Thời gian</th>
-                      <th className="px-2 py-2 text-right w-[70px]">SL</th>
+                      <th className="px-2 py-2 text-right w-[80px]">SL</th>
                       <th className="px-3 py-2 text-right">Doanh thu</th>
                       <th className="px-2 py-2 text-right">Thu khác</th>
                       <th className="px-2 py-2 text-right">VAT</th>
@@ -782,86 +839,144 @@ export default function EndOfDayReportPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 font-medium">
-                    {totalInvoiceCount > 0 ? (
+                    {totalInvoiceCount > 0 || totalReturnCount > 0 ? (
                       <>
-                        {/* Summary Group Row (Image 1 & 2: [+] Hóa đơn: 47) */}
-                        <tr 
-                          onClick={toggleExpandGroup}
-                          className="bg-[#F7F2E8] hover:bg-[#efe7d6] transition-colors cursor-pointer border-b border-gray-300 text-slate-900 font-bold"
-                        >
-                          <td className="px-3 py-2 text-slate-900 font-extrabold flex items-center gap-1.5 select-none">
-                            <span className="text-gray-700 font-mono text-xs">{expandedOrders.group ? '[−]' : '[+]'}</span>
-                            <span>Hóa đơn: {totalInvoiceCount}</span>
-                          </td>
-                          <td className="px-2 py-2 text-gray-500"></td>
-                          <td className="px-2 py-2 text-right font-extrabold text-slate-900">
-                            {fmtQty(totalQtySum)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-extrabold text-slate-900">
-                            {fmt(totalRevenueSum)}
-                          </td>
-                          <td className="px-2 py-2 text-right text-slate-700">
-                            {totalOtherFeeSum ? fmt(totalOtherFeeSum) : '0'}
-                          </td>
-                          <td className="px-2 py-2 text-right text-slate-700">
-                            {totalVatSum ? fmt(totalVatSum) : '0'}
-                          </td>
-                          <td className="px-2 py-2 text-right text-slate-700">
-                            {totalRoundingSum ? fmt(totalRoundingSum) : '0'}
-                          </td>
-                          <td className="px-2 py-2 text-right text-slate-700">
-                            {totalReturnFeeSum ? fmt(totalReturnFeeSum) : '0'}
-                          </td>
-                          <td className="px-3 py-2 text-right font-extrabold text-slate-900">
-                            {fmt(totalNetSum)}
-                          </td>
-                        </tr>
+                        {/* 1. HÓA ĐƠN SUMMARY GROUP ROW (Image 1 & 3: [+] Hóa đơn: 88) */}
+                        {totalInvoiceCount > 0 && (
+                          <>
+                            <tr 
+                              onClick={toggleExpandInvoices}
+                              className="bg-[#F7F2E8] hover:bg-[#efe7d6] transition-colors cursor-pointer border-b border-gray-300 text-slate-900 font-bold"
+                            >
+                              <td className="px-3 py-2 text-slate-900 font-extrabold flex items-center gap-1.5 select-none">
+                                <span className="text-gray-700 font-mono text-xs">{expandedOrders.invoices ? '[−]' : '[+]'}</span>
+                                <span>Hóa đơn: {totalInvoiceCount}</span>
+                              </td>
+                              <td className="px-2 py-2 text-gray-500"></td>
+                              <td className="px-2 py-2 text-right font-extrabold text-slate-900">
+                                {fmtQty(totalInvoiceQtySum)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                                {fmt(totalInvoiceRevenueSum)}
+                              </td>
+                              <td className="px-2 py-2 text-right text-slate-700">
+                                {totalInvoiceOtherFeeSum ? fmt(totalInvoiceOtherFeeSum) : '0'}
+                              </td>
+                              <td className="px-2 py-2 text-right text-slate-700">
+                                {totalInvoiceVatSum ? fmt(totalInvoiceVatSum) : '0'}
+                              </td>
+                              <td className="px-2 py-2 text-right text-slate-700">
+                                {totalInvoiceRoundingSum ? fmt(totalInvoiceRoundingSum) : '0'}
+                              </td>
+                              <td className="px-2 py-2 text-right text-slate-700">
+                                {totalInvoiceReturnFeeSum ? fmt(totalInvoiceReturnFeeSum) : '0'}
+                              </td>
+                              <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                                {fmt(totalInvoicePaidSum)}
+                              </td>
+                            </tr>
 
-                        {/* Expanded Interactive Invoice Child Rows (Image 3) */}
-                        {expandedOrders.group && paginatedTransactions.map(tx => (
-                          <tr key={tx.id || tx.code} className="hover:bg-blue-50/50 transition-colors border-b border-gray-150">
-                            <td className="px-6 py-1.5">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleInvoiceClick(tx);
-                                }}
-                                className="text-[#0077CC] hover:underline font-bold text-left bg-transparent border-none p-0 cursor-pointer"
-                              >
-                                {tx.code}
-                              </button>
-                            </td>
-                            <td className="px-2 py-1.5 text-gray-600">
-                              {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-800">
-                              {fmtQty(tx.quantity)}
-                            </td>
-                            <td className="px-3 py-1.5 text-right text-gray-800 font-semibold">
-                              {fmt(tx.revenue)}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-500">
-                              {tx.otherFee ? fmt(tx.otherFee) : '0'}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-500">
-                              {tx.vat ? fmt(tx.vat) : '0'}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-500">
-                              {tx.rounding ? fmt(tx.rounding) : '0'}
-                            </td>
-                            <td className="px-2 py-1.5 text-right text-gray-500">
-                              {tx.returnFee ? fmt(tx.returnFee) : '0'}
-                            </td>
-                            <td className="px-3 py-1.5 text-right font-bold text-slate-800">
-                              {fmt(tx.netRevenue)}
-                            </td>
-                          </tr>
-                        ))}
+                            {/* Expanded Interactive Invoice Child Rows (Image 3) */}
+                            {expandedOrders.invoices && paginatedTransactions.map(tx => (
+                              <tr key={tx.id || tx.code} className="hover:bg-blue-50/50 transition-colors border-b border-gray-150">
+                                <td className="px-6 py-1.5">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleInvoiceClick(tx);
+                                    }}
+                                    className="text-[#0077CC] hover:underline font-bold text-left bg-transparent border-none p-0 cursor-pointer"
+                                  >
+                                    {tx.code}
+                                  </button>
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-600">
+                                  {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-800">
+                                  {fmtQty(tx.quantity)}
+                                </td>
+                                <td className="px-3 py-1.5 text-right text-gray-800 font-semibold">
+                                  {fmt(tx.revenue)}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">
+                                  {tx.otherFee ? fmt(tx.otherFee) : '0'}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">
+                                  {tx.vat ? fmt(tx.vat) : '0'}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">
+                                  {tx.rounding ? fmt(tx.rounding) : '0'}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">
+                                  {tx.returnFee ? fmt(tx.returnFee) : '0'}
+                                </td>
+                                <td className="px-3 py-1.5 text-right font-bold text-slate-800">
+                                  {tx.paid ? fmt(tx.paid) : '0'}
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
+
+                        {/* 2. TRẢ HÀNG SUMMARY GROUP ROW (Image 1 & 3: [+] Trả hàng: 3) */}
+                        {totalReturnCount > 0 && (
+                          <>
+                            <tr 
+                              onClick={toggleExpandReturns}
+                              className="bg-[#F7F2E8] hover:bg-[#efe7d6] transition-colors cursor-pointer border-b border-gray-300 text-slate-900 font-bold"
+                            >
+                              <td className="px-3 py-2 text-slate-900 font-extrabold flex items-center gap-1.5 select-none">
+                                <span className="text-gray-700 font-mono text-xs">{expandedOrders.returns ? '[−]' : '[+]'}</span>
+                                <span>Trả hàng: {totalReturnCount}</span>
+                              </td>
+                              <td className="px-2 py-2 text-gray-500"></td>
+                              <td className="px-2 py-2 text-right font-extrabold text-slate-900">
+                                {fmtQty(totalReturnQtySum)}
+                              </td>
+                              <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                                {fmt(-Math.abs(totalReturnRevenueSum))}
+                              </td>
+                              <td className="px-2 py-2 text-right text-slate-700">0</td>
+                              <td className="px-2 py-2 text-right text-slate-700">0</td>
+                              <td className="px-2 py-2 text-right text-slate-700">0</td>
+                              <td className="px-2 py-2 text-right text-slate-700">0</td>
+                              <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                                {fmt(totalReturnPaidSum)}
+                              </td>
+                            </tr>
+
+                            {/* Expanded Interactive Return Child Rows */}
+                            {expandedOrders.returns && sortedReturns.map(ret => (
+                              <tr key={ret.id || ret.code} className="hover:bg-red-50/50 transition-colors border-b border-gray-150">
+                                <td className="px-6 py-1.5 text-[#0077CC] font-bold">
+                                  {ret.code}
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-600">
+                                  {new Date(ret.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-800">
+                                  {fmtQty(ret.quantity)}
+                                </td>
+                                <td className="px-3 py-1.5 text-right text-gray-800 font-semibold">
+                                  {fmt(ret.revenue)}
+                                </td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">0</td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">0</td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">0</td>
+                                <td className="px-2 py-1.5 text-right text-gray-500">0</td>
+                                <td className="px-3 py-1.5 text-right font-bold text-slate-800">
+                                  {ret.paid ? fmt(ret.paid) : '0'}
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
                       </>
                     ) : (
                       <tr>
                         <td colSpan={9} className="text-center py-10 text-gray-400 font-medium text-[12px]">
-                          Không có dữ liệu hóa đơn nào trong khoảng thời gian đã chọn!
+                          Không có dữ liệu giao dịch nào trong khoảng thời gian đã chọn!
                         </td>
                       </tr>
                     )}
@@ -916,32 +1031,32 @@ export default function EndOfDayReportPage() {
                 <div className="flex flex-col gap-2.5 font-medium">
                   <div className="flex justify-between items-center text-slate-900 border-b border-gray-200 pb-1">
                     <span className="font-extrabold">1. DOANH THU BÁN HÀNG</span>
-                    <span className="font-extrabold text-blue-700">{fmt(totalRevenueSum)} VNĐ</span>
+                    <span className="font-extrabold text-blue-700">{fmt(totalInvoiceRevenueSum - Math.abs(totalReturnRevenueSum))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4">
                     <span>- Doanh thu từ hóa đơn</span>
-                    <span>{fmt(totalRevenueSum)} VNĐ</span>
+                    <span>{fmt(totalInvoiceRevenueSum)} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4 border-b border-gray-100 pb-2">
-                    <span>- Phí trả hàng nhận phát sinh</span>
-                    <span>{fmt(totalReturnFeeSum)} VNĐ</span>
+                    <span>- Trả hàng phát sinh</span>
+                    <span>{fmt(-Math.abs(totalReturnRevenueSum))} VNĐ</span>
                   </div>
 
                   <div className="flex justify-between items-center text-slate-900 border-b border-gray-200 pt-1 pb-1">
                     <span className="font-extrabold">2. PHƯƠNG THỨC THANH TOÁN THỰC THU</span>
-                    <span className="font-extrabold text-green-700">{fmt(totalNetSum)} VNĐ</span>
+                    <span className="font-extrabold text-green-700">{fmt(totalInvoicePaidSum - Math.abs(totalReturnPaidSum))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4">
                     <span>- Thu bằng Tiền mặt</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + tx.netRevenue, 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4">
                     <span>- Thu bằng Chuyển khoản</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + tx.netRevenue, 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4 border-b border-gray-100 pb-2">
                     <span>- Thu bằng Thẻ tín dụng</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + tx.netRevenue, 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
                   </div>
 
                   <div className="flex justify-between items-center text-slate-900 border-b border-gray-200 pt-1 pb-1">
