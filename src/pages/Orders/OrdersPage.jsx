@@ -19,6 +19,19 @@ import {
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+};
+
 const getStatusBadge = (status, paidAmount, totalAmount) => {
   const total = Number(totalAmount || 0);
   const paid = Number(paidAmount || 0);
@@ -974,7 +987,7 @@ export default function OrdersPage() {
                         <td className="py-2.5 px-3 font-bold text-primary">{o.order_code}</td>
                       )}
                       {visibleColumns.includes('created_at') && (
-                        <td className="py-2.5 px-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{o.created_at ? formatDateTime(o.created_at) : ''}</td>
                       )}
                       {visibleColumns.includes('return_code') && (
                         <td className="py-2.5 px-3 text-gray-500 font-medium">{o.return_code || '---'}</td>

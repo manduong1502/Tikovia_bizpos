@@ -16,6 +16,19 @@ import PurchaseOrderDetail from './components/PurchaseOrderDetail';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+};
+
 const scrollRowIntoView = (id) => {
   setTimeout(() => {
     const rowEl = document.getElementById(`row-${id}`);
@@ -743,7 +756,7 @@ export default function PurchaseOrdersPage() {
                         <td className="py-2.5 px-3 font-bold text-primary">{o.po_code}</td>
                       )}
                       {visibleColumns.includes('created_at') && (
-                        <td className="py-2.5 px-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
+                        <td className="py-2.5 px-3 text-gray-700">{o.created_at ? formatDateTime(o.created_at) : ''}</td>
                       )}
                       {visibleColumns.includes('supplier_code') && (
                         <td className="py-2.5 px-3 text-gray-700">{o.supplier_code}</td>
