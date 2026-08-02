@@ -213,10 +213,10 @@ export default function SalesReportPage() {
     Object.values(datesMap).forEach(item => {
       item.netRevenue = item.revenue + item.returnValue; // returnValue is negative e.g. -1,219,300
       
-      // Calculate Cost Price (Total Cost)
-      item.costPriceSum = Math.round(item.orders.reduce((sum, tx) => {
-        return sum + Number(tx.costPrice || 0);
-      }, 0));
+      // Calculate Cost Price (Total Order Cost minus Return Cost)
+      const orderCost = item.orders.reduce((sum, tx) => sum + Number(tx.costPrice || 0), 0);
+      const returnCost = item.returns.reduce((sum, ret) => sum + Number(ret.costPrice || 0), 0);
+      item.costPriceSum = Math.round(orderCost - returnCost);
 
       item.grossProfit = item.netRevenue - item.costPriceSum;
     });
