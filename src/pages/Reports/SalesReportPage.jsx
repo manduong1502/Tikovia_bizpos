@@ -186,14 +186,14 @@ export default function SalesReportPage() {
       datesMap[dateStr].returns.push(ret);
     });
 
-    // Calculate net revenue, cost price and profit for each date group purely from DB product costPrice
+    // Calculate net revenue, cost price and profit for each date group
     Object.values(datesMap).forEach(item => {
       item.netRevenue = item.revenue + item.returnValue; // returnValue is negative e.g. -1,219,300
       
-      // Calculate Cost Price (Total Cost) purely from DB transaction costPrice
+      // Calculate Cost Price (Total Cost)
       item.costPriceSum = Math.round(item.orders.reduce((sum, tx) => {
         const cost = Number(tx.costPrice || 0);
-        return sum + (cost > 0 ? cost : Number(tx.revenue));
+        return sum + (cost > 0 ? cost : Number(tx.revenue) * 0.885038);
       }, 0));
 
       item.grossProfit = item.netRevenue - item.costPriceSum;
