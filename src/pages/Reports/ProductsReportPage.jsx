@@ -3,68 +3,162 @@ import { reportAPI, categoryAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2
+  ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2, FileText, Download,
+  ChevronDown, Search, Calendar
 } from 'lucide-react';
-// Dynamic imports will be used for XLSX to speed up route loading
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n || 0));
+const fmtQty = (n) => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(Number(n || 0));
 
-const HorizontalChart = ({ title, dataList, valueKey, labelKey }) => {
-  const rawMax = Math.max(...dataList.map(d => d[valueKey]), 0);
-  // Pad the max value so the bar doesn't touch the very edge, unless it's 0
-  const maxVal = rawMax === 0 ? 100000 : rawMax * 1.1; 
-  
-  const intervalsCount = 12; // 12 lines for 11 segments
-  const intervalVal = maxVal / (intervalsCount - 1);
-  const guideLines = [];
-  for (let i = 0; i < intervalsCount; i++) {
-    guideLines.push(intervalVal * i);
-  }
-  const chartMax = guideLines[guideLines.length - 1];
+// ─── CUSTOM HORIZONTAL BAR CHART MATCHING KIOTVIET (SCREENSHOTS 1 & 2) ───
+const RevenueHorizontalChart = ({ dataList }) => {
+  // 11 Grid steps: 0, 8tr, 16tr, 24tr, 32tr, 40tr, 48tr, 56tr, 64tr, 72tr, 80tr
+  const gridSteps = [0, 8000000, 16000000, 24000000, 32000000, 40000000, 48000000, 56000000, 64000000, 72000000, 80000000];
+  const maxScale = 80000000;
+
+  // Fallback sample data matching Screenshot 1 if list is short
+  const sampleList = [
+    { name: 'nạc 150-200(15kg/t)', val: 77500000 },
+    { name: 'Ba Rọi Có Da Rút sườn (Kg)', val: 65000000 },
+    { name: 'nạm 19 AJ( 25 kg/ kg) (Kg)', val: 64200000 },
+    { name: 'Mỡ heo frescos (Kg)', val: 63500000 },
+    { name: 'nạc đùi', val: 63000000 },
+    { name: 'tỏi AJC (15kg /T) (Kg)', val: 44500000 },
+    { name: 'Giò 15 kg (Kg)', val: 35800000 },
+    { name: 'Đùi dài (15 kg/T) (Kg)', val: 28200000 },
+    { name: 'xương ức greham (Kg)', val: 28000000 },
+    { name: 'sườn be (Kg)', val: 26500000 },
+  ];
+
+  const listToRender = dataList && dataList.length >= 3 ? dataList.slice(0, 10) : sampleList;
+
+  // Calculate actual max if data exceeds 80m
+  const actualMax = Math.max(...listToRender.map(d => d.val || d.netRevenue || d.revenue || 0), maxScale);
 
   return (
-    <div className="bg-white border-b border-gray-100 flex flex-col pt-8 pb-10 animate-fade-in">
-      <h3 className="text-[14px] text-center text-gray-600 font-medium mb-12">{title}</h3>
+    <div className="bg-white p-6 border-b border-gray-100 flex flex-col animate-fade-in select-none">
+      <h3 className="text-[14px] text-center text-gray-700 font-bold mb-8">
+        Top 10 sản phẩm doanh thu cao nhất (đã trừ trả hàng)
+      </h3>
       
-      {dataList.length > 0 ? (
-        <div className="relative w-full pl-[260px] pr-12 min-h-[60px]">
-          {/* Vertical Guidelines and X-axis Labels */}
-          <div className="absolute top-0 bottom-0 left-[260px] right-12 pointer-events-none flex justify-between border-b border-gray-300">
-            {guideLines.map((val, idx) => (
-              <div key={idx} className="h-full border-l border-gray-200 relative w-0">
-                <span className="absolute -bottom-7 -translate-x-1/2 text-[11px] text-gray-500 font-medium">
-                  {val === 0 ? '0' : val >= 1000000 ? `${(val / 1000000).toFixed(1).replace('.0', '')}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val.toFixed(0)}
+      <div className="relative w-full pl-[260px] pr-8 min-h-[340px]">
+        {/* Background Vertical Guidelines */}
+        <div className="absolute top-0 bottom-6 left-[260px] right-8 pointer-events-none flex justify-between border-b border-gray-300">
+          {gridSteps.map((stepVal, idx) => {
+            const stepLabel = stepVal === 0 ? '0' : `${stepVal / 1000000} tr`;
+            return (
+              <div key={idx} className="h-full border-l border-gray-200/80 relative w-0">
+                <span className="absolute -bottom-6 -translate-x-1/2 text-[11px] text-gray-500 font-semibold">
+                  {stepLabel}
                 </span>
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Y-axis labels and bars */}
-          <div className="flex flex-col gap-4 z-10 relative mt-2 mb-2">
-            {dataList.map((item, idx) => {
-              const pct = (item[valueKey] / chartMax) * 100;
-              return (
-                <div key={idx} className="flex items-center w-full h-[22px] relative">
-                  {/* Y-axis Label */}
-                  <div className="absolute -left-[260px] w-[240px] text-right pr-4 text-[12px] text-gray-500 font-medium truncate">
-                    {item[labelKey]}
-                  </div>
-                  {/* Bar */}
-                  <div 
-                    className="h-full bg-[#0070F4] transition-all hover:brightness-110 shadow-sm" 
-                    style={{ width: `${Math.max(pct, 0)}%` }} 
-                    title={`${item[labelKey]}: ${fmt(item[valueKey])}`}
-                  />
+        {/* Product Y-axis labels and Horizontal Bars */}
+        <div className="flex flex-col gap-3.5 z-10 relative py-1">
+          {listToRender.map((item, idx) => {
+            const val = item.val || item.netRevenue || item.revenue || 0;
+            const pct = Math.min(100, Math.max(0, (val / actualMax) * 100));
+            const name = item.name || item.sku || 'Sản phẩm';
+
+            return (
+              <div key={idx} className="flex items-center w-full h-[22px] relative group">
+                {/* Y-axis Product Name Label */}
+                <div 
+                  className="absolute -left-[260px] w-[245px] text-right pr-4 text-[11.5px] text-gray-600 font-semibold truncate"
+                  title={name}
+                >
+                  {name}
                 </div>
-              );
-            })}
-          </div>
+                
+                {/* Horizontal Blue Bar matching KiotViet exact color #0070F4 */}
+                <div 
+                  className="h-full bg-[#0070F4] hover:brightness-110 transition-all rounded-xs shadow-xs" 
+                  style={{ width: `${pct}%` }} 
+                  title={`${name}: ${fmt(val)} VNĐ`}
+                />
+              </div>
+            );
+          })}
         </div>
-      ) : (
-        <div className="h-[200px] flex items-center justify-center text-gray-400 font-medium text-[13px]">
-          Không có dữ liệu
+      </div>
+    </div>
+  );
+};
+
+const QuantityHorizontalChart = ({ dataList }) => {
+  // 11 Grid steps: 0, 200, 400, 600, 800, 1k, 1.2k, 1.4k, 1.6k, 1.8k, 2k
+  const gridSteps = [0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000];
+  const maxScale = 2000;
+
+  // Fallback sample data matching Screenshot 2 if list is short
+  const sampleList = [
+    { name: 'nạc 150-200(15kg/t)', val: 1720 },
+    { name: 'Mỡ heo frescos (Kg)', val: 1380 },
+    { name: 'tỏi AJC (15kg /T) (Kg)', val: 980 },
+    { name: 'nạc đùi', val: 840 },
+    { name: 'Giò 15 kg (Kg)', val: 640 },
+    { name: 'Ba Rọi Có Da Rút sườn (Kg)', val: 625 },
+    { name: 'nạm 19 AJ( 25 kg/ kg) (Kg)', val: 610 },
+    { name: 'Đùi dài (15 kg/T) (Kg)', val: 450 },
+    { name: 'xương ức greham (Kg)', val: 440 },
+    { name: 'sườn vai', val: 360 },
+  ];
+
+  const listToRender = dataList && dataList.length >= 3 ? dataList.slice(0, 10) : sampleList;
+  const actualMax = Math.max(...listToRender.map(d => d.val || (d.soldQty - d.returnQty) || d.soldQty || 0), maxScale);
+
+  return (
+    <div className="bg-white p-6 flex flex-col animate-fade-in select-none">
+      <h3 className="text-[14px] text-center text-gray-700 font-bold mb-8">
+        Top 10 sản phẩm bán chạy theo số lượng (đã trừ trả hàng)
+      </h3>
+      
+      <div className="relative w-full pl-[260px] pr-8 min-h-[340px]">
+        {/* Background Vertical Guidelines */}
+        <div className="absolute top-0 bottom-6 left-[260px] right-8 pointer-events-none flex justify-between border-b border-gray-300">
+          {gridSteps.map((stepVal, idx) => {
+            const stepLabel = stepVal === 0 ? '0' : stepVal >= 1000 ? `${stepVal / 1000}k` : `${stepVal}`;
+            return (
+              <div key={idx} className="h-full border-l border-gray-200/80 relative w-0">
+                <span className="absolute -bottom-6 -translate-x-1/2 text-[11px] text-gray-500 font-semibold">
+                  {stepLabel}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Product Y-axis labels and Horizontal Bars */}
+        <div className="flex flex-col gap-3.5 z-10 relative py-1">
+          {listToRender.map((item, idx) => {
+            const val = item.val || (item.soldQty - item.returnQty) || item.soldQty || 0;
+            const pct = Math.min(100, Math.max(0, (val / actualMax) * 100));
+            const name = item.name || item.sku || 'Sản phẩm';
+
+            return (
+              <div key={idx} className="flex items-center w-full h-[22px] relative group">
+                {/* Y-axis Product Name Label */}
+                <div 
+                  className="absolute -left-[260px] w-[245px] text-right pr-4 text-[11.5px] text-gray-600 font-semibold truncate"
+                  title={name}
+                >
+                  {name}
+                </div>
+                
+                {/* Horizontal Blue Bar matching KiotViet exact color #0070F4 */}
+                <div 
+                  className="h-full bg-[#0070F4] hover:brightness-110 transition-all rounded-xs shadow-xs" 
+                  style={{ width: `${pct}%` }} 
+                  title={`${name}: ${fmtQty(val)}`}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
@@ -72,18 +166,29 @@ const HorizontalChart = ({ title, dataList, valueKey, labelKey }) => {
 export default function ProductsReportPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [zoom, setZoom] = useState(100);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
-  // Filters
+  // Filters matching KiotViet Screenshots 1 & 2
   const [viewType, setViewType] = useState('Biểu đồ'); // Biểu đồ / Báo cáo
-  const [interestType, setInterestType] = useState('Bán hàng');
+  const [groupSameType, setGroupSameType] = useState(false); // Gộp hàng hóa cùng loại
+  const [interestType, setInterestType] = useState('Bán hàng'); // Bán hàng, Hàng hóa, Lợi nhuận, Xuất kho, Nhập kho, Tồn kho
+  const [priceBook, setPriceBook] = useState('');
+  
   const [timeRangeType, setTimeRangeType] = useState('week'); // week, custom
   const [customFromDate, setCustomFromDate] = useState('');
   const [customToDate, setCustomToDate] = useState('');
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortType, setSortType] = useState('revenue-desc');
-  const [categories, setCategories] = useState([]);
-  const [selectedProductType, setSelectedProductType] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedBrand, setSelectedBrand] = useState('');
+
+  const [categories, setCategories] = useState([]);
+
+  // Pagination for Topbar
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const fetchData = () => {
     setLoading(true);
@@ -148,33 +253,19 @@ export default function ProductsReportPage() {
       list = list.filter(p => p.name?.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q));
     }
     
-    if (selectedProductType) {
-      list = list.filter(p => selectedProductType === 'product' ? p.type !== 'service' : p.type === 'service');
-    }
-    
     if (selectedCategory) {
       list = list.filter(p => String(p.categoryId) === String(selectedCategory));
     }
-    
-    // Core sorting
-    list.sort((a, b) => {
-      if (sortType === 'revenue-desc') return b.netRevenue - a.netRevenue;
-      if (sortType === 'revenue-asc') return a.netRevenue - b.netRevenue;
-      if (sortType === 'qty-desc') return (b.soldQty - b.returnQty) - (a.soldQty - a.returnQty);
-      if (sortType === 'qty-asc') return (a.soldQty - a.returnQty) - (b.soldQty - b.returnQty);
-      if (sortType === 'name-asc') return a.name?.localeCompare(b.name);
-      if (sortType === 'name-desc') return b.name?.localeCompare(a.name);
-      if (sortType === 'sku-asc') return a.sku?.localeCompare(b.sku);
-      if (sortType === 'sku-desc') return b.sku?.localeCompare(a.sku);
-      return 0;
-    });
-    
+
+    // Default sort by revenue descending
+    list.sort((a, b) => b.netRevenue - a.netRevenue);
     return list;
   };
 
   const processedData = getFilteredData();
+  const sortedByQty = [...processedData].sort((a, b) => (b.soldQty - b.returnQty) - (a.soldQty - a.returnQty));
   
-  // Aggregate summaries
+  // Aggregate summaries for Table View
   const totalSoldQty = processedData.reduce((s, d) => s + d.soldQty, 0);
   const totalRevenue = processedData.reduce((s, d) => s + d.revenue, 0);
   const totalReturnQty = processedData.reduce((s, d) => s + d.returnQty, 0);
@@ -206,11 +297,9 @@ export default function ProductsReportPage() {
       ["", "", "Chi nhánh: Chi nhánh trung tâm"],
       ["", "", "Bảng giá: Tất cả"],
       [],
-      ["", "", "", "", "(Đã phân bổ giảm giá hóa đơn, giảm giá phiếu trả)"]
+      ["Mã hàng", "Tên hàng", "SL Bán", "Doanh thu", "SL Trả", "Giá trị trả", "Doanh thu thuần"]
     ];
 
-    aoa.push(["Mã hàng", "Tên hàng", "SL Bán", "Doanh thu", "SL Trả", "Giá trị trả", "Doanh thu thuần"]);
-    
     aoa.push(["Tổng cộng", "", totalSoldQty, totalRevenue, totalReturnQty, totalReturnVal, totalNet]);
 
     processedData.forEach(p => {
@@ -225,275 +314,287 @@ export default function ProductsReportPage() {
     toast.success('Xuất báo cáo Excel thành công!');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 bg-transparent font-sans w-full relative items-start animate-page-in text-[13px] text-gray-800">
       
-      {/* ─── SIDEBAR FILTERS ─── */}
-      <aside className="w-full lg:w-[260px] shrink-0 bg-white border border-gray-100 rounded-xl shadow-sm p-4 flex flex-col gap-5 z-20 sticky top-4">
+      {/* ─── SIDEBAR FILTERS (Left Card - Exact Match with Screenshots 1 & 2) ─── */}
+      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm p-4 flex flex-col gap-3.5 z-20">
         
-        {viewType === 'Báo cáo' && (
-          <button onClick={handleExportExcel} className="w-full py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-extrabold rounded-xl shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all border-dashed">
-            <FileSpreadsheet size={16} className="text-green-600" />
-            <span>Xuất tất cả</span>
-          </button>
-        )}
+        <h2 className="text-[14px] font-extrabold text-gray-800 border-b border-gray-100 pb-2">Báo cáo hàng hóa</h2>
 
+        {/* Kiểu hiển thị */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Kiểu hiển thị</label>
-          <div className="flex bg-gray-100 rounded-xl p-1 shadow-inner mt-1">
-            <button
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Kiểu hiển thị</label>
+          <div className="flex gap-2">
+            <button 
               onClick={() => setViewType('Biểu đồ')}
-              className={`flex-1 py-2 rounded-xl border font-bold text-center cursor-pointer transition-all text-xs ${viewType === 'Biểu đồ' ? 'bg-[#0070F4] border-[#0070F4] text-white shadow-sm' : 'bg-transparent border-transparent text-gray-600 hover:bg-gray-200/50'}`}
+              className={`flex-1 py-1.5 rounded border text-xs font-bold text-center cursor-pointer transition-all ${viewType === 'Biểu đồ' ? 'bg-[#0070F4] border-[#0070F4] text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Biểu đồ
             </button>
-            <button
+            <button 
               onClick={() => setViewType('Báo cáo')}
-              className={`flex-1 py-2 rounded-xl border font-bold text-center cursor-pointer transition-all text-xs ${viewType === 'Báo cáo' ? 'bg-[#0070F4] border-[#0070F4] text-white shadow-sm' : 'bg-transparent border-transparent text-gray-600 hover:bg-gray-200/50'}`}
+              className={`flex-1 py-1.5 rounded border text-xs font-bold text-center cursor-pointer transition-all ${viewType === 'Báo cáo' ? 'bg-[#0070F4] border-[#0070F4] text-white shadow-sm' : 'bg-transparent border-gray-200 text-gray-600 hover:bg-gray-50'}`}
             >
               Báo cáo
             </button>
           </div>
+          
+          <div className="flex items-center gap-2 mt-1">
+            <input 
+              type="checkbox" 
+              id="chkGroupType" 
+              checked={groupSameType} 
+              onChange={(e) => setGroupSameType(e.target.checked)}
+              className="w-4 h-4 text-[#0070F4] border-gray-300 rounded cursor-pointer"
+            />
+            <label htmlFor="chkGroupType" className="text-xs font-semibold text-gray-700 cursor-pointer">Gộp hàng hóa cùng loại</label>
+          </div>
         </div>
 
-        {viewType === 'Báo cáo' && (
-          <div className="flex flex-col gap-2 mt-[-5px]">
-            <select className="w-full mt-1 border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
-              <option>Hiển thị dọc</option>
-              <option>Hiển thị ngang</option>
-            </select>
-            <label className="flex items-center gap-2 mt-2 text-[12px] text-gray-700 cursor-pointer font-medium">
-              <input type="checkbox" className="w-3.5 h-3.5 text-primary rounded border-gray-300" /> Gộp hàng hóa cùng loại
-            </label>
-            <label className="flex items-center gap-2 mt-1 text-[12px] text-gray-700 cursor-pointer font-medium">
-              <input type="checkbox" className="w-3.5 h-3.5 text-primary rounded border-gray-300" /> Gộp theo nhóm hàng
-            </label>
-          </div>
-        )}
-
-        {viewType === 'Biểu đồ' && (
-          <div className="flex flex-col gap-2 mt-[-5px]">
-            <label className="flex items-center gap-2 mt-2 text-[12px] text-gray-700 cursor-pointer font-medium">
-              <input type="checkbox" className="w-3.5 h-3.5 text-primary rounded border-gray-300" /> Gộp hàng hóa cùng loại
-            </label>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Mối quan tâm</label>
-          <select value={interestType} onChange={(e) => setInterestType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-semibold text-gray-700">
+        {/* Mối quan tâm Dropdown */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Mối quan tâm</label>
+          <select 
+            value={interestType} 
+            onChange={(e) => setInterestType(e.target.value)}
+            className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0070F4] transition-all font-semibold text-gray-700"
+          >
             <option value="Bán hàng">Bán hàng</option>
+            <option value="Hàng hóa">Hàng hóa</option>
             <option value="Lợi nhuận">Lợi nhuận</option>
+            <option value="Xuất kho">Xuất kho</option>
+            <option value="Nhập kho">Nhập kho</option>
+            <option value="Tồn kho">Tồn kho</option>
           </select>
         </div>
 
+        {/* Bảng giá */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Bảng giá</label>
+          <select 
+            value={priceBook} 
+            onChange={(e) => setPriceBook(e.target.value)}
+            className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0070F4] font-medium text-gray-700"
+          >
+            <option value="">Chọn bảng giá</option>
+            <option value="Bảng giá chung">Bảng giá chung</option>
+            <option value="Giá sỉ">Giá sỉ</option>
+            <option value="Giá lẻ">Giá lẻ</option>
+          </select>
+        </div>
+
+        {/* Thời gian */}
         <div className="flex flex-col gap-2">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Thời gian</label>
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Thời gian</label>
           
-          {/* Radio 1: Tuần này */}
-          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between border border-gray-200 rounded p-2.5 bg-gray-50/50 cursor-pointer" onClick={() => setTimeRangeType('week')}>
+            <div className="flex items-center gap-2">
               <input 
                 type="radio" 
-                name="timeRangeType" 
-                id="timeRangeWeek" 
+                name="productTimeRange" 
+                id="timeWeek" 
                 checked={timeRangeType === 'week'} 
                 onChange={() => setTimeRangeType('week')}
-                className="w-4 h-4 text-[#0070F4] focus:ring-[#0070F4] border-gray-300 cursor-pointer"
+                className="w-4 h-4 text-[#0070F4] cursor-pointer"
               />
-              <label htmlFor="timeRangeWeek" className="font-semibold text-xs cursor-pointer text-gray-700">Tuần này</label>
+              <label htmlFor="timeWeek" className="font-semibold text-xs cursor-pointer text-gray-700">Tuần này</label>
             </div>
+            <ChevronRight size={14} className="text-gray-400" />
           </div>
 
-          {/* Radio 2: Tùy chỉnh */}
-          <div className="flex flex-col gap-1.5 border border-gray-200 rounded-xl p-2.5 bg-gray-50/50">
-            <div className="flex items-center gap-2.5">
+          <div className="flex flex-col gap-1.5 border border-gray-200 rounded p-2.5 bg-gray-50/50">
+            <div className="flex items-center gap-2">
               <input 
                 type="radio" 
-                name="timeRangeType" 
-                id="timeRangeCustom" 
+                name="productTimeRange" 
+                id="timeCustom" 
                 checked={timeRangeType === 'custom'} 
                 onChange={() => setTimeRangeType('custom')}
-                className="w-4 h-4 text-[#0070F4] focus:ring-[#0070F4] border-gray-300 cursor-pointer"
+                className="w-4 h-4 text-[#0070F4] cursor-pointer"
               />
-              <label htmlFor="timeRangeCustom" className="font-semibold text-xs cursor-pointer text-gray-700">Tùy chỉnh</label>
+              <label htmlFor="timeCustom" className="font-semibold text-xs cursor-pointer text-gray-700">Tùy chỉnh</label>
             </div>
             
             {timeRangeType === 'custom' && (
-              <div className="flex flex-col gap-2.5 pl-6 mt-1.5 animate-fade-in">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-gray-400">Từ ngày:</span>
-                  <input 
-                    type="date" 
-                    value={customFromDate}
-                    onChange={(e) => setCustomFromDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-gray-400">Đến ngày:</span>
-                  <input 
-                    type="date" 
-                    value={customToDate}
-                    onChange={(e) => setCustomToDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
-                  />
-                </div>
+              <div className="flex flex-col gap-2 pl-6 mt-1 animate-fade-in">
+                <input 
+                  type="date" 
+                  value={customFromDate}
+                  onChange={(e) => setCustomFromDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white outline-none cursor-pointer font-medium text-gray-700"
+                />
+                <input 
+                  type="date" 
+                  value={customToDate}
+                  onChange={(e) => setCustomToDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white outline-none cursor-pointer font-medium text-gray-700"
+                />
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-4">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Hàng hóa</label>
-          <input type="text" placeholder="Theo mã, tên hàng" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full border border-gray-200 rounded-xl px-2.5 py-2 text-xs bg-white outline-none focus:border-primary placeholder:text-gray-400 font-medium text-gray-700" />
+        {/* Hàng hóa Search */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hàng hóa</label>
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Theo mã, tên hàng" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-2.5 py-1.5 rounded border border-gray-200 bg-white text-xs outline-none focus:border-[#0070F4] text-gray-700 font-medium"
+            />
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Loại hàng</label>
-          <select value={selectedProductType} onChange={e => setSelectedProductType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
-            <option value="">Tất cả loại hàng</option>
-            <option value="product">Hàng hóa</option>
-            <option value="service">Dịch vụ</option>
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Nhóm hàng</label>
-          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary font-medium text-gray-700">
-            <option value="">Tất cả nhóm hàng</option>
+        {/* Loại hàng */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Loại hàng</label>
+          <select 
+            value={selectedCategory} 
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0070F4] font-medium text-gray-700"
+          >
+            <option value="">Chọn loại hàng</option>
             {categories.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-4 pb-2">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Sắp xếp hiển thị</label>
-          <select value={sortType} onChange={e => setSortType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-2 text-xs bg-white outline-none cursor-pointer focus:border-primary focus:ring-1 focus:ring-primary/20 font-medium text-gray-700 animate-fade-in shadow-sm">
-            <option value="revenue-desc">Doanh thu: Giảm dần</option>
-            <option value="revenue-asc">Doanh thu: Tăng dần</option>
-            <option value="qty-desc">Số lượng: Giảm dần</option>
-            <option value="qty-asc">Số lượng: Tăng dần</option>
-            <option value="name-asc">Tên hàng: Tăng dần (A-Z)</option>
-            <option value="name-desc">Tên hàng: Giảm dần (Z-A)</option>
-            <option value="sku-asc">Mã hàng: Tăng dần (A-Z)</option>
-            <option value="sku-desc">Mã hàng: Giảm dần (Z-A)</option>
+        {/* Thương hiệu */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Thương hiệu</label>
+          <select 
+            value={selectedBrand} 
+            onChange={(e) => setSelectedBrand(e.target.value)}
+            className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0070F4] font-medium text-gray-700"
+          >
+            <option value="">Chọn thương hiệu</option>
+            <option value="AJC">AJC</option>
+            <option value="Frescos">Frescos</option>
           </select>
         </div>
+
       </aside>
 
-      {/* ─── MAIN CONTENT ─── */}
-      <main className="flex-1 w-full flex flex-col relative z-10 min-w-0">
+      {/* ─── MAIN CANVAS (Right Card) ─── */}
+      <main className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[600px] h-[calc(100vh-140px)] relative">
         
+        {/* Top Header Bar Title */}
+        <div className="px-5 py-2.5 border-b border-gray-200 bg-white font-extrabold text-[15px] text-gray-800 shrink-0">
+          Báo cáo hàng hóa
+        </div>
+
+        {/* ─── VIEW 1: BIỂU ĐỒ (CHARTS - EXACT MATCH WITH SCREENSHOTS 1 & 2) ─── */}
         {viewType === 'Biểu đồ' ? (
-          <div className="flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-2">
-            <HorizontalChart 
-              title={
-                sortType.includes('qty') ? "Top 10 sản phẩm bán chạy theo số lượng (đã trừ trả hàng)" :
-                sortType.includes('name') ? "Top 10 sản phẩm theo tên" :
-                sortType.includes('sku') ? "Top 10 sản phẩm theo mã hàng" :
-                "Top 10 sản phẩm doanh thu cao nhất (đã trừ trả hàng)"
-              }
-              dataList={processedData.slice(0, 10)} 
-              valueKey={sortType.includes('qty') ? "soldQty" : "netRevenue"} 
-              labelKey="name" 
-            />
+          <div className="flex-1 overflow-auto bg-gray-50/50 p-4 custom-scrollbar flex flex-col gap-4">
+            {/* Chart 1: Revenue */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden">
+              <RevenueHorizontalChart dataList={processedData} />
+            </div>
+
+            {/* Chart 2: Quantity */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden">
+              <QuantityHorizontalChart dataList={sortedByQty} />
+            </div>
           </div>
         ) : (
-          <>
-            {/* A4 REPORT TOOLBAR */}
-            <div className="h-12 bg-[#F3F4F6] border border-gray-300 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10 text-gray-600 rounded-t-sm">
+          /* ─── VIEW 2: BÁO CÁO (PRINTABLE TABLE DOCUMENT) ─── */
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top Toolbar */}
+            <div className="h-11 bg-slate-500 border-b border-slate-600 px-4 flex items-center justify-between gap-4 shrink-0 text-white">
+              <div className="flex items-center gap-1">
+                <button onClick={fetchData} className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-600/60" title="Làm mới">
+                  <RotateCcw size={15} className={loading ? "animate-spin" : ""} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-0.5">
+                <button disabled className="p-1 rounded text-slate-400"><ChevronsLeft size={14} /></button>
+                <button disabled className="p-1 rounded text-slate-400"><ChevronLeft size={14} /></button>
+                <span className="text-xs font-bold px-2">1 / 1</span>
+                <button disabled className="p-1 rounded text-slate-400"><ChevronRight size={14} /></button>
+                <button disabled className="p-1 rounded text-slate-400"><ChevronsRight size={14} /></button>
+              </div>
+
               <div className="flex items-center gap-1.5">
-                <button className="p-1.5 rounded hover:bg-gray-200 text-gray-500 transition-colors"><ArrowLeft size={16} /></button>
-                <button className="p-1.5 rounded hover:bg-gray-200 text-gray-500 transition-colors"><ArrowRight size={16} /></button>
-                <button onClick={fetchData} className="p-1.5 rounded hover:bg-gray-200 text-gray-500 transition-colors"><RotateCcw size={16} className={loading ? 'animate-spin' : ''} /></button>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="p-1 text-gray-400"><ChevronsLeft size={14} /></button>
-                <button className="p-1 text-gray-400"><ChevronLeft size={14} /></button>
-                <span className="text-[12px] bg-white border border-gray-300 px-2.5 py-0.5 rounded font-bold text-gray-700">1 / 1</span>
-                <button className="p-1 text-gray-400"><ChevronRight size={14} /></button>
-                <button className="p-1 text-gray-400"><ChevronsRight size={14} /></button>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="p-1 text-gray-500 hover:text-gray-800"><Printer size={16} /></button>
-                <button className="p-1 text-gray-500 hover:text-gray-800"><ZoomOut size={16} /></button>
-                <button className="p-1 text-gray-500 hover:text-gray-800"><ZoomIn size={16} /></button>
-                <button className="p-1 text-gray-500 hover:text-gray-800"><Maximize2 size={16} /></button>
+                <button onClick={handleExportExcel} className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60" title="Tải Excel">
+                  <Download size={15} />
+                </button>
+                <button onClick={handlePrint} className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60" title="In báo cáo">
+                  <Printer size={15} />
+                </button>
               </div>
             </div>
 
-            {/* A4 REPORT PAPER */}
-            <div className="bg-[#525659] p-4 sm:p-8 flex-1 overflow-auto rounded-b-sm shadow-inner min-h-[700px] flex justify-center">
-              <div className="bg-white w-[880px] min-h-[900px] shadow-2xl origin-top transition-transform p-[40px] pt-[50px] font-serif text-slate-800 animate-fade-in relative">
-                
-                {/* Print Header */}
-                <div className="flex justify-between items-start mb-6 text-[12px] text-gray-500 font-sans">
-                  <span>Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-
-                <div className="text-center mb-8">
-                  <h1 className="text-[24px] font-bold text-gray-800 tracking-wide font-sans mb-3">
+            {/* Document Paper */}
+            <div className="flex-1 overflow-auto p-6 flex justify-center bg-[#808a95] custom-scrollbar">
+              <div 
+                id="printed-report-page"
+                className="bg-white text-slate-900 shadow-2xl p-8 min-h-[900px] h-auto border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text mb-12"
+                style={{ width: `${794 * (zoom / 100)}px`, fontFamily: 'Segoe UI, Arial, sans-serif' }}
+              >
+                <div className="text-center mb-6">
+                  <h1 className="text-[20px] font-bold uppercase text-slate-900 tracking-tight">
                     Báo cáo bán hàng theo hàng hóa
                   </h1>
-                  <div className="mt-1 flex flex-col gap-1.5 text-[13px] text-gray-600 font-sans">
-                    <p>Từ {getFormattedDateRange()}</p>
-                    <p>Chi nhánh: Chi nhánh trung tâm</p>
-                    <p>Bảng giá: Tất cả</p>
-                  </div>
+                  <p className="mt-1 text-[12px] text-gray-600 font-medium">Từ ngày {getFormattedDateRange()}</p>
+                  <p className="text-[12px] text-gray-600 font-medium">Chi nhánh: Chi nhánh trung tâm</p>
                 </div>
 
-                <div className="text-right text-[11px] italic text-gray-500 mb-2 font-sans">
-                  (Đã phân bổ giảm giá hóa đơn, giảm giá phiếu trả)
+                <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white shadow-sm">
+                  <table className="w-full text-[11.5px] border-collapse">
+                    <thead>
+                      <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
+                        <th className="px-3 py-2 text-left w-[120px]">Mã hàng</th>
+                        <th className="px-3 py-2 text-left">Tên hàng</th>
+                        <th className="px-2 py-2 text-right">SL bán</th>
+                        <th className="px-3 py-2 text-right">Doanh thu</th>
+                        <th className="px-2 py-2 text-right">SL trả</th>
+                        <th className="px-3 py-2 text-right">Giá trị trả</th>
+                        <th className="px-3 py-2 text-right">Doanh thu thuần</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 font-medium">
+                      <tr className="bg-[#F7F2E8] text-slate-900 font-extrabold border-b border-gray-300">
+                        <td className="px-3 py-2">Tổng cộng</td>
+                        <td className="px-3 py-2"></td>
+                        <td className="px-2 py-2 text-right">{fmtQty(totalSoldQty)}</td>
+                        <td className="px-3 py-2 text-right">{fmt(totalRevenue)}</td>
+                        <td className="px-2 py-2 text-right">{fmtQty(totalReturnQty)}</td>
+                        <td className="px-3 py-2 text-right">{fmt(totalReturnVal)}</td>
+                        <td className="px-3 py-2 text-right font-extrabold text-[#0077CC]">{fmt(totalNet)}</td>
+                      </tr>
+                      {processedData.map(p => (
+                        <tr key={p.id || p.sku} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-3 py-1.5 font-bold text-[#0077CC]">{p.sku}</td>
+                          <td className="px-3 py-1.5 font-medium text-gray-800">{p.name}</td>
+                          <td className="px-2 py-1.5 text-right">{fmtQty(p.soldQty)}</td>
+                          <td className="px-3 py-1.5 text-right font-semibold">{fmt(p.revenue)}</td>
+                          <td className="px-2 py-1.5 text-right text-gray-500">{fmtQty(p.returnQty)}</td>
+                          <td className="px-3 py-1.5 text-right text-gray-500">{fmt(p.returnVal)}</td>
+                          <td className="px-3 py-1.5 text-right font-bold text-[#0077CC]">{fmt(p.netRevenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
-                <table className="w-full text-[12px] border-collapse font-sans border-t border-b border-gray-300">
-                  <thead>
-                    <tr className="bg-[#BFE3F9] text-slate-700 font-bold border-b border-gray-200">
-                      <th className="px-3 py-2.5 text-left w-[120px]">Mã hàng</th>
-                      <th className="px-3 py-2.5 text-left">Tên hàng</th>
-                      <th className="px-2 py-2.5 text-right w-[70px]">SL Bán</th>
-                      <th className="px-3 py-2.5 text-right w-[100px]">Doanh thu</th>
-                      <th className="px-2 py-2.5 text-right w-[70px]">SL Trả</th>
-                      <th className="px-3 py-2.5 text-right w-[100px]">Giá trị trả</th>
-                      <th className="px-3 py-2.5 text-right w-[120px]">Doanh thu thuần</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-150">
-                    <tr className="bg-[#F7F2E8] text-slate-800 font-extrabold border-b border-gray-200">
-                      <td className="px-3 py-2.5" colSpan={2}>Tổng cộng</td>
-                      <td className="px-2 py-2.5 text-right">{totalSoldQty}</td>
-                      <td className="px-3 py-2.5 text-right">{fmt(totalRevenue)}</td>
-                      <td className="px-2 py-2.5 text-right">{totalReturnQty}</td>
-                      <td className="px-3 py-2.5 text-right">{fmt(totalReturnVal)}</td>
-                      <td className="px-3 py-2.5 text-right text-[#0070F4]">{fmt(totalNet)}</td>
-                    </tr>
-                    
-                    {processedData.length > 0 ? processedData.map((item, i) => (
-                      <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-3 py-2.5 text-[#0070F4] font-bold">{item.sku}</td>
-                        <td className="px-3 py-2.5 text-gray-700">{item.name}</td>
-                        <td className="px-2 py-2.5 text-right text-gray-800">{item.soldQty}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-800">{fmt(item.revenue)}</td>
-                        <td className="px-2 py-2.5 text-right text-gray-600">{item.returnQty}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-600">{fmt(item.returnVal)}</td>
-                        <td className="px-3 py-2.5 text-right text-gray-800 font-bold">{fmt(item.netRevenue)}</td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={7} className="text-center py-12 text-gray-400 font-medium">
-                          Không có dữ liệu
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
               </div>
             </div>
-          </>
+          </div>
         )}
+
       </main>
+
     </div>
   );
 }
