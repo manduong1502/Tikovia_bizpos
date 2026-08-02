@@ -168,11 +168,24 @@ export default function EndOfDayReportPage() {
     return 0;
   });
 
+  // Helper to extract paid amount safely from tx object
+  const getTxPaid = (tx) => {
+    if (tx.paid !== undefined && tx.paid !== null) return Number(tx.paid);
+    if (tx.netRevenue !== undefined && tx.netRevenue !== null) return Number(tx.netRevenue);
+    return 0;
+  };
+
+  const getRetPaid = (ret) => {
+    if (ret.paid !== undefined && ret.paid !== null) return Number(ret.paid);
+    if (ret.netRevenue !== undefined && ret.netRevenue !== null) return Number(ret.netRevenue);
+    return 0;
+  };
+
   // Invoice Summary Totals
   const totalInvoiceCount = filteredTransactions.length;
   const totalInvoiceQtySum = filteredTransactions.reduce((sum, tx) => sum + (tx.quantity || 0), 0);
   const totalInvoiceRevenueSum = filteredTransactions.reduce((sum, tx) => sum + (tx.revenue || 0), 0);
-  const totalInvoicePaidSum = filteredTransactions.reduce((sum, tx) => sum + (tx.paid || 0), 0);
+  const totalInvoicePaidSum = filteredTransactions.reduce((sum, tx) => sum + getTxPaid(tx), 0);
   const totalInvoiceOtherFeeSum = filteredTransactions.reduce((sum, tx) => sum + (tx.otherFee || 0), 0);
   const totalInvoiceVatSum = filteredTransactions.reduce((sum, tx) => sum + (tx.vat || 0), 0);
   const totalInvoiceRoundingSum = filteredTransactions.reduce((sum, tx) => sum + (tx.rounding || 0), 0);
@@ -182,7 +195,7 @@ export default function EndOfDayReportPage() {
   const totalReturnCount = filteredReturns.length;
   const totalReturnQtySum = filteredReturns.reduce((sum, ret) => sum + (ret.quantity || 0), 0);
   const totalReturnRevenueSum = filteredReturns.reduce((sum, ret) => sum + (ret.revenue || 0), 0);
-  const totalReturnPaidSum = filteredReturns.reduce((sum, ret) => sum + (ret.paid || 0), 0);
+  const totalReturnPaidSum = filteredReturns.reduce((sum, ret) => sum + getRetPaid(ret), 0);
 
   // Pagination Calculations
   const totalPages = Math.max(1, Math.ceil(totalInvoiceCount / pageSize));
@@ -236,7 +249,7 @@ export default function EndOfDayReportPage() {
           code: tx.code,
           createdAt: tx.time,
           total: tx.revenue,
-          paid: tx.paid,
+          paid: getTxPaid(tx),
           status: 'COMPLETED',
           customerName: tx.customerName,
           customerPhone: tx.customerPhone,
@@ -248,7 +261,7 @@ export default function EndOfDayReportPage() {
         code: tx.code,
         createdAt: tx.time,
         total: tx.revenue,
-        paid: tx.paid,
+        paid: getTxPaid(tx),
         status: 'COMPLETED',
         customerName: tx.customerName,
         customerPhone: tx.customerPhone,
@@ -313,7 +326,7 @@ export default function EndOfDayReportPage() {
           tx.vat || 0,
           tx.rounding || 0,
           tx.returnFee || 0,
-          tx.paid || 0
+          getTxPaid(tx)
         ]);
       });
 
@@ -334,7 +347,7 @@ export default function EndOfDayReportPage() {
             ret.quantity,
             ret.revenue,
             0, 0, 0, 0,
-            ret.paid || 0
+            getRetPaid(ret)
           ]);
         });
       }
@@ -370,9 +383,9 @@ export default function EndOfDayReportPage() {
       sheetName = "HangHoa";
 
     } else {
-      const cashPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + (tx.paid || 0), 0);
-      const bankPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + (tx.paid || 0), 0);
-      const cardPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + (tx.paid || 0), 0);
+      const cashPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + getTxPaid(tx), 0);
+      const bankPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + getTxPaid(tx), 0);
+      const cardPayments = filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + getTxPaid(tx), 0);
 
       aoa = [
         [`Ngày lập: ${todayStr}`],
@@ -791,10 +804,10 @@ export default function EndOfDayReportPage() {
         {/* ─── PRINTED A4 SHEET CANVAS (Paper Document) ─── */}
         <div className="flex-1 overflow-auto p-6 flex justify-center bg-[#808a95] custom-scrollbar">
           
-          {/* Printable Document Paper */}
+          {/* Printable Document Paper - Dynamic height so table never overflows */}
           <div 
             id="printed-report-page"
-            className="bg-white text-slate-900 shadow-2xl p-8 min-h-[900px] border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text"
+            className="bg-white text-slate-900 shadow-2xl p-8 min-h-[900px] h-auto border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text mb-12"
             style={{ 
               width: `${(isHorizontal ? 1080 : 794) * (zoom / 100)}px`, 
               minWidth: isHorizontal ? '960px' : '680px',
@@ -823,7 +836,7 @@ export default function EndOfDayReportPage() {
             {/* REPORT TABLES BASED ON INTEREST TYPE */}
             {interestType === 'Bán hàng' ? (
               /* ─── VIEW: BÁN HÀNG (INVOICES & RETURNS TABLE - EXACT MATCH WITH KIOTVIET IMAGES 1, 2, 3, 4) ─── */
-              <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white">
+              <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white shadow-sm">
                 <table className="w-full text-[11.5px] border-collapse">
                   <thead>
                     <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
@@ -912,7 +925,7 @@ export default function EndOfDayReportPage() {
                                   {tx.returnFee ? fmt(tx.returnFee) : '0'}
                                 </td>
                                 <td className="px-3 py-1.5 text-right font-bold text-slate-800">
-                                  {tx.paid ? fmt(tx.paid) : '0'}
+                                  {fmt(getTxPaid(tx))}
                                 </td>
                               </tr>
                             ))}
@@ -966,7 +979,7 @@ export default function EndOfDayReportPage() {
                                 <td className="px-2 py-1.5 text-right text-gray-500">0</td>
                                 <td className="px-2 py-1.5 text-right text-gray-500">0</td>
                                 <td className="px-3 py-1.5 text-right font-bold text-slate-800">
-                                  {ret.paid ? fmt(ret.paid) : '0'}
+                                  {fmt(getRetPaid(ret))}
                                 </td>
                               </tr>
                             ))}
@@ -1048,15 +1061,15 @@ export default function EndOfDayReportPage() {
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4">
                     <span>- Thu bằng Tiền mặt</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Tiền mặt').reduce((sum, tx) => sum + getTxPaid(tx), 0))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4">
                     <span>- Thu bằng Chuyển khoản</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Chuyển khoản').reduce((sum, tx) => sum + getTxPaid(tx), 0))} VNĐ</span>
                   </div>
                   <div className="flex justify-between items-center text-gray-600 pl-4 border-b border-gray-100 pb-2">
                     <span>- Thu bằng Thẻ tín dụng</span>
-                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + (tx.paid || 0), 0))} VNĐ</span>
+                    <span>{fmt(filteredTransactions.filter(tx => tx.paymentMethod === 'Quẹt thẻ' || tx.paymentMethod === 'Thẻ').reduce((sum, tx) => sum + getTxPaid(tx), 0))} VNĐ</span>
                   </div>
 
                   <div className="flex justify-between items-center text-slate-900 border-b border-gray-200 pt-1 pb-1">
