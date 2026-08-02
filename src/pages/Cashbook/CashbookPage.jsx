@@ -378,7 +378,7 @@ export default function CashbookPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Quỹ đầu kỳ</div>
-          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">34.299.450.927</div>
+          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">34.303.020.927</div>
         </div>
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tổng thu</div>
@@ -391,7 +391,7 @@ export default function CashbookPage() {
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tồn quỹ</div>
           <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
-            {fmt(34299450927 + totalIn - totalOut)}
+            {fmt(34303020927 + totalIn - totalOut)}
           </div>
         </div>
       </div>
