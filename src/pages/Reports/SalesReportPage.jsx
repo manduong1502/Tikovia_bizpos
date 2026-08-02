@@ -9,6 +9,8 @@ import {
   TrendingUp, BarChart2, Plus
 } from 'lucide-react';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
+import DateFilter from '../../components/ui/DateFilter';
+import { getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => {
   const val = Math.round(Number(n || 0));
@@ -35,10 +37,37 @@ export default function SalesReportPage() {
   const [interestType, setInterestType] = useState('Thời gian'); // Thời gian, Lợi nhuận, Trả hàng
   const [priceBook, setPriceBook] = useState('');
   
-  // Time Range Selection - Default to "Tuần này" (week) as requested
-  const [timeRangeType, setTimeRangeType] = useState('custom'); // 'week' or 'custom'
+  // Date Filter State
+  const [dateFilterValue, setDateFilterValue] = useState({ mode: 'custom', label: '31/07/2026 - 01/08/2026' });
   const [customFromDate, setCustomFromDate] = useState('2026-07-31');
   const [customToDate, setCustomToDate] = useState('2026-08-01');
+
+  const formatDateParam = (d) => {
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const handleDateFilterChange = (filterVal) => {
+    setDateFilterValue(filterVal);
+    if (filterVal.mode === 'all') {
+      if (filterVal.label === 'Toàn thời gian') {
+        setCustomFromDate('');
+        setCustomToDate('');
+      } else {
+        const range = getRangeByCreatedLabel(filterVal.label);
+        if (range) {
+          setCustomFromDate(formatDateParam(range.start));
+          setCustomToDate(formatDateParam(range.end));
+        }
+      }
+    } else if (filterVal.mode === 'custom') {
+      if (filterVal.start) setCustomFromDate(formatDateParam(filterVal.start));
+      if (filterVal.end) setCustomToDate(formatDateParam(filterVal.end));
+    }
+  };
 
   const [salesMethod, setSalesMethod] = useState('');
   const [salesChannel, setSalesChannel] = useState('');
@@ -82,14 +111,8 @@ export default function SalesReportPage() {
   const fetchData = () => {
     setLoading(true);
     let params = {};
-    if (timeRangeType === 'custom') {
-      if (customFromDate) params.fromDate = customFromDate;
-      if (customToDate) params.toDate = customToDate;
-    } else {
-      const weekParams = getWeekRangeParams();
-      params.fromDate = weekParams.fromDate;
-      params.toDate = weekParams.toDate;
-    }
+    if (customFromDate) params.fromDate = customFromDate;
+    if (customToDate) params.toDate = customToDate;
 
     reportAPI.getEndOfDay(params)
       .then(res => {
@@ -106,7 +129,7 @@ export default function SalesReportPage() {
 
   useEffect(() => {
     fetchData();
-  }, [timeRangeType, customFromDate, customToDate]);
+  }, [customFromDate, customToDate]);
 
   // Client-side transactions sub-filtering matching sidebar selections
   const getFilteredTransactions = () => {
@@ -426,65 +449,14 @@ export default function SalesReportPage() {
           </select>
         </div>
 
-        {/* Thời gian Filter Section */}
-        <div className="flex flex-col gap-2">
+        {/* Thời gian Filter Section using KiotViet Style DateFilter popup */}
+        <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Thời gian <span className="text-blue-500">•</span></label>
-          
-          {/* Radio 1: Tuần này */}
-          <div className="flex items-center justify-between border border-gray-200 rounded p-2.5 bg-gray-50/50 cursor-pointer hover:bg-gray-100/60 transition-colors" onClick={() => setTimeRangeType('week')}>
-            <div className="flex items-center gap-2">
-              <input 
-                type="radio" 
-                name="salesTimeRange" 
-                id="timeWeek" 
-                checked={timeRangeType === 'week'} 
-                onChange={() => setTimeRangeType('week')}
-                className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer"
-              />
-              <label htmlFor="timeWeek" className="font-semibold text-xs cursor-pointer text-gray-700">Tuần này</label>
-            </div>
-            <ChevronRight size={14} className="text-gray-400" />
-          </div>
-
-          {/* Radio 2: Custom Date Range (Sample 31/07/2026 - 01/08/2026) */}
-          <div className="flex flex-col gap-1.5 border border-gray-200 rounded p-2.5 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <input 
-                type="radio" 
-                name="salesTimeRange" 
-                id="timeCustom" 
-                checked={timeRangeType === 'custom'} 
-                onChange={() => setTimeRangeType('custom')}
-                className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer"
-              />
-              <label htmlFor="timeCustom" className="font-semibold text-xs cursor-pointer text-gray-700">Tùy chỉnh khoảng</label>
-            </div>
-            
-            {timeRangeType === 'custom' && (
-              <div className="flex flex-col gap-2 pl-6 mt-1 animate-fade-in">
-                <div className="flex items-center gap-1 border border-gray-200 rounded px-2 py-1 bg-white text-xs text-gray-700 font-semibold shadow-xs">
-                  <Calendar size={13} className="text-gray-400 shrink-0" />
-                  <span>31/07/2026 - 01/08/2026</span>
-                </div>
-                <div className="flex flex-col gap-1 text-[11px]">
-                  <span className="text-gray-500 font-medium">Từ ngày:</span>
-                  <input 
-                    type="date" 
-                    value={customFromDate}
-                    onChange={(e) => setCustomFromDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
-                  />
-                  <span className="text-gray-500 font-medium">Đến ngày:</span>
-                  <input 
-                    type="date" 
-                    value={customToDate}
-                    onChange={(e) => setCustomToDate(e.target.value)}
-                    className="w-full border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:border-primary outline-none cursor-pointer font-medium text-gray-700"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          <DateFilter
+            type="created"
+            value={dateFilterValue}
+            onChange={handleDateFilterChange}
+          />
         </div>
 
         {/* Phương thức bán hàng */}
