@@ -57,7 +57,6 @@ const ALL_COLUMNS = [
   { key: 'note', label: 'Ghi chú', default: true },
   { key: 'debt', label: 'Nợ hiện tại', default: true, align: 'right' },
   { key: 'total_spent', label: 'Tổng bán', default: true, align: 'right' },
-  { key: 'total_spent_net', label: 'Tổng bán trừ trả hàng', default: true, align: 'right' },
 ];
 
 export default function CustomersPage() {
@@ -1322,7 +1321,6 @@ export default function CustomersPage() {
 
   const sumDebt = filtered.reduce((s, c) => s + Number(c.debt || c.totalDebt || 0), 0);
   const sumTotalSpent = filtered.reduce((s, c) => s + Number(c.total_spent || c.totalSpent || 0), 0);
-  const sumTotalSpentNet = filtered.reduce((s, c) => s + Number(c.total_spent_net || c.totalSpentNet || c.total_spent || c.totalSpent || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
@@ -1810,7 +1808,6 @@ export default function CustomersPage() {
                   </td>
                 )}
                 {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right text-primary font-extrabold">{fmt(sumTotalSpent)}</td>}
-                {visibleColumns.includes('total_spent_net') && <td className="py-2.5 px-3 text-right text-emerald-600 font-extrabold">{fmt(sumTotalSpentNet)}</td>}
                 <td></td>
               </tr>
               {isLoading ? (
@@ -1826,7 +1823,6 @@ export default function CustomersPage() {
                     {visibleColumns.includes('note') && <td className="py-2.5 px-3"><div className="h-3 bg-gray-200 rounded w-24" /></td>}
                     {visibleColumns.includes('debt') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
                     {visibleColumns.includes('total_spent') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
-                    {visibleColumns.includes('total_spent_net') && <td className="py-2.5 px-3 text-right"><div className="h-3 bg-gray-200 rounded w-16 ml-auto" /></td>}
                     <td className="py-2.5 px-3 text-center"><div className="h-5 bg-gray-200 rounded-lg w-12 mx-auto" /></td>
                   </tr>
                 ))
@@ -1883,9 +1879,6 @@ export default function CustomersPage() {
                       )}
                       {visibleColumns.includes('total_spent') && (
                         <td className="py-2.5 px-3 text-right font-extrabold text-primary">{fmt(c.total_spent || c.totalSpent || 0)}</td>
-                      )}
-                      {visibleColumns.includes('total_spent_net') && (
-                        <td className="py-2.5 px-3 text-right font-extrabold text-emerald-600">{fmt(c.total_spent_net || c.totalSpentNet || c.total_spent || c.totalSpent || 0)}</td>
                       )}
                       <td className="py-2.5 px-3 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1">
