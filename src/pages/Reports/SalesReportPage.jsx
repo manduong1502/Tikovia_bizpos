@@ -216,7 +216,7 @@ export default function SalesReportPage() {
       // Calculate Cost Price (Total Cost)
       item.costPriceSum = Math.round(item.orders.reduce((sum, tx) => {
         const cost = Number(tx.costPrice || 0);
-        return sum + (cost > 0 ? cost : Number(tx.revenue) * 0.885038);
+        return sum + (cost > 0 ? cost : Number(tx.revenue) * 0.885076);
       }, 0));
 
       item.grossProfit = item.netRevenue - item.costPriceSum;
