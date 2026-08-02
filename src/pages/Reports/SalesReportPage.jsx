@@ -282,19 +282,15 @@ export default function SalesReportPage() {
   };
 
   const getFormattedDateRange = () => {
-    if (timeRangeType === 'week') {
-      const weekParams = getWeekRangeParams();
-      const f = weekParams.fromDate.split('-').reverse().join('/');
-      const t = weekParams.toDate.split('-').reverse().join('/');
-      return `${f} đến ngày ${t}`;
-    } else {
-      if (!customFromDate || !customToDate) {
-        return '31/07/2026 đến ngày 01/08/2026';
-      }
-      const f = customFromDate.split('-').reverse().join('/');
-      const t = customToDate.split('-').reverse().join('/');
-      return `${f} đến ngày ${t}`;
+    if (dateFilterValue?.label && dateFilterValue.label !== 'Toàn thời gian') {
+      return dateFilterValue.label;
     }
+    if (!customFromDate || !customToDate) {
+      return 'Toàn thời gian';
+    }
+    const f = customFromDate.split('-').reverse().join('/');
+    const t = customToDate.split('-').reverse().join('/');
+    return `${f} đến ngày ${t}`;
   };
 
   const getSafeDateString = () => {
