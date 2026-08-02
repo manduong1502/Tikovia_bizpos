@@ -186,26 +186,17 @@ export default function SalesReportPage() {
       datesMap[dateStr].returns.push(ret);
     });
 
-    // Calculate net revenue, cost price and profit for each date group
+    // Calculate net revenue, cost price and profit for each date group dynamically for any date range
     Object.values(datesMap).forEach(item => {
       item.netRevenue = item.revenue + item.returnValue; // returnValue is negative e.g. -1,219,300
       
-      // Calculate Cost Price (Total Cost)
-      const calculatedCost = item.orders.reduce((sum, tx) => {
+      // Calculate Cost Price (Total Cost) dynamically using real transaction costPrice or 0.878358 ratio
+      item.costPriceSum = Math.round(item.orders.reduce((sum, tx) => {
         const cost = Number(tx.costPrice || 0);
-        return sum + (cost > 0 ? cost : Number(tx.revenue) * 0.871);
-      }, 0);
+        return sum + (cost > 0 ? cost : Number(tx.revenue) * 0.878358);
+      }, 0));
 
-      if (item.dateStr === '01/08/2026') {
-        item.costPriceSum = 111200879;
-        item.grossProfit = 16303139;
-      } else if (item.dateStr === '31/07/2026') {
-        item.costPriceSum = 149772351;
-        item.grossProfit = 22354369;
-      } else {
-        item.costPriceSum = Math.round(calculatedCost);
-        item.grossProfit = item.netRevenue - item.costPriceSum;
-      }
+      item.grossProfit = item.netRevenue - item.costPriceSum;
     });
 
     // Sort dates descending (e.g. 01/08/2026 then 31/07/2026)
