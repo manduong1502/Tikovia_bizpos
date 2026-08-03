@@ -315,30 +315,39 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
 
               {/* Mobile View: No horizontal scroll */}
               <div className="block md:hidden divide-y divide-gray-100 bg-white max-h-60 overflow-y-auto custom-scrollbar">
-                {items.map((it, idx) => (
-                  <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer" className="font-extrabold text-primary hover:underline">
-                        {it.product_sku}
-                      </a>
-                      <span className="font-extrabold text-primary">{fmt(it.total)}</span>
+                {items.map((it, idx) => {
+                  const sku = it.product_sku || it.product?.sku || it.sku || `SP${it.productId || ''}`;
+                  const name = it.product_name || it.product?.name || 'Sản phẩm';
+                  const unit = it.product?.unit || it.unit || '';
+                  const unitPrice = Number(it.unit_price || it.price || 0);
+                  const discount = Number(it.discount || 0);
+                  const itemTotal = Number(it.total || (it.quantity * unitPrice - discount));
+
+                  return (
+                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <a href={`/products?editSku=${sku}`} target="_blank" rel="noopener noreferrer" className="font-extrabold text-primary hover:underline">
+                          {sku}
+                        </a>
+                        <span className="font-extrabold text-primary">{fmt(itemTotal)}</span>
+                      </div>
+                      <div className="font-bold text-gray-800">
+                        {name} {unit ? `(${unit})` : ''}
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-gray-500 pt-0.5">
+                        <span>Số lượng: <strong className="text-gray-800">{it.quantity}</strong></span>
+                        <span>Đơn giá: {fmt(unitPrice)} {discount > 0 ? `(Giảm ${fmt(discount)})` : ''}</span>
+                      </div>
                     </div>
-                    <div className="font-bold text-gray-800">
-                      {it.product_name} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] text-gray-500 pt-0.5">
-                      <span>Số lượng: <strong className="text-gray-800">{it.quantity}</strong></span>
-                      <span>Đơn giá: {fmt(it.unit_price)} {it.discount > 0 ? `(Giảm ${fmt(it.discount)})` : ''}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {items.length === 0 && (
-                  <div className="text-center py-8 text-gray-400 text-xs">Đang tải chi tiết hàng hóa...</div>
+                  <div className="text-center py-6 text-gray-400 text-xs">Hóa đơn không có sản phẩm nào</div>
                 )}
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden md:block overflow-x-auto max-h-40 overflow-y-auto custom-scrollbar">
+              <div className="hidden md:block overflow-x-auto max-h-60 overflow-y-auto custom-scrollbar">
                 {items.length > 0 ? (
                   <table className="w-full text-xs min-w-[700px]">
                     <thead>
@@ -353,27 +362,35 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
-                      {items.map((it, idx) => (
-                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="p-3 font-bold text-primary hover:underline cursor-pointer">
-                            <a href={`/products?editSku=${it.product_sku}`} target="_blank" rel="noopener noreferrer">
-                              {it.product_sku}
-                            </a>
-                          </td>
-                          <td className="p-3 text-gray-800">{it.product_name} {it.product?.unit || it.unit ? `(${it.product?.unit || it.unit})` : ''}</td>
-                          <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
-                          <td className="p-3 text-right text-gray-600">{fmt(it.unit_price)}</td>
-                          <td className="p-3 text-right text-gray-600">{it.discount > 0 ? fmt(it.discount) : '0'}</td>
-                          <td className="p-3 text-right text-gray-800 font-bold">{fmt((it.unit_price || 0) - (it.discount || 0))}</td>
-                          <td className="p-3 text-right text-primary font-bold">{fmt(it.total)}</td>
-                        </tr>
-                      ))}
+                      {items.map((it, idx) => {
+                        const sku = it.product_sku || it.product?.sku || it.sku || `SP${it.productId || ''}`;
+                        const name = it.product_name || it.product?.name || 'Sản phẩm';
+                        const unit = it.product?.unit || it.unit || '';
+                        const unitPrice = Number(it.unit_price || it.price || 0);
+                        const discount = Number(it.discount || 0);
+                        const itemTotal = Number(it.total || (it.quantity * unitPrice - discount));
+
+                        return (
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="p-3 font-bold text-primary hover:underline cursor-pointer">
+                              <a href={`/products?editSku=${sku}`} target="_blank" rel="noopener noreferrer">
+                                {sku}
+                              </a>
+                            </td>
+                            <td className="p-3 text-gray-800">{name} {unit ? `(${unit})` : ''}</td>
+                            <td className="p-3 text-right text-gray-800 font-bold">{it.quantity}</td>
+                            <td className="p-3 text-right text-gray-600">{fmt(unitPrice)}</td>
+                            <td className="p-3 text-right text-gray-600">{discount > 0 ? fmt(discount) : '0'}</td>
+                            <td className="p-3 text-right text-gray-800 font-bold">{fmt(unitPrice - discount)}</td>
+                            <td className="p-3 text-right text-primary font-bold">{fmt(itemTotal)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 ) : (
-                  <div className="text-center py-12 text-gray-400 font-medium min-w-[700px]">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                    Đang tải chi tiết hàng hóa...
+                  <div className="text-center py-6 text-gray-400 font-medium min-w-[700px]">
+                    Hóa đơn không có sản phẩm nào
                   </div>
                 )}
               </div>
