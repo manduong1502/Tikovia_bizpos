@@ -316,40 +316,42 @@ export default function OrdersPage() {
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    // 1. Instant Cache Load from Memory / SessionStorage
+    if (window.__tikovia_orders_cache && Array.isArray(window.__tikovia_orders_cache) && window.__tikovia_orders_cache.length > 0) {
+      setOrders(window.__tikovia_orders_cache);
+      setIsLoading(false);
+    } else {
+      try {
+        const cachedStr = sessionStorage.getItem('tikovia_orders_cache');
+        if (cachedStr) {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.__tikovia_orders_cache = parsed;
+            setOrders(parsed);
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (showSpinner || !window.__tikovia_orders_cache) {
+      setIsLoading(true);
+    }
+
     try {
-      const params = { page: 1, limit: 500000 };
+      const params = { page: 1, limit: 50000 };
       const r = await orderAPI.getAll(params);
       const rawList = Array.isArray(r) ? r : (r?.data || []);
-      if (rawList.length === 0) {
-        const mockOrders = [
-          { id: 1, order_code: 'HD000042', created_at: '2026-05-12T14:30:00Z', customer_code: 'KH000001', customer_name: 'Anh Tuấn', total: 1550000, discount_amount: 50000, paid_amount: 1500000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP001', product_name: 'Gà ta sạch', quantity: 10, unit_price: 155000, discount: 5000, total: 1500000 }] },
-          { id: 2, order_code: 'HD000041', created_at: '2026-05-11T10:15:00Z', customer_code: 'KH000002', customer_name: 'Chị Mai', total: 3200000, discount_amount: 200000, paid_amount: 3000000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP002', product_name: 'Gà ác làm sạch', quantity: 40, unit_price: 80000, discount: 5000, total: 3000000 }] },
-          { id: 3, order_code: 'HD000040', created_at: '2026-05-10T09:00:00Z', customer_code: '', customer_name: 'Khách lẻ', total: 450000, discount_amount: 0, paid_amount: 450000, payment_status: 'paid', status: 'completed', items: [{ product_sku: 'SP003', product_name: 'Trứng gà sạch', quantity: 15, unit_price: 30000, discount: 0, total: 450000 }] },
-        ];
-        setOrders(mockOrders);
-      } else {
-        setOrders(prev => {
-          return rawList.map(item => {
-            const prevItem = prev.find(p => p.id === item.id);
-            if (prevItem && prevItem._items) {
-              const prevTime = prevItem.updatedAt ? new Date(prevItem.updatedAt).getTime() : 0;
-              const currTime = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-              if (prevTime !== currTime) {
-                if (expandedIdRef.current === item.id) {
-                  setTimeout(() => loadDetail(item.id), 50);
-                }
-                return item;
-              }
-              return { ...item, _items: prevItem._items };
-            }
-            return item;
-          });
-        });
+      if (rawList.length > 0) {
+        window.__tikovia_orders_cache = rawList;
+        try {
+          sessionStorage.setItem('tikovia_orders_cache', JSON.stringify(rawList));
+        } catch (e) {}
+        setOrders(rawList);
       }
-    } catch {
-      setOrders([]);
+    } catch (err) {
+      console.warn('Silent order reload error:', err);
     } finally {
       setIsLoading(false);
     }

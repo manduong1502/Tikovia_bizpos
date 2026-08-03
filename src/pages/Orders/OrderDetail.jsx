@@ -397,36 +397,36 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               </div>
             </div>
 
-            {/* Bottom Action Bar: Grid on Mobile, Flex on Desktop */}
-            <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1.5">
+            {/* Bottom Action Bar: Clean Flex-wrap Bar */}
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-3 mt-3 bg-gray-50/80 p-2.5 rounded-xl border border-gray-100">
               {o.status !== 'cancelled' && (
-                <Button variant="danger" onClick={handleCancel} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                  <Trash2 size={13} /> Hủy
+                <Button variant="danger" onClick={handleCancel} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                  <Trash2 size={14} /> Hủy
                 </Button>
               )}
-              <Button variant="secondary" onClick={handleCopy} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Copy size={13} /> Sao chép
+              <Button variant="secondary" onClick={handleCopy} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                <Copy size={14} /> Sao chép
               </Button>
-              <Button variant="secondary" onClick={handleExportSingleInvoice} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Download size={13} /> Xuất file
+              <Button variant="secondary" onClick={handleExportSingleInvoice} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                <Download size={14} /> Xuất file
               </Button>
               <Button
                 variant="primary"
                 onClick={() => navigate('/pos', { state: { editOrder: { id: o.id, code: o.order_code, items: items, customer: o.customer_name ? { id: o.customerId, name: o.customer_name } : null, note: o.note, createdAt: o.created_at || o.createdAt || o.date } } })}
-                className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap"
+                className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-md font-bold bg-primary hover:bg-primary-hover"
               >
-                <Pencil size={13} /> Sửa
+                <Pencil size={14} /> Sửa
               </Button>
-              <Button variant="secondary" onClick={handleSaveNote} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Save size={13} /> Lưu
+              <Button variant="secondary" onClick={handleSaveNote} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                <Save size={14} /> Lưu
               </Button>
               {o.status !== 'cancelled' && (
-                <Button variant="secondary" onClick={handleReturn} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                  <RotateCcw size={13} /> Trả hàng
+                <Button variant="secondary" onClick={handleReturn} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                  <RotateCcw size={14} /> Trả hàng
                 </Button>
               )}
-              <Button variant="secondary" onClick={handlePrint} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap col-span-2 sm:col-span-1">
-                <Printer size={13} /> In bill
+              <Button variant="secondary" onClick={handlePrint} className="justify-center items-center gap-1.5 text-xs py-1.5 px-3 shadow-sm font-bold">
+                <Printer size={14} /> In bill
               </Button>
             </div>
           </div>
