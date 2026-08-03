@@ -6,7 +6,14 @@ import NumericInput from '../../components/ui/NumericInput';
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 export default function CustomerAdjustDebtModal({ open, onClose, customer, onSaved }) {
+  const getNowLocalStr = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  };
+
   const [adjustValue, setAdjustValue] = useState('');
+  const [adjustTime, setAdjustTime] = useState(getNowLocalStr());
   const [description, setDescription] = useState('');
 
   if (!open || !customer) return null;
@@ -20,10 +27,35 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
       return;
     }
     try {
-      // Attempt API call
-      const { customerAPI } = await import('../../services/api');
+      const { customerAPI, cashbookAPI } = await import('../../services/api');
+      const diff = val - currentDebt;
+
+      // Update customer totalDebt
       await customerAPI.update(customer.id, { debt: val });
+
+      // Create a cashbook entry if debt changed to record history
+      if (diff !== 0) {
+        const type = diff > 0 ? 'EXPENSE' : 'INCOME';
+        const absVal = Math.abs(diff);
+        const codePrefix = type === 'INCOME' ? 'TTM' : 'TCM';
+        await cashbookAPI.create({
+          code: `${codePrefix}${String(Date.now()).slice(-6)}`,
+          type,
+          amount: absVal,
+          category: 'Điều chỉnh công nợ',
+          partnerType: 'customer',
+          customerId: customer.id,
+          partnerName: customer.name,
+          paymentMethod: 'cash',
+          isAccounting: true,
+          status: 'completed',
+          createdAt: adjustTime ? new Date(adjustTime).toISOString() : new Date().toISOString(),
+          note: description || `Điều chỉnh công nợ khách hàng ${customer.name} từ ${fmt(currentDebt)} thành ${fmt(val)}`
+        }).catch(() => {});
+      }
+
       toast.success(`Đã điều chỉnh nợ khách hàng thành ${fmt(val)}`);
+      window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type: 'customer', customerId: customer.id } }));
       onSaved?.();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi khi điều chỉnh công nợ');
@@ -36,7 +68,7 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-lg font-extrabold text-gray-800">Điều chỉnh công nợ</h2>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer border-none bg-transparent">
             <X size={20} className="text-gray-500" />
           </button>
         </div>
@@ -49,7 +81,12 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
 
           <div>
             <label className="text-sm font-bold text-gray-700 mb-1.5 block">Thời gian điều chỉnh</label>
-            <input type="text" value={new Date().toLocaleString('vi-VN')} disabled className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" />
+            <input 
+              type="datetime-local" 
+              value={adjustTime} 
+              onChange={e => setAdjustTime(e.target.value)} 
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary/30 outline-none font-semibold text-gray-800" 
+            />
           </div>
 
           <div>
@@ -74,8 +111,8 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
         </div>
 
         <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100 bg-gray-50/50">
-          <button onClick={onClose} className="px-5 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer">Bỏ qua</button>
-          <button onClick={handleSubmit} className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-extrabold rounded-lg shadow-md cursor-pointer">Chỉnh sửa</button>
+          <button onClick={onClose} className="px-5 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer border-none bg-transparent">Bỏ qua</button>
+          <button onClick={handleSubmit} className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-extrabold rounded-lg shadow-md cursor-pointer border-none">Chỉnh sửa</button>
         </div>
       </div>
     </div>
