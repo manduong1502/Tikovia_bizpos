@@ -106,7 +106,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
       const customDate = currentInvoice?.customDate || getLocalDateString();
       const customTime = currentInvoice?.customTime || getLocalTimeString();
-      const customCreatedAt = new Date(`${customDate}T${customTime}:00`).toISOString();
+      const customCreatedAt = `${customDate} ${customTime}:00`;
 
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,

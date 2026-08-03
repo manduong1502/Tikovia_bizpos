@@ -552,6 +552,41 @@
   min-width: 32px;
 }
 
+/* ─── Note Input Styling ─── */
+.pos-note-input {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  transition: all 0.2s ease;
+}
+.pos-note-input:focus-within {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+.pos-note-input span {
+  font-size: 18px;
+  margin-top: 2px;
+}
+.pos-note-input textarea {
+  width: 100%;
+  min-height: 60px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.4;
+}
+
 /* Delivery Panel Styles */
 .pos-delivery-panel {
   display: flex;
