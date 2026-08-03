@@ -223,10 +223,12 @@ export default function CashbookPage() {
       } else if (timeFilter === 'custom' && (customDate.from || customDate.to)) {
         if (e.createdAt) {
           const d = new Date(e.createdAt);
-          if (customDate.from && d < new Date(customDate.from)) return false;
+          if (customDate.from) {
+            const start = new Date(customDate.from + 'T00:00:00');
+            if (d < start) return false;
+          }
           if (customDate.to) {
-            const end = new Date(customDate.to);
-            end.setHours(23, 59, 59, 999);
+            const end = new Date(customDate.to + 'T23:59:59.999');
             if (d > end) return false;
           }
         }
