@@ -30,10 +30,10 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
       const { customerAPI, cashbookAPI } = await import('../../services/api');
       const diff = val - currentDebt;
 
-      // Update customer totalDebt
+      // 1. Update customer totalDebt directly to exact val
       await customerAPI.update(customer.id, { debt: val });
 
-      // Create a cashbook entry if debt changed to record history
+      // 2. Create cashbook entry for history display only without double-subtracting debt (isAccounting: false)
       if (diff !== 0) {
         const type = diff > 0 ? 'EXPENSE' : 'INCOME';
         const absVal = Math.abs(diff);
@@ -43,11 +43,11 @@ export default function CustomerAdjustDebtModal({ open, onClose, customer, onSav
           type,
           amount: absVal,
           category: 'Điều chỉnh công nợ',
-          partnerType: 'customer',
+          partnerType: 'other', // Use 'other' so cashbookController won't mutate customer debt a second time
           customerId: customer.id,
           partnerName: customer.name,
           paymentMethod: 'cash',
-          isAccounting: true,
+          isAccounting: false,
           status: 'completed',
           createdAt: adjustTime ? new Date(adjustTime).toISOString() : new Date().toISOString(),
           note: description || `Điều chỉnh công nợ khách hàng ${customer.name} từ ${fmt(currentDebt)} thành ${fmt(val)}`
