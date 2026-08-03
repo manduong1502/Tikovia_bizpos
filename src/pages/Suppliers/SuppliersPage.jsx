@@ -673,12 +673,15 @@ export default function SuppliersPage() {
     const allTxs = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
         const total = Number(po.total || 0);
+        const paid = Number(po.paid || 0);
+        const unpaid = Math.max(0, total - paid);
         return {
           code: po.po_code || po.code,
           type: 'Nhập hàng',
           date: new Date(po.created_at || po.createdAt),
           total: total,
-          debt: total, // Nhập hàng increases what we owe (+total) under positive convention
+          paid: paid,
+          debt: unpaid, // Only unpaid amount increases debt
           cashbookType: null,
           items: po.items || []
         };
@@ -1032,7 +1035,8 @@ export default function SuppliersPage() {
     const sortedTransactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
         const total = Number(po.total || 0);
-        const unpaid = Math.max(0, total - Number(po.paid || 0));
+        const paid = Number(po.paid || 0);
+        const unpaid = Math.max(0, total - paid);
         return {
           id: `${po.id}-import`,
           code: po.po_code || po.code,
@@ -1040,8 +1044,8 @@ export default function SuppliersPage() {
           typeName: 'Nhập hàng',
           date: po.created_at || po.createdAt,
           total: total,
-          paid: Number(po.paid || 0),
-          debt: total, // Increase debt by order total
+          paid: paid,
+          debt: unpaid, // Debt increase is only the unpaid portion
           status: po.payment_status || 'paid',
           items: po.items || []
         };
