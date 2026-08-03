@@ -63,8 +63,13 @@ export default function POSPaymentPanel({ forceShow = false }) {
     }
   };
 
-  const handleSelectCustomer = (cust) => {
-    updateCurrentInvoice({ customer: cust });
+  const handleSelectCustomer = async (cust) => {
+    try {
+      const freshCust = await customerAPI.getById(cust.id);
+      updateCurrentInvoice({ customer: freshCust || cust });
+    } catch {
+      updateCurrentInvoice({ customer: cust });
+    }
     setCustomerSearch('');
     setCustomerSuggestions([]);
   };
@@ -148,8 +153,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
       
       const dateStr = new Date().toLocaleString('vi-VN');
       const orderCode = newOrder?.code || newOrder?.order_code || 'HD' + Date.now().toString().slice(-6);
-      const oldDebt = customer ? Number(customer.totalDebt || customer.debt || 0) : 0;
-      const totalDebt = oldDebt + total;
+      
+      // Use exact database oldDebt/newDebt returned by backend API to prevent stale debt on printed bill
+      const oldDebt = (newOrder?.oldDebt !== undefined && newOrder?.oldDebt !== null)
+        ? Number(newOrder.oldDebt)
+        : (newOrder?.customer?.totalDebt !== undefined ? Number(newOrder.customer.totalDebt) : (customer ? Number(customer.totalDebt || customer.debt || 0) : 0));
+      
+      const totalDebt = (newOrder?.newDebt !== undefined && newOrder?.newDebt !== null)
+        ? Number(newOrder.newDebt)
+        : (oldDebt + total);
+      
       const remainingDebt = totalDebt - finalPaid;
       const actualChange = !customer && paidAmount > total ? paidAmount - total : 0;
 

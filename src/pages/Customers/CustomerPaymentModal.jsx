@@ -62,6 +62,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
       await cashbookAPI.create(payload);
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
+      window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type: 'customer', customerId: customer.id } }));
       onSaved?.();
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi khi thanh toán nợ');

@@ -386,6 +386,26 @@ export function POSProvider({ children }) {
     });
   };
 
+  useEffect(() => {
+    const handleDataChanged = async (e) => {
+      if (e.detail?.type === 'customer' || e.detail?.type === 'order' || e.detail?.type === 'general') {
+        const custId = currentInvoice?.customer?.id;
+        if (custId) {
+          try {
+            const freshCust = await customerAPI.getById(custId);
+            if (freshCust) {
+              updateCurrentInvoice({ customer: freshCust });
+            }
+          } catch (err) {
+            console.warn('POSContext customer debt refresh error:', err);
+          }
+        }
+      }
+    };
+    window.addEventListener('app:data-changed', handleDataChanged);
+    return () => window.removeEventListener('app:data-changed', handleDataChanged);
+  }, [currentInvoice?.customer?.id]);
+
   const togglePaymentMode = (status) => {
     updateCurrentInvoice({ isPaymentMode: status !== undefined ? status : !currentInvoice.isPaymentMode });
   };
