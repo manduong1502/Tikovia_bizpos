@@ -424,6 +424,28 @@ export default function CustomersPage() {
   }, [reload]);
 
   useEffect(() => {
+    if (!expandedId) return;
+    const fetchCustomerTxHistory = async () => {
+      try {
+        const [ordRes, cbRes, retRes] = await Promise.all([
+          orderAPI.getAll({ limit: 5000 }).catch(() => ({ data: [] })),
+          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] })),
+          returnAPI.getAll().catch(() => [])
+        ]);
+        const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
+        setOrders(rawOrders);
+        const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
+        setCashbooks(rawCBs);
+        const rawReturns = Array.isArray(retRes) ? retRes : (retRes?.data || []);
+        setReturns(rawReturns);
+      } catch (err) {
+        console.warn('Error fetching customer transactions:', err);
+      }
+    };
+    fetchCustomerTxHistory();
+  }, [expandedId]);
+
+  useEffect(() => {
     const searchFromState = location.state?.searchCustomer || location.state?.customerCode || location.state?.customerName;
     const idFromState = location.state?.customerId;
 
