@@ -156,8 +156,8 @@ export default function POSPaymentPanel({ forceShow = false }) {
       const invoiceHTML = `
         <style>
           .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
-          .inv-logo-container { text-align: center; margin-bottom: 5px; }
-          .inv-logo-img { width: 220px; max-width: 100%; object-fit: contain; }
+          .inv-logo-container { text-align: center; margin-bottom: 2px; }
+          .inv-logo-img { width: 90px; max-height: 40px; object-fit: contain; margin: 0 auto; display: block; }
           .inv-company { text-align: center; font-size: 14px; font-weight: bold; margin: 8px 0 4px; text-transform: uppercase; }
           .inv-info { text-align: center; font-size: 12px; margin: 2px 0; }
           .inv-stk { text-align: center; font-size: 12px; font-weight: bold; margin: 2px 0; }

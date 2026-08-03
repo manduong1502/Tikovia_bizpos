@@ -11,6 +11,15 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('cash');
   const [note, setNote] = useState('');
+  const [payTime, setPayTime] = useState(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${d}T${hh}:${mm}`;
+  });
 
   if (!open || !customer) return null;
 
@@ -47,6 +56,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
         isAccounting: true,
         status: 'completed',
         branch: 'Chi nhánh trung tâm',
+        createdAt: payTime ? new Date(payTime).toISOString() : new Date().toISOString(),
         note: note || `Thu tiền nợ từ khách hàng ${customer.name}`,
       };
 
@@ -86,7 +96,12 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-bold text-gray-700 mb-1.5 block">Thời gian thanh toán</label>
-              <input type="text" value={new Date().toLocaleString('vi-VN')} disabled className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500" />
+              <input 
+                type="datetime-local" 
+                value={payTime} 
+                onChange={e => setPayTime(e.target.value)} 
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 font-medium" 
+              />
             </div>
             <div>
               <label className="text-sm font-bold text-gray-700 mb-1.5 block">Phương thức</label>
