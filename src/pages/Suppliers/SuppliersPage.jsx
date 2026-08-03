@@ -418,6 +418,40 @@ export default function SuppliersPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!expandedId) return;
+    const fetchSupplierTxHistory = async () => {
+      try {
+        const { purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } = await import('../../services/api');
+        const [poRes, prRes, cbRes] = await Promise.all([
+          purchaseOrderAPI.getAll({ limit: 5000 }).catch(() => ({ data: [] })),
+          purchaseReturnAPI.getAll().catch(() => ({ data: [] })),
+          cashbookAPI.getAll({ partnerType: 'supplier' }).catch(() => ({ data: [] })),
+        ]);
+        const rawPOs = Array.isArray(poRes) ? poRes : (poRes?.data || []);
+        const rawPRs = Array.isArray(prRes) ? prRes : (prRes?.data || []);
+        const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
+        setPurchaseOrders(rawPOs.map(o => ({
+          ...o,
+          id: o.id,
+          po_code: o.po_code || o.code,
+          supplier_name: o.supplier_name || o.supplier?.name || '',
+          total: Number(o.total || 0),
+          discount: Number(o.discount || 0),
+          supplier_must_pay: Math.max(0, Number(o.total || 0) - Number(o.discount || 0)),
+          paid: Number(o.paid || 0),
+          status: o.status || 'COMPLETED',
+          items: Array.isArray(o.items) ? o.items : []
+        })));
+        setPurchaseReturns(rawPRs);
+        setCashbooks(rawCBs);
+      } catch (err) {
+        console.warn('Error fetching supplier transactions:', err);
+      }
+    };
+    fetchSupplierTxHistory();
+  }, [expandedId]);
+
   useEffect(() => { 
     reload();
     const handleDataChanged = (e) => {
@@ -995,9 +1029,10 @@ export default function SuppliersPage() {
       return pr.supplier_name === s.name;
     });
 
-    const transactions = [
+    const sortedTransactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
         const total = Number(po.total || 0);
+        const unpaid = Math.max(0, total - Number(po.paid || 0));
         return {
           id: `${po.id}-import`,
           code: po.po_code || po.code,
@@ -1005,8 +1040,8 @@ export default function SuppliersPage() {
           typeName: 'Nhập hàng',
           date: po.created_at || po.createdAt,
           total: total,
-          paid: 0,
-          debt: total,
+          paid: Number(po.paid || 0),
+          debt: total, // Increase debt by order total
           status: po.payment_status || 'paid',
           items: po.items || []
         };
@@ -1016,7 +1051,7 @@ export default function SuppliersPage() {
         code: pr.code,
         type: 'return',
         typeName: 'Trả hàng',
-        date: pr.created_at,
+        date: pr.created_at || pr.createdAt,
         total: Number(pr.total || 0),
         paid: Number(pr.paid || 0),
         debt: -Number(pr.total || 0),
@@ -1060,6 +1095,14 @@ export default function SuppliersPage() {
         return 4;
       };
       return getPriority(a.type) - getPriority(b.type);
+    });
+
+    const currentFinalDebt = Number(s.debt || s.totalDebt || 0);
+    let tempDebt = currentFinalDebt;
+    const transactions = sortedTransactions.map(tx => {
+      const runningDebt = tempDebt;
+      tempDebt -= tx.debt;
+      return { ...tx, runningDebt };
     });
 
     const itemStats = {};
