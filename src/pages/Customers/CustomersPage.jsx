@@ -813,16 +813,17 @@ export default function CustomersPage() {
         };
       }),
       ...cashbooks.filter(cb => {
-        if (cb.partnerType !== 'customer') return false;
         if (cb.orderId || cb.order_id) return false; // Filter out order checkout payments tied to specific orders
         const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
         if (cbCustId && String(cbCustId) === String(c.id)) return true;
         const cbCustCode = cb.customer_code || cb.supplier_code;
         if (cbCustCode && c.code && cbCustCode === c.code) return true;
         if (cb.partnerName) {
-          if (cb.partnerName === c.name) return true;
-          if (c.code && cb.partnerName.includes(c.code)) return true;
-          if (c.phone && cb.partnerName.includes(c.phone)) return true;
+          const pName = cb.partnerName.trim().toLowerCase();
+          const cName = (c.name || '').trim().toLowerCase();
+          if (pName === cName) return true;
+          if (c.code && pName.includes(c.code.toLowerCase())) return true;
+          if (c.phone && c.phone.length >= 6 && pName.includes(c.phone.toLowerCase())) return true;
         }
         return false;
       }).filter(cb => cb.status === 'completed').map(cb => ({
