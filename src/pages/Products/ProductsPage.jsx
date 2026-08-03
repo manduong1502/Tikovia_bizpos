@@ -261,8 +261,29 @@ export default function ProductsPage() {
     setSelected(new Set());
   }, []);
 
-  const fetchProducts = useCallback(async () => {
-    setIsLoading(true);
+  const fetchProducts = useCallback(async (showSpinner = false) => {
+    // 1. Instant Cache Load from Memory / SessionStorage
+    if (window.__tikovia_products_cache && Array.isArray(window.__tikovia_products_cache) && window.__tikovia_products_cache.length > 0) {
+      setProducts(window.__tikovia_products_cache);
+      setIsLoading(false);
+    } else {
+      try {
+        const cachedStr = sessionStorage.getItem('tikovia_products_cache');
+        if (cachedStr) {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.__tikovia_products_cache = parsed;
+            setProducts(parsed);
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (showSpinner || !window.__tikovia_products_cache) {
+      setIsLoading(true);
+    }
+
     try {
       const [p, c, s] = await Promise.all([
         productAPI.getAll().catch(() => []),
@@ -270,14 +291,11 @@ export default function ProductsPage() {
         supplierAPI.getAll().catch(() => []),
       ]);
       const rawList = Array.isArray(p) ? p : (p?.data || []);
-      if (rawList.length === 0) {
-        const mockProducts = [
-          { id: 1, sku: 'SP000001', name: 'Gà ta thả vườn làm sạch', sellPrice: 155000, costPrice: 120000, stock: 50, categoryId: 1, status: 'active', direct_sale: true, brand: 'VinaFood', location: 'Kệ A1' },
-          { id: 2, sku: 'SP000002', name: 'Gà ác làm sạch nguyên con', sellPrice: 85000, costPrice: 65000, stock: 30, categoryId: 1, status: 'active', direct_sale: true, brand: 'VinaFood', location: 'Kệ A2' },
-          { id: 3, sku: 'SP000003', name: 'Trứng gà ta sạch (Hộp 10 quả)', sellPrice: 35000, costPrice: 25000, stock: 100, categoryId: 2, status: 'active', direct_sale: true, brand: 'Ba Huân', location: 'Kệ B1' },
-        ];
-        setProducts(mockProducts);
-      } else {
+      if (rawList.length > 0) {
+        window.__tikovia_products_cache = rawList;
+        try {
+          sessionStorage.setItem('tikovia_products_cache', JSON.stringify(rawList));
+        } catch (e) {}
         setProducts(rawList);
       }
 

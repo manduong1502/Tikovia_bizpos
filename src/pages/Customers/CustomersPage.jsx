@@ -365,8 +365,29 @@ export default function CustomersPage() {
     return () => clearTimeout(handler);
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    // 1. Instant Cache Load from Memory / SessionStorage
+    if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
+      setCustomers(window.__tikovia_customers_cache);
+      setIsLoading(false);
+    } else {
+      try {
+        const cachedStr = sessionStorage.getItem('tikovia_customers_cache');
+        if (cachedStr) {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            window.__tikovia_customers_cache = parsed;
+            setCustomers(parsed);
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (showSpinner || !window.__tikovia_customers_cache) {
+      setIsLoading(true);
+    }
+
     try {
       const params = { limit: 2000 };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
@@ -377,37 +398,15 @@ export default function CustomersPage() {
 
       const res = await customerAPI.getAll(params);
       const rawList = Array.isArray(res) ? res : (res?.data || []);
-      if (rawList.length === 0) {
-        const mockCustomers = [
-          { id: 1, code: 'KH000001', name: 'Anh Tuấn', phone: '0901234567', email: 'tuan@gmail.com', address: 'Q.1, TP.HCM', debt: 500000, total_spent: 4500000, gender: 'Nam', type: 'individual' },
-          { id: 2, code: 'KH000002', name: 'Chị Mai', phone: '0912345678', email: 'mai@yahoo.com', address: 'Q.3, TP.HCM', debt: 0, total_spent: 12500000, gender: 'Nữ', type: 'individual' },
-          { id: 3, code: 'KH000003', name: 'Công ty TNHH Alpha', phone: '0287654321', email: 'contact@alpha.vn', address: 'Q.7, TP.HCM', debt: 2500000, total_spent: 35000000, gender: 'Khác', type: 'company' },
-        ];
-        setCustomers(mockCustomers);
-      } else {
+      if (rawList.length > 0) {
+        window.__tikovia_customers_cache = rawList;
+        try {
+          sessionStorage.setItem('tikovia_customers_cache', JSON.stringify(rawList));
+        } catch (e) {}
         setCustomers(rawList);
       }
-
-      // Load orders for debt tab
-      try {
-        const [ordRes, cbRes, retRes] = await Promise.all([
-          orderAPI.getAll({ limit: 1000 }).catch(() => ({ data: [] })),
-          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] })),
-          returnAPI.getAll().catch(() => [])
-        ]);
-        const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
-        setOrders(rawOrders);
-        const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
-        setCashbooks(rawCBs);
-        const rawReturns = Array.isArray(retRes) ? retRes : (retRes?.data || []);
-        setReturns(rawReturns);
-      } catch {
-        setOrders([]);
-        setCashbooks([]);
-        setReturns([]);
-      }
-    } catch {
-      setCustomers([]);
+    } catch (err) {
+      console.warn('Silent customers reload error:', err);
     } finally {
       setIsLoading(false);
     }
