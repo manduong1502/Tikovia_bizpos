@@ -159,11 +159,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
         ? Number(newOrder.oldDebt)
         : (newOrder?.customer?.totalDebt !== undefined ? Number(newOrder.customer.totalDebt) : (customer ? Number(customer.totalDebt || customer.debt || 0) : 0));
       
-      const totalDebt = (newOrder?.newDebt !== undefined && newOrder?.newDebt !== null)
+      const totalDebt = oldDebt + total;
+      const remainingDebt = (newOrder?.newDebt !== undefined && newOrder?.newDebt !== null)
         ? Number(newOrder.newDebt)
-        : (oldDebt + total);
-      
-      const remainingDebt = totalDebt - finalPaid;
+        : (totalDebt - finalPaid);
       const actualChange = !customer && paidAmount > total ? paidAmount - total : 0;
 
       const invoiceHTML = `
