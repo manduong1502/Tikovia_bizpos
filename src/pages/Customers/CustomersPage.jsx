@@ -814,13 +814,17 @@ export default function CustomersPage() {
       }),
       ...cashbooks.filter(cb => {
         if (cb.partnerType !== 'customer') return false;
-        if (cb.category === 'Chi tiền trả hàng') return false;
-        if (cb.category === 'Thu tiền khách trả') return false; // Filter out order checkout payments
-        const cbCustId = cb.customerId || cb.supplierId;
-        if (cbCustId) return cbCustId === custId;
+        if (cb.orderId || cb.order_id) return false; // Filter out order checkout payments tied to specific orders
+        const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
+        if (cbCustId && String(cbCustId) === String(c.id)) return true;
         const cbCustCode = cb.customer_code || cb.supplier_code;
-        if (cbCustCode) return cbCustCode === custCode;
-        return cb.partnerName === c.name;
+        if (cbCustCode && c.code && cbCustCode === c.code) return true;
+        if (cb.partnerName) {
+          if (cb.partnerName === c.name) return true;
+          if (c.code && cb.partnerName.includes(c.code)) return true;
+          if (c.phone && cb.partnerName.includes(c.phone)) return true;
+        }
+        return false;
       }).filter(cb => cb.status === 'completed').map(cb => ({
         id: cb.id,
         code: cb.code,
