@@ -786,9 +786,8 @@ export default function CustomersPage() {
     const debtTransactions = [
       ...custOrders.flatMap(o => {
         const total = Number(o.total || 0);
-        const paid = Number(o.paid_amount || o.paid || 0);
         const rawCode = o.order_code || o.code;
-        const txs = [
+        return [
           {
             id: `${o.id}-sale`,
             code: rawCode,
@@ -799,29 +798,6 @@ export default function CustomersPage() {
             debt: total,
           }
         ];
-        if (paid > 0) {
-          const expectedPayCode = String(rawCode).startsWith('HD') ? `TT${rawCode}` : `TTHD${rawCode}`;
-          const hasMatchedCB = cashbooks.some(cb => 
-            (cb.orderId && cb.orderId === o.id) || 
-            (cb.order_id && cb.order_id === o.id) ||
-            (cb.code && String(cb.code).trim().toLowerCase() === expectedPayCode.toLowerCase())
-          );
-          if (!hasMatchedCB) {
-            txs.push({
-              id: `${o.id}-payment`,
-              code: expectedPayCode,
-              type: 'Thanh toán',
-              cashbookType: 'INCOME',
-              status: 'completed',
-              note: 'Thanh toán công nợ',
-              date: o.created_at || o.createdAt,
-              total: paid,
-              paid: paid,
-              debt: -paid,
-            });
-          }
-        }
-        return txs;
       }),
       ...custReturns.map(r => {
         const total = Number(r.total || 0);
