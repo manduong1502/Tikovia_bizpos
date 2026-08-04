@@ -353,15 +353,11 @@ export default function OrdersPage() {
         window.__tikovia_orders_cache = fastList;
       }
 
-      // Step B: Background fetch full dataset
-      const rFull = await orderAPI.getAll({ page: 1, limit: 3000 });
+      // Step B: Background fetch full dataset (up to 50,000 for 2026)
+      const rFull = await orderAPI.getAll({ page: 1, limit: 50000 });
       const fullList = Array.isArray(rFull) ? rFull : (rFull?.data || []);
       if (fullList.length > 0) {
         window.__tikovia_orders_cache = fullList;
-        try {
-          localStorage.setItem('tikovia_orders_cache', JSON.stringify(fullList.slice(0, 2000)));
-          sessionStorage.setItem('tikovia_orders_cache', JSON.stringify(fullList.slice(0, 2000)));
-        } catch (e) {}
         setOrders(fullList);
       }
     } catch (err) {
@@ -621,16 +617,9 @@ export default function OrdersPage() {
     }
   };
 
-  const isJulyFilter = filters.orderDate?.label?.includes('Tháng trước') || filters.orderDate?.label?.includes('Tháng 7') || (filters.orderDate?.start && String(filters.orderDate.start).includes('2026-07'));
-  const isAug1Filter = filters.orderDate?.label?.includes('Hôm qua') || (filters.orderDate?.start && String(filters.orderDate.start).includes('2026-08-01') && (!filters.orderDate?.end || !String(filters.orderDate.end).includes('2026-08-02')));
-  const isThisMonthFilter = filters.orderDate?.label?.includes('Tháng này') || (filters.orderDate?.start && String(filters.orderDate.start).includes('2026-08-01') && filters.orderDate?.end && String(filters.orderDate.end).includes('2026-08-02'));
-  
-  const rawSumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
-  const sumTotal = isAug1Filter ? 126664468 : (isJulyFilter ? 4821630018 : (isThisMonthFilter ? 273808498 : rawSumTotal));
-  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || 0), 0);
-
-  const rawSumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || o.paid || 0), 0);
-  const sumPaid = isJulyFilter ? 1687399913 : (isAug1Filter ? 27481360 : (isThisMonthFilter ? 57655050 : rawSumPaid));
+  const sumTotal = filtered.reduce((s, o) => s + Number(o.total || 0), 0);
+  const sumDiscount = filtered.reduce((s, o) => s + Number(o.discount_amount || o.discount || 0), 0);
+  const sumPaid = filtered.reduce((s, o) => s + Number(o.paid_amount || o.paid || 0), 0);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
