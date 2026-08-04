@@ -100,35 +100,35 @@ export default function POSCart() {
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {isFirstRow ? (
                             <>
-                              <span className="w-5 text-center font-bold text-gray-500 text-xs shrink-0">{idx + 1}</span>
+                              <span className="w-6 text-center font-extrabold text-gray-600 text-sm shrink-0">{idx + 1}</span>
                               <button 
                                 className="text-gray-400 hover:text-red-500 p-1 border-none bg-transparent cursor-pointer shrink-0"
                                 onClick={(e) => { e.stopPropagation(); removeWeighingSubRow(item.product.id, w.id); }}
                                 title="Xóa dòng sản phẩm/định lượng"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={18} />
                               </button>
-                              <span className="font-bold text-primary hover:underline cursor-pointer shrink-0 text-xs">
+                              <span className="font-extrabold text-blue-600 hover:underline cursor-pointer shrink-0 text-sm">
                                 <a href={`/products?editSku=${item.product.sku}`} target="_blank" rel="noopener noreferrer">
                                   {item.product.sku || ''}
                                 </a>
                               </span>
-                              <span className="font-bold text-gray-900 truncate text-xs flex items-center gap-1">
+                              <span className="font-extrabold text-gray-900 truncate text-[15px] flex items-center gap-1.5">
                                 {item.product.name}
-                                <span className="text-[11px] text-gray-400 font-normal shrink-0">
+                                <span className="text-xs text-gray-500 font-semibold shrink-0">
                                   (Tồn: {Number(item.product.stock || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })})
                                 </span>
                               </span>
                             </>
                           ) : (
                             <>
-                              <span className="w-5 text-center shrink-0"></span>
+                              <span className="w-6 text-center shrink-0"></span>
                               <button 
                                 className="text-gray-400 hover:text-red-500 p-1 border-none bg-transparent cursor-pointer shrink-0"
                                 onClick={(e) => { e.stopPropagation(); removeWeighingSubRow(item.product.id, w.id); }}
                                 title="Xóa dòng định lượng cân này"
                               >
-                                <Trash2 size={16} />
+                                <Trash2 size={18} />
                               </button>
                               <div className="flex-1"></div>
                             </>
@@ -136,17 +136,17 @@ export default function POSCart() {
                         </div>
 
                         {/* Right controls: Unit, Qty, Price, Subtotal, + Button, Menu */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-2.5 shrink-0">
                           {isFirstRow && item.product.unit && (
-                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[11px] font-bold border border-blue-100 shrink-0">
+                            <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-extrabold border border-blue-200 shrink-0">
                               {item.product.unit}
                             </span>
                           )}
 
                           {/* Qty Controls */}
-                          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-lg p-1 shadow-sm">
+                          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-300 rounded-xl p-1 shadow-sm">
                             <button 
-                              className="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 rounded-md text-gray-800 font-extrabold text-sm border border-gray-200 cursor-pointer shrink-0 transition-transform active:scale-95"
+                              className="w-9 h-9 flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 rounded-lg text-gray-800 font-black text-base border border-gray-200 cursor-pointer shrink-0 transition-transform active:scale-95"
                               onClick={(e) => { e.stopPropagation(); updateWeighingSubRow(item.product.id, w.id, { quantity: Math.max(0.001, (parseFloat(w.quantity) || 0) - 1) }); }}
                               title="Giảm số lượng"
                             >
@@ -154,7 +154,7 @@ export default function POSCart() {
                             </button>
                             <input 
                               type="text" 
-                              className="w-14 py-1 text-center font-extrabold text-red-600 bg-transparent border-b-2 border-red-500 outline-none text-sm cursor-text"
+                              className="w-16 py-1 text-center font-black text-red-600 bg-transparent border-b-2 border-red-500 outline-none text-base cursor-text"
                               value={w.quantity}
                               onClick={(e) => { e.stopPropagation(); e.target.select(); }}
                               onChange={(e) => updateWeighingSubRow(item.product.id, w.id, { quantity: e.target.value })}
@@ -164,7 +164,7 @@ export default function POSCart() {
                               }}
                             />
                             <button 
-                              className="w-8 h-8 flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 rounded-md text-gray-800 font-extrabold text-sm border border-gray-200 cursor-pointer shrink-0 transition-transform active:scale-95"
+                              className="w-9 h-9 flex items-center justify-center bg-white hover:bg-gray-100 active:bg-gray-200 rounded-lg text-gray-800 font-black text-base border border-gray-200 cursor-pointer shrink-0 transition-transform active:scale-95"
                               onClick={(e) => { e.stopPropagation(); updateWeighingSubRow(item.product.id, w.id, { quantity: (parseFloat(w.quantity) || 0) + 1 }); }}
                               title="Tăng số lượng"
                             >
@@ -174,7 +174,7 @@ export default function POSCart() {
 
                           {/* Unit Price & Cost Price Warning */}
                           <div 
-                            className="flex flex-col items-end shrink-0 cursor-text py-1 px-1.5 rounded hover:bg-gray-50 transition-colors"
+                            className="flex flex-col items-end shrink-0 cursor-text py-1 px-2 rounded-lg hover:bg-gray-50 transition-colors"
                             onClick={(e) => {
                               const inp = e.currentTarget.querySelector('input');
                               if (inp) {
@@ -183,7 +183,7 @@ export default function POSCart() {
                               }
                             }}
                           >
-                            <div className="w-28 text-right">
+                            <div className="w-32 text-right">
                               <NumericInput 
                                 value={w.price}
                                 onChange={(e) => {
@@ -194,7 +194,7 @@ export default function POSCart() {
                                   }
                                   updateWeighingSubRow(item.product.id, w.id, { price: newPrice });
                                 }}
-                                className={`w-full text-right font-extrabold text-sm bg-transparent border-b-2 outline-none focus:border-primary transition-all py-0.5 ${
+                                className={`w-full text-right font-black text-base bg-transparent border-b-2 outline-none focus:border-primary transition-all py-0.5 ${
                                   (Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0))
                                     ? 'border-red-500 text-red-600 font-extrabold bg-red-50/80 px-1 rounded'
                                     : 'border-gray-300 text-gray-900'
@@ -202,24 +202,24 @@ export default function POSCart() {
                               />
                             </div>
                             {Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0) && (
-                              <span className="text-[10px] font-extrabold text-red-600 bg-red-100/90 border border-red-300 rounded px-1 py-0.5 mt-0.5 whitespace-nowrap animate-pulse">
+                              <span className="text-xs font-extrabold text-red-600 bg-red-100/90 border border-red-300 rounded px-1.5 py-0.5 mt-0.5 whitespace-nowrap animate-pulse">
                                 ⚠️ &lt; Giá vốn ({new Intl.NumberFormat('vi-VN').format(item.product.costPrice || item.product.cost_price)})
                               </span>
                             )}
                           </div>
 
                           {/* Subtotal */}
-                          <span className="w-24 text-right font-extrabold text-gray-900 text-xs">
+                          <span className="w-28 text-right font-black text-gray-900 text-base">
                             {new Intl.NumberFormat('vi-VN').format(lineTotal)}
                           </span>
 
                           {/* Plus (+) Button for creating a new weighing sub-row */}
                           <button 
                             onClick={(e) => { e.stopPropagation(); addWeighingSubRow(item.product.id); }}
-                            className="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-primary hover:bg-blue-50 border border-gray-200 hover:border-primary rounded-lg transition-all cursor-pointer font-extrabold text-base bg-white shadow-sm shrink-0"
+                            className="w-8 h-8 flex items-center justify-center text-gray-700 hover:text-primary hover:bg-blue-50 border border-gray-300 hover:border-primary rounded-lg transition-all cursor-pointer font-black text-lg bg-white shadow-sm shrink-0"
                             title="Tạo thêm định lượng cân khác cho sản phẩm này"
                           >
-                            <Plus size={15} />
+                            +
                           </button>
 
                           <button className="p-1 text-gray-400 hover:text-gray-600 border-none bg-transparent cursor-pointer shrink-0">
