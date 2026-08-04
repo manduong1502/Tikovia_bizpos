@@ -899,9 +899,9 @@ export default function CustomersPage() {
       const timeDiff = new Date(b.date) - new Date(a.date);
       if (timeDiff !== 0) return timeDiff;
       const getPriority = (type) => {
-        if (type === 'Bán hàng') return 1;
-        if (type === 'Thanh toán') return 2;
-        if (type === 'Trả hàng') return 3;
+        if (type === 'Thanh toán') return 1;
+        if (type === 'Trả hàng') return 2;
+        if (type === 'Bán hàng') return 3;
         return 4;
       };
       return getPriority(a.type) - getPriority(b.type);
