@@ -11,6 +11,8 @@ import {
 import { exportCSV } from '../../utils/exportUtils';
 import Pagination from '../../components/common/Pagination';
 import CashbookModal from './CashbookModal';
+import DateFilter from '../../components/ui/DateFilter';
+import { getRangeByCreatedLabel, inDateRange } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -59,8 +61,7 @@ export default function CashbookPage() {
   
   // Advanced Sidebar Filters States
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all'); // all, cash, bank, wallet
-  const [timeFilter, setTimeFilter] = useState('month'); // month, custom
-  const [customDate, setCustomDate] = useState({ from: '', to: '' });
+  const [timeFilter, setTimeFilter] = useState({ mode: 'all', label: 'Tháng này' });
   
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
@@ -213,25 +214,15 @@ export default function CashbookPage() {
       if (paymentMethodFilter === 'bank' && e.paymentMethod !== 'bank') return false;
       if (paymentMethodFilter === 'wallet' && e.paymentMethod !== 'wallet') return false;
 
-      // 2. Time Filter
-      if (timeFilter === 'month' && e.createdAt) {
-        const d = new Date(e.createdAt);
-        const now = new Date();
-        if (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear()) {
-          return false;
-        }
-      } else if (timeFilter === 'custom' && (customDate.from || customDate.to)) {
-        if (e.createdAt) {
-          const d = new Date(e.createdAt);
-          if (customDate.from) {
-            const start = new Date(customDate.from + 'T00:00:00');
-            if (d < start) return false;
-          }
-          if (customDate.to) {
-            const end = new Date(customDate.to + 'T23:59:59.999');
-            if (d > end) return false;
-          }
-        }
+      // 2. Time Filter using DateFilter & inDateRange
+      let range = null;
+      if (timeFilter?.mode === 'custom' && (timeFilter?.start || timeFilter?.end)) {
+        range = { start: timeFilter.start, end: timeFilter.end };
+      } else if (timeFilter?.label && timeFilter?.label !== 'Toàn thời gian') {
+        range = getRangeByCreatedLabel(timeFilter.label);
+      }
+      if (range && !inDateRange(e.createdAt || e.created_at || e.date, range)) {
+        return false;
       }
 
       // 3. Document type (Phiếu thu / Phiếu chi)
@@ -433,51 +424,12 @@ export default function CashbookPage() {
           {/* 2. Thời gian */}
           <div>
             <span className="text-xs font-extrabold text-gray-900 mb-2 block uppercase tracking-wider">Thời gian</span>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-600">
-                <input 
-                  type="radio" 
-                  name="timeFilter" 
-                  className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
-                  checked={timeFilter === 'month'} 
-                  onChange={() => setTimeFilter('month')}
-                />
-                <span>Tháng này</span>
-              </label>
-              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-gray-600">
-                <input 
-                  type="radio" 
-                  name="timeFilter" 
-                  className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
-                  checked={timeFilter === 'custom'} 
-                  onChange={() => setTimeFilter('custom')}
-                />
-                <span>Tùy chỉnh</span>
-              </label>
-
-              {timeFilter === 'custom' && (
-                <div className="flex flex-col gap-2 mt-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-gray-400">Từ ngày</span>
-                    <input 
-                      type="date" 
-                      className="w-full border border-gray-200 rounded-lg p-1.5 text-xs bg-white focus:border-primary outline-none"
-                      value={customDate.from}
-                      onChange={e => setCustomDate(prev => ({ ...prev, from: e.target.value }))}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-gray-400">Đến ngày</span>
-                    <input 
-                      type="date" 
-                      className="w-full border border-gray-200 rounded-lg p-1.5 text-xs bg-white focus:border-primary outline-none"
-                      value={customDate.to}
-                      onChange={e => setCustomDate(prev => ({ ...prev, to: e.target.value }))}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            <DateFilter
+              label="Thời gian tạo"
+              type="created"
+              value={timeFilter}
+              onChange={val => setTimeFilter(val)}
+            />
           </div>
 
           <hr className="border-gray-100" />
