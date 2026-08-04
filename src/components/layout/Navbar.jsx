@@ -68,6 +68,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
               <div className={dropdownBox}>
                 <div className="w-[180px] py-1">
                   <div className={dropdownHeading}>BÁO CÁO</div>
+                  <Link className={dropdownItem} to="/reports/financial">Tài chính</Link>
                   <Link className={dropdownItem} to="/reports/end-of-day">Cuối ngày</Link>
                   <Link className={dropdownItem} to="/reports/sales">Bán hàng</Link>
                   <Link className={dropdownItem} to="/reports/products">Hàng hóa</Link>

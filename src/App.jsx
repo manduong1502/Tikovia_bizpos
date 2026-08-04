@@ -37,6 +37,7 @@ const OrdersPage = lazyRetry(() => import('./pages/Orders/OrdersPage'));
 const CustomersPage = lazyRetry(() => import('./pages/Customers/CustomersPage'));
 const CashbookPage = lazyRetry(() => import('./pages/Cashbook/CashbookPage'));
 const ReportsPage = lazyRetry(() => import('./pages/Reports/ReportsPage'));
+const FinancialReportPage = lazyRetry(() => import('./pages/Reports/FinancialReportPage'));
 const EndOfDayReportPage = lazyRetry(() => import('./pages/Reports/EndOfDayReportPage'));
 const SalesReportPage = lazyRetry(() => import('./pages/Reports/SalesReportPage'));
 const ProductsReportPage = lazyRetry(() => import('./pages/Reports/ProductsReportPage'));
@@ -210,6 +211,7 @@ function App() {
           <Route path="/customers" element={<Suspense fallback={<PageLoader />}><CustomersPage /></Suspense>} />
           <Route path="/cashbook" element={<Suspense fallback={<PageLoader />}><CashbookPage /></Suspense>} />
 
+          <Route path="/reports/financial" element={<Suspense fallback={<PageLoader />}><FinancialReportPage /></Suspense>} />
           <Route path="/reports/end-of-day" element={<Suspense fallback={<PageLoader />}><EndOfDayReportPage /></Suspense>} />
           <Route path="/reports/sales" element={<Suspense fallback={<PageLoader />}><SalesReportPage /></Suspense>} />
           <Route path="/reports/products" element={<Suspense fallback={<PageLoader />}><ProductsReportPage /></Suspense>} />
