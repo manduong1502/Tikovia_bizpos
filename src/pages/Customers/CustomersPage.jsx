@@ -1365,7 +1365,7 @@ export default function CustomersPage() {
                 <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
                   <table className="w-full text-xs table-fixed min-w-full">
                     <thead>
-                      <tr className="bg-gray-100/90 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider sticky top-0 bg-white z-10">
+                      <tr className="bg-gray-100 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider">
                         <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
                         <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
                         <th className="py-2.5 px-3 w-[16%]">Loại</th>
