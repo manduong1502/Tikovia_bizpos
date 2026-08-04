@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import { useSocket } from '../../context/SocketContext';
 import {
-  Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X, Pencil, User
+  Search, SlidersHorizontal, Download, Plus, Upload, Star, Receipt, ChevronDown, Filter, Columns3, Settings, HelpCircle, AlertCircle, X, Pencil, User, ExternalLink
 } from 'lucide-react';
 import OrderSidebar from './OrderSidebar';
 import OrderDetail from './OrderDetail';
