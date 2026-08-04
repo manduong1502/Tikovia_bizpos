@@ -362,27 +362,30 @@ export default function DashboardPage() {
               <Link to="/orders" className="text-xs font-bold text-primary hover:underline no-underline">Xem tất cả</Link>
             </div>
             <div className="space-y-3.5 overflow-y-auto pr-1 custom-scrollbar flex-1 max-h-[500px]">
-              {(d.recentOrders || []).map((o, i) => (
-                <div key={i} className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                    o.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {o.status === 'COMPLETED' ? <ShoppingCart size={15} /> : <RotateCcw size={15} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-gray-700 font-medium leading-snug">
-                      <span className="font-extrabold text-gray-900">{o.user?.fullName || 'Admin'}</span> vừa 
-                      <Link to="/orders" className="text-primary hover:underline font-bold mx-1 no-underline">
-                        {o.status === 'COMPLETED' ? 'bán đơn hàng' : 'trả đơn hàng'}
-                      </Link> 
-                      giá trị <span className="font-extrabold text-gray-900">{fmt(o.total)} đ</span>
+              {(d.recentOrders || []).map((o, i) => {
+                const isReturn = o.status === 'RETURNED' || o.type === 'RETURN';
+                return (
+                  <div key={i} className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                      isReturn ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {isReturn ? <RotateCcw size={15} /> : <ShoppingCart size={15} />}
                     </div>
-                    <div className="text-[10px] font-semibold text-gray-400 mt-1">
-                      {o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-700 font-medium leading-snug">
+                        <span className="font-extrabold text-gray-900">{o.user?.fullName || 'Quản trị viên'}</span> vừa 
+                        <Link to="/orders" className="text-primary hover:underline font-bold mx-1 no-underline">
+                          {isReturn ? 'trả đơn hàng' : 'bán đơn hàng'}
+                        </Link> 
+                        giá trị <span className="font-extrabold text-gray-900">{fmt(o.total)} đ</span>
+                      </div>
+                      <div className="text-[10px] font-semibold text-gray-400 mt-1">
+                        {o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {(!d.recentOrders || d.recentOrders.length === 0) && (
                 <div className="text-center py-8 text-gray-400 text-xs font-medium">
                   <ShoppingCart size={28} className="mx-auto text-gray-200 mb-2" />
