@@ -573,7 +573,7 @@ export const customerAPI = {
     list = list.map(c => LOCAL_UPDATED_CUSTOMERS[c.id] ? normalizeCustomer({ ...c, ...LOCAL_UPDATED_CUSTOMERS[c.id] }) : c);
     const existingCodes = new Set(list.map(c => c.code));
     const toAdd = LOCAL_ADDED_CUSTOMERS.map(normalizeCustomer).filter(c => c && !existingCodes.has(c.code));
-    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+    return { data: [...list, ...toAdd], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
   }).catch(() => {
     let list = FALLBACK_CUSTOMERS.map(normalizeCustomer).filter(c => c && !LOCAL_DELETED_CUSTOMERS.has(c.id) && !LOCAL_DELETED_CUSTOMERS.has(c.code));
     list = list.map(c => LOCAL_UPDATED_CUSTOMERS[c.id] ? normalizeCustomer({ ...c, ...LOCAL_UPDATED_CUSTOMERS[c.id] }) : c);
