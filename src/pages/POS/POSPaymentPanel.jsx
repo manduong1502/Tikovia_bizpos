@@ -559,10 +559,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
         )}
       </div>
       
-      <div className="pos-bank-section">
-        <div>Bạn chưa có tài khoản ngân hàng</div>
-        <a onClick={() => toast.info('Tính năng đang phát triển')}>+ Thêm tài khoản</a>
-      </div>
+      {/* Bank Account section removed per user request */}
       
       <div style={{ padding: '0 16px 16px' }}>
         <button 
