@@ -56,8 +56,7 @@
 }
 
 html {
-  font-size: 19px !important;
-  /* Base font size boosted +3px from 16px */
+  font-size: 16px;
 }
 
 body,
@@ -72,73 +71,73 @@ button {
   font-family: var(--font-sans);
   background-color: var(--color-bg-light);
   color: var(--color-gray-800);
-  font-size: 17px;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Global Font Size Boost (+3px) Overrides ─── */
+/* Standard Font Size Definitions */
 .text-xs {
-  font-size: 15px !important;
+  font-size: 12px !important;
   line-height: 1.4 !important;
 }
 
 .text-sm {
-  font-size: 17px !important;
+  font-size: 14px !important;
   line-height: 1.4 !important;
 }
 
 .text-base {
-  font-size: 19px !important;
+  font-size: 16px !important;
   line-height: 1.4 !important;
 }
 
 .text-lg {
-  font-size: 21px !important;
+  font-size: 18px !important;
   line-height: 1.4 !important;
 }
 
 .text-xl {
-  font-size: 23px !important;
+  font-size: 20px !important;
   line-height: 1.4 !important;
 }
 
 .text-2xl {
-  font-size: 27px !important;
+  font-size: 24px !important;
   line-height: 1.4 !important;
 }
 
-/* Custom bracketed font sizes boost +3px */
+/* Custom bracketed font sizes standard */
 .text-\[9px\] {
-  font-size: 12px !important;
+  font-size: 9px !important;
 }
 
 .text-\[10px\] {
-  font-size: 13px !important;
+  font-size: 10px !important;
 }
 
 .text-\[11px\] {
-  font-size: 14px !important;
+  font-size: 11px !important;
 }
 
 .text-\[12px\] {
-  font-size: 15px !important;
+  font-size: 12px !important;
 }
 
 .text-\[13px\] {
-  font-size: 16px !important;
+  font-size: 13px !important;
 }
 
 .text-\[14px\] {
-  font-size: 17px !important;
+  font-size: 14px !important;
 }
 
 .text-\[15px\] {
-  font-size: 18px !important;
+  font-size: 15px !important;
 }
 
 .text-\[16px\] {
-  font-size: 19px !important;
+  font-size: 16px !important;
 }
 
 /* ─── Relax Font Weight in List Tables ─── */
