@@ -787,10 +787,11 @@ export default function CustomersPage() {
       ...custOrders.flatMap(o => {
         const total = Number(o.total || 0);
         const paid = Number(o.paid_amount || o.paid || 0);
+        const rawCode = o.order_code || o.code;
         const txs = [
           {
             id: `${o.id}-sale`,
-            code: o.order_code || o.code,
+            code: rawCode,
             type: 'Bán hàng',
             date: o.created_at || o.createdAt,
             total: total,
@@ -799,19 +800,26 @@ export default function CustomersPage() {
           }
         ];
         if (paid > 0) {
-          const matchedCB = cashbooks.find(cb => cb.orderId === o.id || cb.order_id === o.id);
-          txs.push({
-            id: matchedCB ? matchedCB.id : `${o.id}-payment`,
-            code: matchedCB ? matchedCB.code : (String(o.order_code || o.code || '').startsWith('HD') ? `TT${o.order_code || o.code}` : `TTHD${o.order_code || o.code}`),
-            type: 'Thanh toán',
-            cashbookType: matchedCB ? matchedCB.type : 'INCOME',
-            status: matchedCB ? matchedCB.status : 'completed',
-            note: matchedCB ? matchedCB.note : 'Thanh toán công nợ',
-            date: o.created_at || o.createdAt,
-            total: paid,
-            paid: paid,
-            debt: -paid,
-          });
+          const expectedPayCode = String(rawCode).startsWith('HD') ? `TT${rawCode}` : `TTHD${rawCode}`;
+          const hasMatchedCB = cashbooks.some(cb => 
+            (cb.orderId && cb.orderId === o.id) || 
+            (cb.order_id && cb.order_id === o.id) ||
+            (cb.code && String(cb.code).trim().toLowerCase() === expectedPayCode.toLowerCase())
+          );
+          if (!hasMatchedCB) {
+            txs.push({
+              id: `${o.id}-payment`,
+              code: expectedPayCode,
+              type: 'Thanh toán',
+              cashbookType: 'INCOME',
+              status: 'completed',
+              note: 'Thanh toán công nợ',
+              date: o.created_at || o.createdAt,
+              total: paid,
+              paid: paid,
+              debt: -paid,
+            });
+          }
         }
         return txs;
       }),
@@ -830,7 +838,6 @@ export default function CustomersPage() {
       }),
       ...cashbooks.filter(cb => {
         if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
-        if (cb.orderId || cb.order_id) return false; // Filter out order checkout payments tied to specific orders
         const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
         if (cbCustId && String(cbCustId) === String(c.id)) return true;
         const cbCustCode = cb.customer_code || cb.supplier_code;
@@ -1286,7 +1293,19 @@ export default function CustomersPage() {
                               setSelectedTx({ ...tx, partnerName: c.name });
                             }
                           }}>{tx.code}</td>
-                          <td className="py-2 px-3.5 text-gray-600">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="py-2 px-3.5 text-gray-600">
+                            {(() => {
+                              if (!tx.date) return '';
+                              const d = new Date(tx.date);
+                              if (isNaN(d.getTime())) return '';
+                              const day = String(d.getDate()).padStart(2, '0');
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const year = d.getFullYear();
+                              const hours = String(d.getHours()).padStart(2, '0');
+                              const mins = String(d.getMinutes()).padStart(2, '0');
+                              return `${day}/${month}/${year} ${hours}:${mins}`;
+                            })()}
+                          </td>
                           <td className="py-2 px-3.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                               {tx.type}
