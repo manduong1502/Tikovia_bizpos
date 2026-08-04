@@ -173,33 +173,35 @@ export default function POSCart() {
                           </div>
 
                           {/* Unit Price & Cost Price Warning */}
-                          <div 
-                            className="flex flex-col items-end shrink-0 cursor-text py-1 px-2 rounded-lg hover:bg-gray-50 transition-colors"
-                            onClick={(e) => {
-                              const inp = e.currentTarget.querySelector('input');
-                              if (inp) {
-                                inp.focus();
-                                inp.select();
-                              }
-                            }}
-                          >
-                            <div className="w-32 text-right">
-                              <NumericInput 
-                                value={w.price}
-                                onChange={(e) => {
-                                  const newPrice = Number(e.target.value);
-                                  const costPrice = Number(item.product.costPrice || item.product.cost_price || 0);
-                                  if (costPrice > 0 && newPrice < costPrice) {
-                                    toast.error(`⚠️ Cảnh báo: Giá bán (${new Intl.NumberFormat('vi-VN').format(newPrice)}đ) thấp hơn Giá vốn (${new Intl.NumberFormat('vi-VN').format(costPrice)}đ)!`, { id: `cost-warn-${item.product.id}` });
-                                  }
-                                  updateWeighingSubRow(item.product.id, w.id, { price: newPrice });
-                                }}
-                                className={`w-full text-right font-black text-base bg-transparent border-b-2 outline-none focus:border-primary transition-all py-0.5 ${
-                                  (Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0))
-                                    ? 'border-red-500 text-red-600 font-extrabold bg-red-50/80 px-1 rounded'
-                                    : 'border-gray-300 text-gray-900'
-                                }`}
-                              />
+                          <div className="flex flex-col items-end shrink-0">
+                            <div 
+                              className="flex items-center bg-gray-50 border border-gray-300 rounded-xl p-1 shadow-sm cursor-text hover:bg-gray-100/70 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
+                              onClick={(e) => {
+                                const inp = e.currentTarget.querySelector('input');
+                                if (inp) {
+                                  inp.focus();
+                                  inp.select();
+                                }
+                              }}
+                            >
+                              <div className="w-36 text-right">
+                                <NumericInput 
+                                  value={w.price}
+                                  onChange={(e) => {
+                                    const newPrice = Number(e.target.value);
+                                    const costPrice = Number(item.product.costPrice || item.product.cost_price || 0);
+                                    if (costPrice > 0 && newPrice < costPrice) {
+                                      toast.error(`⚠️ Cảnh báo: Giá bán (${new Intl.NumberFormat('vi-VN').format(newPrice)}đ) thấp hơn Giá vốn (${new Intl.NumberFormat('vi-VN').format(costPrice)}đ)!`, { id: `cost-warn-${item.product.id}` });
+                                    }
+                                    updateWeighingSubRow(item.product.id, w.id, { price: newPrice });
+                                  }}
+                                  className={`w-full text-right font-black text-base sm:text-lg bg-transparent border-none outline-none focus:outline-none transition-all px-2 py-1 ${
+                                    (Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0))
+                                      ? 'text-red-600 font-black'
+                                      : 'text-gray-900 font-black'
+                                  }`}
+                                />
+                              </div>
                             </div>
                             {Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0) && (
                               <span className="text-xs font-extrabold text-red-600 bg-red-100/90 border border-red-300 rounded px-1.5 py-0.5 mt-0.5 whitespace-nowrap animate-pulse">
