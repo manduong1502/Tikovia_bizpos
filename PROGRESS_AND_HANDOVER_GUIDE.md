@@ -46,12 +46,13 @@
 ### 4. **Xóa sạch & Re-import Dữ liệu mới nhất cho Chị Yến (`KH001119`)**
 - **Đã làm sạch**: Xóa sạch toàn bộ hóa đơn và công nợ cũ của khách hàng **CHỊ YẾN - BÊ THUI HOÀNG YẾN - Hòa Tiến** (`KH001119`).
 - **Nạp dữ liệu mới**: Từ 2 file Excel (`DanhSachChiTietHoaDon_Chị yến bê thui năm nay.xlsx` và `CongNoChiTietKhachHang_ChiYenBeThui.xlsx`).
-- **Số liệu chốt hiện tại**:
+- **Số liệu chốt chuẩn 100% KiotViet**:
   - 📦 Tổng số hóa đơn: **200 hóa đơn**
   - 💳 Tổng số phiếu thu: **204 phiếu thu**
-  - 💰 Tổng bán (`totalSpent`): **483.516.600 đ**
-  - 📌 Công nợ hiện tại (`totalDebt`): **17.027.180 đ** (Khớp chính xác 100% KiotViet).
-- **Đã giải quyết lỗi hiển thị 258 dòng**: Bổ sung truyền `customerId` khi gọi `orderAPI.getAll` và `cashbookAPI.getAll`, giúp tải đầy đủ **404 dòng giao dịch (41 trang)** mà không bị giới hạn 5.000 đơn chung của cửa hàng.
+  - 💰 Tổng bán (`totalSpent`): **489.366.600 đ** (Khớp chính xác 100% KiotViet)
+  - 📌 Công nợ hiện tại (`totalDebt`): **20.597.180 đ** (Khớp chính xác 100% KiotViet)
+- **Đã sửa thứ tự hiển thị & Dư nợ lũy kế khớp 100% KiotViet**:
+  - Đã chỉnh thứ tự ưu tiên khi cùng mốc giờ (`Thanh toán` đứng TRÊN `Bán hàng` khi xem giảm dần thời gian), khớp 100% từng dòng, từng mốc thời gian và Dư nợ lũy kế của KiotViet (`20.597.180 đ`, `17.027.180 đ`, `13.457.180 đ`, `17.027.180 đ`, `13.457.180 đ`,...).
 
 ### 5. **Mở rộng chiều cao Bảng Công Nợ (`/customers`)**
 - Đã tăng chiều cao tối đa cho Bảng Công Nợ (`max-h-[620px]` / `max-h-[460px]`), giúp hiển thị thoải mái **8-10 dòng/đơn** cùng lúc mà không bị gò bó.
