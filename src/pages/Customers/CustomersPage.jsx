@@ -846,7 +846,7 @@ export default function CustomersPage() {
           if (c.phone && c.phone.length >= 6 && pName.includes(c.phone.toLowerCase())) return true;
         }
         return false;
-      }).filter(cb => cb.status === 'completed').map(cb => ({
+      }).filter(cb => cb.status !== 'cancelled' && cb.status !== 'CANCELLED').map(cb => ({
         id: cb.id,
         code: cb.code,
         type: 'Thanh toán',

@@ -1150,6 +1150,15 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data).then(r => r.data),
 };
 
+// ─── Cashbook ───
+export const cashbookAPI = {
+  getAll: (params) => api.get('/cashbook', { params }).then(r => r.data),
+  create: (data) => api.post('/cashbook', data).then(r => r.data),
+  cancel: (id) => api.put(`/cashbook/${id}/cancel`).then(r => r.data),
+  getPartners: (params) => api.get('/cashbook/partners', { params }).then(r => r.data),
+  createPartner: (data) => api.post('/cashbook/partners', data).then(r => r.data),
+};
+
 // ─── Reports ───
 export const reportAPI = {
   getFinancial: (params) => api.get('/reports/financial', { params }).then(r => r.data),
