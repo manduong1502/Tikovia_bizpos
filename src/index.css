@@ -76,6 +76,25 @@ button {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Universal Input Hitbox Enhancement */
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+select {
+  touch-action: manipulation;
+  cursor: text;
+}
+
+/* Prevent accidental misclicks on Search & Filter Containers */
+.pos-search-box,
+.pos-customer-search-input-wrapper,
+.pos-customer-box,
+.pos-note-input {
+  cursor: text;
+}
+
 /* Standard Font Size Definitions */
 .text-xs {
   font-size: 12px !important;

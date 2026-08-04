@@ -68,7 +68,19 @@ export default function POSHeader() {
         <span>Trở về</span>
       </button>
 
-      <div className="pos-search-box" style={{ position: 'relative' }}>
+      <div 
+        className="pos-search-box cursor-text" 
+        style={{ position: 'relative' }}
+        onClick={(e) => {
+          if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+            const inp = e.currentTarget.querySelector('input');
+            if (inp) {
+              inp.focus();
+              inp.select();
+            }
+          }
+        }}
+      >
         <span className="search-icon"><Search size={16} /></span>
         <input
           type="text"

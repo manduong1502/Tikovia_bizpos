@@ -402,8 +402,17 @@ export default function POSPaymentPanel({ forceShow = false }) {
         </div>
       ) : (
         <div className="pos-customer-search" style={{ position: 'relative' }}>
-          <div className="pos-customer-search-input-wrapper">
-            <Search size={16} color="var(--pos-text-muted)" />
+          <div 
+            className="pos-customer-search-input-wrapper cursor-text py-2 px-3"
+            onClick={(e) => {
+              const inp = e.currentTarget.querySelector('input');
+              if (inp) {
+                inp.focus();
+                inp.select();
+              }
+            }}
+          >
+            <Search size={18} color="var(--pos-text-muted)" className="shrink-0" />
             <input
               type="text"
               id="pos-cust-input"
@@ -411,6 +420,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
               value={customerSearch}
               onChange={handleCustomerSearch}
               onFocus={(e) => e.target.select()}
+              className="text-base font-semibold"
             />
           </div>
           <button className="pos-add-customer-btn" title="Thêm khách hàng" onClick={() => setShowCustomerModal(true)}><Plus size={18} /></button>
