@@ -55,7 +55,17 @@
   - Đã quy định cứng quy tắc sắp xếp: Khi Hóa đơn và Phiếu thu trùng mốc thời gian (cùng giờ/phút), **Phiếu Thanh toán LUÔN LUÔN xếp ở TRÊN Hóa đơn Bán hàng** (chuẩn 100% KiotViet).
   - Kết quả: Khớp 100% từng dòng, từng mốc thời gian và Dư nợ lũy kế của KiotViet (`20.597.180 đ`, `17.027.180 đ`, `13.457.180 đ`, `17.027.180 đ`, `13.457.180 đ`,...).
 
-### 5. **Mở rộng chiều cao Bảng Công Nợ (`/customers`)**
+### 5. **Nâng cấp Bộ lọc Thời gian Sổ quỹ (`/cashbook`) chuẩn KiotViet**
+- Đã thay thế bộ chọn Radio đơn sơ ("Tháng này", "Tùy chỉnh") bằng linh kiện **`DateFilter` popover chuẩn 100% KiotViet**.
+- Bổ sung đầy đủ 5 nhóm mốc thời gian:
+  - 📅 **Theo ngày**: Hôm nay, Hôm qua
+  - 📅 **Theo tuần**: Tuần này, Tuần trước, 7 ngày qua
+  - 📅 **Theo tháng**: Tháng này, Tháng trước, 30 ngày qua
+  - 📅 **Theo quý**: Quý này, Quý trước
+  - 📅 **Theo năm**: Năm nay, Năm trước, Toàn thời gian
+  - 📆 **Tùy chỉnh**: Bộ chọn khoảng ngày linh hoạt từ ngày - đến ngày.
+
+### 6. **Mở rộng chiều cao Bảng Công Nợ (`/customers`)**
 - Đã tăng chiều cao tối đa cho Bảng Công Nợ (`max-h-[620px]` / `max-h-[460px]`), giúp hiển thị thoải mái **8-10 dòng/đơn** cùng lúc mà không bị gò bó.
 
 ---
