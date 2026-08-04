@@ -55,7 +55,7 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
         <Link className="flex items-center gap-2 sm:gap-3 no-underline group" to="/dashboard">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-[#1E3A8A] to-[#2563EB] rounded-xl flex items-center justify-center text-white font-extrabold text-[14px] sm:text-[15px] shadow-sm group-hover:shadow-md transition-shadow">T</div>
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-[#0070F4] to-[#005AC3] rounded-xl flex items-center justify-center text-white font-extrabold text-[14px] sm:text-[15px] shadow-sm group-hover:shadow-md transition-shadow">T</div>
           <span className="text-[15px] sm:text-[16px] font-bold text-gray-800 tracking-tight group-hover:text-primary transition-colors">Tiko BizPOS</span>
         </Link>
       </div>

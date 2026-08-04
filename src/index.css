@@ -16,10 +16,10 @@
   --text-2xl: 26px;
   /* 24px -> 27px (+3px) */
 
-  --color-primary: #2563EB;
-  /* Premium Deep Blue */
-  --color-primary-hover: #1D4ED8;
-  --color-sidebar: #1E3A8A;
+  --color-primary: #0070F4;
+  /* Exact KiotViet Blue */
+  --color-primary-hover: #005AC3;
+  --color-sidebar: #0070F4;
   /* Darker blue for sidebar */
   --color-success: #10B981;
   --color-danger: #EF4444;
