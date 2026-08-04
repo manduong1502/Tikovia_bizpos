@@ -3,6 +3,13 @@
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
   
+  --text-xs: 15px;      /* 12px -> 15px (+3px) */
+  --text-sm: 17px;      /* 14px -> 17px (+3px) */
+  --text-base: 19px;    /* 16px -> 19px (+3px) */
+  --text-lg: 21px;      /* 18px -> 21px (+3px) */
+  --text-xl: 23px;      /* 20px -> 23px (+3px) */
+  --text-2xl: 27px;     /* 24px -> 27px (+3px) */
+
   --color-primary: #2563EB; /* Premium Deep Blue */
   --color-primary-hover: #1D4ED8;
   --color-sidebar: #1E3A8A; /* Darker blue for sidebar */
@@ -44,7 +51,7 @@ html {
   font-size: 19px !important; /* Base font size boosted +3px from 16px */
 }
 
-body {
+body, table, td, th, input, select, textarea, button {
   margin: 0;
   font-family: var(--font-sans);
   background-color: var(--color-bg-light);
@@ -53,6 +60,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Global Font Size Boost (+3px) Overrides ─── */
+.text-xs { font-size: 15px !important; line-height: 1.4 !important; }
+.text-sm { font-size: 17px !important; line-height: 1.4 !important; }
+.text-base { font-size: 19px !important; line-height: 1.4 !important; }
+.text-lg { font-size: 21px !important; line-height: 1.4 !important; }
+.text-xl { font-size: 23px !important; line-height: 1.4 !important; }
+.text-2xl { font-size: 27px !important; line-height: 1.4 !important; }
+
+/* Custom bracketed font sizes boost +3px */
+.text-\[9px\] { font-size: 12px !important; }
+.text-\[10px\] { font-size: 13px !important; }
+.text-\[11px\] { font-size: 14px !important; }
+.text-\[12px\] { font-size: 15px !important; }
+.text-\[13px\] { font-size: 16px !important; }
+.text-\[14px\] { font-size: 17px !important; }
+.text-\[15px\] { font-size: 18px !important; }
+.text-\[16px\] { font-size: 19px !important; }
+.text-\[18px\] { font-size: 21px !important; }
+.text-\[20px\] { font-size: 23px !important; }
 
 /* ─── Focus reset ─── */
 button:focus, input:focus, select:focus, textarea:focus {
