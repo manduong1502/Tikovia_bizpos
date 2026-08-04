@@ -279,7 +279,7 @@ export default function FinancialReportPage() {
 
                     {/* 2. Giảm trừ doanh thu */}
                     <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Giảm trừ Doanh thu (2 = 2.1 + 2.2)</td>
+                      <td className="py-2.5 px-4 font-semibold text-gray-900">Giảm trừ Doanh thu (2 = 2.1+2.2)</td>
                       <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.totalDeductions)}</td>
                     </tr>
                     <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
@@ -293,7 +293,7 @@ export default function FinancialReportPage() {
 
                     {/* 3. Doanh thu thuần */}
                     <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Doanh thu thuần (3 = 1 - 2)</td>
+                      <td className="py-2.5 px-4 text-gray-900">Doanh thu thuần (3=1-2)</td>
                       <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.netRevenue)}</td>
                     </tr>
 
@@ -305,7 +305,7 @@ export default function FinancialReportPage() {
 
                     {/* 5. Lợi nhuận gộp */}
                     <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận gộp về bán hàng (5 = 3 - 4)</td>
+                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận gộp về bán hàng (5=3-4)</td>
                       <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.grossProfit)}</td>
                     </tr>
 
@@ -353,7 +353,7 @@ export default function FinancialReportPage() {
 
                     {/* 7. Lợi nhuận từ HĐKD */}
                     <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận từ hoạt động kinh doanh (7 = 5 - 6)</td>
+                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận từ hoạt động kinh doanh (7=5-6)</td>
                       <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.operatingProfit)}</td>
                     </tr>
 
@@ -370,6 +370,14 @@ export default function FinancialReportPage() {
                       <td className="py-2 px-8">Chênh lệch làm tròn nhập hàng</td>
                       <td className="py-2 px-4 text-right">0</td>
                     </tr>
+                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
+                      <td className="py-2 px-8">Chênh lệch làm tròn bán hàng</td>
+                      <td className="py-2 px-4 text-right">0</td>
+                    </tr>
+                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
+                      <td className="py-2 px-8">Chiết khấu thanh toán từ NCC</td>
+                      <td className="py-2 px-4 text-right">0</td>
+                    </tr>
 
                     {/* 9. Chi phí khác */}
                     <tr className="hover:bg-blue-50/50">
@@ -379,7 +387,7 @@ export default function FinancialReportPage() {
 
                     {/* 10. Lợi nhuận thuần (Lãi ròng) */}
                     <tr className="bg-emerald-50/80 font-black text-emerald-900 text-sm">
-                      <td className="py-3 px-4">Lợi nhuận thuần (10 = 7 + 8 - 9)</td>
+                      <td className="py-3 px-4">Lợi nhuận thuần (10=(7+8)-9)</td>
                       <td className="py-3 px-4 text-right text-base text-emerald-700 font-black">{fmt(f.netProfit)}</td>
                     </tr>
                   </tbody>
