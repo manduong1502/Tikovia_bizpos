@@ -288,7 +288,7 @@ export default function CustomerModal({ open, onClose, customer = null, onSaved 
   );
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="lg"
+    <Modal open={open} onClose={onClose} title={isEdit ? 'Sửa khách hàng' : 'Tạo khách hàng'} size="xl"
       footer={<><Button onClick={onClose} icon={<X size={14} />}>Bỏ qua</Button><Button variant="primary" onClick={handleSave} disabled={saving} icon={<Save size={14} />}>{saving ? 'Đang lưu...' : 'Lưu'}</Button></>}>
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         {(nameError || phoneError) && (
