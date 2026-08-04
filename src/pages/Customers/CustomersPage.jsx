@@ -73,6 +73,7 @@ export default function CustomersPage() {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const [debtPageMap, setDebtPageMap] = useState({});
   const [pageSize, setPageSize] = useState(15);
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
@@ -801,7 +802,7 @@ export default function CustomersPage() {
           const matchedCB = cashbooks.find(cb => cb.orderId === o.id || cb.order_id === o.id);
           txs.push({
             id: matchedCB ? matchedCB.id : `${o.id}-payment`,
-            code: matchedCB ? matchedCB.code : `PT${o.order_code || o.code}`,
+            code: matchedCB ? matchedCB.code : (String(o.order_code || o.code || '').startsWith('HD') ? `TT${o.order_code || o.code}` : `TTHD${o.order_code || o.code}`),
             type: 'Thanh toán',
             cashbookType: matchedCB ? matchedCB.type : 'INCOME',
             status: matchedCB ? matchedCB.status : 'completed',
@@ -872,9 +873,9 @@ export default function CustomersPage() {
       const timeDiff = new Date(b.date) - new Date(a.date);
       if (timeDiff !== 0) return timeDiff;
       const getPriority = (type) => {
-        if (type === 'Thanh toán') return 1;
-        if (type === 'Trả hàng') return 2;
-        if (type === 'Bán hàng') return 3;
+        if (type === 'Bán hàng') return 1;
+        if (type === 'Thanh toán') return 2;
+        if (type === 'Trả hàng') return 3;
         return 4;
       };
       return getPriority(a.type) - getPriority(b.type);
@@ -885,6 +886,12 @@ export default function CustomersPage() {
       tempDebt -= tx.debt;
       return { ...tx, runningDebt };
     });
+
+    const debtPageSize = 10;
+    const totalDebtRows = transactionsWithDebt.length;
+    const totalDebtPages = Math.ceil(totalDebtRows / debtPageSize) || 1;
+    const currentDebtPage = Math.min(debtPageMap[c.id] || 1, totalDebtPages);
+    const paginatedDebtTxs = transactionsWithDebt.slice((currentDebtPage - 1) * debtPageSize, currentDebtPage * debtPageSize);
 
     return (
       <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
@@ -1256,10 +1263,10 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto max-h-56">
+                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
+                      <tr className="bg-gray-100/90 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider sticky top-0 bg-white z-10">
                         <th className="py-2.5 px-3.5">Mã phiếu</th>
                         <th className="py-2.5 px-3.5">Thời gian</th>
                         <th className="py-2.5 px-3.5">Loại</th>
@@ -1267,8 +1274,8 @@ export default function CustomersPage() {
                         <th className="py-2.5 px-3.5 text-right">Dư nợ khách hàng</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
-                      {transactionsWithDebt.map((tx, idx) => (
+                    <tbody className="divide-y divide-gray-100 font-medium text-xs">
+                      {paginatedDebtTxs.map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                           <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
                             if (tx.type === 'Bán hàng') {
@@ -1279,78 +1286,118 @@ export default function CustomersPage() {
                               setSelectedTx({ ...tx, partnerName: c.name });
                             }
                           }}>{tx.code}</td>
-                          <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="py-2 px-3.5 text-gray-600">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
                           <td className="py-2 px-3.5">
-                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                               {tx.type}
                             </span>
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                            {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-gray-900' : tx.debt < 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                            {tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                           </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : tx.runningDebt < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
+                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-gray-900' : tx.runningDebt < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
                         </tr>
                       ))}
-                      {transactionsWithDebt.length === 0 && (
-                        <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có giao dịch nào</td></tr>
+                      {paginatedDebtTxs.length === 0 && (
+                        <tr><td colSpan={5} className="p-6 text-center text-gray-400">Không có giao dịch nào</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
-                <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExportModalCustomer(c);
-                        setExportModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+
+                {/* Bottom Action & Pagination Bar matching KiotViet */}
+                <div className="p-3 border border-gray-200 bg-gray-50/70 rounded-xl flex flex-col md:flex-row justify-between items-center gap-3">
+                  {/* Left: Export buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Download size={13} /> Xuất file công nợ
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExportModalCustomer(c);
-                        setExportModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+                      <Download size={13} className="text-gray-500" />
+                      <span>Xuất file công nợ</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Download size={13} /> Xuất file
-                    </Button>
+                      <Download size={13} className="text-gray-500" />
+                      <span>Xuất file</span>
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Button 
-                      variant="primary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPaymentModalCustomer(c);
-                        setPaymentModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+
+                  {/* Center: Pagination */}
+                  {totalDebtRows > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <button 
+                        disabled={currentDebtPage === 1}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: 1 }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang đầu"
+                      >
+                        &laquo;
+                      </button>
+                      <button 
+                        disabled={currentDebtPage === 1}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.max(1, currentDebtPage - 1) }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang trước"
+                      >
+                        &lsaquo;
+                      </button>
+                      <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
+                        {currentDebtPage} / {totalDebtPages}
+                      </span>
+                      <button 
+                        disabled={currentDebtPage === totalDebtPages}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang sau"
+                      >
+                        &rsaquo;
+                      </button>
+                      <button 
+                        disabled={currentDebtPage === totalDebtPages}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: totalDebtPages }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang cuối"
+                      >
+                        &raquo;
+                      </button>
+                      <span className="font-bold text-gray-600 ml-1.5">
+                        {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows} dòng
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Right: Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                      className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <DollarSign size={13} /> Thanh toán
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAdjustModalCustomer(c);
-                        setAdjustModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+                      <DollarSign size={13} />
+                      <span>Thanh toán</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setAdjustModalCustomer(c); setAdjustModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Pen size={13} /> Điều chỉnh
-                    </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
-                      <Percent size={13} /> Chiết khấu
-                    </Button>
-                    <Button variant="secondary" className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold">
-                      Tạo QR
-                    </Button>
+                      <Pen size={13} className="text-gray-500" />
+                      <span>Điều chỉnh</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Percent size={13} className="text-gray-500" />
+                      <span>Chiết khấu thanh toán</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toast.info('Tạo QR thanh toán'); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Tạo QR</span>
+                    </button>
                   </div>
                 </div>
               </div>
