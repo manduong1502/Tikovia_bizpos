@@ -268,7 +268,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
                   <a 
-                    href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                    href={`/customers?search=${encodeURIComponent(o.customer_name || '')}&code=${encodeURIComponent(o.customer_code || '')}&id=${o.customerId || o.customer_id || ''}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}

@@ -1013,7 +1013,7 @@ export default function OrdersPage() {
                         <td className="py-2.5 px-3 font-bold text-gray-800">
                           {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
                             <a
-                              href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                              href={`/customers?search=${encodeURIComponent(o.customer_name || '')}&code=${encodeURIComponent(o.customer_code || '')}&id=${o.customerId || o.customer_id || ''}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}

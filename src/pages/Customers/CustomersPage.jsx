@@ -445,31 +445,46 @@ export default function CustomersPage() {
     fetchCustomerTxHistory();
   }, [expandedId]);
 
+  const scrollRowIntoView = useCallback((id) => {
+    setTimeout(() => {
+      const rowEl = document.getElementById(`row-${id}`);
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+  }, []);
+
   useEffect(() => {
-    const searchFromState = location.state?.searchCustomer || location.state?.customerCode || location.state?.customerName;
-    const idFromState = location.state?.customerId;
+    const searchParams = new URLSearchParams(location.search);
+    const urlSearch = searchParams.get('search') || searchParams.get('code') || searchParams.get('customerCode') || searchParams.get('customerName');
+    const urlId = searchParams.get('id') || searchParams.get('customerId');
+
+    const searchFromState = urlSearch || location.state?.searchCustomer || location.state?.customerCode || location.state?.customerName;
+    const idFromState = urlId || location.state?.customerId;
 
     if (searchFromState) {
       setSearch(searchFromState);
     }
 
     if (!isLoading && customers.length > 0) {
+      let found = null;
       if (idFromState) {
-        const found = customers.find(c => c.id === Number(idFromState) || String(c.id) === String(idFromState));
-        if (found) {
-          setExpandedId(found.id);
-          scrollRowIntoView(found.id);
-        }
-      } else if (searchFromState) {
-        const q = String(searchFromState).toLowerCase();
-        const found = customers.find(c => (c.name && c.name.toLowerCase().includes(q)) || (c.code && c.code.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
-        if (found) {
-          setExpandedId(found.id);
-          scrollRowIntoView(found.id);
+        found = customers.find(c => c.id === Number(idFromState) || String(c.id) === String(idFromState));
+      }
+      if (!found && searchFromState) {
+        const q = String(searchFromState).trim().toLowerCase();
+        found = customers.find(c => (c.code && c.code.toLowerCase() === q) || (c.name && c.name.toLowerCase() === q));
+        if (!found) {
+          found = customers.find(c => (c.code && c.code.toLowerCase().includes(q)) || (c.name && c.name.toLowerCase().includes(q)) || (c.phone && c.phone.includes(q)));
         }
       }
+
+      if (found) {
+        setExpandedId(found.id);
+        scrollRowIntoView(found.id);
+      }
     }
-  }, [location.state, customers, isLoading]);
+  }, [location.search, location.state, customers, isLoading, scrollRowIntoView]);
 
   useEffect(() => {
     const onDocClick = (e) => {
