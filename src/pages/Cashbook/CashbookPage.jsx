@@ -183,10 +183,7 @@ export default function CashbookPage() {
   
   // Advanced Sidebar Filters States
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all'); // all, cash, bank, wallet
-<<<<<<< HEAD
-  const [timeFilter, setTimeFilter] = useState({ mode: 'all', label: 'Tháng này' });
-=======
-  const [timeFilter, setTimeFilter] = useState('this_month'); // today, yesterday, this_week, last_week, last_7_days, this_month, last_month, last_30_days, this_quarter, last_quarter, this_year, last_year, all_time, custom
+  const [timeFilter, setTimeFilter] = useState('this_month');
   const [customDate, setCustomDate] = useState({ from: '', to: '' });
   const [showTimePopover, setShowTimePopover] = useState(false);
   const timePopoverRef = useRef(null);
@@ -200,7 +197,6 @@ export default function CashbookPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
->>>>>>> f62dbcf (feat: add KiotViet 5-column time filter popover to Cashbook page)
   
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
@@ -353,26 +349,15 @@ export default function CashbookPage() {
       if (paymentMethodFilter === 'bank' && e.paymentMethod !== 'bank') return false;
       if (paymentMethodFilter === 'wallet' && e.paymentMethod !== 'wallet') return false;
 
-<<<<<<< HEAD
-      // 2. Time Filter using DateFilter & inDateRange
-      let range = null;
-      if (timeFilter?.mode === 'custom' && (timeFilter?.start || timeFilter?.end)) {
-        range = { start: timeFilter.start, end: timeFilter.end };
-      } else if (timeFilter?.label && timeFilter?.label !== 'Toàn thời gian') {
-        range = getRangeByCreatedLabel(timeFilter.label);
-      }
-      if (range && !inDateRange(e.createdAt || e.created_at || e.date, range)) {
-        return false;
-=======
       // 2. Time Filter
       if (timeFilter !== 'all_time') {
         const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
-        if (e.createdAt) {
-          const d = new Date(e.createdAt);
+        const itemDate = e.createdAt || e.created_at || e.date;
+        if (itemDate) {
+          const d = new Date(itemDate);
           if (start && d < start) return false;
           if (end && d > end) return false;
         }
->>>>>>> f62dbcf (feat: add KiotViet 5-column time filter popover to Cashbook page)
       }
 
       // 3. Document type (Phiếu thu / Phiếu chi)
