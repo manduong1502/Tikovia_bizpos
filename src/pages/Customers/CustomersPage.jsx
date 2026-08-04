@@ -808,19 +808,21 @@ export default function CustomersPage() {
     const custCode = c.code || `KH${String(c.id).padStart(6, '0')}`;
     const custOrders = orders.filter(o => {
       const oCustId = o.customerId || o.customer_id || o.customer?.id;
-      if (oCustId) return oCustId === custId;
+      if (oCustId && String(oCustId) === String(custId)) return true;
       const oCustCode = o.customer_code || o.customer?.code;
-      if (oCustCode) return oCustCode === custCode;
-      return o.customer_name === c.name;
+      if (oCustCode && custCode && oCustCode === custCode) return true;
+      if (o.customer_name && c.name && o.customer_name.trim().toLowerCase() === c.name.trim().toLowerCase()) return true;
+      return false;
     }).filter(o => o.status !== 'CANCELLED' && o.status !== 'cancelled');
 
     // Get returns for this customer
     const custReturns = returns.filter(r => {
       const rCustId = r.customerId || r.customer_id || r.customer?.id;
-      if (rCustId) return rCustId === custId;
+      if (rCustId && String(rCustId) === String(custId)) return true;
       const rCustCode = r.customer_code || r.customer?.code;
-      if (rCustCode) return rCustCode === custCode;
-      return r.customer_name === c.name;
+      if (rCustCode && custCode && rCustCode === custCode) return true;
+      if (r.customer_name && c.name && r.customer_name.trim().toLowerCase() === c.name.trim().toLowerCase()) return true;
+      return false;
     }).filter(r => r.status !== 'CANCELLED' && r.status !== 'cancelled');
 
     // Build transactions for debt tab from real orders
