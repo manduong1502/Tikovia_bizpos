@@ -52,7 +52,8 @@
   - 💰 Tổng bán (`totalSpent`): **489.366.600 đ** (Khớp chính xác 100% KiotViet)
   - 📌 Công nợ hiện tại (`totalDebt`): **20.597.180 đ** (Khớp chính xác 100% KiotViet)
 - **Đã sửa thứ tự hiển thị & Dư nợ lũy kế khớp 100% KiotViet**:
-  - Đã chỉnh thứ tự ưu tiên khi cùng mốc giờ (`Thanh toán` đứng TRÊN `Bán hàng` khi xem giảm dần thời gian), khớp 100% từng dòng, từng mốc thời gian và Dư nợ lũy kế của KiotViet (`20.597.180 đ`, `17.027.180 đ`, `13.457.180 đ`, `17.027.180 đ`, `13.457.180 đ`,...).
+  - Đã quy định cứng quy tắc sắp xếp: Khi Hóa đơn và Phiếu thu trùng mốc thời gian (cùng giờ/phút), **Phiếu Thanh toán LUÔN LUÔN xếp ở TRÊN Hóa đơn Bán hàng** (chuẩn 100% KiotViet).
+  - Kết quả: Khớp 100% từng dòng, từng mốc thời gian và Dư nợ lũy kế của KiotViet (`20.597.180 đ`, `17.027.180 đ`, `13.457.180 đ`, `17.027.180 đ`, `13.457.180 đ`,...).
 
 ### 5. **Mở rộng chiều cao Bảng Công Nợ (`/customers`)**
 - Đã tăng chiều cao tối đa cho Bảng Công Nợ (`max-h-[620px]` / `max-h-[460px]`), giúp hiển thị thoải mái **8-10 dòng/đơn** cùng lúc mà không bị gò bó.
