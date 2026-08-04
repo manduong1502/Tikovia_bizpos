@@ -189,11 +189,14 @@ export default function POSCart() {
                                   value={w.price}
                                   onChange={(e) => {
                                     const newPrice = Number(e.target.value);
-                                    const costPrice = Number(item.product.costPrice || item.product.cost_price || 0);
-                                    if (costPrice > 0 && newPrice < costPrice) {
-                                      toast.error(`⚠️ Cảnh báo: Giá bán (${new Intl.NumberFormat('vi-VN').format(newPrice)}đ) thấp hơn Giá vốn (${new Intl.NumberFormat('vi-VN').format(costPrice)}đ)!`, { id: `cost-warn-${item.product.id}` });
-                                    }
                                     updateWeighingSubRow(item.product.id, w.id, { price: newPrice });
+                                  }}
+                                  onBlur={() => {
+                                    const finalPrice = Number(w.price || 0);
+                                    const costPrice = Number(item.product.costPrice || item.product.cost_price || 0);
+                                    if (costPrice > 0 && finalPrice > 0 && finalPrice < costPrice) {
+                                      toast.error(`⚠️ Cảnh báo: Giá bán (${new Intl.NumberFormat('vi-VN').format(finalPrice)}đ) thấp hơn Giá vốn (${new Intl.NumberFormat('vi-VN').format(costPrice)}đ)!`, { id: `cost-warn-${item.product.id}` });
+                                    }
                                   }}
                                   className={`w-full text-right font-extrabold text-[16px] bg-transparent border-none outline-none focus:outline-none transition-all px-2 py-0.5 ${
                                     (Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0))
