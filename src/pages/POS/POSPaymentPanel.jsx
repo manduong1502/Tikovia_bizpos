@@ -28,6 +28,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
     } else {
       setOverpayMode('change');
     }
+    if (!customerRef) {
+      setCustomerSearch('');
+      setCustomerSuggestions([]);
+    }
   }, [customerRef]);
   
   if (!currentInvoice?.isPaymentMode && !forceShow && saleMode !== 'fast') return null;

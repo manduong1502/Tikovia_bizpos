@@ -394,7 +394,13 @@ export function POSProvider({ children }) {
           try {
             const freshCust = await customerAPI.getById(custId);
             if (freshCust) {
-              updateCurrentInvoice({ customer: freshCust });
+              setInvoices(prev => prev.map(inv => {
+                // Only update if customer hasn't been cleared in the meantime
+                if (inv.id === activeTabId && inv.customer?.id === custId) {
+                  return { ...inv, customer: freshCust };
+                }
+                return inv;
+              }));
             }
           } catch (err) {
             console.warn('POSContext customer debt refresh error:', err);
@@ -404,7 +410,7 @@ export function POSProvider({ children }) {
     };
     window.addEventListener('app:data-changed', handleDataChanged);
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
-  }, [currentInvoice?.customer?.id]);
+  }, [currentInvoice?.customer?.id, activeTabId]);
 
   const togglePaymentMode = (status) => {
     updateCurrentInvoice({ isPaymentMode: status !== undefined ? status : !currentInvoice.isPaymentMode });
