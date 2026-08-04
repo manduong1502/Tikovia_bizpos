@@ -1152,6 +1152,7 @@ export const settingsAPI = {
 
 // ─── Reports ───
 export const reportAPI = {
+  getFinancial: (params) => api.get('/reports/financial', { params }).then(r => r.data),
   getEndOfDay: (params) => api.get('/reports/end-of-day', { params }).then(r => r.data),
   getSales: (params) => api.get('/reports/sales', { params }).then(r => r.data),
   getProducts: (params) => api.get('/reports/products', { params }).then(r => r.data),

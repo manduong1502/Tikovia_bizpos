@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import { 
   Printer, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, 
@@ -9,6 +8,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import { getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
 import { exportCSV } from '../../utils/exportUtils';
+import { reportAPI } from '../../services/api';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
 
@@ -57,8 +57,8 @@ export default function FinancialReportPage() {
       if (fromDate) params.fromDate = fromDate;
       if (toDate) params.toDate = toDate;
 
-      const res = await axios.get('/api/reports/financial', { params });
-      setData(res.data);
+      const reportData = await reportAPI.getFinancial(params);
+      setData(reportData);
     } catch (err) {
       console.error(err);
       toast.error('Lỗi khi tải báo cáo tài chính');
