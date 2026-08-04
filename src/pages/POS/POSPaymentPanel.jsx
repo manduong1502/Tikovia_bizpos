@@ -112,16 +112,31 @@ export default function POSPaymentPanel({ forceShow = false }) {
       const customTime = currentInvoice?.customTime || getLocalTimeString();
       const customCreatedAt = `${customDate} ${customTime}:00`;
 
+      const parseVNFloat = (val, fallback = 0) => {
+        if (val === null || val === undefined) return fallback;
+        if (typeof val === 'number') return isNaN(val) ? fallback : val;
+        const str = String(val).trim().replace(/\s+/g, '').replace(/,/g, '.');
+        const num = parseFloat(str);
+        return isNaN(num) ? fallback : num;
+      };
+
       const orderData = {
         customerId: customer?.id ? Number(customer.id) : null,
         items: cart.flatMap(i => {
-          const weighings = i.weighings || [{ quantity: i.quantity, price: i.price, discount: i.discount }];
-          return weighings.map(w => ({
-            productId: Number(i.product.id),
-            quantity: Number(w.quantity),
-            price: Number(w.price),
-            discount: Number(w.discount || 0)
-          }));
+          const weighings = (i.weighings && Array.isArray(i.weighings) && i.weighings.length > 0)
+            ? i.weighings
+            : [{ quantity: i.quantity, price: i.price, discount: i.discount }];
+          return weighings.map(w => {
+            const qty = parseVNFloat(w.quantity, parseVNFloat(i.quantity, 1));
+            const prc = parseVNFloat(w.price, parseVNFloat(i.price, parseVNFloat(i.product?.sellPrice, 0)));
+            const dsc = parseVNFloat(w.discount, parseVNFloat(i.discount, 0));
+            return {
+              productId: Number(i.product.id),
+              quantity: qty <= 0 ? 1 : qty,
+              price: prc < 0 ? 0 : prc,
+              discount: dsc < 0 ? 0 : dsc
+            };
+          });
         }),
         createdAt: customCreatedAt,
         paymentMethod: 'CASH',

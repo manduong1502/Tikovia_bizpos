@@ -229,20 +229,34 @@ export function POSProvider({ children }) {
   };
 
   // --- Cart Actions ---
-  const addProduct = (newProduct) => {
-    setProducts(prev => [newProduct, ...prev]);
+  const parseVNFloat = (val, fallback = 0) => {
+    if (val === null || val === undefined) return fallback;
+    if (typeof val === 'number') return isNaN(val) ? fallback : val;
+    const str = String(val).trim().replace(/\s+/g, '').replace(/,/g, '.');
+    const num = parseFloat(str);
+    return isNaN(num) ? fallback : num;
   };
 
   const normalizeItemWeighings = (item) => {
-    if (!item.weighings || item.weighings.length === 0) {
+    if (!item) return [];
+    if (!item.weighings || !Array.isArray(item.weighings) || item.weighings.length === 0) {
       return [{
-        id: item._weighingId || 1,
-        quantity: Number(item.quantity || 1),
-        price: Number(item.price || item.product?.sellPrice || 0),
-        discount: Number(item.discount || 0)
+        id: item.id || Date.now(),
+        quantity: parseVNFloat(item.quantity, 1),
+        price: parseVNFloat(item.price, parseVNFloat(item.product?.sellPrice, 0)),
+        discount: parseVNFloat(item.discount, 0)
       }];
     }
-    return item.weighings;
+    return item.weighings.map(w => ({
+      ...w,
+      quantity: parseVNFloat(w.quantity, 1),
+      price: parseVNFloat(w.price, parseVNFloat(item.product?.sellPrice, 0)),
+      discount: parseVNFloat(w.discount, 0)
+    }));
+  };
+
+  const addProduct = (newProduct) => {
+    setProducts(prev => [newProduct, ...prev]);
   };
 
   const addToCart = (product) => {
@@ -254,22 +268,23 @@ export function POSProvider({ children }) {
     if (existing) {
       const weighings = normalizeItemWeighings(existing);
       const updatedWeighings = weighings.map((w, idx) => 
-        idx === 0 ? { ...w, quantity: (parseFloat(w.quantity) || 0) + 1 } : w
+        idx === 0 ? { ...w, quantity: parseVNFloat(w.quantity, 0) + 1 } : w
       );
+      const totalQty = updatedWeighings.reduce((s, w) => s + parseVNFloat(w.quantity, 0), 0);
       updateCurrentInvoice({
         cart: cart.map(item => 
           item.product.id === product.id 
-            ? { ...item, weighings: updatedWeighings, quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0) }
+            ? { ...item, weighings: updatedWeighings, quantity: totalQty, price: parseVNFloat(updatedWeighings[0]?.price, item.price) }
             : item
         )
       });
     } else {
-      const initialWeighing = { id: Date.now(), quantity: 1, price: Number(product.sellPrice || 0), discount: 0 };
+      const initialWeighing = { id: Date.now(), quantity: 1, price: parseVNFloat(product.sellPrice, 0), discount: 0 };
       updateCurrentInvoice({
         cart: [...cart, { 
           product, 
           quantity: 1, 
-          price: Number(product.sellPrice || 0), 
+          price: parseVNFloat(product.sellPrice, 0), 
           discount: 0,
           weighings: [initialWeighing]
         }]
@@ -283,14 +298,15 @@ export function POSProvider({ children }) {
     if (!existing) return;
 
     const weighings = normalizeItemWeighings(existing);
-    const lastPrice = weighings[weighings.length - 1]?.price ?? Number(existing.product.sellPrice || 0);
+    const lastPrice = weighings[weighings.length - 1]?.price ?? parseVNFloat(existing.product.sellPrice, 0);
     const newSubRow = { id: Date.now() + Math.random(), quantity: 1, price: lastPrice, discount: 0 };
     const updatedWeighings = [...weighings, newSubRow];
+    const totalQty = updatedWeighings.reduce((s, w) => s + parseVNFloat(w.quantity, 0), 0);
 
     updateCurrentInvoice({
       cart: cart.map(item => 
         item.product.id === productId 
-          ? { ...item, weighings: updatedWeighings, quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0) }
+          ? { ...item, weighings: updatedWeighings, quantity: totalQty }
           : item
       )
     });
@@ -304,6 +320,8 @@ export function POSProvider({ children }) {
 
     const weighings = normalizeItemWeighings(existing);
     const updatedWeighings = weighings.map(w => w.id === weighingId ? { ...w, ...updates } : w);
+    const totalQty = updatedWeighings.reduce((s, w) => s + parseVNFloat(w.quantity, 0), 0);
+    const firstPrice = parseVNFloat(updatedWeighings[0]?.price, existing.price);
 
     updateCurrentInvoice({
       cart: cart.map(item => 
@@ -311,9 +329,9 @@ export function POSProvider({ children }) {
           ? { 
               ...item, 
               weighings: updatedWeighings, 
-              quantity: updatedWeighings.reduce((s, w) => s + (parseFloat(w.quantity) || 0), 0),
-              price: updatedWeighings[0]?.price ?? item.price,
-              discount: updatedWeighings[0]?.discount ?? item.discount,
+              quantity: totalQty,
+              price: firstPrice,
+              discount: parseVNFloat(updatedWeighings[0]?.discount, item.discount),
             }
           : item
       )
