@@ -452,15 +452,36 @@ export default function CustomersPage() {
   useEffect(() => { 
     reload();
     const handleDataChanged = (e) => {
-      if (!e.detail || e.detail.type === 'customer' || e.detail.type === 'order' || e.detail.type === 'cashbook' || e.detail.type === 'general') {
-        window.__tikovia_customers_cache = null;
-        try {
-          localStorage.removeItem('tikovia_customers_cache');
-          sessionStorage.removeItem('tikovia_customers_cache');
-        } catch (err) {}
-        reload(false, true);
-        fetchCustomerTxHistory();
+      const type = e.detail?.type;
+      const targetCustId = e.detail?.customerId;
+
+      // Clear memory & storage caches instantly
+      window.__tikovia_customers_cache = null;
+      try {
+        localStorage.removeItem('tikovia_customers_cache');
+        sessionStorage.removeItem('tikovia_customers_cache');
+      } catch (err) {}
+
+      // 0ms Optimistic State Update for real-time responsiveness
+      if (targetCustId) {
+        setCustomers(prev => {
+          const list = [...prev];
+          const idx = list.findIndex(c => String(c.id) === String(targetCustId));
+          if (idx !== -1) {
+            const updated = {
+              ...list[idx],
+              lastTransaction: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            list.splice(idx, 1);
+            return [updated, ...list];
+          }
+          return prev;
+        });
       }
+
+      reload(false, true);
+      fetchCustomerTxHistory();
     };
     window.addEventListener('app:data-changed', handleDataChanged);
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
