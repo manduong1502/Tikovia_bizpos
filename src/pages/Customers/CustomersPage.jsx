@@ -881,8 +881,15 @@ export default function CustomersPage() {
         paid: cb.amount,
         debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
       }))
-    ].sort((a, b) => {
-      const timeDiff = new Date(b.date) - new Date(a.date);
+      const getMinuteTime = (d) => {
+        if (!d) return 0;
+        const dateObj = new Date(d);
+        if (isNaN(dateObj.getTime())) return 0;
+        dateObj.setSeconds(0, 0);
+        return dateObj.getTime();
+      };
+
+      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
       if (timeDiff !== 0) return timeDiff;
       const getPriority = (type) => {
         if (type === 'Thanh toán') return 1;
@@ -896,7 +903,15 @@ export default function CustomersPage() {
     // Calculate running debt backwards from the current debt
     const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
     const sortedNewFirst = [...debtTransactions].sort((a, b) => {
-      const timeDiff = new Date(b.date) - new Date(a.date);
+      const getMinuteTime = (d) => {
+        if (!d) return 0;
+        const dateObj = new Date(d);
+        if (isNaN(dateObj.getTime())) return 0;
+        dateObj.setSeconds(0, 0);
+        return dateObj.getTime();
+      };
+
+      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
       if (timeDiff !== 0) return timeDiff;
       const getPriority = (type) => {
         if (type === 'Thanh toán') return 1;
@@ -1102,9 +1117,14 @@ export default function CustomersPage() {
                   raw: r
                 }))
               ].sort((a, b) => {
-                const dateA = a.date ? new Date(a.date).getTime() : 0;
-                const dateB = b.date ? new Date(b.date).getTime() : 0;
-                const timeDiff = dateB - dateA;
+                const getMinuteTime = (d) => {
+                  if (!d) return 0;
+                  const dateObj = new Date(d);
+                  if (isNaN(dateObj.getTime())) return 0;
+                  dateObj.setSeconds(0, 0);
+                  return dateObj.getTime();
+                };
+                const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
                 if (timeDiff !== 0) return timeDiff;
                 const getPriority = (type) => {
                   if (type === 'Thanh toán') return 1;
