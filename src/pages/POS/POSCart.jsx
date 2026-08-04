@@ -63,12 +63,13 @@ export default function POSCart() {
   };
 
   const calcTotalCount = () => {
-    return cart.reduce((s, i) => {
+    const raw = cart.reduce((s, i) => {
       const weighings = i.weighings && i.weighings.length > 0 
         ? i.weighings 
         : [{ quantity: i.quantity }];
       return s + weighings.reduce((ws, w) => ws + (parseFloat(w.quantity) || 0), 0);
     }, 0);
+    return Math.round(raw * 1000) / 1000;
   };
 
   return (

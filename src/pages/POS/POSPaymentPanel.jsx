@@ -440,9 +440,12 @@ export default function POSPaymentPanel({ forceShow = false }) {
       <div className="pos-payment-rows">
         <div className="pos-payment-row">
           <span className="label">Tổng tiền hàng</span>
-          <span className="value" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <span className="value" style={{ display: 'flex', itemsAlign: 'center', gap: '24px' }}>
             <span id="pos-item-count2" style={{ color: '#666', minWidth: '30px', textAlign: 'center' }}>
-              {cart.reduce((s,i)=>s+i.quantity,0)}
+              {Math.round(cart.reduce((s, i) => {
+                const weighings = (i.weighings && Array.isArray(i.weighings) && i.weighings.length > 0) ? i.weighings : [{ quantity: i.quantity }];
+                return s + weighings.reduce((ws, w) => ws + (parseFloat(w.quantity) || 0), 0);
+              }, 0) * 1000) / 1000}
             </span>
             <span id="pay-subtotal">{new Intl.NumberFormat('vi-VN').format(subtotal)}</span>
           </span>
