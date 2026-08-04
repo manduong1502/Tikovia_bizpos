@@ -40,13 +40,16 @@
   --color-gray-800-dynamic: #1f2937;
 }
 
-
+html {
+  font-size: 19px !important; /* Base font size boosted +3px from 16px */
+}
 
 body {
   margin: 0;
   font-family: var(--font-sans);
   background-color: var(--color-bg-light);
   color: var(--color-gray-800);
+  font-size: 17px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
