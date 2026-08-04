@@ -199,9 +199,9 @@ export default function PurchaseOrdersPage() {
     setIsLoading(true);
     try {
       const [listRes, supplierRes, returnRes] = await Promise.all([
-        purchaseOrderAPI.getAll({ limit: 500 }),
+        purchaseOrderAPI.getAll({ limit: 50000 }),
         supplierAPI.getAllSimple().catch(() => []),
-        purchaseReturnAPI.getAll({ limit: 500 }).catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 50000 }).catch(() => []),
       ]);
       const rawList = Array.isArray(listRes) ? listRes : (listRes?.data || []);
       const normalized = rawList.map(normalizePO);

@@ -277,7 +277,7 @@ export default function CashbookPage() {
       return true;
     });
   }, [
-    entries, paymentMethodFilter, timeFilter, customDate, showIncome, showExpense,
+    entries, paymentMethodFilter, timeFilter, showIncome, showExpense,
     categoryFilter, statusPaid, statusCancelled, accountingFilter,
     partnerTypeFilter, partnerNameQuery, partnerPhoneQuery, search
   ]);

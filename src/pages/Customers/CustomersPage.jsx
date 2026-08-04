@@ -53,8 +53,8 @@ const ALL_COLUMNS = [
   { key: 'name', label: 'Tên khách hàng', default: true },
   { key: 'phone', label: 'Điện thoại', default: true },
   { key: 'email', label: 'Email', default: false },
-  { key: 'address', label: 'Địa chỉ', default: true },
-  { key: 'note', label: 'Ghi chú', default: true },
+  { key: 'address', label: 'Địa chỉ', default: false },
+  { key: 'note', label: 'Ghi chú', default: false },
   { key: 'debt', label: 'Nợ hiện tại', default: true, align: 'right' },
   { key: 'total_spent', label: 'Tổng bán', default: true, align: 'right' },
 ];
@@ -1363,14 +1363,14 @@ export default function CustomersPage() {
 
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs table-fixed min-w-full">
                     <thead>
                       <tr className="bg-gray-100/90 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider sticky top-0 bg-white z-10">
-                        <th className="py-2.5 px-3.5">Mã phiếu</th>
-                        <th className="py-2.5 px-3.5">Thời gian</th>
-                        <th className="py-2.5 px-3.5">Loại</th>
-                        <th className="py-2.5 px-3.5 text-right">Giá trị</th>
-                        <th className="py-2.5 px-3.5 text-right">Dư nợ khách hàng</th>
+                        <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
+                        <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
+                        <th className="py-2.5 px-3 w-[16%]">Loại</th>
+                        <th className="py-2.5 px-3 w-[22%] text-right">Giá trị</th>
+                        <th className="py-2.5 px-3 w-[22%] text-right">Dư nợ khách hàng</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium text-xs">
