@@ -173,7 +173,7 @@ export default function POSCart() {
                           </div>
 
                           {/* Unit Price & Cost Price Warning */}
-                          <div className="flex flex-col items-end shrink-0">
+                          <div className="relative flex items-center shrink-0">
                             <div 
                               className="flex items-center bg-gray-50 border border-gray-300 rounded-xl p-1 shadow-sm cursor-text hover:bg-gray-100/70 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all"
                               onClick={(e) => {
@@ -204,7 +204,7 @@ export default function POSCart() {
                               </div>
                             </div>
                             {Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0) && (
-                              <span className="text-xs font-extrabold text-red-600 bg-red-100/90 border border-red-300 rounded px-1.5 py-0.5 mt-0.5 whitespace-nowrap animate-pulse">
+                              <span className="absolute top-full right-0 mt-1 z-20 text-xs font-extrabold text-red-600 bg-red-100/95 border border-red-300 rounded-lg px-2 py-0.5 whitespace-nowrap shadow-md animate-pulse">
                                 ⚠️ &lt; Giá vốn ({new Intl.NumberFormat('vi-VN').format(item.product.costPrice || item.product.cost_price)})
                               </span>
                             )}
