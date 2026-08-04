@@ -69,7 +69,7 @@ export default function CustomersPage() {
   const [searchAddress, setSearchAddress] = useState('');
   const [searchNote, setSearchNote] = useState('');
   const [searchOrderCode, setSearchOrderCode] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -336,7 +336,7 @@ export default function CustomersPage() {
   const [filterDeliveryArea, setFilterDeliveryArea] = useState('');
   const [filterStatus, setFilterStatus] = useState('Tất cả');
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [detailTab, setDetailTab] = useState('info');
   const [custNotes, setCustNotes] = useState({});
 
   const columnMenuRef = useRef(null);
