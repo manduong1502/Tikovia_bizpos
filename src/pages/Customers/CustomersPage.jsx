@@ -366,15 +366,23 @@ export default function CustomersPage() {
     return () => clearTimeout(handler);
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
-  const reload = useCallback(async (showSpinner = false) => {
+  const reload = useCallback(async (showSpinner = false, forceRefresh = false) => {
     let hasLoadedCache = false;
 
+    if (forceRefresh) {
+      window.__tikovia_customers_cache = null;
+      try {
+        localStorage.removeItem('tikovia_customers_cache');
+        sessionStorage.removeItem('tikovia_customers_cache');
+      } catch (e) {}
+    }
+
     // 1. Instant Cache Load from Memory / localStorage / sessionStorage (0ms response on new tab!)
-    if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
+    if (!forceRefresh && window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
       setCustomers(window.__tikovia_customers_cache);
       setIsLoading(false);
       hasLoadedCache = true;
-    } else {
+    } else if (!forceRefresh) {
       try {
         const cachedStr = localStorage.getItem('tikovia_customers_cache') || sessionStorage.getItem('tikovia_customers_cache');
         if (cachedStr) {
@@ -418,38 +426,45 @@ export default function CustomersPage() {
     }
   }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode]);
 
+  const fetchCustomerTxHistory = useCallback(async () => {
+    if (!expandedId) return;
+    try {
+      const [ordRes, cbRes, retRes] = await Promise.all([
+        orderAPI.getAll({ limit: 5000 }).catch(() => ({ data: [] })),
+        cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] })),
+        returnAPI.getAll().catch(() => [])
+      ]);
+      const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
+      setOrders(rawOrders);
+      const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
+      setCashbooks(rawCBs);
+      const rawReturns = Array.isArray(retRes) ? retRes : (retRes?.data || []);
+      setReturns(rawReturns);
+    } catch (err) {
+      console.warn('Error fetching customer transactions:', err);
+    }
+  }, [expandedId]);
+
+  useEffect(() => {
+    fetchCustomerTxHistory();
+  }, [fetchCustomerTxHistory]);
+
   useEffect(() => { 
     reload();
     const handleDataChanged = (e) => {
       if (!e.detail || e.detail.type === 'customer' || e.detail.type === 'order' || e.detail.type === 'cashbook' || e.detail.type === 'general') {
-        reload();
+        window.__tikovia_customers_cache = null;
+        try {
+          localStorage.removeItem('tikovia_customers_cache');
+          sessionStorage.removeItem('tikovia_customers_cache');
+        } catch (err) {}
+        reload(false, true);
+        fetchCustomerTxHistory();
       }
     };
     window.addEventListener('app:data-changed', handleDataChanged);
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
-  }, [reload]);
-
-  useEffect(() => {
-    if (!expandedId) return;
-    const fetchCustomerTxHistory = async () => {
-      try {
-        const [ordRes, cbRes, retRes] = await Promise.all([
-          orderAPI.getAll({ limit: 5000 }).catch(() => ({ data: [] })),
-          cashbookAPI.getAll({ partnerType: 'customer' }).catch(() => ({ data: [] })),
-          returnAPI.getAll().catch(() => [])
-        ]);
-        const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
-        setOrders(rawOrders);
-        const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
-        setCashbooks(rawCBs);
-        const rawReturns = Array.isArray(retRes) ? retRes : (retRes?.data || []);
-        setReturns(rawReturns);
-      } catch (err) {
-        console.warn('Error fetching customer transactions:', err);
-      }
-    };
-    fetchCustomerTxHistory();
-  }, [expandedId]);
+  }, [reload, fetchCustomerTxHistory]);
 
   const scrollRowIntoView = useCallback((id) => {
     setTimeout(() => {

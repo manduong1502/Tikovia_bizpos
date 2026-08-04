@@ -62,6 +62,11 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
       await cashbookAPI.create(payload);
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
+      window.__tikovia_customers_cache = null;
+      try {
+        localStorage.removeItem('tikovia_customers_cache');
+        sessionStorage.removeItem('tikovia_customers_cache');
+      } catch (err) {}
       window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type: 'customer', customerId: customer.id } }));
       onSaved?.();
     } catch (err) {
