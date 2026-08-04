@@ -1159,7 +1159,7 @@ export default function CustomersPage() {
                       </div>
 
                       {/* Desktop Table View */}
-                      <div className="hidden md:block overflow-x-auto max-h-56">
+                      <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar">
                         <table className="w-full text-xs min-w-[700px] border-collapse">
                           <thead>
                             <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
@@ -1274,7 +1274,7 @@ export default function CustomersPage() {
 
             {/* Tab: Nợ cần thu từ khách */}
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72">
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-[620px]">
                 <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
                   <select 
@@ -1303,7 +1303,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Mobile View: Cards */}
-                <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
+                <div className="block md:hidden divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
                   {transactionsWithDebt.map((tx, idx) => (
                     <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
                       <div className="flex items-center justify-between gap-2">
@@ -1331,7 +1331,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
+                <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-100/90 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider sticky top-0 bg-white z-10">
