@@ -828,6 +828,7 @@ export default function CustomersPage() {
         };
       }),
       ...cashbooks.filter(cb => {
+        if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
         if (cb.orderId || cb.order_id) return false; // Filter out order checkout payments tied to specific orders
         const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
         if (cbCustId && String(cbCustId) === String(c.id)) return true;
@@ -2099,6 +2100,7 @@ export default function CustomersPage() {
               };
             }),
             ...custCashbooks.filter(cb => {
+              if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
               if (cb.status !== 'completed') return false;
               if (cb.category === 'Chi tiền trả hàng' || cb.category === 'Thu tiền khách trả') return false;
               return true;
