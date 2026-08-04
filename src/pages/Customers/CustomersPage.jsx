@@ -902,70 +902,114 @@ export default function CustomersPage() {
 
             {/* Tab: Thông tin */}
             {detailTab === 'info' && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3.5 p-1">
                 {/* Header Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/50 p-3 rounded-xl border border-blue-100 text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-gray-800 tracking-tight">{c.name}</span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                    <span className="text-sm font-extrabold text-gray-900 tracking-tight">{c.name}</span>
+                    <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
                       {code}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs">
-                    <div><span className="text-gray-500">Điện thoại:</span> <span className="font-bold text-gray-800">{c.phone || '---'}</span></div>
-                    <div><span className="text-gray-500">Email:</span> <span className="font-bold text-gray-800">{c.email || '---'}</span></div>
-                    <div><span className="text-gray-500">Địa chỉ:</span> <span className="font-bold text-gray-800">{c.address || '---'}</span></div>
+                  <div className="flex flex-wrap items-center gap-4 text-xs">
+                    <div><span className="text-gray-500 font-medium">Điện thoại:</span> <span className="font-extrabold text-gray-900">{c.phone || '---'}</span></div>
+                    <div><span className="text-gray-500 font-medium">Email:</span> <span className="font-extrabold text-gray-900">{c.email || '---'}</span></div>
+                    <div><span className="text-gray-500 font-medium">Địa chỉ:</span> <span className="font-extrabold text-gray-900">{c.address || '---'}</span></div>
                   </div>
                 </div>
 
                 {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-gray-50/50 rounded-xl border border-gray-200 text-[11px]">
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Nhóm khách hàng</span><span className="font-bold text-gray-800 block">Khách hàng chung</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Loại khách hàng</span><span className="font-bold text-gray-800 block">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Giới tính</span><span className="font-bold text-gray-800 block">{c.gender || '---'}</span></div>
-                  <div><span className="text-gray-500 font-medium block mb-0.5">Ngày sinh</span><span className="font-bold text-gray-800 block">---</span></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-gray-50/60 rounded-xl border border-gray-200 text-xs">
+                  <div>
+                    <span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span>
+                    <span className="font-bold text-gray-800">Khách hàng chung</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span>
+                    <span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 font-medium block mb-1">Giới tính</span>
+                    <span className="font-bold text-gray-800">{c.gender || '---'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 font-medium block mb-1">Ngày sinh</span>
+                    <span className="font-bold text-gray-800">---</span>
+                  </div>
                 </div>
 
                 {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start text-xs mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-stretch text-xs">
                   <div className="sm:col-span-2">
                     <textarea
                       placeholder="Ghi chú..."
-                      className="w-full h-16 sm:h-20 border border-gray-300 rounded-xl p-2.5 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
+                      className="w-full h-full min-h-[90px] border border-gray-300 rounded-xl p-3 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
                       value={currentNote}
                       onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
                     />
                   </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 flex flex-col gap-1.5 text-[11px] shadow-sm">
-                    <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-gray-500 font-medium">Tổng bán trừ trả hàng</span><span className="font-bold text-gray-800">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center text-xs border-t border-gray-200 pt-1.5 mt-0.5"><span className="font-bold text-gray-800">Nợ hiện tại</span><span className={`font-extrabold ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-green-600' : 'text-gray-700'}`}>{fmt(c.debt || c.totalDebt || 0)}</span></div>
+                  <div className="bg-gray-50/80 border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-sm">
+                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-0.5">
+                      <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
+                      <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
+                        {fmt(c.debt || c.totalDebt || 0)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Bottom Action Bar */}
-                <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1">
-                  <Button variant="danger" onClick={() => handleDelete(c.id)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                    <Trash2 size={13} /> Xóa
-                  </Button>
-                  <Button variant="secondary" className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                    <Copy size={13} /> Sao chép
-                  </Button>
-                  <Button variant="secondary" onClick={handleExport} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                    <Download size={13} /> Xuất file
-                  </Button>
-                  <Button variant="primary" onClick={() => { setEditCustomer(c); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white">
-                    <Edit size={13} /> Sửa
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleSaveNote(c.id, currentNote)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                    <Save size={13} /> Lưu
-                  </Button>
-                  <Button variant="secondary" onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
-                    Thanh toán
-                  </Button>
-                  <Button variant="secondary" onClick={() => handlePrintCustomer(c)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap col-span-2 sm:col-span-1">
-                    <Printer size={13} /> In
-                  </Button>
+                {/* Bottom Action Bar matching Image 2 */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-gray-200 pt-3 mt-1">
+                  {/* Left side actions */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleDelete(c.id)}
+                      className="px-3 py-1.5 bg-white border border-red-300 hover:bg-red-50 text-red-600 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 size={13} /> <span>Xóa</span>
+                    </button>
+                    <button 
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Copy size={13} className="text-gray-500" /> <span>Sao chép</span>
+                    </button>
+                    <button 
+                      onClick={handleExport}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download size={13} className="text-gray-500" /> <span>Xuất file</span>
+                    </button>
+                  </div>
+
+                  {/* Right side actions */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => { setEditCustomer(c); setModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Edit size={13} className="text-gray-500" /> <span>Sửa</span>
+                    </button>
+                    <button 
+                      onClick={() => handleSaveNote(c.id, currentNote)}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Save size={13} className="text-gray-500" /> <span>Lưu</span>
+                    </button>
+                    <button 
+                      onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Thanh toán</span>
+                    </button>
+                    <button 
+                      onClick={() => handlePrintCustomer(c)}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Printer size={13} className="text-gray-500" /> <span>In</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
