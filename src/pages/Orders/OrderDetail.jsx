@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { orderAPI } from '../../services/api';
+import { orderAPI, cashbookAPI } from '../../services/api';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
 import Button from '../../components/ui/Button';
 
@@ -18,8 +18,35 @@ function Badge({ status }) {
 export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) {
   const o = order;
   const [tab, setTab] = useState('info');
+  const [orderPayments, setOrderPayments] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
   const items = o._items || o.items || [];
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (tab === 'payment' && (o.id || o.order_code || o.code)) {
+      setLoadingPayments(true);
+      const code = o.order_code || o.code;
+      cashbookAPI.getAll({ limit: 1000 })
+        .then(r => {
+          const list = r.data || (Array.isArray(r) ? r : []);
+          const matched = list.filter(cb => {
+            if (cb.status === 'cancelled') return false;
+            if (cb.orderId && String(cb.orderId) === String(o.id)) return true;
+            if (cb.order_id && String(cb.order_id) === String(o.id)) return true;
+            if (code) {
+              if (cb.note && cb.note.includes(code)) return true;
+              if (cb.description && cb.description.includes(code)) return true;
+              if (cb.code && cb.code.includes(code)) return true;
+            }
+            return false;
+          });
+          setOrderPayments(matched);
+        })
+        .catch(() => setOrderPayments([]))
+        .finally(() => setLoadingPayments(false));
+    }
+  }, [tab, o.id, o.order_code, o.code]);
 
   const handleCancel = async () => {
     if (o.status === 'cancelled') return toast.error('Đã hủy rồi');
@@ -447,31 +474,79 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
               </Button>
             </div>
           </div>
-        ) : o.paid_amount > 0 ? (
-          <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full max-w-full">
-            <table className="w-full text-xs min-w-[600px]">
-              <thead>
-                <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                  <th className="p-3">Thời gian</th>
-                  <th className="p-3">Phương thức</th>
-                  <th className="p-3 text-right">Số tiền</th>
-                  <th className="p-3 text-center">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 font-medium">
-                <tr className="hover:bg-blue-50/30 transition-colors">
-                  <td className="p-3 text-gray-700">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</td>
-                  <td className="p-3 text-gray-800">{PAY_LABEL[o.payment_method] || 'Tiền mặt'}</td>
-                  <td className="p-3 text-right font-bold text-primary">{fmt(o.paid_amount)}</td>
-                  <td className="p-3 text-center"><Badge status="completed" /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         ) : (
-          <div className="text-center py-10 text-gray-400 font-medium border border-gray-200 rounded-lg bg-gray-50/30">
-            Hóa đơn này chưa được thanh toán (Khách đã trả: 0đ).
-          </div>
+          (() => {
+            const paidVal = Number(o.paid !== undefined && o.paid !== null ? o.paid : (o.paid_amount || 0));
+            const hasCashbooks = orderPayments.length > 0;
+
+            if (loadingPayments) {
+              return (
+                <div className="text-center py-8 text-gray-500 font-bold border border-gray-200 rounded-lg bg-gray-50/50">
+                  Đang tải lịch sử thanh toán...
+                </div>
+              );
+            }
+
+            if (hasCashbooks) {
+              return (
+                <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full max-w-full">
+                  <table className="w-full text-xs min-w-[600px]">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-3">Mã phiếu</th>
+                        <th className="p-3">Thời gian</th>
+                        <th className="p-3">Loại thanh toán</th>
+                        <th className="p-3 text-right">Số tiền</th>
+                        <th className="p-3 text-center">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      {orderPayments.map((p, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                          <td className="p-3 font-bold text-primary">{p.code || `TT${p.id}`}</td>
+                          <td className="p-3 text-gray-700">{p.createdAt || p.created_at || p.date ? new Date(p.createdAt || p.created_at || p.date).toLocaleString('vi-VN') : ''}</td>
+                          <td className="p-3 text-gray-800">{p.category || (p.paymentMethod === 'bank' ? 'Chuyển khoản' : 'Tiền mặt')}</td>
+                          <td className="p-3 text-right font-bold text-emerald-600">+{fmt(p.amount)}</td>
+                          <td className="p-3 text-center"><Badge status="completed" /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            }
+
+            if (paidVal > 0) {
+              return (
+                <div className="border border-gray-200 rounded-lg overflow-x-auto bg-white shadow-sm w-full max-w-full">
+                  <table className="w-full text-xs min-w-[600px]">
+                    <thead>
+                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                        <th className="p-3">Thời gian</th>
+                        <th className="p-3">Phương thức</th>
+                        <th className="p-3 text-right">Số tiền</th>
+                        <th className="p-3 text-center">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-medium">
+                      <tr className="hover:bg-blue-50/30 transition-colors">
+                        <td className="p-3 text-gray-700">{o.created_at || o.createdAt ? new Date(o.created_at || o.createdAt).toLocaleString('vi-VN') : ''}</td>
+                        <td className="p-3 text-gray-800">{PAY_LABEL[o.payment_method || o.paymentMethod] || 'Tiền mặt'}</td>
+                        <td className="p-3 text-right font-bold text-emerald-600">+{fmt(paidVal)}</td>
+                        <td className="p-3 text-center"><Badge status="completed" /></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            }
+
+            return (
+              <div className="text-center py-10 text-gray-400 font-medium border border-gray-200 rounded-lg bg-gray-50/30">
+                Hóa đơn này chưa được thanh toán (Khách đã trả: 0đ).
+              </div>
+            );
+          })()
         )}
       </div>
     </td>
