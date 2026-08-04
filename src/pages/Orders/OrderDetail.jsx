@@ -267,14 +267,17 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-2.5 px-3 rounded-xl border border-blue-100 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
-                  <button 
-                    onClick={() => navigate('/customers', { state: { searchCustomer: o.customer_name, customerId: o.customerId || o.customer_id } })}
-                    className="text-base sm:text-sm font-extrabold text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-left inline-flex items-center gap-1"
-                    title="Xem chi tiết khách hàng tại trang Khách hàng"
+                  <a 
+                    href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-base sm:text-sm font-extrabold text-primary hover:underline cursor-pointer p-0 text-left inline-flex items-center gap-1 no-underline"
+                    title="Mở chi tiết khách hàng trong tab mới"
                   >
                     <span>{o.customer_name}</span>
                     <ExternalLink size={14} className="text-primary shrink-0" />
-                  </button>
+                  </a>
                 ) : (
                   <span className="text-base sm:text-sm font-extrabold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
                 )}

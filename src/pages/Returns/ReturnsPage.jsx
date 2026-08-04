@@ -535,17 +535,21 @@ export default function ReturnsPage() {
                   </div>
                   <div>
                     <span className="text-gray-500">Khách hàng:</span>{' '}
-                    <span 
-                      onClick={() => {
-                        if (o.customer_name && o.customer_name !== 'Khách lẻ') {
-                          navigate('/customers', { state: { searchCustomer: o.customer_code || o.customer_name, customerId: o.customerId || o.customer_id } });
-                        }
-                      }}
-                      className={`font-bold inline-flex items-center gap-1 ${o.customer_name && o.customer_name !== 'Khách lẻ' ? 'text-primary hover:underline cursor-pointer' : 'text-gray-800'}`}
-                    >
-                      <span>{o.customer_name}</span>
-                      {o.customer_name && o.customer_name !== 'Khách lẻ' && <ExternalLink size={14} className="text-primary shrink-0" />}
-                    </span>
+                    {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
+                      <a
+                        href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-bold text-primary hover:underline cursor-pointer inline-flex items-center gap-1 no-underline"
+                        title="Mở chi tiết khách hàng trong tab mới"
+                      >
+                        <span>{o.customer_name}</span>
+                        <ExternalLink size={14} className="text-primary shrink-0" />
+                      </a>
+                    ) : (
+                      <span className="font-bold text-gray-800">{o.customer_name || 'Khách lẻ'}</span>
+                    )}
                   </div>
                   {o.order && (
                     <div>
@@ -1071,7 +1075,25 @@ export default function ReturnsPage() {
                           </td>
                         )}
                         {visibleColumns.includes('customer_code') && <td className="py-2.5 px-3 font-bold text-gray-600">{o.customer_code}</td>}
-                        {visibleColumns.includes('customer_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.customer_name}</td>}
+                        {visibleColumns.includes('customer_name') && (
+                          <td className="py-2.5 px-3 font-bold text-gray-800">
+                            {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
+                              <a
+                                href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 no-underline"
+                                title="Mở chi tiết khách hàng trong tab mới"
+                              >
+                                <span>{o.customer_name}</span>
+                                <ExternalLink size={13} className="shrink-0" />
+                              </a>
+                            ) : (
+                              <span>{o.customer_name || 'Khách lẻ'}</span>
+                            )}
+                          </td>
+                        )}
                         {visibleColumns.includes('total') && <td className="py-2.5 px-3 text-right font-extrabold text-gray-900">{fmt(o.total)}</td>}
                         {visibleColumns.includes('must_pay_customer') && <td className="py-2.5 px-3 text-right font-extrabold text-amber-600">{fmt(o.must_pay_customer)}</td>}
                         {visibleColumns.includes('paid_customer') && <td className="py-2.5 px-3 text-right font-extrabold text-emerald-600">{fmt(o.paid_customer)}</td>}

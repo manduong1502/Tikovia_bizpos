@@ -3,7 +3,7 @@ import { reportAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2
+  ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2, ExternalLink
 } from 'lucide-react';
 // Dynamic imports will be used for XLSX to speed up route loading
 
@@ -395,7 +395,18 @@ export default function CustomersReportPage() {
                     {processedData.length > 0 ? processedData.map((item, i) => (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
                         <td className="px-3 py-2.5 text-[#0070F4] font-bold">{item.code || `KH${String(item.id).padStart(5,'0')}`}</td>
-                        <td className="px-3 py-2.5 text-gray-700">{item.name}</td>
+                        <td className="px-3 py-2.5">
+                          <a
+                            href={`/customers?search=${encodeURIComponent(item.code || item.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0070F4] font-bold hover:underline inline-flex items-center gap-1 no-underline"
+                            title="Mở chi tiết khách hàng trong tab mới"
+                          >
+                            <span>{item.name}</span>
+                            <ExternalLink size={12} className="shrink-0" />
+                          </a>
+                        </td>
                         <td className="px-3 py-2.5 text-right text-gray-800">{fmt(item.revenue)}</td>
                         <td className="px-3 py-2.5 text-right text-gray-600">{fmt(item.returnVal)}</td>
                         <td className="px-3 py-2.5 text-right text-gray-800 font-bold">{fmt(item.netRevenue)}</td>

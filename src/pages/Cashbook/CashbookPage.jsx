@@ -712,7 +712,21 @@ export default function CashbookPage() {
                           {e.category || 'Thu tiền khách trả'}
                         </td>
                         <td className="py-2.5 px-3 text-gray-800 font-bold">
-                          {e.partnerName || '---'}
+                          {e.partnerName && (e.partnerType === 'customer' || e.partnerType === 'Khách hàng' || e.category?.includes('khách') || e.customerId) ? (
+                            <a
+                              href={`/customers?search=${encodeURIComponent(e.partnerCode || e.partnerName)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 no-underline"
+                              title="Mở chi tiết khách hàng trong tab mới"
+                            >
+                              <span>{e.partnerName}</span>
+                              <ExternalLink size={13} className="shrink-0" />
+                            </a>
+                          ) : (
+                            <span>{e.partnerName || '---'}</span>
+                          )}
                         </td>
                         <td className={`py-2.5 px-3 text-right font-black ${isCancelled ? 'text-gray-400' : isInc ? 'text-emerald-600' : 'text-red-500'}`}>
                           {isInc ? `+${fmt(amt)}` : `-${fmt(amt)}`}

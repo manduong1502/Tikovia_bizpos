@@ -1011,7 +1011,21 @@ export default function OrdersPage() {
                       )}
                       {visibleColumns.includes('customer_name') && (
                         <td className="py-2.5 px-3 font-bold text-gray-800">
-                          {o.customer_name || 'Khách lẻ'}
+                          {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
+                            <a
+                              href={`/customers?search=${encodeURIComponent(o.customer_code || o.customer_name)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-primary hover:underline cursor-pointer inline-flex items-center gap-1 no-underline"
+                              title="Mở chi tiết khách hàng trong tab mới"
+                            >
+                              <span>{o.customer_name}</span>
+                              <ExternalLink size={13} className="shrink-0" />
+                            </a>
+                          ) : (
+                            <span>{o.customer_name || 'Khách lẻ'}</span>
+                          )}
                         </td>
                       )}
                       {visibleColumns.includes('total') && (

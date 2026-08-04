@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePOS, getLocalDateString, getLocalTimeString } from './POSContext';
-import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus } from 'lucide-react';
+import { Search, User, X, CheckCircle, ChevronLeft, Pin, ChevronDown, Plus, ExternalLink } from 'lucide-react';
 import api, { customerAPI, orderAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { printHTML } from '../../utils/exportUtils';
@@ -350,7 +350,16 @@ export default function POSPaymentPanel({ forceShow = false }) {
         <div style={{ display: 'flex', alignItems: 'center', padding: '16px', borderBottom: '1px solid var(--pos-border-light)' }}>
           <span style={{ color: 'var(--pos-text-muted)', marginRight: '12px' }}><User size={20} /></span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--pos-primary)' }}>{customer.name}</div>
+            <a
+              href={`/customers?search=${encodeURIComponent(customer.code || customer.name)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: '14px', fontWeight: '700', color: 'var(--pos-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              title="Mở chi tiết khách hàng trong tab mới"
+            >
+              <span>{customer.name}</span>
+              <ExternalLink size={13} />
+            </a>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
               {(customer.totalDebt || 0) > 0 && <span style={{ fontSize: '12px', color: 'var(--pos-danger)', fontWeight: '500' }}>Nợ: {new Intl.NumberFormat('vi-VN').format(customer.totalDebt)}</span>}
               <button 
