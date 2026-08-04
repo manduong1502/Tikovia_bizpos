@@ -1104,7 +1104,15 @@ export default function CustomersPage() {
               ].sort((a, b) => {
                 const dateA = a.date ? new Date(a.date).getTime() : 0;
                 const dateB = b.date ? new Date(b.date).getTime() : 0;
-                return dateB - dateA;
+                const timeDiff = dateB - dateA;
+                if (timeDiff !== 0) return timeDiff;
+                const getPriority = (type) => {
+                  if (type === 'Thanh toán') return 1;
+                  if (type === 'Trả hàng') return 2;
+                  if (type === 'Bán hàng') return 3;
+                  return 4;
+                };
+                return getPriority(a.type) - getPriority(b.type);
               });
 
               return (
