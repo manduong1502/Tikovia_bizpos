@@ -2,23 +2,31 @@
 
 @theme {
   --font-sans: "Inter", system-ui, sans-serif;
-  
-  --text-xs: 15px;      /* 12px -> 15px (+3px) */
-  --text-sm: 17px;      /* 14px -> 17px (+3px) */
-  --text-base: 19px;    /* 16px -> 19px (+3px) */
-  --text-lg: 21px;      /* 18px -> 21px (+3px) */
-  --text-xl: 23px;      /* 20px -> 23px (+3px) */
-  --text-2xl: 27px;     /* 24px -> 27px (+3px) */
 
-  --color-primary: #2563EB; /* Premium Deep Blue */
+  --text-xs: 14px;
+  /* 12px -> 15px (+3px) */
+  --text-sm: 16px;
+  /* 14px -> 17px (+3px) */
+  --text-base: 18px;
+  /* 16px -> 19px (+3px) */
+  --text-lg: 20px;
+  /* 18px -> 21px (+3px) */
+  --text-xl: 22px;
+  /* 20px -> 23px (+3px) */
+  --text-2xl: 26px;
+  /* 24px -> 27px (+3px) */
+
+  --color-primary: #2563EB;
+  /* Premium Deep Blue */
   --color-primary-hover: #1D4ED8;
-  --color-sidebar: #1E3A8A; /* Darker blue for sidebar */
+  --color-sidebar: #1E3A8A;
+  /* Darker blue for sidebar */
   --color-success: #10B981;
   --color-danger: #EF4444;
   --color-warning: #F59E0B;
   --color-border: var(--color-border-dynamic);
   --color-bg-light: var(--color-bg-light-dynamic);
-  
+
   /* Dynamic Dark Mode Colors */
   --color-white: var(--color-white-dynamic);
   --color-gray-50: var(--color-gray-50-dynamic);
@@ -48,10 +56,18 @@
 }
 
 html {
-  font-size: 19px !important; /* Base font size boosted +3px from 16px */
+  font-size: 19px !important;
+  /* Base font size boosted +3px from 16px */
 }
 
-body, table, td, th, input, select, textarea, button {
+body,
+table,
+td,
+th,
+input,
+select,
+textarea,
+button {
   margin: 0;
   font-family: var(--font-sans);
   background-color: var(--color-bg-light);
@@ -62,27 +78,82 @@ body, table, td, th, input, select, textarea, button {
 }
 
 /* ─── Global Font Size Boost (+3px) Overrides ─── */
-.text-xs { font-size: 15px !important; line-height: 1.4 !important; }
-.text-sm { font-size: 17px !important; line-height: 1.4 !important; }
-.text-base { font-size: 19px !important; line-height: 1.4 !important; }
-.text-lg { font-size: 21px !important; line-height: 1.4 !important; }
-.text-xl { font-size: 23px !important; line-height: 1.4 !important; }
-.text-2xl { font-size: 27px !important; line-height: 1.4 !important; }
+.text-xs {
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+}
+
+.text-sm {
+  font-size: 17px !important;
+  line-height: 1.4 !important;
+}
+
+.text-base {
+  font-size: 19px !important;
+  line-height: 1.4 !important;
+}
+
+.text-lg {
+  font-size: 21px !important;
+  line-height: 1.4 !important;
+}
+
+.text-xl {
+  font-size: 23px !important;
+  line-height: 1.4 !important;
+}
+
+.text-2xl {
+  font-size: 27px !important;
+  line-height: 1.4 !important;
+}
 
 /* Custom bracketed font sizes boost +3px */
-.text-\[9px\] { font-size: 12px !important; }
-.text-\[10px\] { font-size: 13px !important; }
-.text-\[11px\] { font-size: 14px !important; }
-.text-\[12px\] { font-size: 15px !important; }
-.text-\[13px\] { font-size: 16px !important; }
-.text-\[14px\] { font-size: 17px !important; }
-.text-\[15px\] { font-size: 18px !important; }
-.text-\[16px\] { font-size: 19px !important; }
-.text-\[18px\] { font-size: 21px !important; }
-.text-\[20px\] { font-size: 23px !important; }
+.text-\[9px\] {
+  font-size: 12px !important;
+}
+
+.text-\[10px\] {
+  font-size: 13px !important;
+}
+
+.text-\[11px\] {
+  font-size: 14px !important;
+}
+
+.text-\[12px\] {
+  font-size: 15px !important;
+}
+
+.text-\[13px\] {
+  font-size: 16px !important;
+}
+
+.text-\[14px\] {
+  font-size: 17px !important;
+}
+
+.text-\[15px\] {
+  font-size: 18px !important;
+}
+
+.text-\[16px\] {
+  font-size: 19px !important;
+}
+
+.text-\[18px\] {
+  font-size: 21px !important;
+}
+
+.text-\[20px\] {
+  font-size: 23px !important;
+}
 
 /* ─── Focus reset ─── */
-button:focus, input:focus, select:focus, textarea:focus {
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
   outline: none;
 }
 
@@ -91,13 +162,16 @@ button:focus, input:focus, select:focus, textarea:focus {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #c4c4c4;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #999;
 }
@@ -110,13 +184,27 @@ button:focus, input:focus, select:focus, textarea:focus {
 
 /* ─── Smooth page transition ─── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 800px; }
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+
+  to {
+    opacity: 1;
+    max-height: 800px;
+  }
 }
 
 .animate-page-in {
@@ -138,7 +226,9 @@ button:active:not(:disabled) {
 }
 
 /* ─── Focus-visible ring ─── */
-input:focus-visible, select:focus-visible, textarea:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
   border-color: #1a73e8;
 }
@@ -154,31 +244,46 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
    RESPONSIVE — Mobile & Tablet
    ═══════════════════════════════════════════ */
 @media (max-width: 1024px) {
+
   /* Hide sidebar filters on tablet */
-  .w-\[240px\] { display: none; }
+  .w-\[240px\] {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
+
   /* Stack header actions */
-  .flex.items-center.justify-between > .flex.items-center.gap-2 {
+  .flex.items-center.justify-between>.flex.items-center.gap-2 {
     flex-wrap: wrap;
   }
 
   /* Full width table search */
-  .w-1\/3 { width: 100% !important; }
+  .w-1\/3 {
+    width: 100% !important;
+  }
 }
 
 /* ═══════════════════════════════════════════
    HIGH-FIDELITY A4 PDF PRINT STYLES
    ═══════════════════════════════════════════ */
 @media print {
+
   /* Hide headers, footers, navbars, sidebars, and desktop toolbars completely */
-  header, nav, aside, .no-print, [title="In báo cáo (PDF)"], [title="Làm mới báo cáo"], .h-12 {
+  header,
+  nav,
+  aside,
+  .no-print,
+  [title="In báo cáo (PDF)"],
+  [title="Làm mới báo cáo"],
+  .h-12 {
     display: none !important;
   }
-  
+
   /* Reset outer container margins and paddings for single paper sheet */
-  body, html, #root {
+  body,
+  html,
+  #root {
     background: white !important;
     color: black !important;
     margin: 0 !important;
@@ -186,9 +291,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     width: 100% !important;
     height: auto !important;
   }
-  
+
   /* Reset main layouts to fluid blocks */
-  .flex, main, div, table {
+  .flex,
+  main,
+  div,
+  table {
     box-shadow: none !important;
     border: none !important;
   }
@@ -207,11 +315,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   }
 
   /* Force print background colors (header sky blue & group beige) */
-  thead tr, tr.bg-\[\#BFE3F9\] {
+  thead tr,
+  tr.bg-\[\#BFE3F9\] {
     background-color: #BFE3F9 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
   tr.bg-\[\#F7F2E8\] {
     background-color: #F7F2E8 !important;
     -webkit-print-color-adjust: exact !important;
@@ -224,4 +334,3 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 .fixed.inset-0[class*="bg-black/"] {
   z-index: 9999 !important;
 }
-

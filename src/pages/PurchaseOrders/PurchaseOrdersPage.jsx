@@ -431,11 +431,12 @@ export default function PurchaseOrdersPage() {
           {/* Row 1: Search + Primary Actions */}
           <div className="flex items-center gap-2 w-full lg:w-auto flex-1">
             <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 bg-white shadow-sm transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              title="Bộ lọc tìm kiếm"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`p-1.5 border rounded-lg transition-all cursor-pointer flex items-center justify-center shrink-0 ${!sidebarOpen ? 'border-primary text-primary bg-blue-50/50 shadow-sm' : 'border-gray-200 text-gray-600 bg-white hover:bg-gray-50'}`}
+              title={sidebarOpen ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
             >
               <Filter size={16} />
+              <span className="hidden sm:inline text-xs font-semibold ml-1.5">{sidebarOpen ? 'Ẩn bộ lọc' : 'Bộ lọc'}</span>
             </button>
             <div className="relative flex-1 sm:w-80">
               <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
