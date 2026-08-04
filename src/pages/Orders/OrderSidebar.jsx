@@ -5,10 +5,10 @@ export default function OrderSidebar({ filters, onFilterChange }) {
   const set = (key, val) => onFilterChange(prev => ({ ...prev, [key]: val }));
 
   return (
-    <div className="w-full shrink-0 flex flex-col gap-2 bg-white p-4 pb-[200px] rounded-2xl shadow-sm border border-gray-100 font-sans">
+    <div className="flex flex-col gap-3.5 w-full font-sans text-xs">
       {/* Thời gian */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian</span>
+        <span className="text-xs font-bold text-gray-900 mb-1.5 block tracking-tight">Thời gian</span>
         <DateFilter
           label="Thời gian"
           type="created"
@@ -17,14 +17,14 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         />
       </div>
 
-      <hr className="border-gray-100" />
+      <hr className="border-gray-100 my-0.5" />
 
       {/* Loại hóa đơn */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Loại hóa đơn</span>
-        <div className="flex flex-col gap-2.5">
+        <span className="text-xs font-bold text-gray-900 mb-2 block tracking-tight">Loại hóa đơn</span>
+        <div className="flex flex-col gap-2">
           {['Không giao hàng', 'Giao hàng'].map(label => (
-            <label key={label} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+            <label key={label} className="flex items-center gap-2.5 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
               <input type="checkbox" defaultChecked className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer" />
               <span>{label}</span>
             </label>
@@ -32,12 +32,12 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         </div>
       </div>
 
-      <hr className="border-gray-100" />
+      <hr className="border-gray-100 my-0.5" />
 
       {/* Trạng thái hóa đơn */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái hóa đơn</span>
-        <div className="flex flex-col gap-2.5">
+        <span className="text-xs font-bold text-gray-900 mb-2 block tracking-tight">Trạng thái hóa đơn</span>
+        <div className="flex flex-col gap-2">
           {[
             { label: 'Đang xử lý', val: 'pending', extraVals: ['processing', 'shipping'] },
             { label: 'Hoàn thành', val: 'completed' },
@@ -46,7 +46,7 @@ export default function OrderSidebar({ filters, onFilterChange }) {
           ].map(s => {
             const isChecked = filters.statuses?.has(s.val);
             return (
-              <label key={s.val} className="flex items-center gap-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
+              <label key={s.val} className="flex items-center gap-2.5 text-xs font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors">
                 <input
                   type="checkbox"
                   checked={isChecked}
@@ -70,11 +70,11 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         </div>
       </div>
 
-      <hr className="border-gray-100" />
+      <hr className="border-gray-100 my-0.5" />
 
       {/* Trạng thái giao hàng */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Trạng thái giao hàng</span>
+        <span className="text-xs font-bold text-gray-900 mb-1.5 block tracking-tight">Trạng thái giao hàng</span>
         <Dropdown
           value={filters.deliveryStatus || ''}
           options={[
@@ -87,11 +87,11 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         />
       </div>
 
-      <hr className="border-gray-100" />
+      <hr className="border-gray-100 my-0.5" />
 
       {/* Đối tác giao hàng */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Đối tác giao hàng</span>
+        <span className="text-xs font-bold text-gray-900 mb-1.5 block tracking-tight">Đối tác giao hàng</span>
         <Dropdown
           value={filters.deliveryPartner || ''}
           options={[
@@ -104,11 +104,11 @@ export default function OrderSidebar({ filters, onFilterChange }) {
         />
       </div>
 
-      <hr className="border-gray-100" />
+      <hr className="border-gray-100 my-0.5" />
 
       {/* Thời gian giao hàng */}
       <div>
-        <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian giao hàng</span>
+        <span className="text-xs font-bold text-gray-900 mb-1.5 block tracking-tight">Thời gian giao hàng</span>
         <DateFilter
           label="Thời gian giao hàng"
           type="expected"
