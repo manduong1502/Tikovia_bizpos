@@ -104,16 +104,18 @@ export default function POSHeader() {
         
         {/* Suggestions Dropdown */}
         {suggestions.length > 0 && (
-          <div className="absolute top-full left-0 w-[400px] mt-1 bg-white rounded shadow-lg border border-gray-200 z-50 max-h-[300px] overflow-y-auto">
+          <div className="absolute top-full left-0 w-[480px] sm:w-[540px] mt-1.5 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-[380px] overflow-y-auto p-1 font-sans">
             {suggestions.map(p => (
               <div 
                 key={p.id}
                 onClick={() => handleSelectProduct(p)}
-                className="flex items-center p-2 border-b border-gray-100 hover:bg-blue-50 cursor-pointer text-left"
+                className="flex items-center justify-between p-2.5 border-b border-gray-100 hover:bg-blue-50/80 rounded-lg cursor-pointer text-left transition-colors group"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-gray-800 truncate">{p.name} {p.unit ? `(${p.unit})` : ''}</div>
-                  <div className="text-[11px] text-gray-500 font-bold hover:underline hover:text-primary">
+                <div className="flex-1 min-w-0 pr-3">
+                  <div className="text-[15px] font-extrabold text-gray-900 group-hover:text-blue-600 truncate leading-snug">
+                    {p.name} {p.unit ? `(${p.unit})` : ''}
+                  </div>
+                  <div className="text-xs font-extrabold text-blue-600 hover:underline mt-0.5">
                     <a 
                       href={`/products?editSku=${p.sku}`} 
                       target="_blank" 
@@ -126,11 +128,11 @@ export default function POSHeader() {
                     </a>
                   </div>
                 </div>
-                <div className="text-right shrink-0 ml-3">
-                  <div className="text-[13px] font-bold text-[#1a73e8]">
+                <div className="text-right shrink-0">
+                  <div className="text-base font-black text-[#0070F4]">
                     {new Intl.NumberFormat('vi-VN').format(p.sellPrice)}
                   </div>
-                  <div className={`text-[11px] ${p.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  <div className={`text-xs font-bold mt-0.5 ${p.stock > 0 ? 'text-emerald-600 font-extrabold' : 'text-red-600 font-extrabold'}`}>
                     Tồn: {Number(p.stock || 0).toLocaleString('vi-VN', { maximumFractionDigits: 3 })}
                   </div>
                 </div>
