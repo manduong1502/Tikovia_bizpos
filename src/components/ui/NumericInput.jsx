@@ -11,9 +11,8 @@ const NumericInput = forwardRef(({
   const [isFocused, setIsFocused] = useState(false);
 
   // Helper to format string/number to dot/comma separated string
-  const formatValue = (val, focusedOverride) => {
+  const formatValue = (val) => {
     if (val === undefined || val === null || val === '') return '';
-    const focused = focusedOverride !== undefined ? focusedOverride : isFocused;
 
     if (allowDecimal) {
       // Convert to string and handle decimals
@@ -24,33 +23,11 @@ const NumericInput = forwardRef(({
       if (parts.length > 2) {
         str = parts[0] + '.' + parts.slice(1).join('');
       }
-      
-      if (!str) return '';
-      
-      if (focused) {
-        // When focused, show the raw string with dot so user can edit easily
-        return str;
-      }
-      
-      const num = Number(str);
-      if (isNaN(num)) return str;
-      
-      // format to Vietnamese style: e.g. 1,5
-      return new Intl.NumberFormat('vi-VN', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 4
-      }).format(num);
+      return str;
     } else {
-      // Strip non-digits
+      // Strip non-digits and format with Vietnamese thousand separators (.)
       const numericStr = String(val).replace(/\D/g, '');
       if (!numericStr) return '';
-      
-      if (focused) {
-        // Show raw number without separators when focused
-        return numericStr;
-      }
-      
-      // For integer values, always format with thousand separators when blurred
       return new Intl.NumberFormat('vi-VN').format(Number(numericStr));
     }
   };
@@ -69,7 +46,7 @@ const NumericInput = forwardRef(({
       const currentNum = Number(String(displayValue).replace(/\D/g, ''));
       const parentNum = Number(value) || 0;
       
-      if (currentNum !== parentNum || displayValue === '') {
+      if (currentNum !== parentNum || (displayValue === '' && value !== '' && value !== null && value !== undefined)) {
         setDisplayValue(formatValue(value));
       }
     }
@@ -103,7 +80,8 @@ const NumericInput = forwardRef(({
       }
     } else {
       const numericStr = rawVal.replace(/\D/g, '');
-      setDisplayValue(numericStr);
+      const formatted = numericStr ? new Intl.NumberFormat('vi-VN').format(Number(numericStr)) : '';
+      setDisplayValue(formatted);
       
       if (onChange) {
         onChange({
@@ -118,13 +96,12 @@ const NumericInput = forwardRef(({
 
   const handleFocus = (e) => {
     setIsFocused(true);
-    setDisplayValue(formatValue(value, true));
     if (props.onFocus) props.onFocus(e);
   };
 
   const handleBlur = (e) => {
     setIsFocused(false);
-    setDisplayValue(formatValue(value, false));
+    setDisplayValue(formatValue(value));
     if (props.onBlur) props.onBlur(e);
   };
 

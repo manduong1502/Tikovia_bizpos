@@ -159,8 +159,13 @@ export default function POSCart() {
                               onClick={(e) => { e.stopPropagation(); e.target.select(); }}
                               onChange={(e) => updateWeighingSubRow(item.product.id, w.id, { quantity: e.target.value })}
                               onBlur={(e) => {
-                                const val = parseFloat(e.target.value);
-                                if (isNaN(val) || val <= 0) updateWeighingSubRow(item.product.id, w.id, { quantity: 1 });
+                                const cleanStr = String(e.target.value).replace(/,/g, '.');
+                                const val = parseFloat(cleanStr);
+                                if (isNaN(val) || val <= 0) {
+                                  updateWeighingSubRow(item.product.id, w.id, { quantity: 1 });
+                                } else {
+                                  updateWeighingSubRow(item.product.id, w.id, { quantity: val });
+                                }
                               }}
                             />
                             <button 

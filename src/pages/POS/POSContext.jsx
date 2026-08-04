@@ -124,13 +124,19 @@ export function POSProvider({ children }) {
         }
       }
 
-      const editCart = (targetOrder.items || []).map(it => {
+      const editCart = (targetOrder.items || []).map((it, idx) => {
         const prod = products.find(p => p.id === it.productId || p.sku === it.product_sku);
+        const itemPrice = Number(it.unit_price || it.price || 0);
+        const itemQty = Number(it.quantity || 1);
+        const itemDiscount = Number(it.discount || 0);
+        const itemId = it.id || (Date.now() + idx);
         return {
-          product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: Number(it.unit_price || it.price || 0), stock: 9999 },
-          quantity: Number(it.quantity),
-          price: Number(it.unit_price || it.price || 0),
-          discount: Number(it.discount || 0),
+          id: itemId,
+          product: prod || { id: it.productId, name: it.product_name, sku: it.product_sku, sellPrice: itemPrice, stock: 9999 },
+          quantity: itemQty,
+          price: itemPrice,
+          discount: itemDiscount,
+          weighings: [{ id: itemId, quantity: itemQty, price: itemPrice, discount: itemDiscount }]
         };
       });
 
@@ -239,17 +245,19 @@ export function POSProvider({ children }) {
 
   const normalizeItemWeighings = (item) => {
     if (!item) return [];
+    const itemId = item.id || Date.now();
     if (!item.weighings || !Array.isArray(item.weighings) || item.weighings.length === 0) {
       return [{
-        id: item.id || Date.now(),
-        quantity: parseVNFloat(item.quantity, 1),
+        id: itemId,
+        quantity: item.quantity !== undefined ? item.quantity : 1,
         price: parseVNFloat(item.price, parseVNFloat(item.product?.sellPrice, 0)),
         discount: parseVNFloat(item.discount, 0)
       }];
     }
-    return item.weighings.map(w => ({
+    return item.weighings.map((w, idx) => ({
       ...w,
-      quantity: parseVNFloat(w.quantity, 1),
+      id: w.id || `${itemId}_${idx}`,
+      quantity: w.quantity !== undefined ? w.quantity : 1,
       price: parseVNFloat(w.price, parseVNFloat(item.product?.sellPrice, 0)),
       discount: parseVNFloat(w.discount, 0)
     }));
