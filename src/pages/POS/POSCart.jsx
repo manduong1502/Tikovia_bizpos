@@ -156,13 +156,31 @@ export default function POSCart() {
                             </button>
                           </div>
 
-                          {/* Unit Price */}
-                          <div className="w-20 text-right">
-                            <NumericInput 
-                              value={w.price}
-                              onChange={(e) => updateWeighingSubRow(item.product.id, w.id, { price: Number(e.target.value) })}
-                              className="w-full text-right font-medium text-gray-700 border-b border-gray-300 outline-none text-xs bg-transparent focus:border-primary"
-                            />
+                          {/* Unit Price & Cost Price Warning */}
+                          <div className="flex flex-col items-end shrink-0">
+                            <div className="w-24 text-right">
+                              <NumericInput 
+                                value={w.price}
+                                onChange={(e) => {
+                                  const newPrice = Number(e.target.value);
+                                  const costPrice = Number(item.product.costPrice || item.product.cost_price || 0);
+                                  if (costPrice > 0 && newPrice < costPrice) {
+                                    toast.error(`⚠️ Cảnh báo: Giá bán (${new Intl.NumberFormat('vi-VN').format(newPrice)}đ) thấp hơn Giá vốn (${new Intl.NumberFormat('vi-VN').format(costPrice)}đ)!`, { id: `cost-warn-${item.product.id}` });
+                                  }
+                                  updateWeighingSubRow(item.product.id, w.id, { price: newPrice });
+                                }}
+                                className={`w-full text-right font-bold text-xs bg-transparent border-b outline-none focus:border-primary transition-all ${
+                                  (Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0))
+                                    ? 'border-red-500 text-red-600 font-extrabold bg-red-50/80 px-1 rounded'
+                                    : 'border-gray-300 text-gray-800'
+                                }`}
+                              />
+                            </div>
+                            {Number(item.product.costPrice || item.product.cost_price || 0) > 0 && Number(w.price || 0) < Number(item.product.costPrice || item.product.cost_price || 0) && (
+                              <span className="text-[10px] font-extrabold text-red-600 bg-red-100/90 border border-red-300 rounded px-1 py-0.5 mt-0.5 whitespace-nowrap animate-pulse">
+                                ⚠️ &lt; Giá vốn ({new Intl.NumberFormat('vi-VN').format(item.product.costPrice || item.product.cost_price)})
+                              </span>
+                            )}
                           </div>
 
                           {/* Subtotal */}
