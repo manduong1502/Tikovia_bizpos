@@ -263,41 +263,50 @@
 /* Cart Footer */
 .pos-cart-footer {
   background: var(--pos-surface); border-top: 1px solid var(--pos-border);
-  display: flex; align-items: center; padding: 16px 24px; gap: 24px;
+  display: flex; align-items: center; padding: 12px 20px; gap: 20px;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
   z-index: 10;
 }
 .pos-cart-footer .pos-note-input {
-  flex: 1; display: flex; align-items: flex-start; gap: 12px;
-  background: #ffffff; padding: 10px 16px;
-  border-radius: var(--pos-radius-md); border: 1.5px solid #cbd5e1;
-  transition: all 0.2s;
-  min-height: 90px;
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  background: #ffffff; padding: 8px 14px;
+  border-radius: 12px; border: 1.5px solid #cbd5e1;
+  transition: all 0.2s ease;
+  min-height: 42px;
   height: auto;
+  cursor: text;
 }
 .pos-cart-footer .pos-note-input:focus-within {
-  background: var(--pos-surface); border-color: var(--pos-primary);
-  box-shadow: 0 0 0 3px var(--pos-primary-light);
+  background: #ffffff; border-color: #0070F4;
+  box-shadow: 0 0 0 3px rgba(0, 112, 244, 0.15);
 }
 .pos-cart-footer .pos-note-input textarea {
   border: none; outline: none; font-size: 15px; color: #0f172a; flex: 1;
-  background: transparent; font-weight: 700;
-  resize: vertical !important;
+  background: transparent; font-weight: 600;
+  resize: none !important;
   font-family: inherit;
-  line-height: 1.5;
-  min-height: 70px;
+  line-height: 1.4;
+  height: 24px;
+  min-height: 24px;
+  max-height: 120px;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
 }
-.pos-cart-footer .pos-note-input textarea::placeholder { color: #64748b; font-weight: 500; font-size: 14px; }
+.pos-cart-footer .pos-note-input textarea::placeholder { color: #64748b; font-weight: 500; font-size: 15px; }
 
 .pos-cart-footer .pos-total-summary {
   display: flex; align-items: center; gap: 16px;
 }
 .pos-cart-footer .pos-total-summary > span:first-child {
-  font-size: 15px; font-weight: 600; color: var(--pos-text-body);
+  font-size: 16px; font-weight: 700; color: #334155;
 }
 .pos-cart-footer #pos-item-count {
-  background: var(--pos-primary-light); color: var(--pos-primary);
-  padding: 4px 10px; border-radius: 20px; font-size: 14px; font-weight: 700;
+  background: #EFF6FF; color: #0070F4;
+  padding: 4px 12px; border-radius: 20px; font-size: 15px; font-weight: 800;
+}
+.pos-cart-footer .pos-total-amount {
+  font-size: 24px; font-weight: 900; color: #0070F4; letter-spacing: -0.5px;
 }
 .pos-cart-footer .pos-total-amount {
   font-size: 24px; font-weight: 800; color: var(--pos-primary);
@@ -364,27 +373,27 @@
   transform: translateY(-1px);
 }
 
-.pos-payment-rows { padding: 12px 16px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.pos-payment-rows { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
 .pos-payment-row {
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 13.5px; padding: 2px 0;
+  font-size: 15px; padding: 4px 0;
 }
-.pos-payment-row .label { color: #555; font-weight: 500; }
-.pos-payment-row .value { font-weight: 600; color: #111; text-align: right; }
+.pos-payment-row .label { color: #334155; font-weight: 600; font-size: 15px; }
+.pos-payment-row .value { font-weight: 700; color: #0f172a; font-size: 16px; text-align: right; }
 .pos-payment-row .value input {
-  width: 120px; border: none; border-bottom: 1px solid #ddd;
-  text-align: right; font-size: 14px; outline: none; padding: 2px 0;
-  font-weight: 600; color: #111; background: transparent;
+  width: 140px; border: none; border-bottom: 2px solid #0070F4;
+  text-align: right; font-size: 16px; outline: none; padding: 2px 0;
+  font-weight: 700; color: #0f172a; background: transparent;
   transition: border-color 0.2s;
 }
-.pos-payment-row .value input:focus { border-color: var(--pos-primary); }
+.pos-payment-row .value input:focus { border-color: #005AC3; }
 
-.pos-payment-row.total { margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--pos-border); }
-.pos-payment-row.total .label { font-weight: 700; color: #111; font-size: 14.5px; }
-.pos-payment-row.total .value { font-weight: 800; color: #1a73e8; font-size: 18px; letter-spacing: -0.3px; }
+.pos-payment-row.total { margin-top: 8px; padding-top: 14px; border-top: 1px dashed var(--pos-border); }
+.pos-payment-row.total .label { font-weight: 800; color: #0f172a; font-size: 17px; }
+.pos-payment-row.total .value { font-weight: 900; color: #0070F4; font-size: 24px; letter-spacing: -0.3px; }
 
-.pos-payment-row.change .label { color: var(--pos-text-muted); }
-.pos-payment-row.change .value { color: var(--pos-text-muted); font-size: 16px; }
+.pos-payment-row.change .label { color: #64748b; font-size: 15px; font-weight: 600; }
+.pos-payment-row.change .value { color: #0f172a; font-size: 18px; font-weight: 800; }
 
 .pos-bank-section {
   margin: auto 16px 16px; padding: 16px; background: var(--pos-surface-muted);

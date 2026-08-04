@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePOS } from './POSContext';
 import { Trash2, Edit2, Plus, MoreVertical } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,6 +18,19 @@ export default function POSCart() {
   
   const cart = currentInvoice?.cart || [];
   const [editingItemId, setEditingItemId] = useState(null);
+  const noteRef = useRef(null);
+
+  useEffect(() => {
+    if (noteRef.current) {
+      noteRef.current.style.height = 'auto';
+      const newHeight = Math.min(120, Math.max(24, noteRef.current.scrollHeight));
+      noteRef.current.style.height = `${newHeight}px`;
+    }
+  }, [currentInvoice?.note]);
+
+  const handleNoteChange = (e) => {
+    updateCurrentInvoice({ note: e.target.value });
+  };
   const [popoverUnitPrice, setPopoverUnitPrice] = useState(0);
   const [popoverDiscount, setPopoverDiscount] = useState(0);
   const [popoverDiscountType, setPopoverDiscountType] = useState('VND'); // 'VND' | '%'
@@ -229,13 +242,17 @@ export default function POSCart() {
       )}
 
       <div className="pos-cart-footer">
-        <div className="pos-note-input">
-          <span>✏️</span>
+        <div 
+          className="pos-note-input"
+          onClick={() => noteRef.current?.focus()}
+        >
+          <span className="text-gray-400 text-sm select-none shrink-0">✏️</span>
           <textarea 
+            ref={noteRef}
             placeholder="Ghi chú đơn hàng" 
             value={currentInvoice?.note || ''}
-            onChange={(e) => updateCurrentInvoice({ note: e.target.value })}
-            rows={2}
+            onChange={handleNoteChange}
+            rows={1}
           />
         </div>
         <div className="pos-total-summary">
