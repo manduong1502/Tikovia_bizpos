@@ -51,6 +51,8 @@ const scrollRowIntoView = (id) => {
       }
     }
   }, 100);
+};
+
 const TIME_PRESET_LABELS = {
   today: 'Hôm nay',
   yesterday: 'Hôm qua',
