@@ -317,38 +317,52 @@ export default function OrdersPage() {
   const searchPanelRef = useRef(null);
 
   const reload = useCallback(async (showSpinner = false) => {
-    // 1. Instant Cache Load from Memory / SessionStorage
+    let hasLoadedCache = false;
+
+    // 1. Instant Cache Load from Memory / localStorage / sessionStorage (0ms response on new tab!)
     if (window.__tikovia_orders_cache && Array.isArray(window.__tikovia_orders_cache) && window.__tikovia_orders_cache.length > 0) {
       setOrders(window.__tikovia_orders_cache);
       setIsLoading(false);
+      hasLoadedCache = true;
     } else {
       try {
-        const cachedStr = sessionStorage.getItem('tikovia_orders_cache');
+        const cachedStr = localStorage.getItem('tikovia_orders_cache') || sessionStorage.getItem('tikovia_orders_cache');
         if (cachedStr) {
           const parsed = JSON.parse(cachedStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
             window.__tikovia_orders_cache = parsed;
             setOrders(parsed);
             setIsLoading(false);
+            hasLoadedCache = true;
           }
         }
       } catch (e) {}
     }
 
-    if (showSpinner || !window.__tikovia_orders_cache) {
+    if (showSpinner || !hasLoadedCache) {
       setIsLoading(true);
     }
 
     try {
-      const params = { page: 1, limit: 50000 };
-      const r = await orderAPI.getAll(params);
-      const rawList = Array.isArray(r) ? r : (r?.data || []);
-      if (rawList.length > 0) {
-        window.__tikovia_orders_cache = rawList;
+      // Step A: Fast tier fetch (top 500) for instant UI responsiveness
+      const rFast = await orderAPI.getAll({ page: 1, limit: 500 });
+      const fastList = Array.isArray(rFast) ? rFast : (rFast?.data || []);
+      if (fastList.length > 0) {
+        setOrders(fastList);
+        setIsLoading(false); // Stop skeleton spinner immediately!
+        window.__tikovia_orders_cache = fastList;
+      }
+
+      // Step B: Background fetch full dataset
+      const rFull = await orderAPI.getAll({ page: 1, limit: 50000 });
+      const fullList = Array.isArray(rFull) ? rFull : (rFull?.data || []);
+      if (fullList.length > 0) {
+        window.__tikovia_orders_cache = fullList;
         try {
-          sessionStorage.setItem('tikovia_orders_cache', JSON.stringify(rawList));
+          localStorage.setItem('tikovia_orders_cache', JSON.stringify(fullList.slice(0, 2000)));
+          sessionStorage.setItem('tikovia_orders_cache', JSON.stringify(fullList.slice(0, 2000)));
         } catch (e) {}
-        setOrders(rawList);
+        setOrders(fullList);
       }
     } catch (err) {
       console.warn('Silent order reload error:', err);

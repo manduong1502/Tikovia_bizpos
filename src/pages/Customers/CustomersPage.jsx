@@ -367,25 +367,29 @@ export default function CustomersPage() {
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
   const reload = useCallback(async (showSpinner = false) => {
-    // 1. Instant Cache Load from Memory / SessionStorage
+    let hasLoadedCache = false;
+
+    // 1. Instant Cache Load from Memory / localStorage / sessionStorage (0ms response on new tab!)
     if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
       setCustomers(window.__tikovia_customers_cache);
       setIsLoading(false);
+      hasLoadedCache = true;
     } else {
       try {
-        const cachedStr = sessionStorage.getItem('tikovia_customers_cache');
+        const cachedStr = localStorage.getItem('tikovia_customers_cache') || sessionStorage.getItem('tikovia_customers_cache');
         if (cachedStr) {
           const parsed = JSON.parse(cachedStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
             window.__tikovia_customers_cache = parsed;
             setCustomers(parsed);
             setIsLoading(false);
+            hasLoadedCache = true;
           }
         }
       } catch (e) {}
     }
 
-    if (showSpinner || !window.__tikovia_customers_cache) {
+    if (showSpinner || !hasLoadedCache) {
       setIsLoading(true);
     }
 
@@ -402,6 +406,7 @@ export default function CustomersPage() {
       if (rawList.length > 0) {
         window.__tikovia_customers_cache = rawList;
         try {
+          localStorage.setItem('tikovia_customers_cache', JSON.stringify(rawList));
           sessionStorage.setItem('tikovia_customers_cache', JSON.stringify(rawList));
         } catch (e) {}
         setCustomers(rawList);
