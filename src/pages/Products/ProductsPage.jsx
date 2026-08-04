@@ -68,7 +68,7 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSku, setSearchSku] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchName, setSearchName] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
 

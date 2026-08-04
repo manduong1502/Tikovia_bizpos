@@ -89,7 +89,7 @@ export default function ReturnsPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);

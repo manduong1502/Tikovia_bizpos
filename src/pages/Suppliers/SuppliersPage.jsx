@@ -71,7 +71,7 @@ export default function SuppliersPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);

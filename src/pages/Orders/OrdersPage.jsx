@@ -95,7 +95,7 @@ export default function OrdersPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const { registerOrderUpdateCallback, unregisterOrderUpdateCallback } = useSocket() || {};
 

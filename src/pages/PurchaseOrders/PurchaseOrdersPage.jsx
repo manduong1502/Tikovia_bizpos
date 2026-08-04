@@ -155,7 +155,7 @@ export default function PurchaseOrdersPage() {
   const [searchCode, setSearchCode] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
   const [searchSupplierCode, setSearchSupplierCode] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);

@@ -336,7 +336,7 @@ export default function CustomersPage() {
   const [filterDeliveryArea, setFilterDeliveryArea] = useState('');
   const [filterStatus, setFilterStatus] = useState('Tất cả');
 
-  const [detailTab, setDetailTab] = useState('info');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [custNotes, setCustNotes] = useState({});
 
   const columnMenuRef = useRef(null);

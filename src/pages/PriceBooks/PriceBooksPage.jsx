@@ -90,7 +90,7 @@ export default function PriceBooksPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchSku, setSearchSku] = useState('');
   const [searchName, setSearchName] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
