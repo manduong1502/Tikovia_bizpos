@@ -3,10 +3,11 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { 
   Printer, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, 
-  Calendar, RotateCcw, Building2, HelpCircle, FileText
+  RotateCcw, Building2, FileText
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
+import { getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
 import { exportCSV } from '../../utils/exportUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
@@ -14,42 +15,37 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 
 export default function FinancialReportPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState({ type: 'thisMonth' });
+  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Tháng trước' });
   const [zoom, setZoom] = useState(100);
 
-  // Helper to compute date range strings
+  // Compute date range strings based on DateFilter selection
   const getDates = () => {
-    const now = new Date();
-    if (dateFilter.type === 'today') {
-      const dStr = now.toISOString().split('T')[0];
-      return { fromDate: dStr, toDate: dStr, label: `Ngày ${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}` };
+    if (!dateFilter || dateFilter.label === 'Toàn thời gian') {
+      return { fromDate: '', toDate: '', label: 'Toàn thời gian' };
     }
-    if (dateFilter.type === 'thisMonth') {
-      const y = now.getFullYear();
-      const m = String(now.getMonth() + 1).padStart(2, '0');
-      const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+
+    if (dateFilter.mode === 'custom' && dateFilter.start && dateFilter.end) {
+      const f = new Date(dateFilter.start).toISOString().split('T')[0];
+      const t = new Date(dateFilter.end).toISOString().split('T')[0];
       return { 
-        fromDate: `${y}-${m}-01`, 
-        toDate: `${y}-${m}-${lastDay}`,
-        label: `Từ ngày 01/${m}/${y} đến ngày ${lastDay}/${m}/${y}`
+        fromDate: f, 
+        toDate: t, 
+        label: `Từ ngày ${new Date(dateFilter.start).toLocaleDateString('vi-VN')} đến ngày ${new Date(dateFilter.end).toLocaleDateString('vi-VN')}` 
       };
     }
-    if (dateFilter.type === 'custom' && dateFilter.startDate && dateFilter.endDate) {
-      return {
-        fromDate: dateFilter.startDate,
-        toDate: dateFilter.endDate,
-        label: `Từ ngày ${dateFilter.startDate} đến ngày ${dateFilter.endDate}`
+
+    const range = getRangeByCreatedLabel(dateFilter.label || 'Tháng trước');
+    if (range && range.start && range.end) {
+      const f = range.start.toISOString().split('T')[0];
+      const t = range.end.toISOString().split('T')[0];
+      return { 
+        fromDate: f, 
+        toDate: t, 
+        label: `Từ ngày ${range.start.toLocaleDateString('vi-VN')} đến ngày ${range.end.toLocaleDateString('vi-VN')}` 
       };
     }
-    // Default fallback to this month
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
-    return { 
-      fromDate: `${y}-${m}-01`, 
-      toDate: `${y}-${m}-${lastDay}`,
-      label: `Từ ngày 01/${m}/${y} đến ngày ${lastDay}/${m}/${y}`
-    };
+
+    return { fromDate: '', toDate: '', label: 'Toàn thời gian' };
   };
 
   const { fromDate, toDate, label: dateRangeLabel } = getDates();
@@ -57,7 +53,11 @@ export default function FinancialReportPage() {
   const fetchReport = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('/api/reports/financial', { params: { fromDate, toDate } });
+      const params = {};
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
+
+      const res = await axios.get('/api/reports/financial', { params });
       setData(res.data);
     } catch (err) {
       console.error(err);
@@ -112,7 +112,7 @@ export default function FinancialReportPage() {
         { key: 'val', label: 'Số tiền (VNĐ)' }
       ],
       rows,
-      `BaoCaoTaiChinh_${fromDate}_${toDate}`
+      `BaoCaoTaiChinh_${fromDate || 'All'}_${toDate || 'All'}`
     );
     toast.success('Đã xuất file báo cáo tài chính thành công');
   };
@@ -228,7 +228,7 @@ export default function FinancialReportPage() {
           {/* Paper View Container */}
           <div className="flex-1 overflow-auto p-6 flex justify-center items-start custom-scrollbar">
             <div 
-              className="bg-white shadow-2xl rounded-sm p-10 text-gray-800 transition-transform origin-top duration-150 border border-gray-300"
+              className="bg-white shadow-2xl rounded-sm p-10 text-gray-800 transition-transform origin-top duration-150 border border-gray-300 relative"
               style={{ 
                 width: '820px', 
                 minHeight: '1050px',
@@ -236,6 +236,15 @@ export default function FinancialReportPage() {
                 marginBottom: zoom > 100 ? `${(zoom - 100) * 10}px` : '0px'
               }}
             >
+              {loading && (
+                <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20">
+                  <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                    <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
+                    Đang tải dữ liệu báo cáo...
+                  </div>
+                </div>
+              )}
+
               {/* Document Header */}
               <div className="text-center mb-8">
                 <div className="text-[11px] text-gray-500 font-semibold mb-2 text-left">
