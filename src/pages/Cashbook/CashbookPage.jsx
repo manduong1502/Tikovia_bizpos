@@ -237,8 +237,13 @@ export default function CashbookPage() {
   const reload = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = { limit: 500000 };
+      const params = { limit: 10000 };
       if (search) params.search = search;
+      if (timeFilter !== 'all_time') {
+        const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
+        if (start) params.from = start.toISOString();
+        if (end) params.to = end.toISOString();
+      }
       
       const r = await cashbookAPI.getAll(params);
       const data = r.data || (Array.isArray(r) ? r : []);
@@ -249,7 +254,7 @@ export default function CashbookPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, timeFilter, customDate]);
 
   useEffect(() => { 
     reload();
