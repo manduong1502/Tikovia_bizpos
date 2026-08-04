@@ -227,7 +227,14 @@ export const orderAPI = {
     list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
     const existingCodes = new Set(list.map(o => o.code));
     const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
-    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+    return { 
+      data: [...toAdd, ...list], 
+      total: r?.data?.total || (list.length + toAdd.length), 
+      page: r?.data?.page || 1, 
+      limit: r?.data?.limit || 100, 
+      totalPages: r?.data?.totalPages || 1,
+      summaryStats: r?.data?.summaryStats 
+    };
   }).catch(() => {
     let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
     list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
