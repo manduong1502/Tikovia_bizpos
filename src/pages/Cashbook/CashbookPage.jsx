@@ -53,6 +53,130 @@ const scrollRowIntoView = (id) => {
   }, 100);
 };
 
+const TIME_PRESET_LABELS = {
+  today: 'Hôm nay',
+  yesterday: 'Hôm qua',
+  this_week: 'Tuần này',
+  last_week: 'Tuần trước',
+  last_7_days: '7 ngày qua',
+  this_month: 'Tháng này',
+  month: 'Tháng này',
+  last_month: 'Tháng trước',
+  last_30_days: '30 ngày qua',
+  this_quarter: 'Quý này',
+  last_quarter: 'Quý trước',
+  this_year: 'Năm nay',
+  last_year: 'Năm trước',
+  all_time: 'Toàn thời gian',
+  custom: 'Tùy chỉnh'
+};
+
+const getDateRange = (preset, customFrom = '', customTo = '') => {
+  const now = new Date();
+  let start = null;
+  let end = null;
+
+  switch (preset) {
+    case 'today': {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'yesterday': {
+      const y = new Date(now);
+      y.setDate(now.getDate() - 1);
+      start = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 0, 0, 0, 0);
+      end = new Date(y.getFullYear(), y.getMonth(), y.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'this_week': {
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      end = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'last_week': {
+      const day = now.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1 - day) - 7;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      start = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate(), 0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      end = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'last_7_days': {
+      const past = new Date(now);
+      past.setDate(now.getDate() - 6);
+      start = new Date(past.getFullYear(), past.getMonth(), past.getDate(), 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'this_month':
+    case 'month': {
+      start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      break;
+    }
+    case 'last_month': {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      break;
+    }
+    case 'last_30_days': {
+      const past = new Date(now);
+      past.setDate(now.getDate() - 29);
+      start = new Date(past.getFullYear(), past.getMonth(), past.getDate(), 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      break;
+    }
+    case 'this_quarter': {
+      const q = Math.floor(now.getMonth() / 3);
+      start = new Date(now.getFullYear(), q * 3, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), (q + 1) * 3, 0, 23, 59, 59, 999);
+      break;
+    }
+    case 'last_quarter': {
+      let qYear = now.getFullYear();
+      let q = Math.floor(now.getMonth() / 3) - 1;
+      if (q < 0) {
+        q = 3;
+        qYear -= 1;
+      }
+      start = new Date(qYear, q * 3, 1, 0, 0, 0, 0);
+      end = new Date(qYear, (q + 1) * 3, 0, 23, 59, 59, 999);
+      break;
+    }
+    case 'this_year': {
+      start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+    }
+    case 'last_year': {
+      start = new Date(now.getFullYear() - 1, 0, 1, 0, 0, 0, 0);
+      end = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+      break;
+    }
+    case 'custom': {
+      if (customFrom) start = new Date(customFrom + 'T00:00:00');
+      if (customTo) end = new Date(customTo + 'T23:59:59.999');
+      break;
+    }
+    case 'all_time':
+    default: {
+      break;
+    }
+  }
+
+  return { start, end };
+};
+
 export default function CashbookPage() {
   const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
@@ -61,7 +185,20 @@ export default function CashbookPage() {
   
   // Advanced Sidebar Filters States
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all'); // all, cash, bank, wallet
-  const [timeFilter, setTimeFilter] = useState({ mode: 'all', label: 'Tháng này' });
+  const [timeFilter, setTimeFilter] = useState('this_month');
+  const [customDate, setCustomDate] = useState({ from: '', to: '' });
+  const [showTimePopover, setShowTimePopover] = useState(false);
+  const timePopoverRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (timePopoverRef.current && !timePopoverRef.current.contains(event.target)) {
+        setShowTimePopover(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const [showIncome, setShowIncome] = useState(true);
   const [showExpense, setShowExpense] = useState(true);
@@ -100,8 +237,13 @@ export default function CashbookPage() {
   const reload = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = { limit: 500000 };
+      const params = { limit: 10000 };
       if (search) params.search = search;
+      if (timeFilter !== 'all_time') {
+        const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
+        if (start) params.from = start.toISOString();
+        if (end) params.to = end.toISOString();
+      }
       
       const r = await cashbookAPI.getAll(params);
       const data = r.data || (Array.isArray(r) ? r : []);
@@ -112,7 +254,7 @@ export default function CashbookPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [search]);
+  }, [search, timeFilter, customDate]);
 
   useEffect(() => { 
     reload();
@@ -214,15 +356,15 @@ export default function CashbookPage() {
       if (paymentMethodFilter === 'bank' && e.paymentMethod !== 'bank') return false;
       if (paymentMethodFilter === 'wallet' && e.paymentMethod !== 'wallet') return false;
 
-      // 2. Time Filter using DateFilter & inDateRange
-      let range = null;
-      if (timeFilter?.mode === 'custom' && (timeFilter?.start || timeFilter?.end)) {
-        range = { start: timeFilter.start, end: timeFilter.end };
-      } else if (timeFilter?.label && timeFilter?.label !== 'Toàn thời gian') {
-        range = getRangeByCreatedLabel(timeFilter.label);
-      }
-      if (range && !inDateRange(e.createdAt || e.created_at || e.date, range)) {
-        return false;
+      // 2. Time Filter
+      if (timeFilter !== 'all_time') {
+        const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
+        const itemDate = e.createdAt || e.created_at || e.date;
+        if (itemDate) {
+          const d = new Date(itemDate);
+          if (start && d < start) return false;
+          if (end && d > end) return false;
+        }
       }
 
       // 3. Document type (Phiếu thu / Phiếu chi)
@@ -422,14 +564,234 @@ export default function CashbookPage() {
           <hr className="border-gray-100" />
 
           {/* 2. Thời gian */}
-          <div>
+          <div className="relative" ref={timePopoverRef}>
             <span className="text-xs font-extrabold text-gray-900 mb-2 block uppercase tracking-wider">Thời gian</span>
-            <DateFilter
-              label="Thời gian tạo"
-              type="created"
-              value={timeFilter}
-              onChange={val => setTimeFilter(val)}
-            />
+            <div className="flex flex-col gap-2">
+              
+              {/* Preset Selector Option */}
+              <div className="flex items-center gap-2">
+                <input 
+                  type="radio" 
+                  name="timeFilterType" 
+                  id="timeFilterPreset"
+                  className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer shrink-0"
+                  checked={timeFilter !== 'custom'} 
+                  onChange={() => {
+                    if (timeFilter === 'custom') setTimeFilter('this_month');
+                    setShowTimePopover(true);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (timeFilter === 'custom') setTimeFilter('this_month');
+                    setShowTimePopover(prev => !prev);
+                  }}
+                  className="flex-1 flex items-center justify-between gap-2 px-3 py-1.5 bg-white border border-gray-300 hover:border-primary rounded-xl text-xs font-bold text-gray-800 shadow-sm cursor-pointer transition-all"
+                >
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Calendar size={14} className="text-primary shrink-0" />
+                    <span>{TIME_PRESET_LABELS[timeFilter] || 'Tháng này'}</span>
+                  </span>
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${showTimePopover ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* Custom Date Option */}
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-700 hover:text-primary transition-colors">
+                <input 
+                  type="radio" 
+                  name="timeFilterType" 
+                  id="timeFilterCustom"
+                  className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer shrink-0"
+                  checked={timeFilter === 'custom'} 
+                  onChange={() => {
+                    setTimeFilter('custom');
+                    setShowTimePopover(false);
+                  }}
+                />
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={14} className="text-gray-500" />
+                  Tùy chỉnh
+                </span>
+              </label>
+
+              {timeFilter === 'custom' && (
+                <div className="flex flex-col gap-2 mt-1 p-2.5 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-gray-500">Từ ngày</span>
+                    <input 
+                      type="date" 
+                      className="w-full border border-gray-300 rounded-lg p-1.5 text-xs bg-white focus:border-primary outline-none font-semibold text-gray-800"
+                      value={customDate.from}
+                      onChange={e => setCustomDate(prev => ({ ...prev, from: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-gray-500">Đến ngày</span>
+                    <input 
+                      type="date" 
+                      className="w-full border border-gray-300 rounded-lg p-1.5 text-xs bg-white focus:border-primary outline-none font-semibold text-gray-800"
+                      value={customDate.to}
+                      onChange={e => setCustomDate(prev => ({ ...prev, to: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Popover Menu matching KiotViet Image 2 */}
+            {showTimePopover && (
+              <div className="absolute left-0 lg:left-full top-0 lg:-top-2 lg:ml-2 z-50 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 w-[540px] max-w-[90vw] animate-in fade-in zoom-in-95 duration-150">
+                <div className="grid grid-cols-5 gap-3">
+                  
+                  {/* Col 1: Theo ngày */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-gray-800">Theo ngày</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('today'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'today' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Hôm nay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('yesterday'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'yesterday' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Hôm qua
+                    </button>
+                  </div>
+
+                  {/* Col 2: Theo tuần */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-gray-800">Theo tuần</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_week'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'this_week' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Tuần này
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_week'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_week' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Tuần trước
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_7_days'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_7_days' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      7 ngày qua
+                    </button>
+                  </div>
+
+                  {/* Col 3: Theo tháng */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-gray-800">Theo tháng</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_month'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'this_month' || timeFilter === 'month' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Tháng này
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_month'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_month' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Tháng trước
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_month'); setShowTimePopover(false); }}
+                      className="px-2.5 py-1.5 text-[11px] rounded-full font-medium cursor-pointer transition-all border border-transparent bg-gray-100/90 hover:bg-gray-200 text-gray-600 text-center"
+                    >
+                      Tháng này (âm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_month'); setShowTimePopover(false); }}
+                      className="px-2.5 py-1.5 text-[11px] rounded-full font-medium cursor-pointer transition-all border border-transparent bg-gray-100/90 hover:bg-gray-200 text-gray-600 text-center"
+                    >
+                      Tháng trước (âm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_30_days'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_30_days' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      30 ngày qua
+                    </button>
+                  </div>
+
+                  {/* Col 4: Theo quý */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-gray-800">Theo quý</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_quarter'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'this_quarter' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Quý này
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_quarter'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_quarter' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Quý trước
+                    </button>
+                  </div>
+
+                  {/* Col 5: Theo năm */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-gray-800">Theo năm</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_year'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'this_year' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Năm nay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_year'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'last_year' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Năm trước
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('this_year'); setShowTimePopover(false); }}
+                      className="px-2.5 py-1.5 text-[11px] rounded-full font-medium cursor-pointer transition-all border border-transparent bg-gray-100/90 hover:bg-gray-200 text-gray-600 text-center"
+                    >
+                      Năm nay (âm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('last_year'); setShowTimePopover(false); }}
+                      className="px-2.5 py-1.5 text-[11px] rounded-full font-medium cursor-pointer transition-all border border-transparent bg-gray-100/90 hover:bg-gray-200 text-gray-600 text-center"
+                    >
+                      Năm trước (âm)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTimeFilter('all_time'); setShowTimePopover(false); }}
+                      className={`px-2.5 py-1.5 text-xs rounded-full font-bold cursor-pointer transition-all border text-center ${timeFilter === 'all_time' ? 'bg-primary text-white border-primary shadow-sm' : 'bg-gray-100/90 hover:bg-gray-200 text-gray-700 border-transparent'}`}
+                    >
+                      Toàn thời gian
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            )}
           </div>
 
           <hr className="border-gray-100" />

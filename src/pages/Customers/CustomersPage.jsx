@@ -430,9 +430,9 @@ export default function CustomersPage() {
     if (!expandedId) return;
     try {
       const [ordRes, cbRes, retRes] = await Promise.all([
-        orderAPI.getAll({ customerId: expandedId, limit: 50000 }).catch(() => ({ data: [] })),
-        cashbookAPI.getAll({ customerId: expandedId, partnerType: 'customer', limit: 50000 }).catch(() => ({ data: [] })),
-        returnAPI.getAll().catch(() => [])
+        orderAPI.getAll({ customerId: expandedId, limit: 1000 }).catch(() => ({ data: [] })),
+        cashbookAPI.getAll({ customerId: expandedId, partnerType: 'customer', limit: 1000 }).catch(() => ({ data: [] })),
+        returnAPI.getAll({ customerId: expandedId, limit: 1000 }).catch(() => ({ data: [] }))
       ]);
       const rawOrders = Array.isArray(ordRes) ? ordRes : (ordRes?.data || []);
       setOrders(rawOrders);

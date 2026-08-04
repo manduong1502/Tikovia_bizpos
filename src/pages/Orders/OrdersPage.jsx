@@ -354,7 +354,7 @@ export default function OrdersPage() {
       }
 
       // Step B: Background fetch full dataset
-      const rFull = await orderAPI.getAll({ page: 1, limit: 50000 });
+      const rFull = await orderAPI.getAll({ page: 1, limit: 3000 });
       const fullList = Array.isArray(rFull) ? rFull : (rFull?.data || []);
       if (fullList.length > 0) {
         window.__tikovia_orders_cache = fullList;
