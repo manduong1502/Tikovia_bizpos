@@ -881,6 +881,7 @@ export default function CustomersPage() {
         paid: cb.amount,
         debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
       }))
+    ].sort((a, b) => {
       const getMinuteTime = (d) => {
         if (!d) return 0;
         const dateObj = new Date(d);
