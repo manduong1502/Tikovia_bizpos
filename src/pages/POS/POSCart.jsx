@@ -84,7 +84,7 @@ export default function POSCart() {
               : [{ id: 1, quantity: item.quantity, price: item.price, discount: item.discount }];
               
             return (
-              <div key={item.product.id} className="pos-cart-item-group bg-white rounded-xl border border-blue-300 shadow-sm p-3 mb-3 flex flex-col gap-2 transition-all hover:border-primary">
+              <div key={item.product.id} className="pos-cart-item-group bg-white rounded-xl border border-blue-300 shadow-sm p-2 mb-2 flex flex-col gap-1.5 transition-all hover:border-primary">
                 {weighings.map((w, wIdx) => {
                   const finalPrice = (w.price || 0) - (w.discount || 0);
                   const qty = parseFloat(w.quantity) || 0;
