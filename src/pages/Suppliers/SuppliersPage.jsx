@@ -1020,17 +1020,17 @@ export default function SuppliersPage() {
     // Match by supplierId OR supplier_code OR supplier_name strictly
     const supPOs = purchaseOrders.filter(po => {
       const poSupId = po.supplierId || po.supplier_id || po.supplier?.id;
-      if (poSupId) return poSupId === supId;
-      const poSupCode = po.supplier_code || po.supplier?.code;
-      if (poSupCode) return poSupCode === supCode;
-      return po.supplier_name === s.name;
+      if (poSupId && supId) return poSupId === supId;
+      const poSupCode = String(po.supplierCode || po.supplier_code || po.supplier?.code || '').trim().toLowerCase();
+      if (poSupCode && supCode) return poSupCode === supCode.toLowerCase();
+      return false;
     });
     const supPRs = purchaseReturns.filter(pr => {
       const prSupId = pr.supplierId || pr.supplier_id || pr.supplier?.id;
-      if (prSupId) return prSupId === supId;
-      const prSupCode = pr.supplier_code || pr.supplier?.code;
-      if (prSupCode) return prSupCode === supCode;
-      return pr.supplier_name === s.name;
+      if (prSupId && supId) return prSupId === supId;
+      const prSupCode = String(pr.supplierCode || pr.supplier_code || pr.supplier?.code || '').trim().toLowerCase();
+      if (prSupCode && supCode) return prSupCode === supCode.toLowerCase();
+      return false;
     });
 
     const sortedTransactions = [
