@@ -76,12 +76,52 @@ function CalendarGrid({ year, month, startDate, endDate, onSelectDay }) {
   );
 }
 
+function formatDateVN(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+function parseDateVN(str) {
+  if (!str) return null;
+  const parts = str.trim().split('/');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year) && year > 1900 && month >= 0 && month < 12 && day > 0 && day <= 31) {
+      const d = new Date(year, month, day);
+      if (d.getDate() === day && d.getMonth() === month && d.getFullYear() === year) {
+        return d;
+      }
+    }
+  }
+  return null;
+}
+
 export default function DateFilter({ label, type = 'created', value, onChange }) {
   const [popover, setPopover] = useState(null); // 'preset' | 'calendar'
   const [calDate, setCalDate] = useState(new Date());
   const [startDate, setStartDate] = useState(value?.start ? new Date(value.start) : null);
   const [endDate, setEndDate] = useState(value?.end ? new Date(value.end) : null);
+  const [startInput, setStartInput] = useState(value?.start ? formatDateVN(new Date(value.start)) : '');
+  const [endInput, setEndInput] = useState(value?.end ? formatDateVN(new Date(value.end)) : '');
   const ref = useRef(null);
+
+  useEffect(() => {
+    if (value?.start) {
+      const d = new Date(value.start);
+      setStartDate(d);
+      setStartInput(formatDateVN(d));
+    }
+    if (value?.end) {
+      const d = new Date(value.end);
+      setEndDate(d);
+      setEndInput(formatDateVN(d));
+    }
+  }, [value]);
 
   const presets = type === 'expected' ? EXPECTED_PRESETS : CREATED_PRESETS;
   const isCustomMode = value?.mode === 'custom';
@@ -94,21 +134,25 @@ export default function DateFilter({ label, type = 'created', value, onChange })
   const handleSelectDay = (date) => {
     if (!startDate || (startDate && endDate)) {
       setStartDate(date);
+      setStartInput(formatDateVN(date));
       setEndDate(null);
+      setEndInput('');
     } else {
       if (date < startDate) {
         setEndDate(startDate);
+        setEndInput(formatDateVN(startDate));
         setStartDate(date);
+        setStartInput(formatDateVN(date));
       } else {
         setEndDate(date);
+        setEndInput(formatDateVN(date));
       }
     }
   };
 
   const applyCustom = () => {
     if (startDate) {
-      const fmt = (d) => d.toLocaleDateString('vi-VN');
-      const lbl = endDate ? `${fmt(startDate)} - ${fmt(endDate)}` : fmt(startDate);
+      const lbl = endDate ? `${formatDateVN(startDate)} - ${formatDateVN(endDate)}` : formatDateVN(startDate);
       onChange({ mode: 'custom', label: lbl, start: startDate, end: endDate || startDate });
     }
     setPopover(null);
@@ -206,14 +250,17 @@ export default function DateFilter({ label, type = 'created', value, onChange })
               <div className="flex-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Từ ngày</label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="dd/mm/yyyy"
                   className="w-full px-2.5 py-1.5 text-[12px] font-semibold border border-gray-200 rounded-lg bg-white focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none text-gray-700"
-                  value={startDate ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}` : ''}
+                  value={startInput}
                   onChange={(e) => {
-                    if (e.target.value) {
-                      const d = new Date(e.target.value + 'T00:00:00');
-                      setStartDate(d);
-                      setCalDate(d);
+                    const val = e.target.value;
+                    setStartInput(val);
+                    const parsed = parseDateVN(val);
+                    if (parsed) {
+                      setStartDate(parsed);
+                      setCalDate(parsed);
                     }
                   }}
                 />
@@ -222,13 +269,16 @@ export default function DateFilter({ label, type = 'created', value, onChange })
               <div className="flex-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Đến ngày</label>
                 <input
-                  type="date"
+                  type="text"
+                  placeholder="dd/mm/yyyy"
                   className="w-full px-2.5 py-1.5 text-[12px] font-semibold border border-gray-200 rounded-lg bg-white focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none text-gray-700"
-                  value={endDate ? `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}` : ''}
+                  value={endInput}
                   onChange={(e) => {
-                    if (e.target.value) {
-                      const d = new Date(e.target.value + 'T00:00:00');
-                      setEndDate(d);
+                    const val = e.target.value;
+                    setEndInput(val);
+                    const parsed = parseDateVN(val);
+                    if (parsed) {
+                      setEndDate(parsed);
                     }
                   }}
                 />
@@ -269,7 +319,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
           <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 bg-gray-50/30">
             <button 
               type="button" 
-              onClick={() => { setStartDate(null); setEndDate(null); }}
+              onClick={() => { setStartDate(null); setEndDate(null); setStartInput(''); setEndInput(''); }}
               className="text-[11px] text-gray-400 hover:text-red-500 font-medium cursor-pointer transition-colors"
             >
               Xóa chọn
