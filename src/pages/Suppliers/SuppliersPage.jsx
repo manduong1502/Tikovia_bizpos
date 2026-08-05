@@ -1063,17 +1063,15 @@ export default function SuppliersPage() {
         items: pr.items || []
       })),
       ...cashbooks.filter(cb => {
-        const pType = String(cb.partnerType || cb.partner_type || '').toLowerCase();
-        if (!pType.includes('supplier') && !pType.includes('nhà cung cấp') && !pType.includes('ncc')) return false;
-
-        const cbSupId = cb.supplierId || cb.supplier_id || cb.customerId;
+        const cbSupId = cb.supplierId || cb.supplier_id;
         if (cbSupId && supId && cbSupId === supId) return true;
 
         const cbSupCode = String(cb.partnerCode || cb.partner_code || cb.supplier_code || cb.supplierCode || '').trim().toLowerCase();
         if (cbSupCode && supCode && cbSupCode === supCode.toLowerCase()) return true;
 
         const cbSupName = String(cb.partnerName || cb.partner_name || cb.supplierName || '').trim().toLowerCase();
-        if (cbSupName && supName && cbSupName === supName.toLowerCase()) return true;
+        const sNameLower = (supName || '').trim().toLowerCase();
+        if (cbSupName && sNameLower && (cbSupName === sNameLower || cbSupName.includes(sNameLower) || sNameLower.includes(cbSupName))) return true;
 
         return false;
       }).filter(cb => !cb.status || String(cb.status).toUpperCase() === 'COMPLETED').map(cb => {
