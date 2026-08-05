@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { reportAPI, categoryAPI } from '../../services/api';
+import { formatLocalYMD } from '../../utils/dateFilterUtils';
 import toast from 'react-hot-toast';
 import { 
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -198,8 +199,8 @@ export default function ProductsReportPage() {
       const first = today.getDate() - today.getDay() + 1; // Monday
       const f = new Date(today.setDate(first));
       const t = new Date(today.setDate(first + 6)); // Sunday
-      params.fromDate = f.toISOString().split('T')[0];
-      params.toDate = t.toISOString().split('T')[0];
+      params.fromDate = formatLocalYMD(f);
+      params.toDate = formatLocalYMD(t);
     } else {
       if (customFromDate) params.fromDate = customFromDate;
       if (customToDate) params.toDate = customToDate;

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
-import { getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
+import { getRangeByCreatedLabel, formatLocalYMD } from '../../utils/dateFilterUtils';
 import { exportCSV } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/api';
 
@@ -15,7 +15,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 
 export default function FinancialReportPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Tháng trước' });
+  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Tháng này' });
   const [zoom, setZoom] = useState(100);
 
   // Compute date range strings based on DateFilter selection
@@ -25,8 +25,8 @@ export default function FinancialReportPage() {
     }
 
     if (dateFilter.mode === 'custom' && dateFilter.start && dateFilter.end) {
-      const f = new Date(dateFilter.start).toISOString().split('T')[0];
-      const t = new Date(dateFilter.end).toISOString().split('T')[0];
+      const f = formatLocalYMD(dateFilter.start);
+      const t = formatLocalYMD(dateFilter.end);
       return { 
         fromDate: f, 
         toDate: t, 
@@ -34,10 +34,10 @@ export default function FinancialReportPage() {
       };
     }
 
-    const range = getRangeByCreatedLabel(dateFilter.label || 'Tháng trước');
+    const range = getRangeByCreatedLabel(dateFilter.label || 'Tháng này');
     if (range && range.start && range.end) {
-      const f = range.start.toISOString().split('T')[0];
-      const t = range.end.toISOString().split('T')[0];
+      const f = formatLocalYMD(range.start);
+      const t = formatLocalYMD(range.end);
       return { 
         fromDate: f, 
         toDate: t, 
