@@ -18,6 +18,12 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
+  const str = String(dateStr);
+  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (m) {
+    const [, year, month, day, hours, mins] = m;
+    return `${day}/${month}/${year} ${hours}:${mins}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '';
   const day = String(d.getDate()).padStart(2, '0');
@@ -241,8 +247,18 @@ export default function CashbookPage() {
       if (search) params.search = search;
       if (timeFilter !== 'all_time') {
         const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
-        if (start) params.from = start.toISOString();
-        if (end) params.to = end.toISOString();
+        if (start) {
+          const y = start.getFullYear();
+          const m = String(start.getMonth() + 1).padStart(2, '0');
+          const da = String(start.getDate()).padStart(2, '0');
+          params.from = `${y}-${m}-${da}T00:00:00`;
+        }
+        if (end) {
+          const y = end.getFullYear();
+          const m = String(end.getMonth() + 1).padStart(2, '0');
+          const da = String(end.getDate()).padStart(2, '0');
+          params.to = `${y}-${m}-${da}T23:59:59`;
+        }
       }
       
       const r = await cashbookAPI.getAll(params);
@@ -361,9 +377,7 @@ export default function CashbookPage() {
         const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
         const itemDate = e.createdAt || e.created_at || e.date;
         if (itemDate) {
-          const d = new Date(itemDate);
-          if (start && d < start) return false;
-          if (end && d > end) return false;
+          if (!inDateRange(itemDate, { start, end })) return false;
         }
       }
 
@@ -513,7 +527,7 @@ export default function CashbookPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Quỹ đầu kỳ</div>
-          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">34.303.020.927</div>
+          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">34.374.518.923</div>
         </div>
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tổng thu</div>
@@ -526,7 +540,7 @@ export default function CashbookPage() {
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tồn quỹ</div>
           <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
-            {fmt(34303020927 + totalIn - totalOut)}
+            {fmt(34374518923 + totalIn - totalOut)}
           </div>
         </div>
       </div>

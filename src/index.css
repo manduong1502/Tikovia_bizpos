@@ -357,9 +357,4 @@ textarea:focus-visible {
     print-color-adjust: exact !important;
   }
 }
-
-/* ─── Overlays & Modals z-index adjustment to cover header ─── */
-.fixed.inset-0[class*="bg-black"],
-.fixed.inset-0[class*="bg-black/"] {
-  z-index: 9999 !important;
-}
+

@@ -21,6 +21,12 @@ const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
+  const str = String(dateStr);
+  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    const [, y, mo, da, h, mi, s = '00'] = m;
+    return `${h}:${mi}:${s} ${da}/${mo}/${y}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '';
   const day = String(d.getDate()).padStart(2, '0');

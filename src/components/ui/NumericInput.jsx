@@ -15,9 +15,7 @@ const NumericInput = forwardRef(({
     if (val === undefined || val === null || val === '') return '';
 
     if (allowDecimal) {
-      // Convert to string and handle decimals
       let str = String(val).replace(/,/g, '.');
-      // Strip anything that is not digit or dot
       str = str.replace(/[^0-9.]/g, '');
       const parts = str.split('.');
       if (parts.length > 2) {
@@ -25,78 +23,71 @@ const NumericInput = forwardRef(({
       }
       return str;
     } else {
-      // Strip non-digits and format with Vietnamese thousand separators (.)
       const numericStr = String(val).replace(/\D/g, '');
       if (!numericStr) return '';
       return new Intl.NumberFormat('vi-VN').format(Number(numericStr));
     }
   };
 
+  const getRawValue = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    if (allowDecimal) return String(val);
+    const numericStr = String(val).replace(/\D/g, '');
+    return numericStr ? String(Number(numericStr)) : '';
+  };
+
   const [displayValue, setDisplayValue] = useState(formatValue(value));
 
+  // Update displayValue when parent value changes or when focus state changes
   useEffect(() => {
-    if (allowDecimal) {
-      const currentNum = parseFloat(String(displayValue).replace(/,/g, '.'));
-      const parentNum = Number(value) || 0;
-      
-      if (isNaN(currentNum) || currentNum !== parentNum || displayValue === '') {
-        setDisplayValue(formatValue(value));
-      }
+    if (isFocused) {
+      setDisplayValue(getRawValue(value));
     } else {
-      const currentNum = Number(String(displayValue).replace(/\D/g, ''));
-      const parentNum = Number(value) || 0;
-      
-      if (currentNum !== parentNum || (displayValue === '' && value !== '' && value !== null && value !== undefined)) {
-        setDisplayValue(formatValue(value));
-      }
+      setDisplayValue(formatValue(value));
     }
-  }, [value]);
+  }, [value, isFocused]);
 
   const handleChange = (e) => {
     let rawVal = e.target.value;
     
     if (allowDecimal) {
-      // Normalize comma to dot
-      rawVal = rawVal.replace(/,/g, '.');
-      // Strip characters other than digits and dot
-      let cleanVal = rawVal.replace(/[^0-9.]/g, '');
-      
-      // Ensure only one dot
-      const parts = cleanVal.split('.');
+      rawVal = rawVal.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+      const parts = rawVal.split('.');
       if (parts.length > 2) {
-        cleanVal = parts[0] + '.' + parts.slice(1).join('');
+        rawVal = parts[0] + '.' + parts.slice(1).join('');
       }
-      
-      setDisplayValue(cleanVal);
-      
+      setDisplayValue(rawVal);
       if (onChange) {
-        const parsedNum = parseFloat(cleanVal) || 0;
-        onChange({
-          target: {
-            name: props.name,
-            value: parsedNum
-          }
-        });
+        onChange({ target: { name: props.name, value: parseFloat(rawVal) || 0 } });
       }
     } else {
       const numericStr = rawVal.replace(/\D/g, '');
-      const formatted = numericStr ? new Intl.NumberFormat('vi-VN').format(Number(numericStr)) : '';
-      setDisplayValue(formatted);
-      
+      setDisplayValue(numericStr);
+      const num = Number(numericStr) || 0;
       if (onChange) {
-        onChange({
-          target: {
-            name: props.name,
-            value: Number(numericStr) || 0
-          }
-        });
+        onChange({ target: { name: props.name, value: num } });
       }
     }
   };
 
   const handleFocus = (e) => {
     setIsFocused(true);
+    const raw = getRawValue(value);
+    setDisplayValue(raw);
+    const target = e.target;
+    if (props.selectOnFocus !== false) {
+      setTimeout(() => {
+        try { target.select(); } catch {}
+      }, 0);
+    }
     if (props.onFocus) props.onFocus(e);
+  };
+
+  const handleMouseUp = (e) => {
+    if (props.selectOnFocus !== false) {
+      try { e.target.select(); } catch {}
+    }
+    if (props.onMouseUp) props.onMouseUp(e);
   };
 
   const handleBlur = (e) => {
@@ -108,11 +99,14 @@ const NumericInput = forwardRef(({
   return (
     <input
       ref={ref}
-      type="text"
+      type="tel"
+      inputMode="numeric"
+      autoComplete="off"
       className={`w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm ${className}`}
       value={displayValue}
       onChange={handleChange}
       onFocus={handleFocus}
+      onMouseUp={handleMouseUp}
       onBlur={handleBlur}
       placeholder={placeholder}
       {...props}

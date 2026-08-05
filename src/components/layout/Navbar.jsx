@@ -11,7 +11,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
   const navItemBase = "relative self-stretch flex items-center px-4 text-white/90 text-[14px] font-semibold cursor-pointer transition-all no-underline hover:bg-[#005AC3] hover:text-white group whitespace-nowrap rounded-md my-1";
   const navItemActive = "bg-[#005AC3] text-white font-semibold rounded-md my-1";
 
-  const dropdownWrapper = "absolute top-full left-0 pt-1 z-50 opacity-0 invisible translate-y-2 transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0";
+  const dropdownWrapper = "absolute top-full left-0 pt-1 z-[10010] opacity-0 invisible translate-y-2 transition-all duration-200 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0";
   const dropdownBox = "bg-white min-w-[200px] border border-gray-100 rounded-xl shadow-xl text-gray-800 flex overflow-hidden";
   const dropdownItem = "block px-4 py-2.5 text-[13px] text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors no-underline font-medium";
   const dropdownHeading = "px-4 py-2.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100";
@@ -23,7 +23,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
   return (
     <>
       {/* Desktop Navbar */}
-      <nav className="hidden md:flex h-[48px] bg-[#0070F4] items-center px-4 lg:px-6 sticky top-14 z-[9999] shadow-sm max-w-full overflow-visible">
+      <nav className="hidden md:flex h-[48px] bg-[#0070F4] items-center px-4 lg:px-6 sticky top-14 z-[90] shadow-sm max-w-full overflow-visible">
         <div className="flex items-center h-full flex-1 gap-0.5 lg:gap-1 min-w-max">
           <Link className={`${navItemBase} ${page === '/dashboard' ? navItemActive : ''}`} to="/dashboard">Tổng quan</Link>
 

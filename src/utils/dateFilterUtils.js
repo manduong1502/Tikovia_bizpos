@@ -5,16 +5,28 @@ export function parseFlexibleDate(dateInput) {
   const str = String(dateInput).trim();
   if (!str) return null;
 
-  const dmmyyyyMatch = str.match(
-    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/
-  );
-  if (dmmyyyyMatch) {
-    const day = Number(dmmyyyyMatch[1]);
-    const month = Number(dmmyyyyMatch[2]) - 1;
-    const year = Number(dmmyyyyMatch[3]);
-    const hour = Number(dmmyyyyMatch[4] || 0);
-    const minute = Number(dmmyyyyMatch[5] || 0);
-    const second = Number(dmmyyyyMatch[6] || 0);
+  // 1. DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    const day = Number(dmyMatch[1]);
+    const month = Number(dmyMatch[2]) - 1;
+    const year = Number(dmyMatch[3]);
+    const hour = Number(dmyMatch[4] || 0);
+    const minute = Number(dmyMatch[5] || 0);
+    const second = Number(dmyMatch[6] || 0);
+    const d = new Date(year, month, day, hour, minute, second);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // 2. YYYY-MM-DD or YYYY/MM/DD
+  const ymdMatch = str.match(/^(\d{4})[\/\.\-](\d{1,2})[\/\.\-](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (ymdMatch) {
+    const year = Number(ymdMatch[1]);
+    const month = Number(ymdMatch[2]) - 1;
+    const day = Number(ymdMatch[3]);
+    const hour = Number(ymdMatch[4] || 0);
+    const minute = Number(ymdMatch[5] || 0);
+    const second = Number(ymdMatch[6] || 0);
     const d = new Date(year, month, day, hour, minute, second);
     return isNaN(d.getTime()) ? null : d;
   }

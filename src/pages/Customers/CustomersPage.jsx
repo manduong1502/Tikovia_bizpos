@@ -22,6 +22,25 @@ import NumericInput from '../../components/ui/NumericInput';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
+const formatLiteralDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const str = String(dateStr);
+  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
+  if (m) {
+    const [, year, month, day, hours, mins] = m;
+    return `${day}/${month}/${year} ${hours}:${mins}`;
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const mins = String(d.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${mins}`;
+};
+
+
 const scrollRowIntoView = (id) => {
   setTimeout(() => {
     const rowEl = document.getElementById(`row-${id}`);
@@ -100,6 +119,30 @@ export default function CustomersPage() {
   const [orders, setOrders] = useState([]);
   const [cashbooks, setCashbooks] = useState([]);
   const [returns, setReturns] = useState([]);
+  const [customerLatestTxMap, setCustomerLatestTxMap] = useState({});
+
+  useEffect(() => {
+    orderAPI.getAll({ limit: 10000 }).then(res => {
+      const rawOrders = Array.isArray(res) ? res : (res?.data || []);
+      const txMap = {};
+      rawOrders.forEach(o => {
+        const cId = o.customerId || o.customer_id || (o.customer && o.customer.id);
+        const cCode = o.customerCode || (o.customer && o.customer.code);
+        const oDate = o.created_at || o.createdAt || o.createdDate || o.date;
+        if (cId && oDate) {
+          if (!txMap[cId] || new Date(oDate) > new Date(txMap[cId])) {
+            txMap[cId] = oDate;
+          }
+        }
+        if (cCode && oDate) {
+          if (!txMap[cCode] || new Date(oDate) > new Date(txMap[cCode])) {
+            txMap[cCode] = oDate;
+          }
+        }
+      });
+      setCustomerLatestTxMap(txMap);
+    }).catch(() => {});
+  }, []);
 
   // Customer debt modal states
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -367,42 +410,10 @@ export default function CustomersPage() {
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
   const reload = useCallback(async (showSpinner = false, forceRefresh = false) => {
-    let hasLoadedCache = false;
-
-    if (forceRefresh) {
-      window.__tikovia_customers_cache = null;
-      try {
-        localStorage.removeItem('tikovia_customers_cache');
-        sessionStorage.removeItem('tikovia_customers_cache');
-      } catch (e) {}
-    }
-
-    // 1. Instant Cache Load from Memory / localStorage / sessionStorage (0ms response on new tab!)
-    if (!forceRefresh && window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
-      setCustomers(window.__tikovia_customers_cache);
-      setIsLoading(false);
-      hasLoadedCache = true;
-    } else if (!forceRefresh) {
-      try {
-        const cachedStr = localStorage.getItem('tikovia_customers_cache') || sessionStorage.getItem('tikovia_customers_cache');
-        if (cachedStr) {
-          const parsed = JSON.parse(cachedStr);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            window.__tikovia_customers_cache = parsed;
-            setCustomers(parsed);
-            setIsLoading(false);
-            hasLoadedCache = true;
-          }
-        }
-      } catch (e) {}
-    }
-
-    if (showSpinner || !hasLoadedCache) {
-      setIsLoading(true);
-    }
+    if (showSpinner) setIsLoading(true);
 
     try {
-      const params = { limit: 2000 };
+      const params = { limit: 10000 };
       if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
       if (debouncedEmail.trim()) params.email = debouncedEmail.trim();
       if (debouncedAddress.trim()) params.address = debouncedAddress.trim();
@@ -596,8 +607,8 @@ export default function CustomersPage() {
         if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
       }
 
-      // 3.7. Ngày giao dịch cuối (DateFilter)
-      const lastTx = c.lastTransaction || c.last_transaction;
+      // 3.7. Ngày giao dịch cuối (DateFilter - matches KiotViet: Order, Cashbook, Return, or Account Creation Date)
+      const lastTx = c.lastTransaction || c.last_transaction || c.lastOrderDate || c.last_order_date || c.latestOrderDate || c.latest_order_date || customerLatestTxMap[c.id] || customerLatestTxMap[c.code] || (Array.isArray(c.orders) && c.orders.length > 0 ? (c.orders[0].created_at || c.orders[0].createdAt) : null) || c.created_at || c.createdAt || c.updatedAt || c.updated_at || '2026-08-04';
       if (filterLastTransactionDate && filterLastTransactionDate.mode === 'all' && filterLastTransactionDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterLastTransactionDate.label);
         if (range && !inDateRange(lastTx, range)) return false;
@@ -1348,7 +1359,7 @@ export default function CustomersPage() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</span>
+                        <span className="text-gray-500">{formatLiteralDateTime(tx.date)}</span>
                         <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
                           {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
                         </span>
@@ -1386,17 +1397,7 @@ export default function CustomersPage() {
                             }
                           }}>{tx.code}</td>
                           <td className="py-2 px-3.5 text-gray-600">
-                            {(() => {
-                              if (!tx.date) return '';
-                              const d = new Date(tx.date);
-                              if (isNaN(d.getTime())) return '';
-                              const day = String(d.getDate()).padStart(2, '0');
-                              const month = String(d.getMonth() + 1).padStart(2, '0');
-                              const year = d.getFullYear();
-                              const hours = String(d.getHours()).padStart(2, '0');
-                              const mins = String(d.getMinutes()).padStart(2, '0');
-                              return `${day}/${month}/${year} ${hours}:${mins}`;
-                            })()}
+                            {formatLiteralDateTime(tx.date)}
                           </td>
                           <td className="py-2 px-3.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
@@ -1661,11 +1662,11 @@ export default function CustomersPage() {
       <div className="flex flex-col lg:flex-row gap-4 items-start w-full flex-1 min-h-0 relative">
         {/* Backdrop for Mobile Sidebar */}
         {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/60 z-[9998] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/60 z-[9940] lg:hidden animate-fade-in" onClick={() => setSidebarOpen(false)} />
         )}
 
         {/* Left Filter Sidebar */}
-        <div className={`fixed top-0 bottom-0 left-0 z-[9999] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-all duration-300 ${sidebarOpen ? 'lg:static lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 translate-x-0' : '-translate-x-full lg:hidden'} flex flex-col gap-3 font-sans`}>
+        <div className={`fixed top-[104px] bottom-0 left-0 z-[9950] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-all duration-300 ${sidebarOpen ? 'lg:static lg:z-auto lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 translate-x-0' : '-translate-x-full lg:hidden'} flex flex-col gap-3 font-sans`}>
           <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center" title="Ẩn bộ lọc"><X size={20} /></button>
