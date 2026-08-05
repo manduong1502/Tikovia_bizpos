@@ -1091,6 +1091,7 @@ export const cashbookAPI = {
   delete: (id) => api.delete(`/cashbook/${id}`).then(r => r.data),
   getPartners: (params) => api.get('/cashbook/partners', { params }).then(r => r.data),
   createPartner: (data) => api.post('/cashbook/partners', data).then(r => r.data),
+  getSummary: (params) => api.get('/cashbook/summary', { params, hideErrorToast: true }).then(r => r.data).catch(() => null),
 };
 
 // ─── Inventory Checks ───

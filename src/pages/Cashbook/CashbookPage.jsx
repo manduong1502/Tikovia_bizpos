@@ -218,6 +218,9 @@ export default function CashbookPage() {
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'asc' });
 
+  // Dynamic summary from backend
+  const [summary, setSummary] = useState({ openingBalance: 0, totalIncome: 0, totalExpense: 0, closingBalance: 0 });
+
   const handleSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -228,6 +231,7 @@ export default function CashbookPage() {
     setIsLoading(true);
     try {
       const params = { limit: 10000 };
+      const summaryParams = {};
       if (search) params.search = search;
       if (timeFilter !== 'all_time') {
         const { start, end } = getDateRange(timeFilter, customDate.from, customDate.to);
@@ -236,25 +240,38 @@ export default function CashbookPage() {
           const m = String(start.getMonth() + 1).padStart(2, '0');
           const da = String(start.getDate()).padStart(2, '0');
           params.from = `${y}-${m}-${da}T00:00:00`;
+          summaryParams.from = params.from;
         }
         if (end) {
           const y = end.getFullYear();
           const m = String(end.getMonth() + 1).padStart(2, '0');
           const da = String(end.getDate()).padStart(2, '0');
           params.to = `${y}-${m}-${da}T23:59:59`;
+          summaryParams.to = params.to;
         }
       }
+
+      // Add payment method filter for summary
+      if (paymentMethodFilter && paymentMethodFilter !== 'all') {
+        summaryParams.paymentMethod = paymentMethodFilter;
+      }
       
-      const r = await cashbookAPI.getAll(params);
+      const [r, summaryData] = await Promise.all([
+        cashbookAPI.getAll(params),
+        cashbookAPI.getSummary(summaryParams)
+      ]);
       const data = r.data || (Array.isArray(r) ? r : []);
       
       setEntries(Array.isArray(data) ? data : []);
+      if (summaryData) {
+        setSummary(summaryData);
+      }
     } catch { 
       setEntries([]); 
     } finally {
       setIsLoading(false);
     }
-  }, [search, timeFilter, customDate]);
+  }, [search, timeFilter, customDate, paymentMethodFilter]);
 
   useEffect(() => { 
     reload();
@@ -511,20 +528,20 @@ export default function CashbookPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Quỹ đầu kỳ</div>
-          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">34.374.518.923</div>
+          <div className="text-base sm:text-lg font-black text-gray-800 mt-0.5">{fmt(summary.openingBalance)}</div>
         </div>
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tổng thu</div>
-          <div className="text-base sm:text-lg font-black text-blue-600 mt-0.5">{fmt(totalIn)}</div>
+          <div className="text-base sm:text-lg font-black text-blue-600 mt-0.5">{fmt(summary.totalIncome)}</div>
         </div>
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tổng chi</div>
-          <div className="text-base sm:text-lg font-black text-red-500 mt-0.5">-{fmt(totalOut)}</div>
+          <div className="text-base sm:text-lg font-black text-red-500 mt-0.5">-{fmt(summary.totalExpense)}</div>
         </div>
         <div className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 text-center">
           <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider">Tồn quỹ</div>
           <div className="text-base sm:text-lg font-black text-emerald-600 mt-0.5">
-            {fmt(34374518923 + totalIn - totalOut)}
+            {fmt(summary.closingBalance)}
           </div>
         </div>
       </div>
