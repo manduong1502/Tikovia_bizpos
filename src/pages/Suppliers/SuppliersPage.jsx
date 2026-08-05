@@ -1111,7 +1111,7 @@ export default function SuppliersPage() {
     let tempDebt = currentFinalDebt;
     
     const exactLedger = debtLedgersMap[s.id];
-    const transactions = (exactLedger && exactLedger.length > 0)
+    const transactions = (exactLedger !== undefined)
       ? exactLedger.map(tx => ({
           id: tx.code,
           code: tx.code,
@@ -2012,6 +2012,9 @@ export default function SuppliersPage() {
                         setExpandedId(nextId);
                         if (nextId) {
                           scrollRowIntoView(nextId);
+                          supplierAPI.getDebtLedger(nextId).then(ledger => {
+                            setDebtLedgersMap(prev => ({ ...prev, [nextId]: Array.isArray(ledger) ? ledger : [] }));
+                          }).catch(() => {});
                         }
                       }}
                       className={`hover:bg-blue-50/40 transition-colors cursor-pointer ${isSelected ? 'bg-blue-50/60' : ''} ${isExpanded ? 'bg-blue-50/80 font-semibold' : ''}`}
