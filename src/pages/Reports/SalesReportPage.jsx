@@ -159,6 +159,23 @@ export default function SalesReportPage() {
     return retList;
   };
 
+function getWorkingHoursDateObj(dateInput) {
+  if (!dateInput) return new Date();
+  const str = String(dateInput).trim();
+  let d = new Date(str);
+  if (isNaN(d.getTime())) return new Date();
+
+  const currentHours = d.getHours();
+  if (currentHours < 7 || currentHours > 18) {
+    const minus7 = new Date(d.getTime() - 7 * 3600 * 1000);
+    const minus7Hours = minus7.getHours();
+    if (minus7Hours >= 7 && minus7Hours <= 18) {
+      return minus7;
+    }
+  }
+  return d;
+}
+
   // Group transactions by Date String DD/MM/YYYY
   const getGroupedByDate = () => {
     const datesMap = {};
@@ -166,7 +183,7 @@ export default function SalesReportPage() {
     const filteredRet = getFilteredReturns();
 
     filteredTx.forEach(tx => {
-      const dateObj = new Date(tx.time);
+      const dateObj = getWorkingHoursDateObj(tx.time);
       const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
                       String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
                       dateObj.getFullYear();
@@ -188,7 +205,7 @@ export default function SalesReportPage() {
     });
 
     filteredRet.forEach(ret => {
-      const dateObj = new Date(ret.time);
+      const dateObj = getWorkingHoursDateObj(ret.time);
       const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
                       String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
                       dateObj.getFullYear();
@@ -880,7 +897,7 @@ export default function SalesReportPage() {
                                             </button>
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-600">
-                                            {group.dateStr} {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                            {group.dateStr} {getWorkingHoursDateObj(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-700 font-medium">
                                             {tx.customerName}
