@@ -177,28 +177,7 @@ export default function SalesReportPage() {
     return retList;
   };
 
-<<<<<<< HEAD
-function getWorkingHoursDateObj(dateInput) {
-  if (!dateInput) return new Date();
-  const str = String(dateInput).trim();
-  let d = new Date(str);
-  if (isNaN(d.getTime())) return new Date();
-
-  const currentHours = d.getHours();
-  if (currentHours < 7 || currentHours > 18) {
-    const minus7 = new Date(d.getTime() - 7 * 3600 * 1000);
-    const minus7Hours = minus7.getHours();
-    if (minus7Hours >= 7 && minus7Hours <= 18) {
-      return minus7;
-    }
-  }
-  return d;
-}
-
-  // Group transactions by Date String DD/MM/YYYY
-=======
   // Group transactions by Date String DD/MM/YYYY in Asia/Ho_Chi_Minh timezone
->>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
   const getGroupedByDate = () => {
     const datesMap = {};
     const filteredTx = getFilteredTransactions();
@@ -216,16 +195,8 @@ function getWorkingHoursDateObj(dateInput) {
     };
 
     filteredTx.forEach(tx => {
-<<<<<<< HEAD
-      const dateObj = getWorkingHoursDateObj(tx.time);
-      const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
-                      String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
-                      dateObj.getFullYear();
-      
-=======
       const dateStr = formatVNDate(tx.time);
       if (!dateStr) return;
->>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
       if (!datesMap[dateStr]) {
         datesMap[dateStr] = { 
           dateStr, 
@@ -243,16 +214,8 @@ function getWorkingHoursDateObj(dateInput) {
     });
 
     filteredRet.forEach(ret => {
-<<<<<<< HEAD
-      const dateObj = getWorkingHoursDateObj(ret.time);
-      const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
-                      String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
-                      dateObj.getFullYear();
-
-=======
       const dateStr = formatVNDate(ret.time);
       if (!dateStr) return;
->>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
       if (!datesMap[dateStr]) {
         datesMap[dateStr] = { 
           dateStr, 
@@ -940,11 +903,7 @@ function getWorkingHoursDateObj(dateInput) {
                                             </button>
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-600">
-<<<<<<< HEAD
-                                            {group.dateStr} {getWorkingHoursDateObj(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-=======
                                             {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(tx.time))}
->>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-700 font-medium">
                                             {tx.customerName}
