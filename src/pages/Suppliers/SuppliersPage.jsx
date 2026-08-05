@@ -1515,33 +1515,20 @@ export default function SuppliersPage() {
                 <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center flex-none">
                   <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần trả nhà cung cấp</span>
                   <select 
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
-                    onChange={(e) => {
-                      const tbody = e.target.closest('.border').querySelector('tbody');
-                      if (tbody) {
-                        const rows = Array.from(tbody.querySelectorAll('tr'));
-                        const val = e.target.value;
-                        rows.forEach(r => {
-                          if (r.querySelector('td[colspan]')) return;
-                          if (val === 'all') r.style.display = '';
-                          else {
-                             const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
-                             r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
-                          }
-                        });
-                      }
-                    }}
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700 cursor-pointer"
+                    value={detailDebtTypeFilter}
+                    onChange={(e) => setDetailDebtTypeFilter(e.target.value)}
                   >
                     <option value="all">Tất cả giao dịch</option>
                     <option value="Nhập hàng">Nhập hàng</option>
-                    <option value="Trả hàng nhập">Trả hàng nhập</option>
+                    <option value="Trả hàng">Trả hàng</option>
                     <option value="Thanh toán">Thanh toán</option>
                   </select>
                 </div>
 
                 {/* Mobile View: Cards */}
                 <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
-                  {transactions.map((tx, idx) => (
+                  {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
                     <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</span>
@@ -1572,7 +1559,7 @@ export default function SuppliersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 font-medium">
-                      {transactions.map((tx, idx) => (
+                      {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                           <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
                           <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
