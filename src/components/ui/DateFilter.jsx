@@ -14,7 +14,7 @@ const CREATED_PRESETS = {
   'Theo tuần': ['Tuần này', 'Tuần trước', '7 ngày qua'],
   'Theo tháng': ['Tháng này', 'Tháng trước', '30 ngày qua'],
   'Theo quý': ['Quý này', 'Quý trước'],
-  'Theo năm': ['Năm nay', 'Năm trước'],
+  'Theo năm': ['Năm nay', 'Năm trước', 'Toàn thời gian'],
 };
 
 function CalendarGrid({ year, month, startDate, endDate, onSelectDay }) {
@@ -124,125 +124,109 @@ export default function DateFilter({ label, type = 'created', value, onChange })
       <button
         type="button"
         onClick={() => { setPopover(popover === 'preset' ? null : 'preset'); }}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border mb-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border mb-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
           !isCustomMode
-            ? 'border-primary bg-blue-50/70 text-primary font-bold shadow-sm ring-1 ring-primary/20'
-            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            ? 'border-primary/40 bg-primary/5 text-primary font-bold ring-1 ring-primary/15'
+            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         }`}
       >
-        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+        <div className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
           !isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
           {!isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
         </div>
-        <span className="flex-1 text-left truncate font-semibold">
+        <span className="flex-1 text-left truncate">
           {!isCustomMode ? (value?.label || 'Toàn thời gian') : 'Toàn thời gian'}
         </span>
-        <ChevronRight size={14} className="text-gray-400 shrink-0" />
+        <ChevronRight size={12} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Custom Radio */}
       <button
         type="button"
         onClick={() => { setPopover(popover === 'calendar' ? null : 'calendar'); }}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
           isCustomMode
-            ? 'border-primary bg-blue-50/70 text-primary font-bold shadow-sm ring-1 ring-primary/20'
-            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+            ? 'border-primary/40 bg-primary/5 text-primary font-bold ring-1 ring-primary/15'
+            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         }`}
       >
-        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+        <div className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
           isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
           {isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
         </div>
-        <span className="flex-1 text-left truncate font-semibold">
+        <span className="flex-1 text-left truncate">
           {isCustomMode ? value?.label : 'Tùy chỉnh'}
         </span>
-        <Calendar size={14} className="text-gray-400 shrink-0" />
+        <Calendar size={12} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Multi-Column Preset Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'preset'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl z-[10000] p-5 w-auto max-w-[95vw] sm:max-w-none max-h-[85vh] overflow-y-auto custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-5 min-w-[580px]">
-            {Object.entries(presets).map(([title, items], idx, arr) => {
-              const isLast = idx === arr.length - 1;
-              return (
-                <div key={title} className="flex flex-col min-w-[100px]">
-                  <div className="text-xs font-extrabold text-gray-800 mb-3 text-left border-b border-gray-100 pb-1.5 tracking-tight">
-                    {title}
-                  </div>
-                  <div className="flex flex-col gap-2 flex-1">
-                    {items.map(item => {
-                      const isSelected = value?.label === item && !isCustomMode;
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => selectPreset(item)}
-                          className={`w-full text-center px-3 py-2 text-xs rounded-full transition-all cursor-pointer font-medium ${
-                            isSelected
-                              ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20 scale-[1.02]'
-                              : 'bg-white border border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-blue-50/30'
-                          }`}
-                        >
-                          {item}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {isLast && (
-                    <button
-                      type="button"
-                      onClick={() => selectPreset('Toàn thời gian')}
-                      className={`mt-2 w-full text-center px-3 py-2 text-xs rounded-full transition-all cursor-pointer font-semibold ${
-                        value?.label === 'Toàn thời gian' || !value?.label
-                          ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20 scale-[1.02]'
-                          : 'bg-white border border-gray-200 text-gray-700 hover:border-primary hover:text-primary hover:bg-blue-50/30'
-                      }`}
-                    >
-                      Toàn thời gian
-                    </button>
-                  )}
+        <div className="bg-white border border-gray-100 rounded-xl shadow-xl z-[10000] p-4 w-auto max-w-[95vw] sm:max-w-none max-h-[85vh] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 min-w-[520px]">
+            {Object.entries(presets).map(([title, items]) => (
+              <div key={title} className="flex flex-col">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 pb-1 border-b border-gray-100">
+                  {title}
                 </div>
-              );
-            })}
+                <div className="flex flex-col gap-1">
+                  {items.map(item => {
+                    const isSelected = value?.label === item && !isCustomMode;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => selectPreset(item)}
+                        className={`w-full text-center px-2.5 py-1.5 text-[11px] rounded-lg transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-primary text-white font-bold shadow-sm'
+                            : 'bg-gray-50 text-gray-600 hover:bg-primary/5 hover:text-primary font-medium'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </PortalPopover>
 
       {/* Calendar Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'calendar'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl z-[10000] w-[95vw] sm:w-[500px] max-w-full p-4 overflow-y-auto max-h-[85vh]">
+        <div className="bg-white border border-gray-100 rounded-xl shadow-xl z-[10000] w-[95vw] sm:w-[480px] max-w-full p-4 overflow-y-auto max-h-[85vh]">
           {/* Header range display */}
-          <div className="px-4 py-2.5 bg-blue-50/60 border border-blue-100 text-xs font-semibold text-gray-800 rounded-xl mb-4 text-center">
-            Từ ngày: <span className="text-primary font-bold">{startDate ? startDate.toLocaleDateString('vi-VN') : '--/--/----'}</span> — Đến ngày: <span className="text-primary font-bold">{endDate ? endDate.toLocaleDateString('vi-VN') : '--/--/----'}</span>
+          <div className="px-3 py-2 bg-gray-50 border border-gray-100 text-[11px] font-medium text-gray-600 rounded-lg mb-3 text-center">
+            Từ: <span className="text-primary font-bold">{startDate ? startDate.toLocaleDateString('vi-VN') : '--/--/----'}</span> — Đến: <span className="text-primary font-bold">{endDate ? endDate.toLocaleDateString('vi-VN') : '--/--/----'}</span>
           </div>
 
           {/* Dual Calendar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth - 1, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                  <ChevronLeft size={16} />
+              <div className="flex items-center justify-between mb-2">
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth - 1, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors">
+                  <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs font-extrabold text-gray-800">Tháng {curMonth + 1}/{curYear}</span>
-                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 1, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                  <ChevronRight size={16} />
+                <span className="text-[11px] font-bold text-gray-700">Tháng {curMonth + 1}/{curYear}</span>
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 1, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors">
+                  <ChevronRight size={14} />
                 </button>
               </div>
               <CalendarGrid year={curYear} month={curMonth} startDate={startDate} endDate={endDate} onSelectDay={handleSelectDay} />
             </div>
 
             <div className="hidden sm:block">
-              <div className="flex items-center justify-between mb-3">
-                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                  <ChevronLeft size={16} />
+              <div className="flex items-center justify-between mb-2">
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors">
+                  <ChevronLeft size={14} />
                 </button>
-                <span className="text-xs font-extrabold text-gray-800">Tháng {nextDate.getMonth() + 1}/{nextDate.getFullYear()}</span>
-                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 2, 1))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors">
-                  <ChevronRight size={16} />
+                <span className="text-[11px] font-bold text-gray-700">Tháng {nextDate.getMonth() + 1}/{nextDate.getFullYear()}</span>
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 2, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-500 transition-colors">
+                  <ChevronRight size={14} />
                 </button>
               </div>
               <CalendarGrid year={nextDate.getFullYear()} month={nextDate.getMonth()} startDate={startDate} endDate={endDate} onSelectDay={handleSelectDay} />
@@ -250,13 +234,13 @@ export default function DateFilter({ label, type = 'created', value, onChange })
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between pt-3 mt-4 border-t border-gray-100">
-            <button type="button" onClick={() => { const t = new Date(); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); }} className="text-primary text-xs font-bold hover:underline">
+          <div className="flex items-center justify-between pt-2 mt-3 border-t border-gray-100">
+            <button type="button" onClick={() => { const t = new Date(); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); }} className="text-primary text-[11px] font-bold hover:underline">
               Hôm nay
             </button>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setPopover(null)} className="text-xs text-gray-600 hover:bg-gray-100 px-3.5 py-1.5 rounded-lg border border-gray-200 transition-all font-semibold cursor-pointer">Bỏ qua</button>
-              <button type="button" onClick={applyCustom} className="bg-primary hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer">Áp dụng</button>
+              <button type="button" onClick={() => setPopover(null)} className="text-[11px] text-gray-500 hover:bg-gray-100 px-3 py-1 rounded-lg border border-gray-200 transition-all font-medium cursor-pointer">Bỏ qua</button>
+              <button type="button" onClick={applyCustom} className="bg-primary hover:bg-blue-700 text-white text-[11px] font-bold px-3 py-1 rounded-lg shadow-sm transition-all cursor-pointer">Áp dụng</button>
             </div>
           </div>
         </div>
