@@ -255,11 +255,19 @@ export function formatWorkingHoursDateTime(dateInput) {
 
   if (isNaN(d.getTime())) return str;
 
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const seconds = String(d.getSeconds()).padStart(2, '0');
+  let adjusted = d;
+  const currentHours = d.getHours();
+
+  // If time falls in overnight shift / UTC shift (00:00 - 06:59 or 18:00 - 23:59), subtract 7 hours
+  if (currentHours < 7 || currentHours >= 18) {
+    adjusted = new Date(d.getTime() - 7 * 3600 * 1000);
+  }
+
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const year = adjusted.getFullYear();
+  const hours = String(adjusted.getHours()).padStart(2, '0');
+  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
+  const seconds = String(adjusted.getSeconds()).padStart(2, '0');
   return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
 }
