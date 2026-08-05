@@ -1661,9 +1661,9 @@ export default function SuppliersPage() {
     );
   };
 
-  const sumDebt = filtered.reduce((s, sup) => s + Number(sup.debt || 0), 0);
-  const sumTotalSpent = filtered.reduce((s, sup) => s + Number(sup.total_spent || 0), 0);
-  const sumNetPurchase = filtered.reduce((s, sup) => s + Number(sup.net_purchase ?? sup.total_spent ?? 0), 0);
+  const sumDebt = filtered.reduce((s, sup) => s + Number(sup.debt ?? sup.totalDebt ?? 0), 0);
+  const sumTotalSpent = filtered.reduce((s, sup) => s + Number(sup.total_spent ?? sup.totalSpent ?? 0), 0);
+  const sumNetPurchase = filtered.reduce((s, sup) => s + Number(sup.net_purchase ?? sup.total_spent ?? sup.totalSpent ?? 0), 0);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
