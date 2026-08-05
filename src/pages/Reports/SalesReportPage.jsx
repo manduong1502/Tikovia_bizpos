@@ -38,9 +38,27 @@ export default function SalesReportPage() {
   const [priceBook, setPriceBook] = useState('');
   
   // Date Filter State
-  const [dateFilterValue, setDateFilterValue] = useState({ mode: 'custom', label: '31/07/2026 - 01/08/2026' });
-  const [customFromDate, setCustomFromDate] = useState('2026-07-31');
-  const [customToDate, setCustomToDate] = useState('2026-08-01');
+  const [dateFilterValue, setDateFilterValue] = useState({ mode: 'all', label: 'Tháng này' });
+  const [customFromDate, setCustomFromDate] = useState(() => {
+    const range = getRangeByCreatedLabel('Tháng này');
+    if (range && range.start) {
+      const y = range.start.getFullYear();
+      const m = String(range.start.getMonth() + 1).padStart(2, '0');
+      const d = String(range.start.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  });
+  const [customToDate, setCustomToDate] = useState(() => {
+    const range = getRangeByCreatedLabel('Tháng này');
+    if (range && range.end) {
+      const y = range.end.getFullYear();
+      const m = String(range.end.getMonth() + 1).padStart(2, '0');
+      const d = String(range.end.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return '';
+  });
 
   const formatDateParam = (d) => {
     if (!d) return '';
@@ -65,7 +83,7 @@ export default function SalesReportPage() {
       }
     } else if (filterVal.mode === 'custom') {
       if (filterVal.start) setCustomFromDate(formatDateParam(filterVal.start));
-      if (filterVal.end) setCustomToDate(formatDateParam(filterVal.end));
+      if (filterVal.end) setCustomToDate(formatDateParam(filterVal.end || filterVal.start));
     }
   };
 
@@ -159,6 +177,7 @@ export default function SalesReportPage() {
     return retList;
   };
 
+<<<<<<< HEAD
 function getWorkingHoursDateObj(dateInput) {
   if (!dateInput) return new Date();
   const str = String(dateInput).trim();
@@ -177,17 +196,36 @@ function getWorkingHoursDateObj(dateInput) {
 }
 
   // Group transactions by Date String DD/MM/YYYY
+=======
+  // Group transactions by Date String DD/MM/YYYY in Asia/Ho_Chi_Minh timezone
+>>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
   const getGroupedByDate = () => {
     const datesMap = {};
     const filteredTx = getFilteredTransactions();
     const filteredRet = getFilteredReturns();
 
+    const formatVNDate = (time) => {
+      const d = new Date(time);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(d);
+    };
+
     filteredTx.forEach(tx => {
+<<<<<<< HEAD
       const dateObj = getWorkingHoursDateObj(tx.time);
       const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
                       String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
                       dateObj.getFullYear();
       
+=======
+      const dateStr = formatVNDate(tx.time);
+      if (!dateStr) return;
+>>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
       if (!datesMap[dateStr]) {
         datesMap[dateStr] = { 
           dateStr, 
@@ -205,11 +243,16 @@ function getWorkingHoursDateObj(dateInput) {
     });
 
     filteredRet.forEach(ret => {
+<<<<<<< HEAD
       const dateObj = getWorkingHoursDateObj(ret.time);
       const dateStr = String(dateObj.getDate()).padStart(2, '0') + '/' + 
                       String(dateObj.getMonth() + 1).padStart(2, '0') + '/' + 
                       dateObj.getFullYear();
 
+=======
+      const dateStr = formatVNDate(ret.time);
+      if (!dateStr) return;
+>>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
       if (!datesMap[dateStr]) {
         datesMap[dateStr] = { 
           dateStr, 
@@ -897,7 +940,11 @@ function getWorkingHoursDateObj(dateInput) {
                                             </button>
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-600">
+<<<<<<< HEAD
                                             {group.dateStr} {getWorkingHoursDateObj(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+=======
+                                            {new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(tx.time))}
+>>>>>>> 093247c (fix: update DateFilter popover UI matching KiotViet Image 2 and fix date state initializers in SalesReportPage.jsx)
                                           </td>
                                           <td className="px-4 py-1.5 text-gray-700 font-medium">
                                             {tx.customerName}

@@ -247,8 +247,8 @@ export default function DateFilter({ label, type = 'created', value, onChange })
               Hôm nay
             </button>
             <div className="flex gap-2">
-              <button onClick={() => setPopover(null)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded transition-colors">Bỏ qua</button>
-              <button onClick={applyCustom} className="bg-primary text-white text-xs px-4 py-1.5 rounded hover:bg-primary-hover transition-colors">Áp dụng</button>
+              <button onClick={() => setPopover(null)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded transition-colors cursor-pointer">Bỏ qua</button>
+              <button onClick={applyCustom} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded transition-colors cursor-pointer">Tạo báo cáo</button>
             </div>
           </div>
         </div>
