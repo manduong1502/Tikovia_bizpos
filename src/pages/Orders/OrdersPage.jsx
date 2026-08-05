@@ -21,21 +21,28 @@ const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
-  const str = String(dateStr);
-  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (m) {
-    const [, y, mo, da, h, mi, s = '00'] = m;
-    return `${h}:${mi}:${s} ${da}/${mo}/${y}`;
+  const str = String(dateStr).trim();
+
+  // 1. If it's DD/MM/YYYY HH:mm:ss
+  const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    const [, da, mo, y, h = '00', mi = '00', s = '00'] = dmyMatch;
+    return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}:${String(s).padStart(2, '0')} ${String(da).padStart(2, '0')}/${String(mo).padStart(2, '0')}/${y}`;
   }
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const seconds = String(d.getSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+
+  // 2. Standard JS Date parse (properly converts ISO UTC strings with Z to local Vietnam ICT time)
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+  }
+
+  return str;
 };
 
 const getStatusBadge = (status, paidAmount, totalAmount) => {
