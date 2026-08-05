@@ -239,3 +239,49 @@ export function buildCustomRange(startInput, endInput) {
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
   return { start, end };
 }
+
+export function formatWorkingHoursDateTime(dateInput) {
+  if (!dateInput) return '';
+  const str = String(dateInput).trim();
+
+  let d;
+  const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    const [, da, mo, y, h = '00', mi = '00', s = '00'] = dmyMatch;
+    d = new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(s));
+  } else {
+    d = new Date(str);
+  }
+
+  if (isNaN(d.getTime())) return str;
+
+  let adjusted = d;
+  const currentHours = d.getHours();
+
+  if (currentHours < 7 || currentHours > 18) {
+    const minus7 = new Date(d.getTime() - 7 * 3600 * 1000);
+    const minus7Hours = minus7.getHours();
+
+    if (minus7Hours >= 7 && minus7Hours <= 18) {
+      adjusted = minus7;
+    } else {
+      const plus7 = new Date(d.getTime() + 7 * 3600 * 1000);
+      const plus7Hours = plus7.getHours();
+      if (plus7Hours >= 7 && plus7Hours <= 18) {
+        adjusted = plus7;
+      } else {
+        const clampedHours = currentHours < 7 ? 7 + (currentHours % 11) : (7 + ((currentHours - 18) % 11));
+        adjusted = new Date(d);
+        adjusted.setHours(clampedHours);
+      }
+    }
+  }
+
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const year = adjusted.getFullYear();
+  const hours = String(adjusted.getHours()).padStart(2, '0');
+  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
+  const seconds = String(adjusted.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+}

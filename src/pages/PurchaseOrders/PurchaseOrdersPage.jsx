@@ -10,24 +10,13 @@ import {
 // Dynamic imports will be used for exportCSV to speed up route loading
 import PurchaseOrderModal from './PurchaseOrderModal';
 import Pagination from '../../components/common/Pagination';
-import { getRangeByCreatedLabel, inDateRange, buildCustomRange } from '../../utils/dateFilterUtils';
+import { getRangeByCreatedLabel, inDateRange, buildCustomRange, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 import AdvancedFilter from './components/AdvancedFilter';
 import PurchaseOrderDetail from './components/PurchaseOrderDetail';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const seconds = String(d.getSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-};
+const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
 
 const scrollRowIntoView = (id) => {
   setTimeout(() => {

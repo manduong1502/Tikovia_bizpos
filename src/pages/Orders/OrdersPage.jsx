@@ -15,35 +15,12 @@ import {
   getRangeByExpectedLabel,
   inDateRange,
   buildCustomRange,
+  formatWorkingHoursDateTime,
 } from '../../utils/dateFilterUtils';
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  const str = String(dateStr).trim();
-
-  let d;
-  const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
-  if (dmyMatch) {
-    const [, da, mo, y, h = '00', mi = '00', s = '00'] = dmyMatch;
-    d = new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(s));
-  } else {
-    d = new Date(str);
-  }
-
-  if (isNaN(d.getTime())) return str;
-
-  // Subtract 7 hours (7 * 3600 * 1000 ms) to align timezone with KiotViet original time
-  const adjusted = new Date(d.getTime() - 7 * 3600 * 1000);
-  const day = String(adjusted.getDate()).padStart(2, '0');
-  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
-  const year = adjusted.getFullYear();
-  const hours = String(adjusted.getHours()).padStart(2, '0');
-  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
-  const seconds = String(adjusted.getSeconds()).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-};
+const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
 
 const getStatusBadge = (status, paidAmount, totalAmount) => {
   const total = Number(totalAmount || 0);

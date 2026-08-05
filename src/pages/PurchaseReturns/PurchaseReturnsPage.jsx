@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 // Dynamic imports will be used for exportCSV to speed up route loading
 import Pagination from '../../components/common/Pagination';
-import { inDateRange, getRangeByCreatedLabel, buildCustomRange } from '../../utils/dateFilterUtils';
+import { inDateRange, getRangeByCreatedLabel, buildCustomRange, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
@@ -195,7 +195,7 @@ export default function PurchaseReturnsPage() {
 
                   <div className="flex items-center gap-2 text-gray-600">
                     <span className="text-gray-500">Ngày trả:</span>
-                    <span className="font-bold text-gray-800">{o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : ''}</span>
+                    <span className="font-bold text-gray-800">{formatWorkingHoursDateTime(o.created_at)}</span>
                     <Calendar size={14} className="text-primary ml-1" />
                   </div>
                   <div>
@@ -903,7 +903,7 @@ export default function PurchaseReturnsPage() {
                         {visibleColumns.includes('code') && <td className="py-2.5 px-3 font-extrabold text-primary">{o.code}</td>}
                         {visibleColumns.includes('created_at') && (
                           <td className="py-2.5 px-3 font-medium text-gray-600">
-                            {o.created_at ? new Date(o.created_at).toLocaleString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}
+                            {formatWorkingHoursDateTime(o.created_at)}
                           </td>
                         )}
                         {visibleColumns.includes('supplier_name') && <td className="py-2.5 px-3 font-bold text-gray-800">{o.supplier_name}</td>}

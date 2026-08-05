@@ -43,7 +43,7 @@ export default function PaymentDetailModal({ open, onClose, data, partnerName, o
         <div className="p-6 flex flex-col gap-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-[13px] bg-gray-50/50 p-4 rounded-xl border border-gray-100">
             <div><span className="text-gray-500 block mb-1">Mã phiếu:</span><span className="font-bold text-gray-800">{data.code}</span></div>
-            <div><span className="text-gray-500 block mb-1">Thời gian:</span><span className="font-bold text-gray-800">{new Date(data.date).toLocaleString('vi-VN')}</span></div>
+            <div><span className="text-gray-500 block mb-1">Thời gian:</span><span className="font-bold text-gray-800">{formatWorkingHoursDateTime(data.date)}</span></div>
             <div><span className="text-gray-500 block mb-1">Phương thức:</span><span className="font-bold text-gray-800">Tiền mặt</span></div>
             <div><span className="text-gray-500 block mb-1">Đối tác:</span><span className="font-bold text-primary">{partnerName || '---'}</span></div>
             <div><span className="text-gray-500 block mb-1">Tổng tiền:</span><span className="font-extrabold text-primary text-base">{fmt(Math.abs(data.total || data.paid))}</span></div>

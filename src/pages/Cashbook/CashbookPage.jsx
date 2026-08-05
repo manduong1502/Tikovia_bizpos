@@ -12,27 +12,11 @@ import { exportCSV } from '../../utils/exportUtils';
 import Pagination from '../../components/common/Pagination';
 import CashbookModal from './CashbookModal';
 import DateFilter from '../../components/ui/DateFilter';
-import { getRangeByCreatedLabel, inDateRange } from '../../utils/dateFilterUtils';
+import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
-const formatDateTime = (dateStr) => {
-  if (!dateStr) return '';
-  const str = String(dateStr);
-  const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-  if (m) {
-    const [, year, month, day, hours, mins] = m;
-    return `${day}/${month}/${year} ${hours}:${mins}`;
-  }
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-};
+const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
 
 const scrollRowIntoView = (id) => {
   setTimeout(() => {

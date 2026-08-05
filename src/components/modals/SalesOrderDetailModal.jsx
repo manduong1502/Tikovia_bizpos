@@ -47,22 +47,18 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
   const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-[900px] max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-extrabold text-gray-800 tracking-tight">Hóa đơn</h2>
-            <span className="font-bold text-gray-600">{data.code}</span>
-            <span className={`px-2 py-0.5 text-xs font-bold rounded ${status.bg} ${status.color}`}>
-              {status.text}
-            </span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-gray-100 animate-scale-up" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <div className="flex items-center gap-2">
+            <h3 className="font-extrabold text-lg text-gray-800">Chi tiết hóa đơn {data.code || data.order_code}</h3>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"><X size={20} className="text-gray-400" /></button>
         </div>
         
         <div className="p-6 flex flex-col gap-6">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-[13px]">
-            <div><span className="text-gray-500 block">Ngày bán:</span><span className="font-bold text-gray-800">{new Date(data.date || data.createdAt || data.created_at).toLocaleString('vi-VN')}</span></div>
+            <div><span className="text-gray-500 block">Ngày bán:</span><span className="font-bold text-gray-800">{formatWorkingHoursDateTime(data.date || data.createdAt || data.created_at)}</span></div>
             <div><span className="text-gray-500 block">Khách hàng:</span><span className="font-bold text-primary">{partnerName || 'Khách lẻ'}</span></div>
             <div><span className="text-gray-500 block">Chi nhánh:</span><span className="font-bold text-gray-800">Chi nhánh trung tâm</span></div>
           </div>

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { orderAPI, cashbookAPI } from '../../services/api';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
 import Button from '../../components/ui/Button';
+import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 const PAY_LABEL = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Quẹt thẻ' };
@@ -293,7 +294,7 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
 
             {/* Meta Info Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 p-2.5 sm:p-3 bg-gray-50/50 rounded-xl border border-gray-200 text-[11px]">
-              <div><span className="text-gray-500 font-medium block mb-0.5">Ngày bán</span><span className="font-bold text-gray-800 block leading-tight">{o.created_at ? new Date(new Date(o.created_at).getTime() - 7 * 3600 * 1000).toLocaleString('vi-VN') : ''}</span></div>
+              <div><span className="text-gray-500 font-medium block mb-0.5">Ngày bán</span><span className="font-bold text-gray-800 block leading-tight">{formatWorkingHoursDateTime(o.created_at)}</span></div>
               <div><span className="text-gray-500 font-medium block mb-0.5">Kênh bán</span><span className="font-bold text-gray-800 block leading-tight">Bán trực tiếp</span></div>
               <div><span className="text-gray-500 font-medium block mb-0.5">Bảng giá</span><span className="font-bold text-gray-800 block leading-tight">Bảng giá chung</span></div>
             </div>
