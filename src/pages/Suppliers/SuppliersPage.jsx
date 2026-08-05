@@ -329,6 +329,7 @@ export default function SuppliersPage() {
   const [detailSearchName, setDetailSearchName] = useState('');
   const [supNotes, setSupNotes] = useState({});
   const [debtLedgersMap, setDebtLedgersMap] = useState({});
+  const [detailDebtTypeFilter, setDetailDebtTypeFilter] = useState('all');
 
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
