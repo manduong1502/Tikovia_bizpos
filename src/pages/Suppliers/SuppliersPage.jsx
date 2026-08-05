@@ -1113,18 +1113,25 @@ export default function SuppliersPage() {
     
     const exactLedger = debtLedgersMap[s.id];
     const transactions = (exactLedger !== undefined)
-      ? exactLedger.map(tx => ({
-          id: tx.code,
-          code: tx.code,
-          type: tx.type,
-          typeName: tx.typeName,
-          date: tx.date,
-          total: tx.amount,
-          paid: Math.abs(tx.amount),
-          debt: tx.amount,
-          runningDebt: tx.runningDebt,
-          status: 'paid'
-        }))
+      ? exactLedger.map(tx => {
+          const code = tx.code || '';
+          const typeStr = String(tx.typeName || tx.type || '');
+          const isImport = code.startsWith('PN') || typeStr.includes('Nhập');
+          const isReturn = code.startsWith('THN') || typeStr.includes('Trả');
+          const isPayment = code.startsWith('PC') || code.startsWith('TT') || typeStr.includes('Thanh toán');
+          return {
+            id: code,
+            code: code,
+            type: isImport ? 'import' : (isReturn ? 'return' : (isPayment ? 'payment' : 'balance')),
+            typeName: typeStr || (isImport ? 'Nhập hàng' : (isReturn ? 'Trả hàng' : 'Thanh toán')),
+            date: tx.date,
+            total: tx.amount,
+            paid: Math.abs(tx.amount),
+            debt: tx.amount,
+            runningDebt: tx.runningDebt,
+            status: 'paid'
+          };
+        })
       : sortedTransactions.map(tx => {
           const runningDebt = tempDebt;
           tempDebt -= tx.debt;
