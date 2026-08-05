@@ -80,9 +80,15 @@ export default function DateFilter({ label, type = 'created', value, onChange })
   const [mode, setMode] = useState(value?.mode || 'all'); // 'all' | 'custom'
   const [popover, setPopover] = useState(null); // 'preset' | 'calendar'
   const [calDate, setCalDate] = useState(new Date());
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState(value?.start ? new Date(value.start) : null);
+  const [endDate, setEndDate] = useState(value?.end ? new Date(value.end) : null);
   const ref = useRef(null);
+
+  useEffect(() => {
+    if (value?.start) setStartDate(new Date(value.start));
+    if (value?.end) setEndDate(new Date(value.end));
+    if (value?.mode) setMode(value.mode);
+  }, [value]);
 
   const presets = type === 'expected' ? EXPECTED_PRESETS : CREATED_PRESETS;
 
