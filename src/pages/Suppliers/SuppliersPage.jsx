@@ -329,6 +329,7 @@ export default function SuppliersPage() {
   const [detailSearchName, setDetailSearchName] = useState('');
   const [supNotes, setSupNotes] = useState({});
   const [debtLedgersMap, setDebtLedgersMap] = useState({});
+  const [debtPageMap, setDebtPageMap] = useState({});
   const [detailDebtTypeFilter, setDetailDebtTypeFilter] = useState('all');
 
   const columnMenuRef = useRef(null);
@@ -1155,6 +1156,13 @@ export default function SuppliersPage() {
           return { ...tx, runningDebt };
         });
 
+    const currentDebtPage = debtPageMap[s.id] || 1;
+    const debtPageSize = 10;
+    const filteredDebtTransactions = transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase());
+    const totalDebtRows = filteredDebtTransactions.length;
+    const totalDebtPages = Math.ceil(totalDebtRows / debtPageSize) || 1;
+    const paginatedDebtTransactions = filteredDebtTransactions.slice((currentDebtPage - 1) * debtPageSize, currentDebtPage * debtPageSize);
+
     const itemStats = {};
     supPOs.forEach(po => {
       po.items?.forEach(it => {
@@ -1536,7 +1544,7 @@ export default function SuppliersPage() {
 
             {/* Tab: Nợ cần trả nhà cung cấp */}
             {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-72">
+              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs min-h-[420px]">
                 <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center flex-none">
                   <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần trả nhà cung cấp</span>
                   <select 
@@ -1552,15 +1560,15 @@ export default function SuppliersPage() {
                 </div>
 
                 {exactLedger === undefined ? (
-                  <div className="p-8 text-center text-gray-500 font-bold text-xs flex items-center justify-center gap-2">
+                  <div className="p-8 text-center text-gray-500 font-bold text-xs flex items-center justify-center gap-2 flex-1">
                     <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     Đang tải sổ công nợ nhà cung cấp...
                   </div>
                 ) : (
                   <>
                     {/* Mobile View: Cards */}
-                    <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
-                      {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
+                    <div className="block md:hidden divide-y divide-gray-100 min-h-[300px] overflow-y-auto custom-scrollbar">
+                      {paginatedDebtTransactions.map((tx, idx) => (
                         <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</span>
@@ -1579,7 +1587,7 @@ export default function SuppliersPage() {
                     </div>
 
                     {/* Desktop View: Table */}
-                    <div className="hidden md:block overflow-x-auto max-h-56">
+                    <div className="hidden md:block overflow-x-auto flex-1 min-h-[320px]">
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
@@ -1591,7 +1599,7 @@ export default function SuppliersPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 font-medium">
-                          {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
+                          {paginatedDebtTransactions.map((tx, idx) => (
                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                               <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
                               <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
@@ -1606,7 +1614,7 @@ export default function SuppliersPage() {
                               <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(tx.runningDebt || 0)}</td>
                             </tr>
                           ))}
-                          {transactions.length === 0 && (
+                          {totalDebtRows === 0 && (
                             <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có giao dịch nào</td></tr>
                           )}
                         </tbody>
@@ -1614,60 +1622,94 @@ export default function SuppliersPage() {
                     </div>
                   </>
                 )}
-                <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                  <div className="flex items-center gap-1.5">
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExportModalSupplier(s);
-                        setExportModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+
+                {/* Bottom Action & Pagination Bar matching KiotViet */}
+                <div className="p-3 border-t border-gray-200 bg-gray-50/70 rounded-b-xl flex flex-col md:flex-row justify-between items-center gap-3">
+                  {/* Left: Export buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setExportModalSupplier(s); setExportModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Download size={13} /> Xuất file công nợ
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExportModalSupplier(s);
-                        setExportModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold"
+                      <Download size={13} className="text-gray-500" />
+                      <span>Xuất file công nợ</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setExportModalSupplier(s); setExportModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Download size={13} /> Xuất file
-                    </Button>
+                      <Download size={13} className="text-gray-500" />
+                      <span>Xuất file</span>
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Button 
-                      variant="primary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAdjustModalSupplier(s);
-                        setAdjustModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-primary hover:bg-primary-hover text-white border-none"
+
+                  {/* Center: Pagination */}
+                  {totalDebtRows > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <button 
+                        disabled={currentDebtPage === 1}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [s.id]: 1 }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang đầu"
+                      >
+                        &laquo;
+                      </button>
+                      <button 
+                        disabled={currentDebtPage === 1}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [s.id]: Math.max(1, currentDebtPage - 1) }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang trước"
+                      >
+                        &lsaquo;
+                      </button>
+                      <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
+                        {currentDebtPage} / {totalDebtPages}
+                      </span>
+                      <button 
+                        disabled={currentDebtPage === totalDebtPages}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [s.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang sau"
+                      >
+                        &rsaquo;
+                      </button>
+                      <button 
+                        disabled={currentDebtPage === totalDebtPages}
+                        onClick={() => setDebtPageMap(prev => ({ ...prev, [s.id]: totalDebtPages }))}
+                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                        title="Trang cuối"
+                      >
+                        &raquo;
+                      </button>
+                      <span className="font-bold text-gray-600 ml-1.5">
+                        {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows.toLocaleString('vi-VN')} dòng
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Right: Action buttons */}
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setPaymentModalSupplier(s); setPaymentModalOpen(true); }}
+                      className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Pen size={13} /> Điều chỉnh
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPaymentModalSupplier(s);
-                        setPaymentModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white shadow-sm border-gray-300"
+                      <DollarSign size={13} />
+                      <span>Thanh toán</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setAdjustModalSupplier(s); setAdjustModalOpen(true); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <DollarSign size={13} /> Thanh toán
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white shadow-sm border-gray-300"
+                      <Pen size={13} className="text-gray-500" />
+                      <span>Điều chỉnh</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
+                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Percent size={13} /> Chiết khấu
-                    </Button>
+                      <Percent size={13} className="text-gray-500" />
+                      <span>Chiết khấu</span>
+                    </button>
                   </div>
                 </div>
               </div>
