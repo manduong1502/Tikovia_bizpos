@@ -328,6 +328,7 @@ export default function SuppliersPage() {
   const [detailSearchSku, setDetailSearchSku] = useState('');
   const [detailSearchName, setDetailSearchName] = useState('');
   const [supNotes, setSupNotes] = useState({});
+  const [debtLedgersMap, setDebtLedgersMap] = useState({});
 
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
@@ -1036,8 +1037,6 @@ export default function SuppliersPage() {
     const sortedTransactions = [
       ...supPOs.filter(po => po.status !== 'CANCELLED').map(po => {
         const total = Number(po.total || 0);
-        const paid = Number(po.paid || 0);
-        const unpaid = Math.max(0, total - paid);
         return {
           id: `${po.id}-import`,
           code: po.po_code || po.code,
@@ -1045,8 +1044,8 @@ export default function SuppliersPage() {
           typeName: 'Nhập hàng',
           date: po.created_at || po.createdAt,
           total: total,
-          paid: paid,
-          debt: unpaid, // Debt increase is only the unpaid portion
+          paid: Number(po.paid || 0),
+          debt: total, // KiotViet increases debt by full PO amount
           status: po.payment_status || 'paid',
           items: po.items || []
         };
@@ -1070,25 +1069,18 @@ export default function SuppliersPage() {
         const cbSupCode = String(cb.partnerCode || cb.partner_code || cb.supplier_code || cb.supplierCode || '').trim().toLowerCase();
         if (cbSupCode && supCode && cbSupCode === supCode.toLowerCase()) return true;
 
-        const cbSupName = String(cb.partnerName || cb.partner_name || cb.supplierName || '').trim().toLowerCase();
-        const sNameLower = (supName || '').trim().toLowerCase();
-        if (cbSupName && sNameLower && (cbSupName === sNameLower || cbSupName.includes(sNameLower) || sNameLower.includes(cbSupName))) return true;
-
         return false;
       }).filter(cb => !cb.status || String(cb.status).toUpperCase() === 'COMPLETED').map(cb => {
-        const matchedPO = (cb.purchaseOrderId || cb.purchase_order_id)
-          ? supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id)
-          : null;
-        const usePODate = matchedPO && (cb.type === 'EXPENSE' || cb.type === 'OUT');
+        const amount = Number(cb.amount || 0);
         return {
           id: cb.id || cb.code,
           code: cb.code,
           type: 'payment',
           typeName: 'Thanh toán',
-          date: usePODate ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
-          total: Number(cb.amount || 0),
-          paid: Number(cb.amount || 0),
-          debt: (cb.type === 'INCOME' || cb.type === 'IN') ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+          date: cb.createdAt || cb.created_at || cb.date,
+          total: (cb.type === 'INCOME' || cb.type === 'IN') ? amount : -amount,
+          paid: amount,
+          debt: (cb.type === 'INCOME' || cb.type === 'IN') ? amount : -amount,
           cashbookType: cb.type,
           status: cb.status || 'COMPLETED',
           note: cb.note,
@@ -1107,13 +1099,36 @@ export default function SuppliersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
+    if (s && s.id && debtLedgersMap[s.id] === undefined) {
+      supplierAPI.getDebtLedger(s.id).then(ledger => {
+        setDebtLedgersMap(prev => ({ ...prev, [s.id]: Array.isArray(ledger) ? ledger : [] }));
+      }).catch(() => {
+        setDebtLedgersMap(prev => ({ ...prev, [s.id]: [] }));
+      });
+    }
+
     const currentFinalDebt = Number(s.debt || s.totalDebt || 0);
     let tempDebt = currentFinalDebt;
-    const transactions = sortedTransactions.map(tx => {
-      const runningDebt = tempDebt;
-      tempDebt -= tx.debt;
-      return { ...tx, runningDebt };
-    });
+    
+    const exactLedger = debtLedgersMap[s.id];
+    const transactions = (exactLedger && exactLedger.length > 0)
+      ? exactLedger.map(tx => ({
+          id: tx.code,
+          code: tx.code,
+          type: tx.type,
+          typeName: tx.typeName,
+          date: tx.date,
+          total: tx.amount,
+          paid: Math.abs(tx.amount),
+          debt: tx.amount,
+          runningDebt: tx.runningDebt,
+          status: 'paid'
+        }))
+      : sortedTransactions.map(tx => {
+          const runningDebt = tempDebt;
+          tempDebt -= tx.debt;
+          return { ...tx, runningDebt };
+        });
 
     const itemStats = {};
     supPOs.forEach(po => {

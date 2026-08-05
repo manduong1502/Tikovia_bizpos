@@ -704,6 +704,7 @@ export const supplierAPI = {
     return [...toAdd, ...list];
   }),
   getById: (id) => api.get(`/suppliers/${id}`, { hideErrorToast: true }).then(r => normalizeSupplier(r.data)).catch(() => normalizeSupplier(FALLBACK_SUPPLIERS.find(s => s.id === Number(id)))),
+  getDebtLedger: (id) => api.get(`/suppliers/${id}/debt-ledger`, { hideErrorToast: true }).then(r => r.data).catch(() => []),
   create: (data) => api.post('/suppliers', data, { hideErrorToast: true }).then(r => {
     const created = normalizeSupplier(r.data || r);
     LOCAL_ADDED_SUPPLIERS = [created, ...LOCAL_ADDED_SUPPLIERS];
