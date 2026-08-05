@@ -1534,60 +1534,69 @@ export default function SuppliersPage() {
                   </select>
                 </div>
 
-                {/* Mobile View: Cards */}
-                <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
-                  {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
-                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                          {tx.typeName}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</span>
-                        <span className={`font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
-                          {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Desktop View: Table */}
-                <div className="hidden md:block overflow-x-auto max-h-56">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                        <th className="py-2.5 px-3.5">Mã phiếu</th>
-                        <th className="py-2.5 px-3.5">Thời gian</th>
-                        <th className="py-2.5 px-3.5">Loại</th>
-                        <th className="py-2.5 px-3.5 text-right">Giá trị</th>
-                        <th className="py-2.5 px-3.5 text-right">Nợ cần trả NCC</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
+                {exactLedger === undefined ? (
+                  <div className="p-8 text-center text-gray-500 font-bold text-xs flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    Đang tải sổ công nợ nhà cung cấp...
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile View: Cards */}
+                    <div className="block md:hidden divide-y divide-gray-100 max-h-56 overflow-y-auto custom-scrollbar">
                       {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
-                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
-                          <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
-                          <td className="py-2 px-3.5">
-                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</span>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                               {tx.typeName}
                             </span>
-                          </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
-                            {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
-                          </td>
-                          <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(tx.runningDebt || 0)}</td>
-                        </tr>
+                          </div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</span>
+                            <span className={`font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
+                              {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
+                            </span>
+                          </div>
+                        </div>
                       ))}
-                      {transactions.length === 0 && (
-                        <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có giao dịch nào</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+
+                    {/* Desktop View: Table */}
+                    <div className="hidden md:block overflow-x-auto max-h-56">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
+                            <th className="py-2.5 px-3.5">Mã phiếu</th>
+                            <th className="py-2.5 px-3.5">Thời gian</th>
+                            <th className="py-2.5 px-3.5">Loại</th>
+                            <th className="py-2.5 px-3.5 text-right">Giá trị</th>
+                            <th className="py-2.5 px-3.5 text-right">Nợ cần trả NCC</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 font-medium">
+                          {transactions.filter(tx => detailDebtTypeFilter === 'all' || String(tx.typeName).toLowerCase() === detailDebtTypeFilter.toLowerCase()).map((tx, idx) => (
+                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                              <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
+                              <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                              <td className="py-2 px-3.5">
+                                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                  {tx.typeName}
+                                </span>
+                              </td>
+                              <td className={`py-2 px-3.5 text-right font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
+                                {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
+                              </td>
+                              <td className="py-2 px-3.5 text-right font-extrabold text-gray-800">{fmt(tx.runningDebt || 0)}</td>
+                            </tr>
+                          ))}
+                          {transactions.length === 0 && (
+                            <tr><td colSpan={5} className="p-4 text-center text-gray-400">Không có giao dịch nào</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
                 <div className="p-3 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
                     <Button 
