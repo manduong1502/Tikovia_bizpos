@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
 import DateFilter from '../../components/ui/DateFilter';
-import { getRangeByCreatedLabel, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
+import { getRangeByCreatedLabel, formatWorkingHoursDateTime, formatLocalYMD } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => {
   const val = Math.round(Number(n || 0));
@@ -149,9 +149,22 @@ export default function SalesReportPage() {
     fetchData();
   }, [customFromDate, customToDate]);
 
-  // Client-side transactions sub-filtering matching sidebar selections
+  // Client-side transactions sub-filtering matching sidebar selections & exact date bounds
   const getFilteredTransactions = () => {
     let txList = data.transactions || [];
+
+    if (customFromDate) {
+      txList = txList.filter(tx => {
+        const ymd = formatLocalYMD(tx.time);
+        return !ymd || ymd >= customFromDate;
+      });
+    }
+    if (customToDate) {
+      txList = txList.filter(tx => {
+        const ymd = formatLocalYMD(tx.time);
+        return !ymd || ymd <= customToDate;
+      });
+    }
     
     if (priceBook) {
       txList = txList.filter(tx => {
@@ -171,6 +184,20 @@ export default function SalesReportPage() {
 
   const getFilteredReturns = () => {
     let retList = data.returns || [];
+
+    if (customFromDate) {
+      retList = retList.filter(ret => {
+        const ymd = formatLocalYMD(ret.time);
+        return !ymd || ymd >= customFromDate;
+      });
+    }
+    if (customToDate) {
+      retList = retList.filter(ret => {
+        const ymd = formatLocalYMD(ret.time);
+        return !ymd || ymd <= customToDate;
+      });
+    }
+
     if (seller) {
       retList = retList.filter(ret => ret.createdBy === seller);
     }
