@@ -124,42 +124,42 @@ export default function DateFilter({ label, type = 'created', value, onChange })
       <button
         type="button"
         onClick={() => { setPopover(popover === 'preset' ? null : 'preset'); }}
-        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border mb-1.5 text-[11px] font-semibold transition-all cursor-pointer ${
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border mb-1.5 text-[13px] font-semibold transition-all cursor-pointer ${
           !isCustomMode
             ? 'border-primary/40 bg-primary/5 text-primary font-bold ring-1 ring-primary/15'
             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         }`}
       >
-        <div className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
           !isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
-          {!isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+          {!isCustomMode && <div className="w-2 h-2 rounded-full bg-primary" />}
         </div>
         <span className="flex-1 text-left truncate">
           {!isCustomMode ? (value?.label || 'Toàn thời gian') : 'Toàn thời gian'}
         </span>
-        <ChevronRight size={12} className="text-gray-400 shrink-0" />
+        <ChevronRight size={14} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Custom Radio */}
       <button
         type="button"
         onClick={() => { setPopover(popover === 'calendar' ? null : 'calendar'); }}
-        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-[13px] font-semibold transition-all cursor-pointer ${
           isCustomMode
             ? 'border-primary/40 bg-primary/5 text-primary font-bold ring-1 ring-primary/15'
             : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
         }`}
       >
-        <div className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center shrink-0 ${
+        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
           isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
-          {isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+          {isCustomMode && <div className="w-2 h-2 rounded-full bg-primary" />}
         </div>
         <span className="flex-1 text-left truncate">
           {isCustomMode ? value?.label : 'Tùy chỉnh'}
         </span>
-        <Calendar size={12} className="text-gray-400 shrink-0" />
+        <Calendar size={14} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Multi-Column Preset Popover */}

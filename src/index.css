@@ -84,19 +84,6 @@ thead th {
   line-height: 1.4 !important;
 }
 
-/* Unified filter sidebar section labels */
-.filter-section-label,
-[class*="font-bold"][class*="text-gray-800"][class*="text-xs"],
-[class*="font-extrabold"][class*="text-gray-700"][class*="text-xs"] {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-}
-
-/* Unified filter sidebar checkbox labels */
-[class*="font-semibold"][class*="text-xs"][class*="text-gray-700"] label,
-[class*="font-medium"][class*="text-xs"][class*="text-gray-700"] {
-  font-size: 11px !important;
-}
 
 /* Universal Input Hitbox Enhancement */
 input[type="text"],
