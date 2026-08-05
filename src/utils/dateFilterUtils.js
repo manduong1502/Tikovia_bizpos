@@ -255,11 +255,33 @@ export function formatWorkingHoursDateTime(dateInput) {
 
   if (isNaN(d.getTime())) return str;
 
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const seconds = String(d.getSeconds()).padStart(2, '0');
+  let adjusted = d;
+  const currentHours = d.getHours();
+
+  if (currentHours < 7 || currentHours > 18) {
+    const minus7 = new Date(d.getTime() - 7 * 3600 * 1000);
+    const minus7Hours = minus7.getHours();
+
+    if (minus7Hours >= 7 && minus7Hours <= 18) {
+      adjusted = minus7;
+    } else {
+      const plus7 = new Date(d.getTime() + 7 * 3600 * 1000);
+      const plus7Hours = plus7.getHours();
+      if (plus7Hours >= 7 && plus7Hours <= 18) {
+        adjusted = plus7;
+      } else {
+        const clampedHours = currentHours < 7 ? 7 + (currentHours % 11) : (7 + ((currentHours - 18) % 11));
+        adjusted = new Date(d);
+        adjusted.setHours(clampedHours);
+      }
+    }
+  }
+
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const year = adjusted.getFullYear();
+  const hours = String(adjusted.getHours()).padStart(2, '0');
+  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
+  const seconds = String(adjusted.getSeconds()).padStart(2, '0');
   return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
 }
