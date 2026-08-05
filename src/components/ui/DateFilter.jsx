@@ -77,20 +77,17 @@ function CalendarGrid({ year, month, startDate, endDate, onSelectDay }) {
 }
 
 export default function DateFilter({ label, type = 'created', value, onChange }) {
-  const [mode, setMode] = useState(value?.mode || 'all'); // 'all' | 'custom'
   const [popover, setPopover] = useState(null); // 'preset' | 'calendar'
   const [calDate, setCalDate] = useState(new Date());
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState(value?.start ? new Date(value.start) : null);
+  const [endDate, setEndDate] = useState(value?.end ? new Date(value.end) : null);
   const ref = useRef(null);
 
   const presets = type === 'expected' ? EXPECTED_PRESETS : CREATED_PRESETS;
-
-  const displayLabel = value?.label || 'Toàn thời gian';
+  const isCustomMode = value?.mode === 'custom';
 
   const selectPreset = (lbl) => {
     onChange({ mode: 'all', label: lbl, start: null, end: null });
-    setMode('all');
     setPopover(null);
   };
 
@@ -122,118 +119,118 @@ export default function DateFilter({ label, type = 'created', value, onChange })
   const nextDate = new Date(curYear, curMonth + 1, 1);
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative w-full" ref={ref}>
       {/* Preset Radio */}
       <button
-        onClick={() => { setMode('all'); setPopover(popover === 'preset' ? null : 'preset'); }}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded border mb-1.5 text-sm transition-colors cursor-pointer ${
-          mode === 'all' ? 'border-primary bg-blue-50/50' : 'border-gray-300 bg-white hover:border-gray-400'
+        type="button"
+        onClick={() => { setPopover(popover === 'preset' ? null : 'preset'); }}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border mb-2 text-xs font-medium transition-all cursor-pointer ${
+          !isCustomMode ? 'border-primary bg-blue-50/60 text-primary font-bold shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
         }`}
       >
         <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-          mode === 'all' ? 'border-primary' : 'border-gray-300'
+          !isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
-          {mode === 'all' && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+          {!isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
         </div>
-        <span className="flex-1 text-left text-gray-700 truncate">
-          {mode === 'all' ? displayLabel : 'Toàn thời gian'}
+        <span className="flex-1 text-left truncate">
+          {!isCustomMode ? (value?.label || 'Toàn thời gian') : 'Chọn khoảng thời gian...'}
         </span>
-        <ChevronRight size={12} className="text-gray-400" />
+        <ChevronRight size={14} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Custom Radio */}
       <button
-        onClick={() => { setMode('custom'); setPopover(popover === 'calendar' ? null : 'calendar'); }}
-        className={`w-full flex items-center gap-2 px-3 py-2 rounded border text-sm transition-colors cursor-pointer ${
-          mode === 'custom' ? 'border-primary bg-blue-50/50' : 'border-gray-300 bg-white hover:border-gray-400'
+        type="button"
+        onClick={() => { setPopover(popover === 'calendar' ? null : 'calendar'); }}
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+          isCustomMode ? 'border-primary bg-blue-50/60 text-primary font-bold shadow-sm' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
         }`}
       >
         <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-          mode === 'custom' ? 'border-primary' : 'border-gray-300'
+          isCustomMode ? 'border-primary' : 'border-gray-300'
         }`}>
-          {mode === 'custom' && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
+          {isCustomMode && <div className="w-1.5 h-1.5 rounded-full bg-primary" />}
         </div>
-        <span className="flex-1 text-left text-gray-700 truncate">
-          {mode === 'custom' && value?.label !== 'Toàn thời gian' ? value?.label : 'Tùy chỉnh'}
+        <span className="flex-1 text-left truncate">
+          {isCustomMode ? value?.label : 'Tùy chỉnh ngày...'}
         </span>
-        <Calendar size={14} className="text-gray-400" />
+        <Calendar size={14} className="text-gray-400 shrink-0" />
       </button>
 
       {/* Preset Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'preset'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl z-[10000] grid grid-cols-2 sm:flex p-3 sm:p-5 gap-3 sm:gap-6 max-w-[calc(100vw-20px)] sm:min-w-[420px] max-h-[80vh] overflow-y-auto custom-scrollbar">
-          {Object.entries(presets).map(([title, items], idx, arr) => {
-            const isLast = idx === arr.length - 1;
-            return (
-              <div key={title} className="flex flex-col min-w-0 sm:min-w-[120px]">
-                <div className="text-xs sm:text-sm font-bold text-gray-800 mb-2 sm:mb-3 text-left">{title}</div>
-                <div className="flex flex-col gap-1.5 sm:gap-2 flex-1">
-                  {items.map(item => {
-                    const isSelected = value?.label === item && mode === 'all';
-                    return (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => selectPreset(item)}
-                        className={`w-full text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-full transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20'
-                            : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-primary hover:text-primary hover:shadow-sm'
-                        }`}
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
-                </div>
-                {isLast && (
-                  <button
-                    type="button"
-                    onClick={() => selectPreset('Toàn thời gian')}
-                    className={`mt-2 sm:mt-3 w-full text-center px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-full transition-all cursor-pointer ${
-                      value?.label === 'Toàn thời gian' || !value?.label
-                        ? 'bg-primary text-white font-bold shadow-md ring-2 ring-primary/20'
-                        : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-primary hover:text-primary hover:shadow-sm'
-                    }`}
-                  >
-                    Toàn thời gian
-                  </button>
-                )}
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl z-[10000] p-4 max-w-[92vw] w-[360px] sm:w-[420px] max-h-[80vh] overflow-y-auto custom-scrollbar flex flex-col gap-4">
+          {Object.entries(presets).map(([title, items]) => (
+            <div key={title} className="flex flex-col gap-2">
+              <div className="text-[11px] font-extrabold text-gray-400 uppercase tracking-wider text-left">{title}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {items.map(item => {
+                  const isSelected = value?.label === item && !isCustomMode;
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => selectPreset(item)}
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer font-medium ${
+                        isSelected
+                          ? 'bg-primary text-white font-bold shadow-sm'
+                          : 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-primary'
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
+          <div className="pt-2 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => selectPreset('Toàn thời gian')}
+              className={`w-full text-center py-2 text-xs rounded-lg transition-all cursor-pointer font-semibold ${
+                value?.label === 'Toàn thời gian' || !value?.label
+                  ? 'bg-primary text-white font-bold shadow-sm'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Toàn thời gian
+            </button>
+          </div>
         </div>
       </PortalPopover>
 
       {/* Calendar Popover */}
       <PortalPopover anchorEl={ref.current} open={popover === 'calendar'} onClose={() => setPopover(null)} widthMatch={false}>
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl z-[10000] w-[calc(100vw-20px)] sm:w-[480px] max-w-full p-2 sm:p-4 overflow-y-auto max-h-[85vh]">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-2xl z-[10000] w-[92vw] sm:w-[480px] max-w-full p-3 sm:p-4 overflow-y-auto max-h-[85vh]">
           {/* Header range display */}
-          <div className="px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs text-gray-600 rounded-t-lg">
-            Từ ngày: {startDate ? startDate.toLocaleDateString('vi-VN') : '--/--/----'} - Đến ngày: {endDate ? endDate.toLocaleDateString('vi-VN') : '--/--/----'}
+          <div className="px-3 py-2 bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-700 rounded-lg mb-3 text-center">
+            Từ: <span className="text-primary font-bold">{startDate ? startDate.toLocaleDateString('vi-VN') : '--/--/----'}</span> - Đến: <span className="text-primary font-bold">{endDate ? endDate.toLocaleDateString('vi-VN') : '--/--/----'}</span>
           </div>
 
           {/* Dual Calendar */}
-          <div className="flex gap-4 p-4">
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-3">
-                <button onClick={() => setCalDate(new Date(curYear, curMonth - 1, 1))} className="p-1 rounded hover:bg-gray-100 transition-colors">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth - 1, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-600">
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-sm font-semibold text-gray-700">Tháng {curMonth + 1} {curYear}</span>
-                <button onClick={() => setCalDate(new Date(curYear, curMonth + 1, 1))} className="p-1 rounded hover:bg-gray-100 transition-colors">
+                <span className="text-xs font-bold text-gray-800">Tháng {curMonth + 1}/{curYear}</span>
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 1, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-600">
                   <ChevronRight size={14} />
                 </button>
               </div>
               <CalendarGrid year={curYear} month={curMonth} startDate={startDate} endDate={endDate} onSelectDay={handleSelectDay} />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-3">
-                <button onClick={() => setCalDate(new Date(curYear, curMonth, 1))} className="p-1 rounded hover:bg-gray-100 transition-colors">
+
+            <div className="hidden sm:block">
+              <div className="flex items-center justify-between mb-2">
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-600">
                   <ChevronLeft size={14} />
                 </button>
-                <span className="text-sm font-semibold text-gray-700">Tháng {nextDate.getMonth() + 1} {nextDate.getFullYear()}</span>
-                <button onClick={() => setCalDate(new Date(curYear, curMonth + 2, 1))} className="p-1 rounded hover:bg-gray-100 transition-colors">
+                <span className="text-xs font-bold text-gray-800">Tháng {nextDate.getMonth() + 1}/{nextDate.getFullYear()}</span>
+                <button type="button" onClick={() => setCalDate(new Date(curYear, curMonth + 2, 1))} className="p-1 rounded hover:bg-gray-100 text-gray-600">
                   <ChevronRight size={14} />
                 </button>
               </div>
@@ -242,13 +239,13 @@ export default function DateFilter({ label, type = 'created', value, onChange })
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
-            <button onClick={() => { const t = new Date(); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); }} className="text-primary text-xs font-medium hover:underline">
+          <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
+            <button type="button" onClick={() => { const t = new Date(); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); }} className="text-primary text-xs font-bold hover:underline">
               Hôm nay
             </button>
             <div className="flex gap-2">
-              <button onClick={() => setPopover(null)} className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 border border-gray-200 rounded transition-colors cursor-pointer">Bỏ qua</button>
-              <button onClick={applyCustom} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded transition-colors cursor-pointer">Tạo báo cáo</button>
+              <button type="button" onClick={() => setPopover(null)} className="text-xs text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200 transition-all font-medium cursor-pointer">Bỏ qua</button>
+              <button type="button" onClick={applyCustom} className="bg-primary hover:bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm transition-all cursor-pointer">Áp dụng</button>
             </div>
           </div>
         </div>
