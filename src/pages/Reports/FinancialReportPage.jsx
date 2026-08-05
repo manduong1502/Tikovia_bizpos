@@ -71,19 +71,19 @@ export default function FinancialReportPage() {
     fetchReport();
   }, [fromDate, toDate]);
 
-  const f = data || {
-    grossRevenue: 0,
-    totalDeductions: 0,
-    orderDiscounts: 0,
-    returnTotalVal: 0,
-    netRevenue: 0,
-    cogs: 0,
-    grossProfit: 0,
-    operatingExpenses: 0,
-    operatingProfit: 0,
-    otherIncome: 0,
-    otherExpenses: 0,
-    netProfit: 0
+  const f = {
+    grossRevenue: Number(data?.grossRevenue ?? data?.grossSales ?? 0),
+    totalDeductions: Number(data?.totalDeductions ?? data?.returnSales ?? 0),
+    orderDiscounts: Number(data?.orderDiscounts ?? data?.discounts ?? 0),
+    returnTotalVal: Number(data?.returnTotalVal ?? data?.returnSales ?? 0),
+    netRevenue: Number(data?.netRevenue ?? data?.netSales ?? 0),
+    cogs: Number(data?.cogs ?? data?.netCogs ?? 0),
+    grossProfit: Number(data?.grossProfit ?? 0),
+    operatingExpenses: Number(data?.operatingExpenses ?? 0),
+    operatingProfit: Number(data?.operatingProfit ?? ((data?.grossProfit ?? 0) - (data?.operatingExpenses ?? 0))),
+    otherIncome: Number(data?.otherIncome ?? 0),
+    otherExpenses: Number(data?.otherExpenses ?? 0),
+    netProfit: Number(data?.netProfit ?? 0)
   };
 
   const handlePrint = () => {
