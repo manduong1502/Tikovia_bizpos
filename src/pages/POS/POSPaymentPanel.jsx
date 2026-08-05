@@ -509,18 +509,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}><input type="radio" name="pay-method" value="wallet" /> Ví</label>
               <button style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px' }}>⋮</button>
             </div>
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px 0' }}>
-              {[total, Math.ceil(total/1000)*1000+1000, 20000, 50000, 100000, 200000, 500000].filter(a => a > 0).filter((v, i, a) => a.indexOf(v) === i).slice(0, 7).map(a => (
-                <button 
-                  key={a}
-                  onClick={() => setPaidAmountStr(a.toString())}
-                  style={{ padding: '6px 12px', border: '1px solid #e0e0e0', background: '#fff', borderRadius: '16px', fontSize: '12px', cursor: 'pointer', color: '#333', whiteSpace: 'nowrap' }}
-                >
-                  {new Intl.NumberFormat('vi-VN').format(a)}
-                </button>
-              ))}
-            </div>
+
 
             <div style={{ padding: '4px 0', borderTop: '1px solid #f0f0f0', marginTop: '6px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', padding: '4px 0' }}>
