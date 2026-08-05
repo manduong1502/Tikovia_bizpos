@@ -149,19 +149,31 @@ export default function SalesReportPage() {
     fetchData();
   }, [customFromDate, customToDate]);
 
+  const getYMDFromWorkingHours = (time) => {
+    const formatted = formatWorkingHoursDateTime(time);
+    if (formatted && formatted.includes(' ')) {
+      const dmy = formatted.split(' ')[1];
+      const parts = dmy.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+    return formatLocalYMD(time);
+  };
+
   // Client-side transactions sub-filtering matching sidebar selections & exact date bounds
   const getFilteredTransactions = () => {
     let txList = data.transactions || [];
 
     if (customFromDate) {
       txList = txList.filter(tx => {
-        const ymd = formatLocalYMD(tx.time);
+        const ymd = getYMDFromWorkingHours(tx.time);
         return !ymd || ymd >= customFromDate;
       });
     }
     if (customToDate) {
       txList = txList.filter(tx => {
-        const ymd = formatLocalYMD(tx.time);
+        const ymd = getYMDFromWorkingHours(tx.time);
         return !ymd || ymd <= customToDate;
       });
     }
@@ -187,13 +199,13 @@ export default function SalesReportPage() {
 
     if (customFromDate) {
       retList = retList.filter(ret => {
-        const ymd = formatLocalYMD(ret.time);
+        const ymd = getYMDFromWorkingHours(ret.time);
         return !ymd || ymd >= customFromDate;
       });
     }
     if (customToDate) {
       retList = retList.filter(ret => {
-        const ymd = formatLocalYMD(ret.time);
+        const ymd = getYMDFromWorkingHours(ret.time);
         return !ymd || ymd <= customToDate;
       });
     }
@@ -211,14 +223,12 @@ export default function SalesReportPage() {
     const filteredRet = getFilteredReturns();
 
     const formatVNDate = (time) => {
-      const d = new Date(time);
-      if (isNaN(d.getTime())) return '';
-      return new Intl.DateTimeFormat('vi-VN', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(d);
+      const formatted = formatWorkingHoursDateTime(time);
+      if (!formatted) return '';
+      if (formatted.includes(' ')) {
+        return formatted.split(' ')[1];
+      }
+      return formatted;
     };
 
     filteredTx.forEach(tx => {
