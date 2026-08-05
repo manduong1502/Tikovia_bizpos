@@ -340,7 +340,7 @@ export default function SuppliersPage() {
         productAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 10000 }).catch(() => []),
         purchaseReturnAPI.getAll({ limit: 10000 }).catch(() => []),
-        cashbookAPI.getAll({ partnerType: 'supplier', limit: 10000 }).catch(() => [])
+        cashbookAPI.getAll({ limit: 10000 }).catch(() => [])
       ]);
       const rawList = Array.isArray(supRes) ? supRes : (supRes?.data || []);
       
