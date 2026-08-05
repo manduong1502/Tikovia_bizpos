@@ -171,7 +171,7 @@ export default function DateFilter({ label, type = 'created', value, onChange })
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 pb-1 border-b border-gray-100">
                   {title}
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   {items.map(item => {
                     const isSelected = value?.label === item && !isCustomMode;
                     return (
@@ -179,10 +179,10 @@ export default function DateFilter({ label, type = 'created', value, onChange })
                         key={item}
                         type="button"
                         onClick={() => selectPreset(item)}
-                        className={`w-full text-center px-2.5 py-1.5 text-[11px] rounded-lg transition-all cursor-pointer ${
+                        className={`w-full text-center px-3 py-2 text-[12px] rounded-lg transition-all cursor-pointer border ${
                           isSelected
-                            ? 'bg-primary text-white font-bold shadow-sm'
-                            : 'bg-gray-50 text-gray-600 hover:bg-primary/5 hover:text-primary font-medium'
+                            ? 'bg-primary text-white font-bold shadow-md border-primary ring-2 ring-primary/30'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-primary hover:text-primary hover:bg-blue-50 font-medium'
                         }`}
                       >
                         {item}
@@ -233,26 +233,6 @@ export default function DateFilter({ label, type = 'created', value, onChange })
                   }}
                 />
               </div>
-            </div>
-            
-            {/* Quick shortcuts */}
-            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-              {[
-                { label: 'Hôm nay', fn: () => { const t = new Date(); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); setCalDate(t); }},
-                { label: 'Hôm qua', fn: () => { const t = new Date(); t.setDate(t.getDate()-1); t.setHours(0,0,0,0); setStartDate(t); setEndDate(t); setCalDate(t); }},
-                { label: '7 ngày', fn: () => { const e = new Date(); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-6); setStartDate(s); setEndDate(e); setCalDate(s); }},
-                { label: '30 ngày', fn: () => { const e = new Date(); e.setHours(0,0,0,0); const s = new Date(e); s.setDate(s.getDate()-29); setStartDate(s); setEndDate(e); setCalDate(s); }},
-                { label: 'Tháng này', fn: () => { const n = new Date(); const s = new Date(n.getFullYear(), n.getMonth(), 1); const e = new Date(); e.setHours(0,0,0,0); setStartDate(s); setEndDate(e); setCalDate(s); }},
-              ].map(q => (
-                <button
-                  key={q.label}
-                  type="button"
-                  onClick={q.fn}
-                  className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-white border border-gray-200 text-gray-500 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
-                >
-                  {q.label}
-                </button>
-              ))}
             </div>
           </div>
 
