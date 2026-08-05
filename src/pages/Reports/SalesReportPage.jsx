@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
 import DateFilter from '../../components/ui/DateFilter';
-import { getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
+import { getRangeByCreatedLabel, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => {
   const val = Math.round(Number(n || 0));
@@ -781,7 +781,7 @@ function getWorkingHoursDateObj(dateInput) {
                                           </button>
                                         </td>
                                         <td className="px-4 py-1.5 text-gray-600">
-                                          {group.dateStr} {new Date(tx.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                          {formatWorkingHoursDateTime(tx.time)}
                                         </td>
                                         <td className="px-4 py-1.5 text-gray-700 font-medium">
                                           {tx.customerName} {tx.customerPhone ? `(${tx.customerPhone})` : ''}
