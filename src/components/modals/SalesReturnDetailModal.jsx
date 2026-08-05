@@ -3,6 +3,7 @@ import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
 import { returnAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -72,7 +73,7 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
             <div>
               <span className="text-gray-500 block">Ngày trả:</span>
               <span className="font-bold text-gray-800">
-                {new Date(data.date || data.createdAt || data.created_at).toLocaleString('vi-VN')}
+                {formatWorkingHoursDateTime(data.date || data.createdAt || data.created_at)}
               </span>
             </div>
             <div>
