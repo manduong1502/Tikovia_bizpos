@@ -421,6 +421,20 @@ export default function SuppliersPage() {
   }, []);
 
   useEffect(() => {
+    if (suppliers && suppliers.length > 0) {
+      suppliers.forEach(sup => {
+        if (sup.id && debtLedgersMap[sup.id] === undefined) {
+          supplierAPI.getDebtLedger(sup.id).then(ledger => {
+            if (Array.isArray(ledger) && ledger.length > 0) {
+              setDebtLedgersMap(prev => ({ ...prev, [sup.id]: ledger }));
+            }
+          }).catch(() => {});
+        }
+      });
+    }
+  }, [suppliers]);
+
+  useEffect(() => {
     if (!expandedId) return;
     const fetchSupplierTxHistory = async () => {
       try {
@@ -1064,11 +1078,14 @@ export default function SuppliersPage() {
         items: pr.items || []
       })),
       ...cashbooks.filter(cb => {
-        const cbSupId = cb.supplierId || cb.supplier_id;
+        const cbSupId = cb.supplierId || cb.supplier_id || cb.partnerId || cb.partner_id;
         if (cbSupId && supId && cbSupId === supId) return true;
 
         const cbSupCode = String(cb.partnerCode || cb.partner_code || cb.supplier_code || cb.supplierCode || '').trim().toLowerCase();
         if (cbSupCode && supCode && cbSupCode === supCode.toLowerCase()) return true;
+
+        const cbName = String(cb.partnerName || cb.partner_name || cb.supplierName || cb.supplier_name || '').trim().toLowerCase();
+        if (cbName && supName && cbName.replace(/\{del\}/i, '').trim() === supName.toLowerCase().replace(/\{del\}/i, '').trim()) return true;
 
         return false;
       }).filter(cb => !cb.status || String(cb.status).toUpperCase() === 'COMPLETED').map(cb => {
