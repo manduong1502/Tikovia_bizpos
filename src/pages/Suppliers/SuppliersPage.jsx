@@ -1015,6 +1015,7 @@ export default function SuppliersPage() {
   const renderDetail = (s) => {
     const supCode = s.code || `NCC${String(s.id).padStart(3, '0')}`;
     const supId = s.id;
+    const supName = s.name || '';
     
     // Match by supplierId OR supplier_code OR supplier_name strictly
     const supPOs = purchaseOrders.filter(po => {
