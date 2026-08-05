@@ -1112,7 +1112,7 @@ export default function SuppliersPage() {
     let tempDebt = currentFinalDebt;
     
     const exactLedger = debtLedgersMap[s.id];
-    const transactions = (exactLedger !== undefined)
+    const transactions = (exactLedger && exactLedger.length > 0)
       ? exactLedger.map(tx => {
           const code = tx.code || '';
           const typeStr = String(tx.typeName || tx.type || '');
