@@ -1063,28 +1063,35 @@ export default function SuppliersPage() {
         items: pr.items || []
       })),
       ...cashbooks.filter(cb => {
-        if (cb.partnerType !== 'supplier') return false;
-        const cbSupId = cb.supplierId || cb.customerId;
-        if (cbSupId) return cbSupId === supId;
-        const cbSupCode = cb.supplier_code || cb.customer_code;
-        if (cbSupCode) return cbSupCode === supCode;
-        return cb.partnerName === s.name;
-      }).filter(cb => cb.status === 'completed').map(cb => {
+        const pType = String(cb.partnerType || cb.partner_type || '').toLowerCase();
+        if (!pType.includes('supplier') && !pType.includes('nhà cung cấp') && !pType.includes('ncc')) return false;
+
+        const cbSupId = cb.supplierId || cb.supplier_id || cb.customerId;
+        if (cbSupId && supId && cbSupId === supId) return true;
+
+        const cbSupCode = String(cb.partnerCode || cb.partner_code || cb.supplier_code || cb.supplierCode || '').trim().toLowerCase();
+        if (cbSupCode && supCode && cbSupCode === supCode.toLowerCase()) return true;
+
+        const cbSupName = String(cb.partnerName || cb.partner_name || cb.supplierName || '').trim().toLowerCase();
+        if (cbSupName && supName && cbSupName === supName.toLowerCase()) return true;
+
+        return false;
+      }).filter(cb => !cb.status || String(cb.status).toUpperCase() === 'COMPLETED').map(cb => {
         const matchedPO = (cb.purchaseOrderId || cb.purchase_order_id)
           ? supPOs.find(po => po.id === cb.purchaseOrderId || po.id === cb.purchase_order_id)
           : null;
-        const usePODate = matchedPO && cb.type === 'EXPENSE';
+        const usePODate = matchedPO && (cb.type === 'EXPENSE' || cb.type === 'OUT');
         return {
           id: cb.id || cb.code,
           code: cb.code,
           type: 'payment',
           typeName: 'Thanh toán',
           date: usePODate ? (matchedPO.created_at || matchedPO.createdAt) : (cb.createdAt || cb.created_at || cb.date),
-          total: cb.amount,
-          paid: cb.amount,
-          debt: cb.type === 'INCOME' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+          total: Number(cb.amount || 0),
+          paid: Number(cb.amount || 0),
+          debt: (cb.type === 'INCOME' || cb.type === 'IN') ? Number(cb.amount || 0) : -Number(cb.amount || 0),
           cashbookType: cb.type,
-          status: cb.status,
+          status: cb.status || 'COMPLETED',
           note: cb.note,
           items: []
         };
