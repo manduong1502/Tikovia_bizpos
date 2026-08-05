@@ -175,19 +175,25 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Today Quick Metrics Grid */}
+          {/* Quick Metrics Grid */}
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">Doanh thu hôm nay</div>
-              <div className="text-base sm:text-xl font-black text-primary truncate">{fmt(d.todayStats?.revenue || 0)}</div>
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
+                {timeRange === 'Hôm nay' ? 'Doanh thu hôm nay' : `Doanh thu (${timeRange.toLowerCase()})`}
+              </div>
+              <div className="text-base sm:text-xl font-black text-primary truncate">{fmt(period.revenue)}</div>
             </div>
             <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">Đơn hôm nay</div>
-              <div className="text-base sm:text-xl font-black text-gray-800">{d.todayStats?.orders || 0}</div>
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
+                {timeRange === 'Hôm nay' ? 'Đơn hôm nay' : `Đơn (${timeRange.toLowerCase()})`}
+              </div>
+              <div className="text-base sm:text-xl font-black text-gray-800">{period.orderCount}</div>
             </div>
             <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">Trả hàng hôm nay</div>
-              <div className="text-base sm:text-xl font-black text-amber-600">{d.todayStats?.returns || 0}</div>
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
+                {timeRange === 'Hôm nay' ? 'Trả hàng hôm nay' : `Trả hàng (${timeRange.toLowerCase()})`}
+              </div>
+              <div className="text-base sm:text-xl font-black text-amber-600">{period.returnCount}</div>
             </div>
           </div>
 
