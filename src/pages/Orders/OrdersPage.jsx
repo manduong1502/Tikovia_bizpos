@@ -23,26 +23,26 @@ const formatDateTime = (dateStr) => {
   if (!dateStr) return '';
   const str = String(dateStr).trim();
 
-  // 1. If it's DD/MM/YYYY HH:mm:ss
+  let d;
   const dmyMatch = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
   if (dmyMatch) {
     const [, da, mo, y, h = '00', mi = '00', s = '00'] = dmyMatch;
-    return `${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}:${String(s).padStart(2, '0')} ${String(da).padStart(2, '0')}/${String(mo).padStart(2, '0')}/${y}`;
+    d = new Date(Number(y), Number(mo) - 1, Number(da), Number(h), Number(mi), Number(s));
+  } else {
+    d = new Date(str);
   }
 
-  // 2. Standard JS Date parse (properly converts ISO UTC strings with Z to local Vietnam ICT time)
-  const d = new Date(str);
-  if (!isNaN(d.getTime())) {
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
-  }
+  if (isNaN(d.getTime())) return str;
 
-  return str;
+  // Subtract 7 hours (7 * 3600 * 1000 ms) to align timezone with KiotViet original time
+  const adjusted = new Date(d.getTime() - 7 * 3600 * 1000);
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const year = adjusted.getFullYear();
+  const hours = String(adjusted.getHours()).padStart(2, '0');
+  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
+  const seconds = String(adjusted.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
 };
 
 const getStatusBadge = (status, paidAmount, totalAmount) => {
