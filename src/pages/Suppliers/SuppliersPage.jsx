@@ -338,9 +338,9 @@ export default function SuppliersPage() {
       const [supRes, prodRes, poRes, prRes, cbRes] = await Promise.all([
         supplierAPI.getAll({ limit: 500 }),
         productAPI.getAll().catch(() => []),
-        purchaseOrderAPI.getAll({ limit: 500 }).catch(() => []),
-        purchaseReturnAPI.getAll({ limit: 500 }).catch(() => []),
-        cashbookAPI.getAll({ partnerType: 'supplier' }).catch(() => [])
+        purchaseOrderAPI.getAll({ limit: 10000 }).catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 10000 }).catch(() => []),
+        cashbookAPI.getAll({ partnerType: 'supplier', limit: 10000 }).catch(() => [])
       ]);
       const rawList = Array.isArray(supRes) ? supRes : (supRes?.data || []);
       
@@ -366,8 +366,8 @@ export default function SuppliersPage() {
         supplierId: o.supplierId || o.supplier_id || o.supplier?.id || null,
         po_code: o.po_code || o.code || '',
         created_at: o.created_at || o.createdAt || null,
-        supplier_code: o.supplier_code || o.supplier?.code || '',
-        supplier_name: o.supplier_name || o.supplier?.name || '',
+        supplier_code: o.supplierCode || o.supplier_code || o.supplier?.code || '',
+        supplier_name: o.supplierName || o.supplier_name || o.supplier?.name || '',
         total: Number(o.total || 0),
         paid_amount: Number(o.paid_amount || o.paidAmount || o.paid || 0),
         payment_status: o.payment_status || o.paymentStatus || (o.status === 'PENDING' ? 'partial' : 'paid'),
