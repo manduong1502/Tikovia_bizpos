@@ -101,7 +101,7 @@ export default function SupplierModal({ open, onClose, onSaved, supplier }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-[999990] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-[640px] max-h-[90vh] overflow-y-auto custom-scrollbar" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-primary to-blue-600 text-white">
           <h2 className="text-lg font-extrabold tracking-tight m-0">{supplier ? 'Cập nhật NCC' : 'Thêm nhà cung cấp'}</h2>

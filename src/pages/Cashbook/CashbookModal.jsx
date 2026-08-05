@@ -273,7 +273,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
   return (
     <>
       {/* Main Receipt/Payment Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in" onClick={onClose}>
+      <div className="fixed inset-0 z-[999990] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
         <div 
           className="bg-white rounded-2xl shadow-2xl w-[92%] max-w-2xl overflow-hidden animate-scale-up max-h-[90vh] flex flex-col"
           onClick={e => e.stopPropagation()}
@@ -566,7 +566,7 @@ export default function CashbookModal({ open, onClose, onSaved, type = 'thu' }) 
 
       {/* Sub-modal: Tạo đối tượng nhận/nộp mới */}
       {partnerModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 animate-fade-in" onClick={() => setPartnerModalOpen(false)}>
+        <div className="fixed inset-0 z-[999995] flex items-center justify-center bg-black/60 animate-fade-in" onClick={() => setPartnerModalOpen(false)}>
           <div 
             className="bg-white rounded-2xl shadow-2xl w-[90%] max-w-md overflow-hidden animate-scale-up"
             onClick={e => e.stopPropagation()}
