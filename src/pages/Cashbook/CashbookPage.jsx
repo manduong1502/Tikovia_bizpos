@@ -15,6 +15,7 @@ import DateFilter from '../../components/ui/DateFilter';
 import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+const getCashbookTypeLabel = (e) => e.type === 'INCOME' ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
 
 const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
 
@@ -318,7 +319,7 @@ export default function CashbookPage() {
             <tr><td class="label">Người ${isInc ? 'nộp tiền' : 'nhận tiền'}</td><td>${e.partnerName || '---'}</td></tr>
             <tr><td class="label">Số điện thoại</td><td>${e.partnerPhone || '---'}</td></tr>
             <tr><td class="label">Địa chỉ</td><td>${e.partnerAddress || '---'}</td></tr>
-            <tr><td class="label">Loại thu chi</td><td>${e.type === 'INCOME' ? `Phiếu thu ${e.category || 'Tiền khách trả'}` : `Phiếu chi ${e.category || 'Tiền trả NCC'}`}</td></tr>
+            <tr><td class="label">Loại thu chi</td><td>${getCashbookTypeLabel(e)}</td></tr>
             <tr><td class="label">Số tiền</td><td><strong>${fmt(e.amount)} VNĐ</strong></td></tr>
             <tr><td class="label">Ghi chú</td><td>${e.note || '---'}</td></tr>
             <tr><td class="label">Chi nhánh</td><td>${e.branch || 'Chi nhánh trung tâm'}</td></tr>
@@ -518,11 +519,11 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const exportEntries = filteredEntries.filter(e => e.type === 'INCOME' || e.type === 'EXPENSE');
+                const exportEntries = filteredEntries.filter(e => (e.type === 'INCOME' || e.type === 'EXPENSE') && !(e.category || '').includes('Điều chỉnh công nợ'));
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
-                  'Loại thu chi': e.type === 'INCOME' ? `Phiếu thu ${e.category || 'Tiền khách trả'}` : `Phiếu chi ${e.category || 'Tiền trả NCC'}`,
+                  'Loại thu chi': getCashbookTypeLabel(e),
                   'Người nộp/nhận': e.partnerName || '',
                   'Giá trị': e.type === 'EXPENSE' ? -Math.abs(Number(e.amount || 0)) : Number(e.amount || 0),
                 }));
@@ -1056,9 +1057,7 @@ export default function CashbookPage() {
                           {formatDateTime(e.createdAt)}
                         </td>
                         <td className="py-2.5 px-3 text-gray-700 font-semibold">
-                          {e.type === 'INCOME' 
-                            ? `Phiếu thu ${e.category || 'Tiền khách trả'}`
-                            : `Phiếu chi ${e.category || 'Tiền trả NCC'}`}
+                          {getCashbookTypeLabel(e)}
                         </td>
                         <td className="py-2.5 px-3 text-gray-800 font-bold">
                           {e.partnerName && (e.partnerType === 'customer' || e.partnerType === 'Khách hàng' || e.category?.includes('khách') || e.customerId) ? (
@@ -1091,7 +1090,7 @@ export default function CashbookPage() {
                                 <div><span className="font-bold text-gray-500">Mã phiếu: </span><span className="font-extrabold text-primary">{e.code}</span></div>
                                 <div><span className="font-bold text-gray-500">Thời gian: </span>{formatDateTime(e.createdAt)}</div>
                                 <div><span className="font-bold text-gray-500">Người nộp/nhận: </span>{e.partnerName || '---'} ({e.partnerPhone || 'Không có SĐT'})</div>
-                                <div><span className="font-bold text-gray-500">Loại thu chi: </span>{e.type === 'INCOME' ? `Phiếu thu ${e.category || 'Tiền khách trả'}` : `Phiếu chi ${e.category || 'Tiền trả NCC'}`}</div>
+                                <div><span className="font-bold text-gray-500">Loại thu chi: </span>{getCashbookTypeLabel(e)}</div>
                                 <div><span className="font-bold text-gray-500">Ghi chú: </span>{e.note || '---'}</div>
                               </div>
                               <div className="flex flex-col items-end justify-between gap-4">
