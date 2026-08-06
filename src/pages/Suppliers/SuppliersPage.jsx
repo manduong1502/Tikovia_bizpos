@@ -1138,7 +1138,7 @@ export default function SuppliersPage() {
           const isReturn = code.startsWith('THN') || typeStr.includes('Trả');
           const isPayment = code.startsWith('PC') || code.startsWith('TT') || typeStr.includes('Thanh toán');
           return {
-            id: code,
+            id: tx.orderId || code,
             code: code,
             type: isImport ? 'import' : (isReturn ? 'return' : (isPayment ? 'payment' : 'balance')),
             typeName: typeStr || (isImport ? 'Nhập hàng' : (isReturn ? 'Trả hàng' : 'Thanh toán')),
@@ -1166,11 +1166,11 @@ export default function SuppliersPage() {
     const itemStats = {};
     supPOs.forEach(po => {
       po.items?.forEach(it => {
-        const sku = it.product_sku || 'N/A';
+        const sku = it.product_sku || it.product?.sku || it.sku || 'N/A';
         if (!itemStats[sku]) {
           itemStats[sku] = {
             sku: sku,
-            name: it.product_name || 'N/A',
+            name: it.product_name || it.product?.name || it.name || 'N/A',
             qty: 0,
             amount: 0
           };
@@ -1183,11 +1183,11 @@ export default function SuppliersPage() {
     supPRs.forEach(pr => {
       if (pr.status === 'CANCELLED') return;
       pr.items?.forEach(it => {
-        const sku = it.product_sku || 'N/A';
+        const sku = it.product_sku || it.product?.sku || it.sku || 'N/A';
         if (!itemStats[sku]) {
           itemStats[sku] = {
             sku: sku,
-            name: it.product_name || 'N/A',
+            name: it.product_name || it.product?.name || it.name || 'N/A',
             qty: 0,
             amount: 0
           };
