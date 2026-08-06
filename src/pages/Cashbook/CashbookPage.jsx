@@ -17,22 +17,15 @@ import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 const getCashbookTypeLabel = (e) => {
   if (!e) return '';
-  const rawCat = (e.category || '').trim();
-  if (rawCat.startsWith('Phiếu thu') || rawCat.startsWith('Phiếu chi')) {
-    return rawCat;
-  }
-  const isIncome = e.type === 'INCOME';
-  const prefix = isIncome ? 'Phiếu thu' : 'Phiếu chi';
-  if (!rawCat) {
-    return isIncome ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
-  }
-  if (rawCat === 'Thu tiền khách trả' || rawCat === 'Tiền khách trả') {
-    return 'Phiếu thu Tiền khách trả';
-  }
-  if (rawCat === 'Trả tiền nhà cung cấp' || rawCat === 'Tiền trả NCC') {
-    return 'Phiếu chi Tiền trả NCC';
-  }
-  return `${prefix} ${rawCat}`;
+  return e.type === 'INCOME' ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
+};
+
+const formatExcelDateTime = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
 const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
@@ -540,10 +533,10 @@ export default function CashbookPage() {
                 const exportEntries = filteredEntries;
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
-                  'Thời gian': e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
+                  'Thời gian': formatExcelDateTime(e.createdAt),
                   'Loại thu chi': getCashbookTypeLabel(e),
                   'Người nộp/nhận': e.partnerName || '',
-                  'Giá trị': e.type === 'EXPENSE' ? -Math.abs(Number(e.amount || 0)) : Number(e.amount || 0),
+                  'Giá trị': e.type === 'EXPENSE' ? -Math.abs(Number(e.amount || 0)) : Math.abs(Number(e.amount || 0)),
                 }));
                 const ws = XLSX.utils.json_to_sheet(rows);
                 // Set column widths
