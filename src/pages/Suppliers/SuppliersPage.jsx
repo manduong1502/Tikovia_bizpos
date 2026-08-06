@@ -1164,7 +1164,7 @@ export default function SuppliersPage() {
     const paginatedDebtTransactions = filteredDebtTransactions.slice((currentDebtPage - 1) * debtPageSize, currentDebtPage * debtPageSize);
 
     const itemStats = {};
-    supPOs.forEach(po => {
+    supPOs.filter(po => po.status !== 'CANCELLED').forEach(po => {
       po.items?.forEach(it => {
         const sku = it.product_sku || it.product?.sku || it.sku || 'N/A';
         if (!itemStats[sku]) {
@@ -1201,7 +1201,7 @@ export default function SuppliersPage() {
 
     // Derive product list from purchase order items (products table doesn't have supplierId)
     const productMap = {};
-    supPOs.forEach(po => {
+    supPOs.filter(po => po.status !== 'CANCELLED').forEach(po => {
       po.items?.forEach(it => {
         const sku = it.product_sku || it.product?.sku || 'N/A';
         const productId = it.productId || it.product_id || it.product?.id;
