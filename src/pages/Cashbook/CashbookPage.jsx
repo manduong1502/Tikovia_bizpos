@@ -15,7 +15,25 @@ import DateFilter from '../../components/ui/DateFilter';
 import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
-const getCashbookTypeLabel = (e) => e.type === 'INCOME' ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
+const getCashbookTypeLabel = (e) => {
+  if (!e) return '';
+  const rawCat = (e.category || '').trim();
+  if (rawCat.startsWith('Phiếu thu') || rawCat.startsWith('Phiếu chi')) {
+    return rawCat;
+  }
+  const isIncome = e.type === 'INCOME';
+  const prefix = isIncome ? 'Phiếu thu' : 'Phiếu chi';
+  if (!rawCat) {
+    return isIncome ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
+  }
+  if (rawCat === 'Thu tiền khách trả' || rawCat === 'Tiền khách trả') {
+    return 'Phiếu thu Tiền khách trả';
+  }
+  if (rawCat === 'Trả tiền nhà cung cấp' || rawCat === 'Tiền trả NCC') {
+    return 'Phiếu chi Tiền trả NCC';
+  }
+  return `${prefix} ${rawCat}`;
+};
 
 const formatDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
 
@@ -519,7 +537,7 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const exportEntries = filteredEntries.filter(e => (e.type === 'INCOME' || e.type === 'EXPENSE') && !(e.category || '').includes('Điều chỉnh công nợ'));
+                const exportEntries = filteredEntries;
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
