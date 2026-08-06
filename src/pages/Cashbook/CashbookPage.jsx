@@ -518,7 +518,8 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const rows = filteredEntries.map(e => ({
+                const exportEntries = filteredEntries.filter(e => e.type === 'INCOME' || e.type === 'EXPENSE');
+                const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
                   'Loại thu chi': e.type === 'INCOME' ? `Phiếu thu ${e.category || ''}` : `Phiếu chi ${e.category || ''}`,
