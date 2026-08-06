@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import NumericInput from '../../components/ui/NumericInput';
 import { purchaseOrderAPI, supplierAPI, productAPI, employeeAPI } from '../../services/api';
 import ProductModal from '../Products/ProductModal';
+import SupplierModal from '../Suppliers/SupplierModal';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
@@ -44,6 +45,8 @@ export default function CreatePurchaseOrderPage() {
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
   const [productModalOpen, setProductModalOpen] = useState(false);
+  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -95,6 +98,9 @@ export default function CreatePurchaseOrderPage() {
   }, [isUpdate, updateId]);
 
   useEffect(() => {
+    if (location.state?.supplier) {
+      setSelectedSupplier(location.state.supplier);
+    }
     let po = location.state?.cloneFrom;
     const params = new URLSearchParams(location.search);
     const clonePoId = params.get('clonePoId');
@@ -161,14 +167,14 @@ export default function CreatePurchaseOrderPage() {
 
   // Lọc nhà cung cấp
   const filteredSuppliers = useMemo(() => {
-    if (!supplierSearch.trim()) return [];
     const norm = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
     const q = norm(supplierSearch);
+    if (!q) return suppliers.slice(0, 15);
     return suppliers.filter(s => 
       norm(s.name).includes(q) || 
       norm(s.code).includes(q) ||
       norm(s.phone).includes(q)
-    ).slice(0, 8);
+    ).slice(0, 20);
   }, [supplierSearch, suppliers]);
 
   // Thêm sản phẩm vào bảng
@@ -699,10 +705,14 @@ export default function CreatePurchaseOrderPage() {
                     placeholder="Tìm nhà cung cấp" 
                     className="w-full bg-transparent text-xs outline-none font-medium text-gray-800 placeholder-gray-400"
                     value={supplierSearch}
-                    onChange={e => setSupplierSearch(e.target.value)}
+                    onChange={e => { setSupplierSearch(e.target.value); setShowSupplierDropdown(true); }}
+                    onFocus={() => {
+                      setShowSupplierDropdown(true);
+                      supplierAPI.getAllSimple().then(res => setSuppliers(Array.isArray(res) ? res : [])).catch(() => {});
+                    }}
                   />
                   <button 
-                    onClick={handleCreateSupplier}
+                    onClick={() => setSupplierModalOpen(true)}
                     className="p-0.5 text-gray-500 hover:text-primary cursor-pointer border-none bg-transparent"
                     title="Thêm nhà cung cấp mới"
                   >
@@ -712,12 +722,12 @@ export default function CreatePurchaseOrderPage() {
               )}
 
               {/* Supplier Suggestions Dropdown */}
-              {!selectedSupplier && filteredSuppliers.length > 0 && (
+              {!selectedSupplier && showSupplierDropdown && filteredSuppliers.length > 0 && (
                 <div className="absolute left-0 top-full mt-1 w-full bg-white rounded-xl shadow-2xl border border-gray-100 max-h-52 overflow-y-auto z-50 divide-y divide-gray-50">
                   {filteredSuppliers.map(s => (
                     <div 
                       key={s.id}
-                      onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); }}
+                      onClick={() => { setSelectedSupplier(s); setSupplierSearch(''); setShowSupplierDropdown(false); }}
                       className="p-2.5 hover:bg-blue-50/60 cursor-pointer flex flex-col transition-colors"
                     >
                       <div className="flex items-center justify-between">
@@ -856,6 +866,22 @@ export default function CreatePurchaseOrderPage() {
         onSaved={() => {
           loadData();
           toast.success('Đã thêm hàng hóa mới');
+        }}
+      />
+
+      {/* Modal tạo nhà cung cấp mới */}
+      <SupplierModal 
+        open={supplierModalOpen}
+        onClose={() => setSupplierModalOpen(false)}
+        onSaved={async () => {
+          const suppRes = await supplierAPI.getAllSimple().catch(() => []);
+          const suppList = Array.isArray(suppRes) ? suppRes : [];
+          setSuppliers(suppList);
+          if (suppList.length > 0) {
+            setSelectedSupplier(suppList[0]);
+          }
+          setSupplierModalOpen(false);
+          toast.success('Đã chọn nhà cung cấp vừa tạo');
         }}
       />
     </div>

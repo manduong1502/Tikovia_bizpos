@@ -1408,6 +1408,13 @@ export default function SuppliersPage() {
                   <Button variant="secondary" onClick={() => { setPaymentModalSupplier(s); setPaymentModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold text-green-600 border-green-200 hover:bg-green-50 whitespace-nowrap">
                     Thanh toán
                   </Button>
+                  <Button 
+                    variant="primary" 
+                    onClick={() => navigate('/purchase-orders/create', { state: { supplier: s } })} 
+                    className="justify-center items-center gap-1 text-[11px] py-1.5 px-2.5 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white"
+                  >
+                    <Plus size={13} /> Nhập hàng
+                  </Button>
                   <Button variant="secondary" onClick={() => handlePrintSupplier(s)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap col-span-2 sm:col-span-1">
                     <Printer size={13} /> In
                   </Button>
