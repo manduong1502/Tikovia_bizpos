@@ -17,7 +17,36 @@ import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 const getCashbookTypeLabel = (e) => {
   if (!e) return '';
-  return e.type === 'INCOME' ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
+  const rawCat = (e.category || '').trim();
+  if (rawCat.startsWith('Phiếu thu') || rawCat.startsWith('Phiếu chi')) {
+    return rawCat;
+  }
+  const isIncome = e.type === 'INCOME';
+  const prefix = isIncome ? 'Phiếu thu' : 'Phiếu chi';
+
+  if (rawCat) {
+    if (rawCat.includes('Điều chỉnh công nợ')) {
+      return `${prefix} Điều chỉnh công nợ`;
+    }
+    if (rawCat.includes('Thu nhập khác')) {
+      return `${prefix} Thu nhập khác`;
+    }
+    if (rawCat.includes('Tiền khách trả') || rawCat.includes('Thu tiền nợ')) {
+      return 'Phiếu thu Tiền khách trả';
+    }
+    if (rawCat.includes('Tiền trả NCC') || rawCat.includes('nhà cung cấp')) {
+      return 'Phiếu chi Tiền trả NCC';
+    }
+    return `${prefix} ${rawCat}`;
+  }
+
+  // Check code prefix if category is empty
+  const code = String(e.code || '').toUpperCase();
+  if (code.startsWith('TCM')) {
+    return `${prefix} Điều chỉnh công nợ`;
+  }
+
+  return isIncome ? 'Phiếu thu Tiền khách trả' : 'Phiếu chi Tiền trả NCC';
 };
 
 const formatExcelDateTime = (dateStr) => {
