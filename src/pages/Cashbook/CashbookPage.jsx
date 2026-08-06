@@ -516,7 +516,24 @@ export default function CashbookPage() {
             <Plus size={15} /> Phiếu chi
           </button>
           <button
-            onClick={() => exportCSV(filteredEntries, 'so_quy_tiem_mat')}
+            onClick={() => {
+              import('xlsx').then(XLSX => {
+                const rows = filteredEntries.map(e => ({
+                  'Mã phiếu': e.code || '',
+                  'Thời gian': e.createdAt ? new Date(e.createdAt).toLocaleString('vi-VN') : '',
+                  'Loại thu chi': e.type === 'INCOME' ? `Phiếu thu ${e.category || ''}` : `Phiếu chi ${e.category || ''}`,
+                  'Người nộp/nhận': e.partnerName || '',
+                  'Giá trị': e.type === 'EXPENSE' ? -Math.abs(Number(e.amount || 0)) : Number(e.amount || 0),
+                }));
+                const ws = XLSX.utils.json_to_sheet(rows);
+                // Set column widths
+                ws['!cols'] = [{ wch: 18 }, { wch: 22 }, { wch: 30 }, { wch: 30 }, { wch: 15 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Sổ quỹ');
+                XLSX.writeFile(wb, `SoQuy_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                toast.success('Xuất file Excel thành công!');
+              }).catch(() => toast.error('Lỗi xuất file'));
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 font-bold text-xs rounded-xl transition-all cursor-pointer"
           >
             <Download size={14} /> Xuất file
