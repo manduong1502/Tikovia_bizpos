@@ -559,7 +559,15 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const exportEntries = filteredEntries;
+                const exportEntries = filteredEntries.filter(e => {
+                  const typeLabel = getCashbookTypeLabel(e);
+                  const rawCat = e.category || '';
+                  const code = String(e.code || '').toUpperCase();
+                  if (typeLabel.includes('Điều chỉnh công nợ') || rawCat.includes('Điều chỉnh công nợ') || code.startsWith('TCM')) {
+                    return false;
+                  }
+                  return true;
+                });
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': formatExcelDateTime(e.createdAt),
