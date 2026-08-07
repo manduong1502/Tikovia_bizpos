@@ -18,23 +18,18 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 const getCashbookTypeLabel = (e) => {
   if (!e) return '';
   const isIncome = e.type === 'INCOME' || e.type === 'thu' || e.type === 'in';
-  const pType = (e.partnerType || '').toLowerCase();
-
-  // Determine partner identity from DB fields
-  const isSupplier = e.supplierId || e.supplier || pType === 'supplier';
-  const isCustomer = e.customerId || e.customer || pType === 'customer';
 
   if (isIncome) {
     return 'Phiếu thu Tiền khách trả';
   } else {
-    // EXPENSE (Phiếu chi)
-    if (isSupplier) {
-      return 'Phiếu chi Tiền trả NCC';
-    }
-    if (isCustomer) {
+    // EXPENSE: chỉ khi có customerId mà KHÔNG có supplierId → Điều chỉnh công nợ
+    const hasCustomer = e.customerId || e.customer;
+    const hasSupplier = e.supplierId || e.supplier;
+    if (hasCustomer && !hasSupplier) {
       return 'Phiếu chi Điều chỉnh công nợ';
     }
-    return 'Phiếu chi Chi phí khác';
+    // Mặc định tất cả phiếu chi còn lại → Tiền trả NCC
+    return 'Phiếu chi Tiền trả NCC';
   }
 };
 
