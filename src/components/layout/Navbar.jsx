@@ -23,7 +23,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
   return (
     <>
       {/* Desktop Navbar */}
-      <nav className="hidden md:flex h-[48px] bg-[#0070F4] items-center px-4 lg:px-6 sticky top-14 z-[90] shadow-sm max-w-full overflow-visible">
+      <nav className="hidden md:flex h-[48px] bg-[#0070F4] items-center px-4 lg:px-6 relative z-[90] shadow-sm max-w-full overflow-visible">
         <div className="flex items-center h-full flex-1 gap-0.5 lg:gap-1 min-w-max">
           <Link className={`${navItemBase} ${page === '/dashboard' ? navItemActive : ''}`} to="/dashboard">Tổng quan</Link>
 

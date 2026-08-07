@@ -88,7 +88,25 @@ const normalizePR = (o) => ({
 export default function PurchaseReturnsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [returns, setReturns] = useState([]);
+  const [returns, setReturns] = useState(() => {
+    if (window.__tikovia_purchase_returns_cache && Array.isArray(window.__tikovia_purchase_returns_cache) && window.__tikovia_purchase_returns_cache.length > 0) {
+      return window.__tikovia_purchase_returns_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_purchase_returns_cache') || localStorage.getItem('tikovia_purchase_returns_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_purchase_returns_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_purchase_returns_cache && window.__tikovia_purchase_returns_cache.length > 0);
+  });
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
@@ -360,21 +378,28 @@ export default function PurchaseReturnsPage() {
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (showSpinner = false) => {
+    if (showSpinner || !window.__tikovia_purchase_returns_cache) {
+      setIsLoading(true);
+    }
     try {
       const listRes = await purchaseReturnAPI.getAll({ limit: 500 });
       const rawList = Array.isArray(listRes) ? listRes : (listRes?.data || []);
       const normalized = rawList.map(normalizePR);
-      if (normalized.length === 0) {
-        const mockPRs = [
-          { id: 1, code: 'THN000001', createdAt: '2026-05-16T15:35:00Z', supplier: { name: 'Công ty Pharmedic' }, total: 0, discount: 0, paid: 0, status: 'COMPLETED' },
-        ].map(normalizePR);
-        setReturns(mockPRs);
-      } else {
+      if (normalized.length > 0) {
+        window.__tikovia_purchase_returns_cache = normalized;
+        try {
+          sessionStorage.setItem('tikovia_purchase_returns_cache', JSON.stringify(normalized));
+          localStorage.setItem('tikovia_purchase_returns_cache', JSON.stringify(normalized));
+        } catch (e) {}
         setReturns(normalized);
+      } else {
+        setReturns([]);
       }
     } catch {
       setReturns([]);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 

@@ -197,8 +197,25 @@ const getDateRange = (preset, customFrom = '', customTo = '') => {
 
 export default function CashbookPage() {
   const navigate = useNavigate();
-  const [entries, setEntries] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [entries, setEntries] = useState(() => {
+    if (window.__tikovia_cashbook_cache && Array.isArray(window.__tikovia_cashbook_cache) && window.__tikovia_cashbook_cache.length > 0) {
+      return window.__tikovia_cashbook_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_cashbook_cache') || localStorage.getItem('tikovia_cashbook_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_cashbook_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_cashbook_cache && window.__tikovia_cashbook_cache.length > 0);
+  });
   const [search, setSearch] = useState('');
   
   // Advanced Sidebar Filters States
@@ -255,8 +272,10 @@ export default function CashbookPage() {
     setSortConfig({ key, direction });
   };
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    if (showSpinner || !window.__tikovia_cashbook_cache) {
+      setIsLoading(true);
+    }
     try {
       const params = { limit: 10000 };
       const summaryParams = {};
@@ -289,8 +308,15 @@ export default function CashbookPage() {
         cashbookAPI.getSummary(summaryParams)
       ]);
       const data = r.data || (Array.isArray(r) ? r : []);
-      
-      setEntries(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      if (list.length > 0) {
+        window.__tikovia_cashbook_cache = list;
+        try {
+          sessionStorage.setItem('tikovia_cashbook_cache', JSON.stringify(list));
+          localStorage.setItem('tikovia_cashbook_cache', JSON.stringify(list));
+        } catch (e) {}
+      }
+      setEntries(list);
       if (summaryData) {
         setSummary(summaryData);
       }

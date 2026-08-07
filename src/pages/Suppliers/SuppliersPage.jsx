@@ -60,8 +60,25 @@ const ALL_COLUMNS = [
 ];
 
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [suppliers, setSuppliers] = useState(() => {
+    if (window.__tikovia_suppliers_cache && Array.isArray(window.__tikovia_suppliers_cache) && window.__tikovia_suppliers_cache.length > 0) {
+      return window.__tikovia_suppliers_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_suppliers_cache') || localStorage.getItem('tikovia_suppliers_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_suppliers_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_suppliers_cache && window.__tikovia_suppliers_cache.length > 0);
+  });
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);
@@ -335,14 +352,16 @@ export default function SuppliersPage() {
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    if (showSpinner || !window.__tikovia_suppliers_cache) {
+      setIsLoading(true);
+    }
     try {
       const [supRes, prodRes, poRes, prRes, cbRes] = await Promise.all([
         supplierAPI.getAll({ limit: 500 }),
         productAPI.getAll().catch(() => []),
-        purchaseOrderAPI.getAll({ limit: 10000 }).catch(() => []),
-        purchaseReturnAPI.getAll({ limit: 10000 }).catch(() => []),
+        purchaseOrderAPI.getAll({ limit: 5000 }).catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 5000 }).catch(() => []),
         cashbookAPI.getAll({ partnerType: 'supplier', limit: 2000 }).catch(() => [])
       ]);
       const rawList = Array.isArray(supRes) ? supRes : (supRes?.data || []);
@@ -350,15 +369,15 @@ export default function SuppliersPage() {
       const rawCBs = Array.isArray(cbRes) ? cbRes : (cbRes?.data || []);
       setCashbooks(rawCBs);
       
-      if (rawList.length === 0) {
-        const mockSuppliers = [
-          { id: 1, code: 'NCC001', name: 'Công ty TNHH Phân phối ABC', phone: '0281234567', email: 'contact@abc.vn', address: 'Q.Bình Tân, TP.HCM', debt: 1500000, total_spent: 12500000, total_return: 1305000, net_purchase: 11195000 },
-          { id: 2, code: 'NCC002', name: 'Đại lý XYZ', phone: '0282345678', email: 'sales@xyz.com', address: 'Q.Tân Phú, TP.HCM', debt: 0, total_spent: 8400000, total_return: 0, net_purchase: 8400000 },
-          { id: 3, code: 'NCC003', name: 'Công ty Cổ phần VinaFood', phone: '0283456789', email: 'info@vinafood.vn', address: 'Q.1, TP.HCM', debt: 5000000, total_spent: 45000000, total_return: 0, net_purchase: 45000000 },
-        ];
-        setSuppliers(mockSuppliers);
-      } else {
+      if (rawList.length > 0) {
+        window.__tikovia_suppliers_cache = rawList;
+        try {
+          sessionStorage.setItem('tikovia_suppliers_cache', JSON.stringify(rawList));
+          localStorage.setItem('tikovia_suppliers_cache', JSON.stringify(rawList));
+        } catch (e) {}
         setSuppliers(rawList);
+      } else {
+        setSuppliers([]);
       }
       setProducts(Array.isArray(prodRes) ? prodRes : (prodRes?.data || []));
 
@@ -422,18 +441,14 @@ export default function SuppliersPage() {
   }, []);
 
   useEffect(() => {
-    if (suppliers && suppliers.length > 0) {
-      suppliers.forEach(sup => {
-        if (sup.id && debtLedgersMap[sup.id] === undefined) {
-          supplierAPI.getDebtLedger(sup.id).then(ledger => {
-            if (Array.isArray(ledger) && ledger.length > 0) {
-              setDebtLedgersMap(prev => ({ ...prev, [sup.id]: ledger }));
-            }
-          }).catch(() => {});
+    if (expandedId && debtLedgersMap[expandedId] === undefined) {
+      supplierAPI.getDebtLedger(expandedId).then(ledger => {
+        if (Array.isArray(ledger) && ledger.length > 0) {
+          setDebtLedgersMap(prev => ({ ...prev, [expandedId]: ledger }));
         }
-      });
+      }).catch(() => {});
     }
-  }, [suppliers]);
+  }, [expandedId, debtLedgersMap]);
 
   useEffect(() => {
     if (!expandedId) return;

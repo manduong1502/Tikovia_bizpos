@@ -135,8 +135,25 @@ const normalizePO = (o) => {
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [orders, setOrders] = useState(() => {
+    if (window.__tikovia_purchase_orders_cache && Array.isArray(window.__tikovia_purchase_orders_cache) && window.__tikovia_purchase_orders_cache.length > 0) {
+      return window.__tikovia_purchase_orders_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_purchase_orders_cache') || localStorage.getItem('tikovia_purchase_orders_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_purchase_orders_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_purchase_orders_cache && window.__tikovia_purchase_orders_cache.length > 0);
+  });
   const [suppliers, setSuppliers] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);
   const [search, setSearch] = useState('');
@@ -184,16 +201,25 @@ export default function PurchaseOrdersPage() {
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    if (showSpinner || !window.__tikovia_purchase_orders_cache) {
+      setIsLoading(true);
+    }
     try {
       const [listRes, supplierRes, returnRes] = await Promise.all([
-        purchaseOrderAPI.getAll({ limit: 50000 }),
+        purchaseOrderAPI.getAll({ limit: 5000 }),
         supplierAPI.getAllSimple().catch(() => []),
-        purchaseReturnAPI.getAll({ limit: 50000 }).catch(() => []),
+        purchaseReturnAPI.getAll({ limit: 5000 }).catch(() => []),
       ]);
       const rawList = Array.isArray(listRes) ? listRes : (listRes?.data || []);
       const normalized = rawList.map(normalizePO);
+      if (normalized.length > 0) {
+        window.__tikovia_purchase_orders_cache = normalized;
+        try {
+          sessionStorage.setItem('tikovia_purchase_orders_cache', JSON.stringify(normalized));
+          localStorage.setItem('tikovia_purchase_orders_cache', JSON.stringify(normalized));
+        } catch (e) {}
+      }
       setOrders(normalized);
       setSuppliers(Array.isArray(supplierRes) ? supplierRes : []);
       

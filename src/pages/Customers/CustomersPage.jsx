@@ -64,8 +64,25 @@ const ALL_COLUMNS = [
 
 export default function CustomersPage() {
   const location = useLocation();
-  const [customers, setCustomers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [customers, setCustomers] = useState(() => {
+    if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
+      return window.__tikovia_customers_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_customers_cache') || localStorage.getItem('tikovia_customers_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_customers_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_customers_cache && window.__tikovia_customers_cache.length > 0);
+  });
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');
@@ -394,7 +411,9 @@ export default function CustomersPage() {
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
   const reload = useCallback(async (showSpinner = false, forceRefresh = false) => {
-    if (showSpinner) setIsLoading(true);
+    if (showSpinner || (!window.__tikovia_customers_cache && customers.length === 0)) {
+      setIsLoading(true);
+    }
 
     try {
       const params = { limit: 10000 };

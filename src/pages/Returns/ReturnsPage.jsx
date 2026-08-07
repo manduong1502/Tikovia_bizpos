@@ -83,8 +83,25 @@ const normalizeReturn = (o) => {
 export default function ReturnsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [returns, setReturns] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [returns, setReturns] = useState(() => {
+    if (window.__tikovia_returns_cache && Array.isArray(window.__tikovia_returns_cache) && window.__tikovia_returns_cache.length > 0) {
+      return window.__tikovia_returns_cache;
+    }
+    try {
+      const cached = sessionStorage.getItem('tikovia_returns_cache') || localStorage.getItem('tikovia_returns_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.__tikovia_returns_cache = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !(window.__tikovia_returns_cache && window.__tikovia_returns_cache.length > 0);
+  });
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
@@ -125,29 +142,22 @@ export default function ReturnsPage() {
   const [detailSearchName, setDetailSearchName] = useState('');
   const [returnNotes, setReturnNotes] = useState({});
 
-  const reload = useCallback(async () => {
-    setIsLoading(true);
+  const reload = useCallback(async (showSpinner = false) => {
+    if (showSpinner || !window.__tikovia_returns_cache) {
+      setIsLoading(true);
+    }
     try {
       const r = await returnAPI.getAll({ limit: 500 });
       const rawList = Array.isArray(r) ? r : (r.data || []);
-      setReturns(prev => {
-        const nextList = rawList.map(normalizeReturn);
-        return nextList.map(item => {
-          const prevItem = prev.find(p => p.id === item.id);
-          if (prevItem && prevItem.items && prevItem.items.length > 0) {
-            const prevTime = prevItem.updatedAt ? new Date(prevItem.updatedAt).getTime() : 0;
-            const currTime = item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-            if (prevTime !== currTime) {
-              if (expandedIdRef.current === item.id) {
-                setTimeout(() => loadDetail(item.id), 50);
-              }
-              return item;
-            }
-            return { ...item, items: prevItem.items };
-          }
-          return item;
-        });
-      });
+      const nextList = rawList.map(normalizeReturn);
+      if (nextList.length > 0) {
+        window.__tikovia_returns_cache = nextList;
+        try {
+          sessionStorage.setItem('tikovia_returns_cache', JSON.stringify(nextList));
+          localStorage.setItem('tikovia_returns_cache', JSON.stringify(nextList));
+        } catch (e) {}
+      }
+      setReturns(nextList);
     } catch {
       setReturns([]);
     } finally {
