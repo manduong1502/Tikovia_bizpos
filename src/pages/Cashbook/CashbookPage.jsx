@@ -569,7 +569,7 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const exportEntries = filteredEntries.filter(e => e.status !== 'cancelled');
+                const exportEntries = filteredEntries.filter(e => e.status !== 'cancelled' && getCashbookTypeLabel(e) !== 'Phiếu chi Điều chỉnh công nợ');
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': formatExcelDateTime(e.createdAt),
