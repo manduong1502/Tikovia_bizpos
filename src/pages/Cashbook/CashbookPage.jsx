@@ -17,23 +17,25 @@ import { getRangeByCreatedLabel, inDateRange, formatWorkingHoursDateTime } from 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 const getCashbookTypeLabel = (e) => {
   if (!e) return '';
-  const code = String(e.code || '').toUpperCase();
-  const rawCat = (e.category || '').trim();
-  const isIncome = e.type === 'INCOME';
-  const prefix = isIncome ? 'Phiếu thu' : 'Phiếu chi';
+  const isIncome = e.type === 'INCOME' || e.type === 'thu' || e.type === 'in';
+  const pType = (e.partnerType || '').toLowerCase();
 
-  // Điều chỉnh công nợ
-  if (code.startsWith('TCM') || rawCat.includes('Điều chỉnh công nợ')) {
-    return `${prefix} Điều chỉnh công nợ`;
-  }
+  // Determine partner identity from DB fields
+  const isSupplier = e.supplierId || e.supplier || pType === 'supplier';
+  const isCustomer = e.customerId || e.customer || pType === 'customer';
 
-  // Phiếu thu thông thường -> Phiếu thu Tiền khách trả
   if (isIncome) {
     return 'Phiếu thu Tiền khách trả';
+  } else {
+    // EXPENSE (Phiếu chi)
+    if (isSupplier) {
+      return 'Phiếu chi Tiền trả NCC';
+    }
+    if (isCustomer) {
+      return 'Phiếu chi Điều chỉnh công nợ';
+    }
+    return 'Phiếu chi Chi phí khác';
   }
-
-  // Phiếu chi thông thường -> Phiếu chi Tiền trả NCC
-  return 'Phiếu chi Tiền trả NCC';
 };
 
 const formatExcelDateTime = (dateStr) => {
@@ -572,20 +574,12 @@ export default function CashbookPage() {
           <button
             onClick={() => {
               import('xlsx').then(XLSX => {
-                const exportEntries = filteredEntries.filter(e => {
-                  const typeLabel = getCashbookTypeLabel(e);
-                  const rawCat = e.category || '';
-                  const code = String(e.code || '').toUpperCase();
-                  if (typeLabel.includes('Điều chỉnh công nợ') || rawCat.includes('Điều chỉnh công nợ') || code.startsWith('TCM')) {
-                    return false;
-                  }
-                  return true;
-                });
+                const exportEntries = filteredEntries.filter(e => e.status !== 'cancelled');
                 const rows = exportEntries.map(e => ({
                   'Mã phiếu': e.code || '',
                   'Thời gian': formatExcelDateTime(e.createdAt),
                   'Loại thu chi': getCashbookTypeLabel(e),
-                  'Người nộp/nhận': e.partnerName || '',
+                  'Người nộp/nhận': e.partnerName || (e.supplier ? e.supplier.name : e.customer ? e.customer.name : ''),
                   'Giá trị': e.type === 'EXPENSE' ? -Math.abs(Number(e.amount || 0)) : Math.abs(Number(e.amount || 0)),
                 }));
                 const ws = XLSX.utils.json_to_sheet(rows);
