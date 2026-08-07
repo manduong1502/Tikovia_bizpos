@@ -254,7 +254,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
                   return `
                   <tr>
-                    <td>${wIdx === 0 ? `${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}` : ''}</td>
+                    <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
                     <td style="text-align: center;">${qty}</td>
                     <td style="text-align: center;">${i.product.unit || 'cái'}</td>
                     <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(pr)}</td>
