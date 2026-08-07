@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
 import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
@@ -1599,7 +1600,7 @@ export default function SuppliersPage() {
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</span>
+                            <span className="text-gray-500">{tx.date ? formatWorkingHoursDateTime(tx.date) : ''}</span>
                             <span className={`font-extrabold ${tx.type === 'import' ? 'text-primary' : tx.type === 'return' ? 'text-red-600' : 'text-green-600'}`}>
                               {tx.type === 'import' ? '' : '-'}{fmt(Math.abs(tx.total))}
                             </span>
@@ -1624,7 +1625,7 @@ export default function SuppliersPage() {
                           {paginatedDebtTransactions.map((tx, idx) => (
                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                               <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => handleOpenTransaction(tx, s.name)}>{tx.code}</td>
-                              <td className="py-2 px-3.5 text-gray-500">{tx.date ? new Date(tx.date).toLocaleString('vi-VN') : ''}</td>
+                              <td className="py-2 px-3.5 text-gray-500">{tx.date ? formatWorkingHoursDateTime(tx.date) : ''}</td>
                               <td className="py-2 px-3.5">
                                 <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${tx.type === 'import' ? 'bg-blue-100 text-blue-700' : tx.type === 'return' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                                   {tx.typeName}
