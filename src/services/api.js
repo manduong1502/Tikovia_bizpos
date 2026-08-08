@@ -89,7 +89,13 @@ export const loadInitialCache = (pattern, fallback = []) => {
       if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
         const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
         if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
-          return parsed.data.data || parsed.data;
+          const inner = parsed.data;
+          if (Array.isArray(fallback)) {
+            if (Array.isArray(inner)) return inner;
+            if (inner && Array.isArray(inner.data)) return inner.data;
+            return fallback;
+          }
+          return inner;
         }
       }
     }
@@ -98,7 +104,13 @@ export const loadInitialCache = (pattern, fallback = []) => {
       if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
         const parsed = JSON.parse(localStorage.getItem(k) || '{}');
         if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
-          return parsed.data.data || parsed.data;
+          const inner = parsed.data;
+          if (Array.isArray(fallback)) {
+            if (Array.isArray(inner)) return inner;
+            if (inner && Array.isArray(inner.data)) return inner.data;
+            return fallback;
+          }
+          return inner;
         }
       }
     }
@@ -113,14 +125,22 @@ export const hasInitialCache = (pattern) => {
       const k = sessionStorage.key(i);
       if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
         const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
-        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) return true;
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          const inner = parsed.data;
+          if (Array.isArray(inner) && inner.length > 0) return true;
+          if (inner && Array.isArray(inner.data) && inner.data.length > 0) return true;
+        }
       }
     }
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
         const parsed = JSON.parse(localStorage.getItem(k) || '{}');
-        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) return true;
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          const inner = parsed.data;
+          if (Array.isArray(inner) && inner.length > 0) return true;
+          if (inner && Array.isArray(inner.data) && inner.data.length > 0) return true;
+        }
       }
     }
   } catch {}
