@@ -81,8 +81,50 @@ const clientMemoryCache = {
 };
 const CACHE_TTL_MS = 300 * 1000; // 5 minutes persistent client cache
 
-export const clearClientCache = (pattern = '') => {
-  clientMemoryCache.clear(pattern);
+export const loadInitialCache = (pattern, fallback = []) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          return parsed.data.data || parsed.data;
+        }
+      }
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(localStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          return parsed.data.data || parsed.data;
+        }
+      }
+    }
+  } catch {}
+  return fallback;
+};
+
+export const hasInitialCache = (pattern) => {
+  if (typeof window === 'undefined') return false;
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) return true;
+      }
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(localStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) return true;
+      }
+    }
+  } catch {}
+  return false;
 };
 
 export const notifyDataChanged = (type = 'general') => {

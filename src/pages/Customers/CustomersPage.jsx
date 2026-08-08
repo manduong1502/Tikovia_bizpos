@@ -65,24 +65,10 @@ const ALL_COLUMNS = [
 export default function CustomersPage() {
   const location = useLocation();
   const [customers, setCustomers] = useState(() => {
-    if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
-      return window.__tikovia_customers_cache;
-    }
-    try {
-      const cached = sessionStorage.getItem('tikovia_customers_cache') || localStorage.getItem('tikovia_customers_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          window.__tikovia_customers_cache = parsed;
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return [];
+    const init = loadInitialCache('customers', []);
+    return Array.isArray(init) ? init : (init?.data || []);
   });
-  const [isLoading, setIsLoading] = useState(() => {
-    return !(window.__tikovia_customers_cache && window.__tikovia_customers_cache.length > 0);
-  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('customers'));
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');

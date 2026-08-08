@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { orderAPI } from '../../services/api';
+import { orderAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import { useSocket } from '../../context/SocketContext';
@@ -78,8 +78,11 @@ const ALL_COLUMNS = [
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [orders, setOrders] = useState(() => {
+    const init = loadInitialCache('orders', []);
+    return Array.isArray(init) ? init : (init?.data || []);
+  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('orders'));
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');

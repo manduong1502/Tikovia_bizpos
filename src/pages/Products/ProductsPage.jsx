@@ -61,8 +61,11 @@ const ALL_COLUMNS = [
 
 export default function ProductsPage() {
   const location = useLocation();
-  const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] = useState(() => {
+    const init = loadInitialCache('products', []);
+    return Array.isArray(init) ? init : (init?.data || []);
+  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('products'));
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [search, setSearch] = useState('');
