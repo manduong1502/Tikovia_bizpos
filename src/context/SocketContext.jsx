@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { notificationAPI } from '../services/api';
+import { notificationAPI, notifyDataChanged } from '../services/api';
 import { useAppStore } from '../stores/appStore';
 
 const SocketContext = createContext(null);
@@ -192,6 +192,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('order_updated', (data) => {
+      notifyDataChanged('order');
       orderUpdateCallbacks.current.forEach(cb => {
         try {
           cb(data);

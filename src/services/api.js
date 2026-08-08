@@ -7,7 +7,7 @@ export const getSubdomain = () => {
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://api.tikovia.vn/api',
-  timeout: 15000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -31,8 +31,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const clientMemoryCache = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds instant client cache
+
+export const clearClientCache = (pattern = '') => {
+  if (!pattern) {
+    clientMemoryCache.clear();
+    return;
+  }
+  for (const key of clientMemoryCache.keys()) {
+    if (key.includes(pattern)) clientMemoryCache.delete(key);
+  }
+};
+
 export const notifyDataChanged = (type = 'general') => {
   if (typeof window !== 'undefined') {
+    clearClientCache(type === 'general' ? '' : type);
     window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type } }));
   }
 };
@@ -74,7 +88,9 @@ api.interceptors.response.use(
     }
 
     if (!error.config?.hideErrorToast) {
-      if (status === 403) {
+      if (error.code === 'ECONNABORTED' || (message && (message.includes('timeout') || message.includes('exceeded')))) {
+        toast.error('Kết nối máy chủ quá thời gian chờ (Timeout). Vui lòng thử lại!');
+      } else if (status === 403) {
         toast.error('Bạn không có quyền thực hiện thao tác này');
       } else if (status === 404) {
         toast.error('Không tìm thấy dữ liệu');
@@ -97,25 +113,35 @@ const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key,
 const FALLBACK_PRODUCTS = [];
 
 export const productAPI = {
-  getAll: () => api.get('/products/all', { hideErrorToast: true }).then(r => {
-    const raw = r.data;
-    if (raw && Array.isArray(raw.data)) return raw.data;
-    if (Array.isArray(raw)) return raw;
-    return FALLBACK_PRODUCTS;
-  }).catch((err) => {
-    console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
-    return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
+  getAll: () => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/products/all', { hideErrorToast: true }).then(r => {
       const raw = r.data;
-      if (raw && Array.isArray(raw.data)) return raw.data;
-      if (Array.isArray(raw)) return raw;
-      return FALLBACK_PRODUCTS;
-    }).catch((e) => {
-      const serverMsg = e.response?.data?.message || e.message;
-      console.error("Both product endpoints failed. Server response:", e.response?.data, e);
-      toast.error(`Máy chủ đang lỗi (${serverMsg}). Tự động dùng dữ liệu dự phòng.`);
-      return FALLBACK_PRODUCTS;
+      let list = FALLBACK_PRODUCTS;
+      if (raw && Array.isArray(raw.data)) list = raw.data;
+      else if (Array.isArray(raw)) list = raw;
+      clientMemoryCache.set(cacheKey, { data: list, expiry: Date.now() + CACHE_TTL_MS });
+      return list;
+    }).catch((err) => {
+      console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
+      return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
+        const raw = r.data;
+        let list = FALLBACK_PRODUCTS;
+        if (raw && Array.isArray(raw.data)) list = raw.data;
+        else if (Array.isArray(raw)) list = raw;
+        clientMemoryCache.set(cacheKey, { data: list, expiry: Date.now() + CACHE_TTL_MS });
+        return list;
+      }).catch((e) => {
+        const serverMsg = e.response?.data?.message || e.message;
+        console.error("Both product endpoints failed. Server response:", e.response?.data, e);
+        toast.error(`Máy chủ đang lỗi (${serverMsg}). Tự động dùng dữ liệu dự phòng.`);
+        return FALLBACK_PRODUCTS;
+      });
     });
-  }),
+  },
   list: (params) => api.get('/products', { params }).then(r => {
     const raw = r.data;
     if (raw && Array.isArray(raw.data)) return raw;
@@ -128,19 +154,35 @@ export const productAPI = {
   delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
 };
 
-
-
 // ─── Categories ───
 const FALLBACK_CATEGORIES = [];
 
 export const categoryAPI = {
-  getAll: () => api.get('/categories').then(r => r.data).catch(() => FALLBACK_CATEGORIES),
+  getAll: () => {
+    const cacheKey = 'categories:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/categories').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + CACHE_TTL_MS });
+      return r.data;
+    }).catch(() => FALLBACK_CATEGORIES);
+  },
   create: (data) => api.post('/categories', data).then(r => r.data),
   update: (id, data) => api.put(`/categories/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/categories/${id}`).then(r => r.data),
 };
 export const brandAPI = {
-  getAll: () => api.get('/brands').then(r => r.data),
+  getAll: () => {
+    const cacheKey = 'brands:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/brands').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + CACHE_TTL_MS });
+      return r.data;
+    });
+  },
   create: (data) => api.post('/brands', data).then(r => r.data),
 };
 
@@ -560,14 +602,22 @@ const normalizeCustomer = (c) => {
 };
 
 export const customerAPI = {
-  getAll: (params) => api.get('/customers', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(normalizeCustomer);
-    return { data: list, total: list.length, page: 1, limit: list.length, totalPages: 1 };
-  }).catch(() => {
-    let list = FALLBACK_CUSTOMERS.map(normalizeCustomer);
-    return { data: list, total: list.length, page: 1, limit: 100, totalPages: 1 };
-  }),
+  getAll: (params) => {
+    const cacheKey = 'customers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/customers', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list = list.map(normalizeCustomer);
+      const resObj = { data: list, total: r?.data?.total || list.length, page: r?.data?.page || 1, limit: r?.data?.limit || list.length, totalPages: r?.data?.totalPages || 1 };
+      clientMemoryCache.set(cacheKey, { data: resObj, expiry: Date.now() + CACHE_TTL_MS });
+      return resObj;
+    }).catch(() => {
+      let list = FALLBACK_CUSTOMERS.map(normalizeCustomer);
+      return { data: list, total: list.length, page: 1, limit: 100, totalPages: 1 };
+    });
+  },
   getAllSimple: () => customerAPI.getAll({ limit: 1000 }).then(res => res.data || res),
   getById: (id) => api.get(`/customers/${id}`, { hideErrorToast: true }).then(r => normalizeCustomer(r.data)).catch(() => normalizeCustomer(FALLBACK_CUSTOMERS.find(c => c.id === Number(id)))),
   create: (data) => api.post('/customers', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
@@ -637,39 +687,46 @@ const normalizeSupplier = (s) => {
 };
 
 export const supplierAPI = {
-  getAll: (params) => api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list.forEach(item => {
-      if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
-        FALLBACK_SUPPLIERS.push(item);
-      }
-    });
-    list = list.map(normalizeSupplier);
+  getAll: (params) => {
+    const cacheKey = 'suppliers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    // Clear local storage updates for these suppliers since we successfully synced with backend
-    let changed = false;
-    list.forEach(s => {
-      if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
-        delete LOCAL_UPDATED_SUPPLIERS[s.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistSuppliers();
-    }
+    return api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list.forEach(item => {
+        if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
+          FALLBACK_SUPPLIERS.push(item);
+        }
+      });
+      list = list.map(normalizeSupplier);
 
-    list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
-    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
-    const existingCodes = new Set(list.map(s => s.code));
-    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
-    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
-    const existingCodes = new Set(list.map(s => s.code));
-    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
-    return [...toAdd, ...list];
-  }),
+      let changed = false;
+      list.forEach(s => {
+        if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
+          delete LOCAL_UPDATED_SUPPLIERS[s.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistSuppliers();
+      }
+
+      list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+      list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+      const existingCodes = new Set(list.map(s => s.code));
+      const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+      const result = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: result, expiry: Date.now() + CACHE_TTL_MS });
+      return result;
+    }).catch(() => {
+      let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+      list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+      const existingCodes = new Set(list.map(s => s.code));
+      const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+      return [...toAdd, ...list];
+    });
+  },
   getAllSimple: () => api.get('/suppliers', { hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
     list.forEach(item => {

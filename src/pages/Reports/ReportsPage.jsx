@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { reportAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Package } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -51,11 +51,11 @@ export default function ReportsPage() {
     }
 
     Promise.all([
-      axios.get('/api/reports/financial', { params: { fromDate, toDate } }).catch(() => ({ data: null })),
-      axios.get('/api/reports/sales', { params: { days: 30 } }).catch(() => ({ data: [] }))
+      reportAPI.getFinancial({ fromDate, toDate }).catch(() => null),
+      reportAPI.getSales({ days: 30 }).catch(() => [])
     ]).then(([finRes, salesRes]) => {
-      setFinData(finRes.data || null);
-      setSalesData(Array.isArray(salesRes.data) ? salesRes.data : []);
+      setFinData(finRes || null);
+      setSalesData(Array.isArray(salesRes) ? salesRes : []);
     }).finally(() => {
       setLoading(false);
     });
