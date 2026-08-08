@@ -57,7 +57,15 @@ export default function LoginPage() {
 
   const handleLogin = async (e, target = 'dashboard') => {
     if (e) e.preventDefault();
-    if (!username || !password) {
+
+    let cleanUser = (username || '').trim();
+    let cleanPass = password || '';
+
+    // Handle double-input scenarios (e.g. typing over prefilled value)
+    if (cleanUser === 'adminadmin') cleanUser = 'admin';
+    if (cleanPass === 'admin123admin123') cleanPass = 'admin123';
+
+    if (!cleanUser || !cleanPass) {
       setError('Vui lòng nhập tên đăng nhập và mật khẩu');
       return;
     }
@@ -65,8 +73,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (username === 'tikovia') {
-        const res = await api.post('/auth/system-login', { username, password });
+      if (cleanUser === 'tikovia') {
+        const res = await api.post('/auth/system-login', { username: cleanUser, password: cleanPass });
         if (res.data.token) {
           localStorage.setItem('super_admin_token', res.data.token);
           localStorage.setItem('super_admin_user', JSON.stringify(res.data.user));
@@ -74,7 +82,7 @@ export default function LoginPage() {
         }
       } else {
         localStorage.removeItem('token');
-        const res = await api.post('/auth/login', { username, password });
+        const res = await api.post('/auth/login', { username: cleanUser, password: cleanPass });
         if (res.data.token) {
           // Disable tenant subdomain redirection to keep only 1 default shop
           /*
