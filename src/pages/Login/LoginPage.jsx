@@ -99,10 +99,11 @@ export default function LoginPage() {
           }
           localStorage.setItem('token', res.data.token);
           setUser(res.data.user);
+          toast.success('Đăng nhập thành công!');
           if (target === 'pos') {
-            window.location.href = '/pos';
+            navigate('/pos');
           } else {
-            window.location.href = '/dashboard';
+            navigate('/dashboard');
           }
         }
       }
