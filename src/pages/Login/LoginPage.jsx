@@ -99,9 +99,9 @@ export default function LoginPage() {
           localStorage.setItem('token', res.data.token);
           setUser(res.data.user);
           if (target === 'pos') {
-            navigate('/pos');
+            window.location.href = '/pos';
           } else {
-            navigate('/dashboard');
+            window.location.href = '/dashboard';
           }
         }
       }
