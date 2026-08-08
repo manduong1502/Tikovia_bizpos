@@ -123,26 +123,7 @@ export default function CustomersPage() {
   const [customerLatestTxMap, setCustomerLatestTxMap] = useState({});
 
   useEffect(() => {
-    orderAPI.getAll({ limit: 10000 }).then(res => {
-      const rawOrders = Array.isArray(res) ? res : (res?.data || []);
-      const txMap = {};
-      rawOrders.forEach(o => {
-        const cId = o.customerId || o.customer_id || (o.customer && o.customer.id);
-        const cCode = o.customerCode || (o.customer && o.customer.code);
-        const oDate = o.created_at || o.createdAt || o.createdDate || o.date;
-        if (cId && oDate) {
-          if (!txMap[cId] || new Date(oDate) > new Date(txMap[cId])) {
-            txMap[cId] = oDate;
-          }
-        }
-        if (cCode && oDate) {
-          if (!txMap[cCode] || new Date(oDate) > new Date(txMap[cCode])) {
-            txMap[cCode] = oDate;
-          }
-        }
-      });
-      setCustomerLatestTxMap(txMap);
-    }).catch(() => {});
+    // Customer latest tx map is already managed on the backend directly via customer.lastTransaction
   }, []);
 
   // Customer debt modal states

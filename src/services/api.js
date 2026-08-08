@@ -31,17 +31,58 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const clientMemoryCache = new Map();
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds instant client cache
+const clientMemoryCache = {
+  get(key) {
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('TIKO_CACHE_' + key) || localStorage.getItem('TIKO_CACHE_' + key);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      if (Date.now() > parsed.expiry) {
+        sessionStorage.removeItem('TIKO_CACHE_' + key);
+        localStorage.removeItem('TIKO_CACHE_' + key);
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  },
+  set(key, val) {
+    if (typeof window === 'undefined') return;
+    try {
+      const payload = JSON.stringify(val);
+      sessionStorage.setItem('TIKO_CACHE_' + key, payload);
+      localStorage.setItem('TIKO_CACHE_' + key, payload);
+    } catch {}
+  },
+  clear(pattern = '') {
+    if (typeof window === 'undefined') return;
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
+          keysToRemove.push(k);
+        }
+      }
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      });
+    } catch {}
+  }
+};
+const CACHE_TTL_MS = 300 * 1000; // 5 minutes persistent client cache
 
 export const clearClientCache = (pattern = '') => {
-  if (!pattern) {
-    clientMemoryCache.clear();
-    return;
-  }
-  for (const key of clientMemoryCache.keys()) {
-    if (key.includes(pattern)) clientMemoryCache.delete(key);
-  }
+  clientMemoryCache.clear(pattern);
 };
 
 export const notifyDataChanged = (type = 'general') => {
