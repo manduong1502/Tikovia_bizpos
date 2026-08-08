@@ -73,6 +73,7 @@ export default function LoginPage() {
           navigate('/system-admin');
         }
       } else {
+        localStorage.removeItem('token');
         const res = await api.post('/auth/login', { username, password });
         if (res.data.token) {
           // Disable tenant subdomain redirection to keep only 1 default shop

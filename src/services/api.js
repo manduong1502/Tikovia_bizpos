@@ -14,11 +14,12 @@ export const api = axios.create({
 // ─── Request Interceptor: auto-attach token & tenant subdomain ───
 api.interceptors.request.use((config) => {
   const isSystemRoute = config.url?.includes('/system-login') || config.url?.includes('/system-me') || config.url?.includes('/tenants');
+  const isLoginRoute = config.url?.includes('/auth/login') || config.url?.includes('/system-login');
   const superAdminToken = localStorage.getItem('super_admin_token');
 
   if (isSystemRoute && superAdminToken) {
     config.headers.Authorization = `Bearer ${superAdminToken}`;
-  } else {
+  } else if (!isLoginRoute) {
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
