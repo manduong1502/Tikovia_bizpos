@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { reportAPI, employeeAPI, orderAPI } from '../../services/api';
+import { reportAPI, employeeAPI, orderAPI, cashbookAPI } from '../../services/api';
 import PortalPopover from '../../components/ui/PortalPopover';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
 import toast from 'react-hot-toast';
@@ -99,6 +99,7 @@ export default function EndOfDayReportPage() {
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedCreator, setSelectedCreator] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
+  const [cashbookTypeFilter, setCashbookTypeFilter] = useState('Tất cả'); // 'Tất cả' | 'Thu' | 'Chi'
 
   const [employees, setEmployees] = useState([]);
 
@@ -132,11 +133,21 @@ export default function EndOfDayReportPage() {
       }
     }
 
-    reportAPI.getEndOfDay(params)
-      .then(res => {
-        if (res) {
-          setData(res);
+    Promise.all([
+      reportAPI.getEndOfDay(params),
+      cashbookAPI.getAll({ limit: 1000 }).catch(() => [])
+    ])
+      .then(([res, allCb]) => {
+        let combined = res || {};
+        const cbList = Array.isArray(allCb) ? allCb : (allCb?.data || []);
+        if (!combined.cashbook || combined.cashbook.length === 0) {
+          combined.cashbook = cbList;
+        } else if (cbList.length > 0) {
+          const existingCodes = new Set(combined.cashbook.map(c => c.code || c.id));
+          const extra = cbList.filter(c => !existingCodes.has(c.code || c.id));
+          combined.cashbook = [...combined.cashbook, ...extra];
         }
+        setData(combined);
         setLoading(false);
       })
       .catch(err => {
@@ -152,7 +163,7 @@ export default function EndOfDayReportPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [customerQuery, selectedEmployee, selectedCreator, paymentMethodFilter, interestType, displayType]);
+  }, [customerQuery, selectedEmployee, selectedCreator, paymentMethodFilter, interestType, displayType, cashbookTypeFilter, taxMode]);
 
   // Client-side filtering for invoices matching exact working hours date & time
   const filteredTransactions = useMemo(() => {
@@ -180,7 +191,11 @@ export default function EndOfDayReportPage() {
         const nameMatch = (tx.customerName || '').toLowerCase().includes(q);
         const phoneMatch = (tx.customerPhone || '').includes(q);
         const codeMatch = (tx.code || '').toLowerCase().includes(q);
-        if (!nameMatch && !phoneMatch && !codeMatch) return false;
+        // Also allow matching item SKU or name
+        const itemMatch = (tx.items || []).some(it => 
+          (it.sku || '').toLowerCase().includes(q) || (it.name || '').toLowerCase().includes(q)
+        );
+        if (!nameMatch && !phoneMatch && !codeMatch && !itemMatch) return false;
       }
       if (selectedEmployee && tx.createdBy !== selectedEmployee) return false;
       if (selectedCreator && tx.createdBy !== selectedCreator) return false;
@@ -233,6 +248,9 @@ export default function EndOfDayReportPage() {
 
     return (data.cashbook || []).filter(cb => {
       const cbYMD = getWorkingHoursYMD(cb.time || cb.createdAt || cb.date);
+      const cbTimeStr = formatWorkingHoursTime(cb.time || cb.createdAt || cb.date);
+
+      // 1. Date Filter
       if (timeRangeType === 'date') {
         if (cbYMD !== targetYMD) return false;
       } else {
@@ -240,16 +258,41 @@ export default function EndOfDayReportPage() {
         if (customToDate && cbYMD > customToDate) return false;
       }
 
+      // 2. Time Filter
+      if (timeFrom && cbTimeStr < timeFrom) return false;
+      if (timeTo && cbTimeStr > timeTo) return false;
+
+      // 3. Cashbook Type Filter (Thu / Chi)
+      const isIncome = cb.type === 'INCOME' || cb.type === 'income' || cb.type === 'THU' || cb.type === 'thu';
+      if (cashbookTypeFilter === 'Thu' && !isIncome) return false;
+      if (cashbookTypeFilter === 'Chi' && isIncome) return false;
+
+      // 4. Employee / Creator Filter
       if (selectedEmployee && cb.createdBy !== selectedEmployee) return false;
       if (selectedCreator && cb.createdBy !== selectedCreator) return false;
+
+      // 5. Payment Method Filter
       if (paymentMethodFilter) {
-        if (paymentMethodFilter === 'Tiền mặt' && cb.paymentMethod !== 'Tiền mặt') return false;
-        if (paymentMethodFilter === 'Chuyển khoản' && cb.paymentMethod !== 'Chuyển khoản') return false;
-        if (paymentMethodFilter === 'Quẹt thẻ' && cb.paymentMethod !== 'Quẹt thẻ') return false;
+        const pm = (cb.paymentMethod || '').toLowerCase();
+        if (paymentMethodFilter === 'Tiền mặt' && (pm.includes('chuyển khoản') || pm.includes('bank') || pm.includes('thẻ') || pm.includes('card'))) return false;
+        if (paymentMethodFilter === 'Chuyển khoản' && !pm.includes('chuyển khoản') && !pm.includes('bank') && !pm.includes('transfer')) return false;
+        if (paymentMethodFilter === 'Quẹt thẻ' && !pm.includes('thẻ') && !pm.includes('card')) return false;
       }
+
+      // 6. Search Query (Code, Partner name, Phone, Category, Description)
+      if (customerQuery) {
+        const q = customerQuery.toLowerCase();
+        const codeMatch = (cb.code || '').toLowerCase().includes(q);
+        const partnerMatch = (cb.partnerName || '').toLowerCase().includes(q);
+        const phoneMatch = (cb.partnerPhone || '').includes(q);
+        const catMatch = (cb.category || '').toLowerCase().includes(q);
+        const descMatch = (cb.description || '').toLowerCase().includes(q);
+        if (!codeMatch && !partnerMatch && !phoneMatch && !catMatch && !descMatch) return false;
+      }
+
       return true;
     });
-  }, [data.cashbook, timeRangeType, selectedSingleDate, customFromDate, customToDate, selectedEmployee, selectedCreator, paymentMethodFilter]);
+  }, [data.cashbook, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, cashbookTypeFilter, selectedEmployee, selectedCreator, paymentMethodFilter, customerQuery]);
 
   // Helper to extract paid amount safely
   const getTxPaid = (tx) => Number(tx.paid ?? tx.netRevenue ?? tx.revenue ?? 0);
@@ -271,16 +314,23 @@ export default function EndOfDayReportPage() {
   const totalReturnRevenueSum = filteredReturns.reduce((sum, ret) => sum + (ret.revenue || 0), 0);
   const totalReturnPaidSum = filteredReturns.reduce((sum, ret) => sum + getRetPaid(ret), 0);
 
+  // Cashbook Summary Totals
+  const totalCashbookIncomeSum = filteredCashbook.filter(c => c.type === 'INCOME' || c.type === 'income' || c.type === 'THU' || c.type === 'thu').reduce((sum, c) => sum + Number(c.amount || 0), 0);
+  const totalCashbookExpenseSum = filteredCashbook.filter(c => c.type === 'EXPENSE' || c.type === 'expense' || c.type === 'CHI' || c.type === 'chi').reduce((sum, c) => sum + Number(c.amount || 0), 0);
+
   // Pagination Calculations
   const totalPages = Math.max(1, Math.ceil(totalInvoiceCount / pageSize));
   const validCurrentPage = Math.min(currentPage, totalPages);
   const paginatedTransactions = filteredTransactions.slice((validCurrentPage - 1) * pageSize, validCurrentPage * pageSize);
 
-  // Goods Summary List
+  // Goods Summary List (Hàng hóa)
   const goodsList = useMemo(() => {
     const map = {};
+    let hasItems = false;
+
     filteredTransactions.forEach(tx => {
       if (Array.isArray(tx.items) && tx.items.length > 0) {
+        hasItems = true;
         tx.items.forEach(it => {
           const sku = it.sku || `SP${it.productId || '0'}`;
           const name = it.name || 'Sản phẩm';
@@ -290,16 +340,31 @@ export default function EndOfDayReportPage() {
           map[sku].soldQty += qty;
           map[sku].revenue += rev;
         });
-      } else {
-        const sku = 'SP001';
-        const name = 'Hàng hóa tổng hợp';
-        if (!map[sku]) map[sku] = { sku, name, soldQty: 0, revenue: 0 };
-        map[sku].soldQty += Number(tx.quantity || 1);
-        map[sku].revenue += Number(tx.revenue || 0);
       }
     });
-    return Object.values(map);
-  }, [filteredTransactions]);
+
+    if (!hasItems && Array.isArray(data.productsSummary) && data.productsSummary.length > 0) {
+      data.productsSummary.forEach(p => {
+        const sku = p.sku || `SP${p.productId || '0'}`;
+        map[sku] = {
+          sku,
+          name: p.name || 'Sản phẩm',
+          soldQty: Number(p.soldQty || p.quantity || 0),
+          revenue: Number(p.revenue || 0),
+        };
+      });
+    }
+
+    let list = Object.values(map);
+
+    // Search filter for goods (by SKU or Product Name)
+    if (customerQuery) {
+      const q = customerQuery.toLowerCase();
+      list = list.filter(g => (g.sku || '').toLowerCase().includes(q) || (g.name || '').toLowerCase().includes(q));
+    }
+
+    return list;
+  }, [filteredTransactions, data.productsSummary, customerQuery]);
 
   const totalGoodsQty = goodsList.reduce((sum, g) => sum + g.soldQty, 0);
   const totalGoodsRevenue = goodsList.reduce((sum, g) => sum + g.revenue, 0);
@@ -331,7 +396,7 @@ export default function EndOfDayReportPage() {
     filteredReturns.forEach(ret => {
       const amt = Math.abs(getRetPaid(ret));
       const pm = (ret.paymentMethod || '').toLowerCase();
-      if (pm.includes('chuyển khoản') || pm.includes('bank')) {
+      if (pm.includes('chuyển khoản') || pm.includes('bank') || pm.includes('transfer')) {
         bankReturns += amt;
       } else if (pm.includes('thẻ') || pm.includes('card')) {
         cardReturns += amt;
@@ -348,12 +413,13 @@ export default function EndOfDayReportPage() {
     filteredCashbook.forEach(cb => {
       const amt = Number(cb.amount || 0);
       const pm = (cb.paymentMethod || '').toLowerCase();
-      if (cb.type === 'INCOME') {
-        if (pm.includes('chuyển khoản') || pm.includes('bank')) bankIncome += amt;
+      const isIncome = cb.type === 'INCOME' || cb.type === 'income' || cb.type === 'THU' || cb.type === 'thu';
+      if (isIncome) {
+        if (pm.includes('chuyển khoản') || pm.includes('bank') || pm.includes('transfer')) bankIncome += amt;
         else if (pm.includes('thẻ') || pm.includes('card')) cardIncome += amt;
         else cashIncome += amt;
       } else {
-        if (pm.includes('chuyển khoản') || pm.includes('bank')) bankExpense += amt;
+        if (pm.includes('chuyển khoản') || pm.includes('bank') || pm.includes('transfer')) bankExpense += amt;
         else if (pm.includes('thẻ') || pm.includes('card')) cardExpense += amt;
         else cashExpense += amt;
       }
@@ -1049,13 +1115,45 @@ export default function EndOfDayReportPage() {
           </div>
         )}
 
-        {/* Khách hàng */}
+        {/* Loại thu chi (Khi chọn Mối quan tâm = Thu chi) */}
+        {interestType === 'Thu chi' && (
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Loại thu / chi</label>
+            <select 
+              value={cashbookTypeFilter} 
+              onChange={(e) => setCashbookTypeFilter(e.target.value)}
+              className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] focus:ring-1 focus:ring-[#0077CC]/20 font-semibold text-gray-700"
+            >
+              <option value="Tất cả">Tất cả (Thu & Chi)</option>
+              <option value="Thu">Thu tiền</option>
+              <option value="Chi">Chi tiền</option>
+            </select>
+          </div>
+        )}
+
+        {/* Ô Tìm kiếm (Tự động đổi nhãn & placeholder theo Mối quan tâm) */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Khách hàng</label>
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            {interestType === 'Thu chi' 
+              ? 'Tìm kiếm phiếu thu chi' 
+              : interestType === 'Hàng hóa' 
+              ? 'Tìm kiếm hàng hóa' 
+              : interestType === 'Tổng hợp'
+              ? 'Tìm kiếm tổng hợp'
+              : 'Khách hàng / Hàng hóa'}
+          </label>
           <div className="relative">
             <input 
               type="text" 
-              placeholder="Theo mã, tên, số điện thoại" 
+              placeholder={
+                interestType === 'Thu chi'
+                  ? 'Mã phiếu, người nộp/nhận, loại thu chi...'
+                  : interestType === 'Hàng hóa'
+                  ? 'Mã hàng, tên sản phẩm...'
+                  : interestType === 'Tổng hợp'
+                  ? 'Mã đơn, đối tác, ghi chú...'
+                  : 'Mã đơn, tên, SĐT khách, mã hàng...'
+              }
               value={customerQuery}
               onChange={(e) => setCustomerQuery(e.target.value)}
               className="w-full pl-8 pr-2.5 py-1.5 rounded border border-gray-200 bg-white text-xs outline-none focus:border-[#0077CC] focus:ring-1 focus:ring-[#0077CC]/20 transition-all text-gray-700 font-medium"
@@ -1066,7 +1164,9 @@ export default function EndOfDayReportPage() {
 
         {/* Nhân viên */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nhân viên</label>
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+            {interestType === 'Thu chi' ? 'Nhân viên nộp / nhận' : 'Nhân viên bán'}
+          </label>
           <select 
             value={selectedEmployee} 
             onChange={(e) => setSelectedEmployee(e.target.value)}
@@ -1081,7 +1181,7 @@ export default function EndOfDayReportPage() {
 
         {/* Người tạo */}
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Người tạo</label>
+          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Người tạo phiếu</label>
           <select 
             value={selectedCreator} 
             onChange={(e) => setSelectedCreator(e.target.value)}
@@ -1102,7 +1202,7 @@ export default function EndOfDayReportPage() {
             onChange={(e) => setPaymentMethodFilter(e.target.value)}
             className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] focus:ring-1 focus:ring-[#0077CC]/20 font-medium text-gray-700"
           >
-            <option value="">Chọn phương thức thanh toán</option>
+            <option value="">Tất cả phương thức</option>
             <option value="Tiền mặt">Tiền mặt</option>
             <option value="Chuyển khoản">Chuyển khoản</option>
             <option value="Quẹt thẻ">Thẻ tín dụng</option>
