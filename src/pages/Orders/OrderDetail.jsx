@@ -16,7 +16,7 @@ function Badge({ status }) {
   return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{labels[status] || status}</span>;
 }
 
-export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) {
+export default function OrderDetail({ order, onReload, onClose, colSpan = 11, asDiv = false }) {
   const o = order;
   const [tab, setTab] = useState('info');
   const [orderPayments, setOrderPayments] = useState([]);
@@ -244,8 +244,13 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
     printHTML(invoiceHTML, 'In Hóa Đơn');
   };
 
+  const Container = asDiv ? 'div' : 'td';
+  const containerProps = asDiv
+    ? { className: "p-0 bg-white shadow-xl max-w-full rounded-xl", onClick: e => e.stopPropagation() }
+    : { colSpan, className: "p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full", onClick: e => e.stopPropagation() };
+
   return (
-    <td colSpan={colSpan} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
+    <Container {...containerProps}>
       <div className="p-3 sm:p-6 max-w-full overflow-x-hidden">
         {/* Top Tabs */}
         <div className="flex gap-4 sm:gap-4 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">
@@ -553,6 +558,6 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
           })()
         )}
       </div>
-    </td>
+    </Container>
   );
 }

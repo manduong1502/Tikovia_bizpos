@@ -240,8 +240,8 @@ export function buildCustomRange(startInput, endInput) {
   return { start, end };
 }
 
-export function formatWorkingHoursDateTime(dateInput) {
-  if (!dateInput) return '';
+export function getWorkingHoursDate(dateInput) {
+  if (!dateInput) return null;
   const str = String(dateInput).trim();
 
   let d;
@@ -253,7 +253,7 @@ export function formatWorkingHoursDateTime(dateInput) {
     d = new Date(str);
   }
 
-  if (isNaN(d.getTime())) return str;
+  if (isNaN(d.getTime())) return null;
 
   let adjusted = d;
   const currentHours = d.getHours();
@@ -263,6 +263,13 @@ export function formatWorkingHoursDateTime(dateInput) {
     adjusted = new Date(d.getTime() - 7 * 3600 * 1000);
   }
 
+  return adjusted;
+}
+
+export function formatWorkingHoursDateTime(dateInput) {
+  const adjusted = getWorkingHoursDate(dateInput);
+  if (!adjusted) return String(dateInput || '');
+
   const day = String(adjusted.getDate()).padStart(2, '0');
   const month = String(adjusted.getMonth() + 1).padStart(2, '0');
   const year = adjusted.getFullYear();
@@ -270,4 +277,30 @@ export function formatWorkingHoursDateTime(dateInput) {
   const minutes = String(adjusted.getMinutes()).padStart(2, '0');
   const seconds = String(adjusted.getSeconds()).padStart(2, '0');
   return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+}
+
+export function formatWorkingHoursTime(dateInput) {
+  const adjusted = getWorkingHoursDate(dateInput);
+  if (!adjusted) return '';
+  const hours = String(adjusted.getHours()).padStart(2, '0');
+  const minutes = String(adjusted.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+export function getWorkingHoursYMD(dateInput) {
+  const adjusted = getWorkingHoursDate(dateInput);
+  if (!adjusted) return '';
+  const year = adjusted.getFullYear();
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getWorkingHoursDMY(dateInput) {
+  const adjusted = getWorkingHoursDate(dateInput);
+  if (!adjusted) return '';
+  const day = String(adjusted.getDate()).padStart(2, '0');
+  const month = String(adjusted.getMonth() + 1).padStart(2, '0');
+  const year = adjusted.getFullYear();
+  return `${day}/${month}/${year}`;
 }

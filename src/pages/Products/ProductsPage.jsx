@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { productAPI, categoryAPI, supplierAPI } from '../../services/api';
+import { productAPI, categoryAPI, supplierAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import {

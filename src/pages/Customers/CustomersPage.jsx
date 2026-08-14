@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { customerAPI, orderAPI, cashbookAPI, returnAPI } from '../../services/api';
+import { customerAPI, orderAPI, cashbookAPI, returnAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -548,22 +548,24 @@ export default function CustomersPage() {
       // 3.2. Ngày tạo
       if (filterDate && filterDate.mode === 'all' && filterDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterDate.label);
-        if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
+        const custDate = c.created_at || c.createdAt || c.createdAtDate || c.updatedAt;
+        if (range && !inDateRange(custDate, range)) return false;
       } else if (filterDate && filterDate.mode === 'custom' && filterDate.start) {
         const range = buildCustomRange(filterDate.start, filterDate.end);
-        if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
+        const custDate = c.created_at || c.createdAt || c.createdAtDate || c.updatedAt;
+        if (range && !inDateRange(custDate, range)) return false;
       }
 
       // 3.4. Loại khách hàng (Tất cả, Cá nhân, Công ty)
       if (filterType !== 'Tất cả') {
-        const type = c.customerType || 'Cá nhân';
+        const type = c.customerType || c.type || (c.isCompany ? 'Công ty' : 'Cá nhân');
         if (filterType === 'Cá nhân' && type !== 'Cá nhân') return false;
         if (filterType === 'Công ty' && type !== 'Công ty') return false;
       }
 
       // 3.5. Giới tính (Tất cả, Nam, Nữ)
       if (filterGender !== 'Tất cả') {
-        const g = (c.gender || '').toLowerCase();
+        const g = (c.gender || c.sex || '').toLowerCase();
         if (filterGender === 'Nam' && g !== 'nam' && g !== 'male') return false;
         if (filterGender === 'Nữ' && g !== 'nữ' && g !== 'female') return false;
       }
@@ -571,10 +573,12 @@ export default function CustomersPage() {
       // 3.6. Sinh nhật (DateFilter)
       if (filterBirthdayDate && filterBirthdayDate.mode === 'all' && filterBirthdayDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterBirthdayDate.label);
-        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+        const bday = c.birthday || c.birthDate || c.dateOfBirth;
+        if (range && !inDateRange(bday, range)) return false;
       } else if (filterBirthdayDate && filterBirthdayDate.mode === 'custom' && filterBirthdayDate.start) {
         const range = buildCustomRange(filterBirthdayDate.start, filterBirthdayDate.end);
-        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+        const bday = c.birthday || c.birthDate || c.dateOfBirth;
+        if (range && !inDateRange(bday, range)) return false;
       }
 
       // 3.7. Ngày giao dịch cuối (DateFilter - matches KiotViet: Order, Cashbook, Return, or Account Creation Date)

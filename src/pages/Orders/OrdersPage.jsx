@@ -516,18 +516,22 @@ export default function OrdersPage() {
 
       if (filters.orderDate && filters.orderDate.mode === 'all' && filters.orderDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filters.orderDate.label);
-        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+        const orderDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+        if (range && !inDateRange(orderDateVal, range)) return false;
       } else if (filters.orderDate && filters.orderDate.mode === 'custom' && filters.orderDate.start) {
         const range = buildCustomRange(filters.orderDate.start, filters.orderDate.end);
-        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+        const orderDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+        if (range && !inDateRange(orderDateVal, range)) return false;
       }
 
       if (filters.deliveryDate && filters.deliveryDate.mode === 'all' && filters.deliveryDate.label !== 'Toàn thời gian') {
         const range = getRangeByExpectedLabel(filters.deliveryDate.label);
-        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+        const delivDateVal = o.delivery_date || o.deliveryDate || o.expected_delivery_date || o.expectedDeliveryDate;
+        if (range && !inDateRange(delivDateVal, range)) return false;
       } else if (filters.deliveryDate && filters.deliveryDate.mode === 'custom' && filters.deliveryDate.start) {
         const range = buildCustomRange(filters.deliveryDate.start, filters.deliveryDate.end);
-        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+        const delivDateVal = o.delivery_date || o.deliveryDate || o.expected_delivery_date || o.expectedDeliveryDate;
+        if (range && !inDateRange(delivDateVal, range)) return false;
       }
 
       return true;
@@ -864,6 +868,7 @@ export default function OrdersPage() {
                         {/* Full Screen Scrollable Body */}
                         <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
                           <OrderDetail
+                            asDiv={true}
                             order={{
                               id: o.id,
                               order_code: o.order_code || o.code,

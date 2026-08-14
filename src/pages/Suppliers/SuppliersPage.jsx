@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
-import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } from '../../services/api';
+import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
