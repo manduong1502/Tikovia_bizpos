@@ -149,12 +149,19 @@ export const SocketProvider = ({ children }) => {
     const socketUrl = getSocketUrl();
     const newSocket = io(socketUrl, {
       query: { token },
-      transports: ['websocket'],
-      reconnectionAttempts: 5,
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 15000,
+      timeout: 10000,
     });
 
     newSocket.on('connect', () => {
       console.log('🔌 Đã kết nối WebSockets thành công!');
+    });
+
+    newSocket.on('connect_error', () => {
+      // Gracefully suppress noisy websocket errors
     });
 
     newSocket.on('notification', (newNotif) => {

@@ -6,7 +6,7 @@ export const getSubdomain = () => {
 };
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.tikovia.vn/api',
+  baseURL: 'https://api.tikovia.vn/api',
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -14,7 +14,7 @@ export const api = axios.create({
 // ─── Request Interceptor: auto-attach token & tenant subdomain ───
 api.interceptors.request.use((config) => {
   const isSystemRoute = config.url?.includes('/system-login') || config.url?.includes('/system-me') || config.url?.includes('/tenants');
-  const isLoginRoute = config.url?.includes('/auth/login') || config.url?.includes('/system-login');
+  const isLoginRoute = config.url?.includes('/auth/login') || config.url?.includes('/system-login') || config.url?.includes('/auth/tenant');
   const superAdminToken = localStorage.getItem('super_admin_token');
 
   if (isSystemRoute && superAdminToken) {
@@ -150,7 +150,7 @@ export const hasInitialCache = (pattern) => {
 
 export const notifyDataChanged = (type = 'general') => {
   if (typeof window !== 'undefined') {
-    clearClientCache(type === 'general' ? '' : type);
+    clientMemoryCache.clear(type === 'general' ? '' : type);
     window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type } }));
   }
 };
@@ -353,41 +353,49 @@ const persistOrders = () => {
 };
 
 export const orderAPI = {
-  getAll: (params) => api.get('/orders', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(normalizeOrder);
-    
-    // Clear local storage updates for these orders since we successfully synced with backend
-    let changed = false;
-    list.forEach(o => {
-      if (LOCAL_UPDATED_ORDERS[o.id]) {
-        delete LOCAL_UPDATED_ORDERS[o.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistOrders();
-    }
+  getAll: (params) => {
+    const cacheKey = 'orders:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
-    return { 
-      data: [...toAdd, ...list], 
-      total: r?.data?.total || (list.length + toAdd.length), 
-      page: r?.data?.page || 1, 
-      limit: r?.data?.limit || 100, 
-      totalPages: r?.data?.totalPages || 1,
-      summaryStats: r?.data?.summaryStats 
-    };
-  }).catch(() => {
-    let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
-    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
-  }),
+    return api.get('/orders', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list = list.map(normalizeOrder);
+      
+      // Clear local storage updates for these orders since we successfully synced with backend
+      let changed = false;
+      list.forEach(o => {
+        if (LOCAL_UPDATED_ORDERS[o.id]) {
+          delete LOCAL_UPDATED_ORDERS[o.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistOrders();
+      }
+
+      list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+      const resultObj = { 
+        data: [...toAdd, ...list], 
+        total: r?.data?.total || (list.length + toAdd.length), 
+        page: r?.data?.page || 1, 
+        limit: r?.data?.limit || 100, 
+        totalPages: r?.data?.totalPages || 1,
+        summaryStats: r?.data?.summaryStats 
+      };
+      clientMemoryCache.set(cacheKey, { data: resultObj, expiry: Date.now() + CACHE_TTL_MS });
+      return resultObj;
+    }).catch(() => {
+      let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+      return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+    });
+  },
   getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true })
     .then(r => normalizeOrderDetail(r.data))
     .catch(() => {
@@ -541,33 +549,41 @@ const persistReturns = () => {
 const FALLBACK_RETURNS = [];
 
 export const returnAPI = {
-  getAll: (params) => api.get('/returns', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    
-    // Clear local storage updates for these returns since we successfully synced with backend
-    let changed = false;
-    list.forEach(o => {
-      if (LOCAL_UPDATED_RETURNS[o.id]) {
-        delete LOCAL_UPDATED_RETURNS[o.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistReturns();
-    }
+  getAll: (params) => {
+    const cacheKey = 'returns:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_RETURNS.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }),
+    return api.get('/returns', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      
+      // Clear local storage updates for these returns since we successfully synced with backend
+      let changed = false;
+      list.forEach(o => {
+        if (LOCAL_UPDATED_RETURNS[o.id]) {
+          delete LOCAL_UPDATED_RETURNS[o.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistReturns();
+      }
+
+      list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+      const resList = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: resList, expiry: Date.now() + CACHE_TTL_MS });
+      return resList;
+    }).catch(() => {
+      let list = FALLBACK_RETURNS.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+      return [...toAdd, ...list];
+    });
+  },
   create: (data) => api.post('/returns', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
     if (!isNetworkError(err)) {
       throw err;
@@ -1229,14 +1245,22 @@ let LOCAL_ADDED_CASHBOOKS = loadLocalState('ADDED_CB', []);
 const persistCBs = () => saveLocalState('ADDED_CB', LOCAL_ADDED_CASHBOOKS);
 
 export const cashbookAPI = {
-  getAll: (params) => api.get('/cashbook', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_CASHBOOKS.filter(o => !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    return [...LOCAL_ADDED_CASHBOOKS];
-  }),
+  getAll: (params) => {
+    const cacheKey = 'cashbook:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/cashbook', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_CASHBOOKS.filter(o => !existingCodes.has(o.code));
+      const resList = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: resList, expiry: Date.now() + CACHE_TTL_MS });
+      return resList;
+    }).catch(() => {
+      return [...LOCAL_ADDED_CASHBOOKS];
+    });
+  },
   create: (data) => api.post('/cashbook', data, { hideErrorToast: true }).then(r => {
     const newCB = { id: r.data?.id || Date.now(), createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data, ...(r.data || {}) };
     LOCAL_ADDED_CASHBOOKS.unshift(newCB);
@@ -1267,7 +1291,15 @@ export const inventoryCheckAPI = {
 // ─── Returns (Duplicate removed) ───
 // ─── Dashboard ───
 export const dashboardAPI = {
-  get: () => api.get('/dashboard').then(r => r.data),
+  get: () => {
+    const cacheKey = 'dashboard:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/dashboard').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 60000 });
+      return r.data;
+    });
+  },
 };
 
 // ─── Users / Auth ───
@@ -1302,11 +1334,51 @@ export const settingsAPI = {
 
 // ─── Reports ───
 export const reportAPI = {
-  getFinancial: (params) => api.get('/reports/financial', { params }).then(r => r.data),
-  getEndOfDay: (params) => api.get('/reports/end-of-day', { params }).then(r => r.data),
-  getSales: (params) => api.get('/reports/sales', { params }).then(r => r.data),
-  getProducts: (params) => api.get('/reports/products', { params }).then(r => r.data),
-  getCustomers: (params) => api.get('/reports/customers', { params }).then(r => r.data),
+  getFinancial: (params) => {
+    const cacheKey = 'reports:financial:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/reports/financial', { params }).then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
+      return r.data;
+    });
+  },
+  getEndOfDay: (params) => {
+    const cacheKey = 'reports:endofday:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/reports/end-of-day', { params }).then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
+      return r.data;
+    });
+  },
+  getSales: (params) => {
+    const cacheKey = 'reports:sales:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/reports/sales', { params }).then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
+      return r.data;
+    });
+  },
+  getProducts: (params) => {
+    const cacheKey = 'reports:products:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/reports/products', { params }).then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
+      return r.data;
+    });
+  },
+  getCustomers: (params) => {
+    const cacheKey = 'reports:customers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/reports/customers', { params }).then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
+      return r.data;
+    });
+  },
 };
 
 // ─── Notifications ───
