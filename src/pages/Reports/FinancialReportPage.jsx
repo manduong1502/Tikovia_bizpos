@@ -15,7 +15,7 @@ const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 
 export default function FinancialReportPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Tháng này' });
+  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Toàn thời gian' });
   const [zoom, setZoom] = useState(100);
 
   // Compute date range strings based on DateFilter selection
@@ -79,11 +79,12 @@ export default function FinancialReportPage() {
     netRevenue: Number(data?.netRevenue ?? data?.netSales ?? 0),
     cogs: Number(data?.cogs ?? data?.netCogs ?? 0),
     grossProfit: Number(data?.grossProfit ?? 0),
+    staffSalary: Number(data?.staffSalary ?? 0),
+    otherOperatingExpenses: Number(data?.otherOperatingExpenses ?? 0),
     operatingExpenses: Number(data?.operatingExpenses ?? 0),
     operatingProfit: Number(data?.operatingProfit ?? ((data?.grossProfit ?? 0) - (data?.operatingExpenses ?? 0))),
     otherIncome: Number(data?.otherIncome ?? 0),
-    otherExpenses: Number(data?.otherExpenses ?? 0),
-    netProfit: Number(data?.netProfit ?? 0)
+    netProfit: Number(data?.netProfit ?? ((data?.operatingProfit ?? 0) + (data?.otherIncome ?? 0)))
   };
 
   const handlePrint = () => {
@@ -92,24 +93,26 @@ export default function FinancialReportPage() {
 
   const handleExport = () => {
     const rows = [
-      { stt: '1', name: 'Doanh thu bán hàng (1)', val: f.grossRevenue },
-      { stt: '2', name: 'Giảm trừ Doanh thu (2 = 2.1+2.2)', val: f.totalDeductions },
-      { stt: '2.1', name: '  Chiết khấu hóa đơn (2.1)', val: f.orderDiscounts },
-      { stt: '2.2', name: '  Giá trị hàng bán bị trả lại (2.2)', val: f.returnTotalVal },
-      { stt: '3', name: 'Doanh thu thuần (3 = 1-2)', val: f.netRevenue },
-      { stt: '4', name: 'Giá vốn hàng bán (4)', val: f.cogs },
-      { stt: '5', name: 'Lợi nhuận gộp về bán hàng (5 = 3-4)', val: f.grossProfit },
-      { stt: '6', name: 'Chi phí (6)', val: f.operatingExpenses },
-      { stt: '7', name: 'Lợi nhuận từ hoạt động kinh doanh (7 = 5-6)', val: f.operatingProfit },
-      { stt: '8', name: 'Thu nhập khác (8)', val: f.otherIncome },
-      { stt: '9', name: 'Chi phí khác (9)', val: f.otherExpenses },
-      { stt: '10', name: 'Lợi nhuận thuần (10 = (7+8)-9)', val: f.netProfit },
+      { stt: '(1)', name: 'Doanh thu bán hàng (1)', val: f.grossRevenue, formula: 'SUM Giá trị tất cả Hóa đơn bán hàng phát sinh' },
+      { stt: '(2)', name: 'Giảm trừ Doanh thu (2 = 2.1+2.2)', val: f.totalDeductions, formula: '(2.1) + (2.2)' },
+      { stt: '(2.1)', name: '  — Chiết khấu hóa đơn (2.1)', val: f.orderDiscounts, formula: 'Giảm giá trực tiếp trên tổng hóa đơn' },
+      { stt: '(2.2)', name: '  — Giá trị hàng bán bị trả lại (2.2)', val: f.returnTotalVal, formula: 'Tổng giá trị hàng hóa khách trả lại của cửa hàng' },
+      { stt: '(3)', name: 'Doanh thu thuần (3 = 1-2)', val: f.netRevenue, formula: '(1) - (2)' },
+      { stt: '(4)', name: 'Giá vốn hàng bán (4)', val: f.cogs, formula: 'SUM (SL xuất bán x Giá vốn BQ) - SUM (SL trả x Giá vốn)' },
+      { stt: '(5)', name: 'Lợi nhuận gộp về bán hàng (5 = 3-4)', val: f.grossProfit, formula: '(3) - (4)' },
+      { stt: '(6)', name: 'Chi phí hoạt động (6)', val: f.operatingExpenses, formula: 'Tổng các khoản chi phí vận hành hạch toán trong Sổ quỹ' },
+      { stt: '(6.1)', name: '  — Chi trả lương NV (6.1)', val: f.staffSalary, formula: 'Chi phí lương hạch toán trong Sổ quỹ' },
+      { stt: '(6.2)', name: '  — Phí trả ĐTGH / Voucher / Hủy hàng (6.2)', val: f.otherOperatingExpenses, formula: 'Phí ĐTGH, voucher, xuất hủy' },
+      { stt: '(7)', name: 'Lợi nhuận hoạt động KD (7 = 5-6)', val: f.operatingProfit, formula: '(5) - (6)' },
+      { stt: '(8)', name: 'Thu nhập khác (8)', val: f.otherIncome, formula: 'Các khoản thu ngoài bán hàng' },
+      { stt: '(9)', name: 'LỢI NHUẬN THUẦN (LÃI RÒNG) (9 = 7+8)', val: f.netProfit, formula: '(7) + (8)' },
     ];
     exportCSV(
       [
         { key: 'stt', label: 'STT' },
-        { key: 'name', label: 'Chỉ tiêu' },
-        { key: 'val', label: 'Số tiền (VNĐ)' }
+        { key: 'name', label: 'Chỉ tiêu báo cáo' },
+        { key: 'val', label: 'Số tiền (VNĐ)' },
+        { key: 'formula', label: 'Công thức / Phép tính KiotViet' }
       ],
       rows,
       `BaoCaoTaiChinh_${fromDate || 'All'}_${toDate || 'All'}`
@@ -251,7 +254,7 @@ export default function FinancialReportPage() {
                   Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </div>
                 <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase m-0">
-                  Báo cáo kết quả hoạt động kinh doanh
+                  BÁO CÁO KẾT QUẢ HOẠT ĐỘNG KINH DOANH
                 </h2>
                 <div className="text-xs font-semibold text-gray-600 mt-1">
                   {dateRangeLabel}
@@ -340,7 +343,7 @@ export default function FinancialReportPage() {
                     </tr>
                     <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
                       <td className="py-2 px-8">Chi trả lương NV</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                      <td className="py-2 px-4 text-right font-semibold">{fmt(f.staffSalary)}</td>
                     </tr>
                     <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
                       <td className="py-2 px-8">Chênh lệch làm tròn nhập hàng</td>
@@ -382,7 +385,7 @@ export default function FinancialReportPage() {
                     {/* 9. Chi phí khác */}
                     <tr className="hover:bg-blue-50/50">
                       <td className="py-2.5 px-4 font-semibold text-gray-900">Chi phí khác (9)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.otherExpenses)}</td>
+                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">0</td>
                     </tr>
 
                     {/* 10. Lợi nhuận thuần (Lãi ròng) */}
@@ -405,3 +408,4 @@ export default function FinancialReportPage() {
     </div>
   );
 }
+

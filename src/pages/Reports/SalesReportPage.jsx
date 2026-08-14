@@ -38,27 +38,9 @@ export default function SalesReportPage() {
   const [priceBook, setPriceBook] = useState('');
   
   // Date Filter State
-  const [dateFilterValue, setDateFilterValue] = useState({ mode: 'all', label: 'Tháng này' });
-  const [customFromDate, setCustomFromDate] = useState(() => {
-    const range = getRangeByCreatedLabel('Tháng này');
-    if (range && range.start) {
-      const y = range.start.getFullYear();
-      const m = String(range.start.getMonth() + 1).padStart(2, '0');
-      const d = String(range.start.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    return '';
-  });
-  const [customToDate, setCustomToDate] = useState(() => {
-    const range = getRangeByCreatedLabel('Tháng này');
-    if (range && range.end) {
-      const y = range.end.getFullYear();
-      const m = String(range.end.getMonth() + 1).padStart(2, '0');
-      const d = String(range.end.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    return '';
-  });
+  const [dateFilterValue, setDateFilterValue] = useState({ mode: 'all', label: 'Toàn thời gian' });
+  const [customFromDate, setCustomFromDate] = useState('');
+  const [customToDate, setCustomToDate] = useState('');
 
   const formatDateParam = (d) => {
     if (!d) return '';
@@ -150,14 +132,13 @@ export default function SalesReportPage() {
   }, [customFromDate, customToDate]);
 
   const getYMDFromWorkingHours = (time) => {
-    const formatted = formatWorkingHoursDateTime(time);
-    if (formatted && formatted.includes(' ')) {
-      const dmy = formatted.split(' ')[1];
-      const parts = dmy.split('/');
-      if (parts.length === 3) {
-        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    if (!time) return '';
+    try {
+      const d = new Date(time);
+      if (!isNaN(d.getTime())) {
+        return formatLocalYMD(d);
       }
-    }
+    } catch (e) {}
     return formatLocalYMD(time);
   };
 
