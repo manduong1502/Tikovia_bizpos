@@ -5,6 +5,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api, { getSubdomain } from '../../services/api';
 import { useAppStore } from '../../stores/appStore';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('admin');
@@ -47,7 +48,16 @@ export default function LoginPage() {
         const res = await api.get('/auth/tenant', { hideErrorToast: true });
         setTenant(res.data);
       } catch (err) {
-        setTenantError(err.response?.data?.message || `Cửa hàng '${currentSubdomain}' không tồn tại trên hệ thống.`);
+        // Clear any stale invalid subdomain
+        if (localStorage.getItem('tenant_subdomain')) {
+          localStorage.removeItem('tenant_subdomain');
+          try {
+            const retryRes = await api.get('/auth/tenant', { hideErrorToast: true });
+            setTenant(retryRes.data);
+            return;
+          } catch (e2) {}
+        }
+        setTenant({ name: 'Tiko BizPOS', subdomain: 'demo' });
       } finally {
         setTenantLoading(false);
       }
@@ -116,7 +126,8 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại');
+      console.error('LOGIN ERROR DETAILS:', err, err.response);
+      setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }
