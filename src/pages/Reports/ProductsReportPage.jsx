@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { 
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2, Download,
-  ChevronDown, Search
+  ChevronDown, Search, Filter
 } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n || 0));
@@ -104,6 +104,8 @@ export default function ProductsReportPage() {
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [singleDayExpanded, setSingleDayExpanded] = useState(true);
 
   const [viewType, setViewType] = useState('Báo cáo');
   const [displayType, setDisplayType] = useState('Hiển thị dọc');
@@ -131,6 +133,25 @@ export default function ProductsReportPage() {
     }).catch(() => setCategories([]));
   }, []);
 
+  const availableBrands = useMemo(() => {
+    const set = new Set();
+    (productsList || []).forEach(p => {
+      const b = p.brand?.name || p.brand || '';
+      if (b && typeof b === 'string' && b.trim()) set.add(b.trim());
+    });
+    return Array.from(set).sort();
+  }, [productsList]);
+
+  const availableCategories = useMemo(() => {
+    if (categories && categories.length > 0) return categories;
+    const map = {};
+    (productsList || []).forEach(p => {
+      const c = p.category?.name || p.category || '';
+      if (c && typeof c === 'string' && c.trim()) map[c] = { id: c, name: c };
+    });
+    return Object.values(map);
+  }, [categories, productsList]);
+
   const getFormattedDateRange = () => {
     if (timeRangeType === 'date') return formatDateVN(selectedSingleDate);
     if (customFromDate && customToDate) return `Từ ngày ${customFromDate.split('-').reverse().join('/')} đến ngày ${customToDate.split('-').reverse().join('/')}`;
@@ -145,7 +166,12 @@ export default function ProductsReportPage() {
       period: timeRangeType,
       date: formatDateYMD(selectedSingleDate),
     };
-    if (timeRangeType === 'custom') {
+    if (timeRangeType === 'date') {
+      const nextDay = new Date(selectedSingleDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      params.fromDate = formatDateYMD(selectedSingleDate);
+      params.toDate = formatDateYMD(nextDay);
+    } else if (timeRangeType === 'custom') {
       if (customFromDate) params.fromDate = customFromDate;
       if (customToDate) params.toDate = customToDate;
     }
@@ -438,11 +464,20 @@ export default function ProductsReportPage() {
 
     const result = Object.values(prodMap).filter(p => {
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         if (!p.sku?.toLowerCase().includes(q) && !p.name?.toLowerCase().includes(q)) return false;
       }
-      if (selectedCategory && p.category !== selectedCategory) return false;
-      if (selectedBrand && p.brand !== selectedBrand) return false;
+      if (selectedCategory) {
+        const pCat = String(p.category || '').toLowerCase().trim();
+        const pCatId = String(p.categoryId || '').trim();
+        const selCat = String(selectedCategory).toLowerCase().trim();
+        if (pCat !== selCat && pCatId !== selCat) return false;
+      }
+      if (selectedBrand) {
+        const pBrand = String(p.brand || '').toLowerCase().trim();
+        const selBrand = String(selectedBrand).toLowerCase().trim();
+        if (pBrand !== selBrand) return false;
+      }
       return true;
     });
 
@@ -455,7 +490,7 @@ export default function ProductsReportPage() {
     } else if (interestType === 'Tồn kho' || interestType === 'Hàng hóa') {
       result.sort((a, b) => (b.stockValue || 0) - (a.stockValue || 0));
     } else {
-      result.sort((a, b) => (b.netRevenue || 0) - (a.netRevenue || 0));
+      result.sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
     }
 
     return result;
@@ -471,7 +506,6 @@ export default function ProductsReportPage() {
   const avgProfitMargin = totalNet !== 0 ? (totalGrossProfit / totalNet) * 100 : 0;
   const totalStock = processedData.reduce((acc, p) => acc + (p.stock || 0), 0);
   const totalStockValue = processedData.reduce((acc, p) => acc + (p.stockValue || 0), 0);
-
 
   const sortedByRevenue = useMemo(() => [...processedData].sort((a, b) => (b.netRevenue || 0) - (a.netRevenue || 0)).slice(0, 10), [processedData]);
   const sortedBySoldQty = useMemo(() => [...processedData].sort((a, b) => (b.soldQty || 0) - (a.soldQty || 0)).slice(0, 10), [processedData]);
@@ -523,284 +557,520 @@ export default function ProductsReportPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0 bg-transparent font-sans w-full relative items-start animate-page-in text-[13px] text-gray-800">
-      <aside className="w-full lg:w-[280px] shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm p-4 flex flex-col gap-3.5 z-20">
-        <button onClick={handleExportExcel} className="w-full py-1.5 px-3 bg-white border border-gray-300 hover:border-[#0077CC] text-gray-700 hover:text-[#0077CC] rounded text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all">
-          <FileSpreadsheet size={14} className="text-green-600" />
-          <span>Xuất tất cả</span>
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative animate-page-in text-[13px] text-gray-800">
+      
+      {/* Mobile Filter Toggle Bar */}
+      <div className="lg:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm text-xs font-bold text-slate-800 shrink-0 mb-2">
+        <button 
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="flex items-center gap-2 text-[#0077CC] font-extrabold cursor-pointer bg-transparent border-none p-0 select-none"
+        >
+          <Filter size={15} />
+          <span>{showMobileFilters ? 'Ẩn bộ lọc báo cáo' : 'Hiện bộ lọc báo cáo'}</span>
+          <ChevronDown size={14} className={`transition-transform duration-200 ${showMobileFilters ? 'rotate-180' : ''}`} />
         </button>
-        <h2 className="text-[14px] font-extrabold text-gray-800 border-b border-gray-100 pb-2">Báo cáo hàng hóa</h2>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Kiểu hiển thị</label>
-          <div className="flex gap-2">
-            <button onClick={() => setViewType('Biểu đồ')} className={`flex-1 py-1.5 rounded border text-xs font-bold text-center cursor-pointer ${viewType === 'Biểu đồ' ? 'bg-[#0077CC] border-[#0077CC] text-white' : 'bg-transparent border-gray-200'}`}>Biểu đồ</button>
-            <button onClick={() => setViewType('Báo cáo')} className={`flex-1 py-1.5 rounded border text-xs font-bold text-center cursor-pointer ${viewType === 'Báo cáo' ? 'bg-[#0077CC] border-[#0077CC] text-white' : 'bg-transparent border-gray-200'}`}>Báo cáo</button>
-          </div>
-          <select value={displayType} onChange={(e) => setDisplayType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
-            <option value="Hiển thị dọc">Hiển thị dọc</option>
-            <option value="Hiển thị ngang">Hiển thị ngang</option>
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Mối quan tâm</label>
-          <select value={interestType} onChange={(e) => setInterestType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
-            <option value="Bán hàng">Bán hàng</option>
-            <option value="Lợi nhuận">Lợi nhuận</option>
-            <option value="Xuất kho">Xuất kho</option>
-            <option value="Nhập kho">Nhập kho</option>
-            <option value="Tồn kho">Tồn kho</option>
-          </select>
-        </div>
-        <ReportTimeFilter timeRangeType={timeRangeType} setTimeRangeType={setTimeRangeType} selectedSingleDate={selectedSingleDate} setSelectedSingleDate={setSelectedSingleDate} timeFrom={timeFrom} setTimeFrom={setTimeFrom} timeTo={timeTo} setTimeTo={setTimeTo} customFromDate={customFromDate} setCustomFromDate={setCustomFromDate} customToDate={customToDate} setCustomToDate={setCustomToDate} />
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hàng hóa</label>
-          <div className="relative">
-            <input type="text" placeholder="Theo mã, tên hàng" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-2.5 py-1.5 rounded border border-gray-200 bg-white text-xs outline-none focus:border-[#0077CC] text-gray-700 font-medium" />
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Loại hàng</label>
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
-            <option value="">Chọn loại hàng</option>
-            {categories.map((c, i) => <option key={i} value={c.name || c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Thương hiệu</label>
-          <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
-            <option value="">Chọn thương hiệu</option>
-            <option value="Thịt heo">Thịt heo</option>
-            <option value="Thịt bò">Thịt bò</option>
-            <option value="Thịt gà">Thịt gà</option>
-            <option value="Thủy hải sản">Thủy hải sản</option>
-          </select>
-        </div>
-      </aside>
+        <span className="text-[11px] text-gray-500 font-medium truncate max-w-[170px] text-right">
+          {interestType} • {getFormattedDateRange()}
+        </span>
+      </div>
 
-      <main className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[600px] h-[calc(100vh-140px)] relative w-full">
-        <div className="px-5 py-2.5 border-b border-gray-200 bg-white font-extrabold text-[15px] text-gray-800 shrink-0">Báo cáo hàng hóa</div>
-        {viewType === 'Biểu đồ' ? (
-          <div className="flex-1 overflow-auto bg-gray-50/50 p-4 custom-scrollbar flex flex-col gap-4">
-            {interestType === 'Bán hàng' && (
-              <>
-                <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm doanh thu cao nhất" dataList={sortedByRevenue} valueKey="netRevenue" labelKey="name" /></div>
-                <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm bán chạy nhất" dataList={sortedBySoldQty} valueKey="soldQty" labelKey="name" isQty={true} /></div>
-              </>
-            )}
-            {interestType === 'Lợi nhuận' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm lợi nhuận gộp cao nhất" dataList={sortedByProfit} valueKey="grossProfit" labelKey="name" /></div>)}
-            {interestType === 'Xuất kho' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm xuất bán nhiều nhất" dataList={sortedBySoldQty} valueKey="soldQty" labelKey="name" isQty={true} /></div>)}
-            {interestType === 'Nhập kho' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm trả lại nhiều nhất" dataList={sortedByReturnQty} valueKey="returnQty" labelKey="name" isQty={true} /></div>)}
-            {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm giá trị tồn kho cao nhất" dataList={sortedByStockValue} valueKey="stockValue" labelKey="name" /></div>)}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="h-11 bg-slate-500 border-b border-slate-600 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10 text-white">
-              <div className="flex items-center gap-1">
-                <button onClick={fetchData} className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer"><RotateCcw size={15} className={loading ? "animate-spin" : ""} /></button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => setShowExportDropdown(!showExportDropdown)} className="p-1.5 rounded hover:bg-slate-600/60 text-slate-300 hover:text-white"><Download size={15} /></button>
-                <button onClick={handlePrint} className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer"><Printer size={15} /></button>
-                <button onClick={() => setZoom(prev => Math.min(150, prev + 10))} className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"><ZoomIn size={13} /></button>
-                <button onClick={() => setZoom(prev => Math.max(50, prev - 10))} className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"><ZoomOut size={13} /></button>
-              </div>
+      <div className="flex-1 flex flex-col lg:flex-row gap-2.5 items-start min-h-0 relative w-full">
+        
+        {/* Left Sidebar Filters */}
+        <aside className={`${showMobileFilters ? 'flex' : 'hidden'} lg:flex w-full lg:w-[260px] shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm p-3 flex-col gap-3.5 z-20 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar`}>
+          <button onClick={handleExportExcel} className="w-full py-1.5 px-3 bg-white border border-gray-300 hover:border-[#0077CC] text-gray-700 hover:text-[#0077CC] rounded text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all">
+            <FileSpreadsheet size={14} className="text-green-600" />
+            <span>Xuất tất cả</span>
+          </button>
+          <h2 className="text-[14px] font-extrabold text-gray-800 border-b border-gray-100 pb-2">Báo cáo hàng hóa</h2>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Kiểu hiển thị</label>
+            <div className="grid grid-cols-2 gap-1 p-0.5 bg-gray-100/80 rounded-lg">
+              <button 
+                onClick={() => setViewType('Biểu đồ')} 
+                className={`py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewType === 'Biểu đồ' ? 'bg-white text-[#0077CC] shadow-xs font-bold' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Biểu đồ
+              </button>
+              <button 
+                onClick={() => setViewType('Báo cáo')} 
+                className={`py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewType === 'Báo cáo' ? 'bg-white text-[#0077CC] shadow-xs font-bold' : 'text-gray-600 hover:text-gray-800'}`}
+              >
+                Báo cáo
+              </button>
             </div>
-            {loading && (
-              <div className="w-full h-1 bg-blue-100 overflow-hidden shrink-0 z-20">
-                <div className="w-full h-full bg-[#0077CC] animate-pulse" />
-              </div>
+            {viewType === 'Biểu đồ' && (
+              <select value={displayType} onChange={(e) => setDisplayType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700 mt-1">
+                <option value="Hiển thị dọc">Hiển thị dọc</option>
+                <option value="Hiển thị ngang">Hiển thị ngang</option>
+              </select>
             )}
-            <div className="flex-1 overflow-y-auto p-8 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full">
-              <div id="printed-report-page" className="bg-white text-slate-900 shadow-2xl p-10 min-h-[850px] border border-gray-300 rounded-sm origin-top w-full max-w-[850px]" style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}>
-                <div className="text-center mb-6"><h1 className="text-[20px] font-bold uppercase">{getReportHeaderTitle()}</h1><p className="text-[12px] mt-1">{getFormattedDateRange()}</p></div>
-                <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white shadow-sm w-full">
-                  <table className="w-full text-[12px] border-collapse">
-                    <thead>
-                      {interestType === 'Bán hàng' && (
-                        <tr className="bg-[#BFE3F9] font-bold">
-                          <th className="px-3 py-2 text-left w-[110px]">Mã hàng</th>
-                          <th className="px-3 py-2 text-left">Tên hàng</th>
-                          <th className="px-2 py-2 text-right w-[80px]">SL Bán</th>
-                          <th className="px-3 py-2 text-right w-[110px]">Doanh thu</th>
-                          <th className="px-2 py-2 text-right w-[70px]">SL Trả</th>
-                          <th className="px-3 py-2 text-right w-[100px]">Giá trị trả</th>
-                          <th className="px-3 py-2 text-right w-[120px]">Doanh thu thuần</th>
-                        </tr>
-                      )}
-                      {interestType === 'Lợi nhuận' && (
-                        <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
-                          <th className="px-3 py-2 text-left w-[100px]">Mã hàng</th>
-                          <th className="px-3 py-2 text-left">Tên hàng</th>
-                          <th className="px-2 py-2 text-right w-[80px]">SL Bán</th>
-                          <th className="px-3 py-2 text-right w-[105px]">Doanh thu</th>
-                          <th className="px-2 py-2 text-right w-[65px]">SL Trả</th>
-                          <th className="px-3 py-2 text-right w-[95px]">Giá trị trả</th>
-                          <th className="px-3 py-2 text-right w-[115px]">Doanh thu thuần</th>
-                          <th className="px-3 py-2 text-right w-[110px]">Tổng giá vốn</th>
-                          <th className="px-3 py-2 text-right w-[105px]">Lợi nhuận</th>
-                          <th className="px-2 py-2 text-right w-[75px]">Tỷ suất</th>
-                        </tr>
-                      )}
-                      {interestType === 'Xuất kho' && (
-                        <tr className="bg-[#BFE3F9] font-bold">
-                          <th className="px-3 py-2 text-left w-[110px]">Mã hàng</th>
-                          <th className="px-3 py-2 text-left">Tên hàng</th>
-                          <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
-                          <th className="px-3 py-2 text-right w-[110px]">SL Xuất</th>
-                          <th className="px-3 py-2 text-right w-[130px]">Doanh thu xuất</th>
-                        </tr>
-                      )}
-                      {interestType === 'Nhập kho' && (
-                        <tr className="bg-[#BFE3F9] font-bold">
-                          <th className="px-3 py-2 text-left w-[110px]">Mã hàng</th>
-                          <th className="px-3 py-2 text-left">Tên hàng</th>
-                          <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
-                          <th className="px-3 py-2 text-right w-[110px]">SL Khách trả</th>
-                          <th className="px-3 py-2 text-right w-[130px]">Giá trị trả</th>
-                        </tr>
-                      )}
-                      {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
-                        <tr className="bg-[#BFE3F9] font-bold">
-                          <th className="px-3 py-2 text-left w-[110px]">Mã hàng</th>
-                          <th className="px-3 py-2 text-left">Tên hàng</th>
-                          <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
-                          <th className="px-3 py-2 text-right w-[100px]">Tồn kho</th>
-                          <th className="px-3 py-2 text-right w-[110px]">Giá vốn</th>
-                          <th className="px-3 py-2 text-right w-[130px]">Giá trị tồn</th>
-                        </tr>
-                      )}
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 font-medium">
-                      
-                      {/* Top Summary Row */}
-                      {interestType === 'Bán hàng' && (
-                        <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
-                          <td className="px-3 py-2" colSpan={2}>SL mặt hàng: {processedData.length}</td>
-                          <td className="px-2 py-2 text-right">{fmtQty(totalSoldQty)}</td>
-                          <td className="px-3 py-2 text-right">{fmt(totalRevenue)}</td>
-                          <td className="px-2 py-2 text-right">{fmtQty(totalReturnQty)}</td>
-                          <td className="px-3 py-2 text-right">{fmt(totalReturnVal)}</td>
-                          <td className="px-3 py-2 text-right text-[#0077CC]">{fmt(totalNet)}</td>
-                        </tr>
-                      )}
-                      {interestType === 'Lợi nhuận' && (
-                        <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
-                          <td className="px-3 py-2" colSpan={2}>SL mặt hàng: {processedData.length}</td>
-                          <td className="px-2 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalSoldQty)}</td>
-                          <td className="px-3 py-2 text-right font-extrabold text-slate-900">{fmt(totalRevenue)}</td>
-                          <td className="px-2 py-2 text-right text-gray-800">{fmtQty(totalReturnQty)}</td>
-                          <td className="px-3 py-2 text-right text-gray-800">{fmt(totalReturnVal)}</td>
-                          <td className="px-3 py-2 text-right font-extrabold text-slate-900">{fmt(totalNet)}</td>
-                          <td className="px-3 py-2 text-right text-gray-800">{fmt(totalCogs)}</td>
-                          <td className="px-3 py-2 text-right font-extrabold text-slate-900">{fmt(totalGrossProfit)}</td>
-                          <td className="px-2 py-2 text-right font-extrabold text-[#0077CC]">{avgProfitMargin.toFixed(2)} %</td>
-                        </tr>
-                      )}
-                      {interestType === 'Xuất kho' && (
-                        <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
-                          <td className="px-3 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
-                          <td className="px-3 py-2 text-right">{fmtQty(totalSoldQty)}</td>
-                          <td className="px-3 py-2 text-right text-[#0077CC]">{fmt(totalRevenue)}</td>
-                        </tr>
-                      )}
-                      {interestType === 'Nhập kho' && (
-                        <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
-                          <td className="px-3 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
-                          <td className="px-3 py-2 text-right">{fmtQty(totalReturnQty)}</td>
-                          <td className="px-3 py-2 text-right text-rose-600">{fmt(totalReturnVal)}</td>
-                        </tr>
-                      )}
-                      {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
-                        <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
-                          <td className="px-3 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
-                          <td className="px-3 py-2 text-right">{fmtQty(totalStock)}</td>
-                          <td className="px-3 py-2 text-right">---</td>
-                          <td className="px-3 py-2 text-right text-[#0077CC]">{fmt(totalStockValue)}</td>
-                        </tr>
-                      )}
+          </div>
 
-                      {/* Product Rows */}
-                      {processedData.length > 0 ? (
-                        processedData.map((p, idx) => (
-                          <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                            <td className="px-3 py-1.5 font-bold text-[#0077CC]">
-                              <a href={`/products?search=${encodeURIComponent(p.sku)}`} target="_blank" rel="noreferrer" className="text-[#0077CC] hover:underline">
-                                {p.sku}
-                              </a>
-                            </td>
-                            <td className="px-3 py-1.5 text-gray-800">{p.name}</td>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Mối quan tâm</label>
+            <select value={interestType} onChange={(e) => setInterestType(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
+              <option value="Bán hàng">Bán hàng</option>
+              <option value="Lợi nhuận">Lợi nhuận</option>
+              <option value="Xuất kho">Xuất kho</option>
+              <option value="Nhập kho">Nhập kho</option>
+              <option value="Tồn kho">Tồn kho</option>
+            </select>
+          </div>
 
-                            {interestType === 'Bán hàng' && (
-                              <>
-                                <td className="px-2 py-1.5 text-right font-semibold">{fmtQty(p.soldQty)}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{fmt(p.revenue)}</td>
-                                <td className="px-2 py-1.5 text-right text-gray-500">{fmtQty(p.returnQty)}</td>
-                                <td className="px-3 py-1.5 text-right text-gray-500">{fmt(p.returnVal)}</td>
-                                <td className="px-3 py-1.5 text-right text-[#0077CC] font-bold">{fmt(p.netRevenue)}</td>
-                              </>
-                            )}
-                            {interestType === 'Lợi nhuận' && (
-                              <>
-                                <td className="px-2 py-1.5 text-right text-gray-700">{fmtQty(p.soldQty)}</td>
-                                <td className="px-3 py-1.5 text-right font-medium text-gray-800">{fmt(p.revenue)}</td>
-                                <td className="px-2 py-1.5 text-right text-gray-500">{fmtQty(p.returnQty)}</td>
-                                <td className="px-3 py-1.5 text-right text-gray-500">{fmt(p.returnVal)}</td>
-                                <td className="px-3 py-1.5 text-right font-medium text-gray-800">{fmt(p.netRevenue)}</td>
-                                <td className="px-3 py-1.5 text-right text-gray-700">{fmt(p.cogs)}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold text-gray-800">{fmt(p.grossProfit)}</td>
-                                <td className="px-2 py-1.5 text-right font-semibold text-[#0077CC]">{p.profitMargin.toFixed(2)} %</td>
-                              </>
-                            )}
-                            {interestType === 'Xuất kho' && (
-                              <>
-                                <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{fmtQty(p.soldQty)}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold text-[#0077CC]">{fmt(p.revenue)}</td>
-                              </>
-                            )}
-                            {interestType === 'Nhập kho' && (
-                              <>
-                                <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{fmtQty(p.returnQty)}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold text-rose-600">{fmt(p.returnVal)}</td>
-                              </>
-                            )}
-                            {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
-                              <>
-                                <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
-                                <td className="px-3 py-1.5 text-right font-semibold">{fmtQty(p.stock)}</td>
-                                <td className="px-3 py-1.5 text-right text-gray-600">{fmt(p.costPrice)}</td>
-                                <td className="px-3 py-1.5 text-right font-bold text-[#0077CC]">{fmt(p.stockValue)}</td>
-                              </>
-                            )}
+          <ReportTimeFilter 
+            timeRangeType={timeRangeType} 
+            setTimeRangeType={setTimeRangeType} 
+            selectedSingleDate={selectedSingleDate} 
+            setSelectedSingleDate={setSelectedSingleDate} 
+            timeFrom={timeFrom} 
+            setTimeFrom={setTimeFrom} 
+            timeTo={timeTo} 
+            setTimeTo={setTimeTo} 
+            customFromDate={customFromDate} 
+            setCustomFromDate={setCustomFromDate} 
+            customToDate={customToDate} 
+            setCustomToDate={setCustomToDate} 
+          />
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Hàng hóa</label>
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="Theo mã, tên hàng" 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className="w-full pl-8 pr-2.5 py-1.5 rounded border border-gray-200 bg-white text-xs outline-none focus:border-[#0077CC] text-gray-700 font-medium" 
+              />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Loại hàng</label>
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
+              <option value="">Tất cả loại hàng</option>
+              {availableCategories.map((c, i) => (
+                <option key={i} value={c.name || c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Thương hiệu</label>
+            <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full border border-gray-200 rounded px-2.5 py-1.5 text-xs bg-white outline-none cursor-pointer focus:border-[#0077CC] font-semibold text-gray-700">
+              <option value="">Tất cả thương hiệu</option>
+              {availableBrands.map((b, i) => (
+                <option key={i} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[600px] h-[calc(100vh-140px)] relative w-full">
+          <div className="px-5 py-2.5 border-b border-gray-200 bg-white font-extrabold text-[15px] text-gray-800 shrink-0">Báo cáo hàng hóa</div>
+          {viewType === 'Biểu đồ' ? (
+            <div className="flex-1 overflow-auto bg-gray-50/50 p-4 custom-scrollbar flex flex-col gap-4">
+              {interestType === 'Bán hàng' && (
+                <>
+                  <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm doanh thu cao nhất" dataList={sortedByRevenue} valueKey="netRevenue" labelKey="name" /></div>
+                  <div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm bán chạy nhất" dataList={sortedBySoldQty} valueKey="soldQty" labelKey="name" isQty={true} /></div>
+                </>
+              )}
+              {interestType === 'Lợi nhuận' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm lợi nhuận gộp cao nhất" dataList={sortedByProfit} valueKey="grossProfit" labelKey="name" /></div>)}
+              {interestType === 'Xuất kho' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm xuất bán nhiều nhất" dataList={sortedBySoldQty} valueKey="soldQty" labelKey="name" isQty={true} /></div>)}
+              {interestType === 'Nhập kho' && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm trả lại nhiều nhất" dataList={sortedByReturnQty} valueKey="returnQty" labelKey="name" isQty={true} /></div>)}
+              {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (<div className="bg-white border border-gray-200 rounded-lg shadow-xs overflow-hidden"><GenericHorizontalChart title="Top 10 sản phẩm giá trị tồn kho cao nhất" dataList={sortedByStockValue} valueKey="stockValue" labelKey="name" /></div>)}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="h-11 bg-slate-500 border-b border-slate-600 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10 text-white">
+                <div className="flex items-center gap-1">
+                  <button onClick={fetchData} className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer"><RotateCcw size={15} className={loading ? "animate-spin" : ""} /></button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setShowExportDropdown(!showExportDropdown)} className="p-1.5 rounded hover:bg-slate-600/60 text-slate-300 hover:text-white"><Download size={15} /></button>
+                  <button onClick={handlePrint} className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer"><Printer size={15} /></button>
+                  <button onClick={() => setZoom(prev => Math.min(150, prev + 10))} className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"><ZoomIn size={13} /></button>
+                  <button onClick={() => setZoom(prev => Math.max(50, prev - 10))} className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"><ZoomOut size={13} /></button>
+                </div>
+              </div>
+              {loading && (
+                <div className="w-full h-1 bg-blue-100 overflow-hidden shrink-0 z-20">
+                  <div className="w-full h-full bg-[#0077CC] animate-pulse" />
+                </div>
+              )}
+              
+              {/* Document Canvas Container */}
+              <div className="flex-1 overflow-y-auto p-2 sm:p-6 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full">
+                <div 
+                  id="printed-report-page" 
+                  className="bg-white text-slate-900 shadow-2xl p-3 sm:px-5 sm:py-7 min-h-[850px] border border-gray-300 rounded-sm origin-top w-full max-w-full sm:max-w-[980px] box-border transition-transform duration-200 select-text mb-12" 
+                  style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', fontFamily: 'Segoe UI, Arial, sans-serif' }}
+                >
+                  <div className="text-center mb-6">
+                    <h1 className="text-base sm:text-[20px] font-bold uppercase tracking-tight">{getReportHeaderTitle()}</h1>
+                    <div className="mt-1 flex flex-col gap-0.5 text-[11px] sm:text-[12px] text-gray-600 font-medium">
+                      <p>{getFormattedDateRange()}</p>
+                      <p>Chi nhánh: Chi nhánh trung tâm</p>
+                    </div>
+                  </div>
+
+                  {/* ─── DESKTOP TABLE VIEW ─── */}
+                  <div className="hidden sm:block border border-gray-300 rounded-sm overflow-x-auto mb-6 bg-white shadow-sm w-full custom-scrollbar">
+                    <table className="w-full text-[12px] border-collapse min-w-[760px]">
+                      <thead>
+                        {interestType === 'Bán hàng' && (
+                          <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
+                            <th className="px-2.5 py-2 text-left w-[90px]">Mã hàng</th>
+                            <th className="px-2.5 py-2 text-left min-w-[160px]">Tên hàng</th>
+                            <th className="px-2 py-2 text-right w-[75px]">SL Bán</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">Doanh thu</th>
+                            <th className="px-2 py-2 text-right w-[70px]">SL Trả</th>
+                            <th className="px-2.5 py-2 text-right w-[100px]">Giá trị trả</th>
+                            <th className="px-2.5 py-2 text-right w-[120px]">Doanh thu thuần</th>
                           </tr>
+                        )}
+                        {interestType === 'Lợi nhuận' && (
+                          <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
+                            <th className="px-2 py-2 text-left w-[85px]">Mã hàng</th>
+                            <th className="px-2 py-2 text-left min-w-[130px] max-w-[170px]">Tên hàng</th>
+                            <th className="px-1.5 py-2 text-right w-[65px]">SL Bán</th>
+                            <th className="px-2 py-2 text-right w-[95px]">Doanh thu</th>
+                            <th className="px-1.5 py-2 text-right w-[55px]">SL Trả</th>
+                            <th className="px-2 py-2 text-right w-[85px]">Giá trị trả</th>
+                            <th className="px-2 py-2 text-right w-[95px]">Doanh thu thuần</th>
+                            <th className="px-2 py-2 text-right w-[95px]">Tổng giá vốn</th>
+                            <th className="px-2 py-2 text-right w-[95px]">Lợi nhuận</th>
+                            <th className="px-1.5 py-2 text-right w-[70px]">Tỷ suất</th>
+                          </tr>
+                        )}
+                        {interestType === 'Xuất kho' && (
+                          <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
+                            <th className="px-2.5 py-2 text-left w-[110px]">Mã hàng</th>
+                            <th className="px-2.5 py-2 text-left min-w-[180px]">Tên hàng</th>
+                            <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">SL Xuất</th>
+                            <th className="px-2.5 py-2 text-right w-[130px]">Doanh thu xuất</th>
+                          </tr>
+                        )}
+                        {interestType === 'Nhập kho' && (
+                          <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
+                            <th className="px-2.5 py-2 text-left w-[110px]">Mã hàng</th>
+                            <th className="px-2.5 py-2 text-left min-w-[180px]">Tên hàng</th>
+                            <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">SL Khách trả</th>
+                            <th className="px-2.5 py-2 text-right w-[130px]">Giá trị trả</th>
+                          </tr>
+                        )}
+                        {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
+                          <tr className="bg-[#BFE3F9] font-bold text-slate-900 border-b border-gray-300">
+                            <th className="px-2.5 py-2 text-left w-[110px]">Mã hàng</th>
+                            <th className="px-2.5 py-2 text-left min-w-[180px]">Tên hàng</th>
+                            <th className="px-2 py-2 text-center w-[70px]">ĐVT</th>
+                            <th className="px-2.5 py-2 text-right w-[100px]">Tồn kho</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">Giá vốn</th>
+                            <th className="px-2.5 py-2 text-right w-[130px]">Giá trị tồn</th>
+                          </tr>
+                        )}
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 font-medium">
+                        
+                        {/* Top Summary Row (#EDE7D6 Gold Bar) */}
+                        {interestType === 'Bán hàng' && (
+                          <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
+                            <td className="px-2.5 py-2" colSpan={2}>SL mặt hàng: {processedData.length}</td>
+                            <td className="px-2 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalSoldQty)}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">{fmt(totalRevenue)}</td>
+                            <td className="px-2 py-2 text-right text-gray-800">{fmtQty(totalReturnQty)}</td>
+                            <td className="px-2.5 py-2 text-right text-gray-800">{fmt(totalReturnVal)}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-[#0077CC]">{fmt(totalNet)}</td>
+                          </tr>
+                        )}
+                        {interestType === 'Lợi nhuận' && (
+                          <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
+                            <td className="px-2 py-2" colSpan={2}>SL mặt hàng: {processedData.length}</td>
+                            <td className="px-1.5 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalSoldQty)}</td>
+                            <td className="px-2 py-2 text-right font-extrabold text-slate-900">{fmt(totalRevenue)}</td>
+                            <td className="px-1.5 py-2 text-right text-gray-800">{fmtQty(totalReturnQty)}</td>
+                            <td className="px-2 py-2 text-right text-gray-800">{fmt(totalReturnVal)}</td>
+                            <td className="px-2 py-2 text-right font-extrabold text-slate-900">{fmt(totalNet)}</td>
+                            <td className="px-2 py-2 text-right text-gray-800">{fmt(totalCogs)}</td>
+                            <td className="px-2 py-2 text-right font-extrabold text-slate-900">{fmt(totalGrossProfit)}</td>
+                            <td className="px-1.5 py-2 text-right font-extrabold text-[#0077CC]">{avgProfitMargin.toFixed(2)} %</td>
+                          </tr>
+                        )}
+                        {interestType === 'Xuất kho' && (
+                          <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
+                            <td className="px-2.5 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalSoldQty)}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-[#0077CC]">{fmt(totalRevenue)}</td>
+                          </tr>
+                        )}
+                        {interestType === 'Nhập kho' && (
+                          <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
+                            <td className="px-2.5 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalReturnQty)}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-rose-600">{fmt(totalReturnVal)}</td>
+                          </tr>
+                        )}
+                        {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
+                          <tr className="bg-[#EDE7D6] font-extrabold border-b border-gray-300">
+                            <td className="px-2.5 py-2" colSpan={3}>SL mặt hàng: {processedData.length}</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">{fmtQty(totalStock)}</td>
+                            <td className="px-2.5 py-2 text-right">---</td>
+                            <td className="px-2.5 py-2 text-right font-extrabold text-[#0077CC]">{fmt(totalStockValue)}</td>
+                          </tr>
+                        )}
+
+                        {/* Product Rows */}
+                        {processedData.length > 0 ? (
+                          processedData.map((p, idx) => (
+                            <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
+                              <td className="px-2 py-1.5 font-bold text-[#0077CC]">
+                                <a href={`/products?search=${encodeURIComponent(p.sku)}`} target="_blank" rel="noreferrer" className="text-[#0077CC] hover:underline">
+                                  {p.sku}
+                                </a>
+                              </td>
+                              <td className="px-2 py-1.5 text-gray-800 font-medium max-w-[200px] break-words">{p.name}</td>
+
+                              {interestType === 'Bán hàng' && (
+                                <>
+                                  <td className="px-2 py-1.5 text-right font-semibold">{fmtQty(p.soldQty)}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold">{fmt(p.revenue)}</td>
+                                  <td className="px-2 py-1.5 text-right text-gray-500">{fmtQty(p.returnQty)}</td>
+                                  <td className="px-2.5 py-1.5 text-right text-gray-500">{fmt(p.returnVal)}</td>
+                                  <td className="px-2.5 py-1.5 text-right text-[#0077CC] font-bold">{fmt(p.netRevenue)}</td>
+                                </>
+                              )}
+                              {interestType === 'Lợi nhuận' && (
+                                <>
+                                  <td className="px-1.5 py-1.5 text-right text-gray-700">{fmtQty(p.soldQty)}</td>
+                                  <td className="px-2 py-1.5 text-right font-medium text-gray-800">{fmt(p.revenue)}</td>
+                                  <td className="px-1.5 py-1.5 text-right text-gray-500">{fmtQty(p.returnQty)}</td>
+                                  <td className="px-2 py-1.5 text-right text-gray-500">{fmt(p.returnVal)}</td>
+                                  <td className="px-2 py-1.5 text-right font-medium text-gray-800">{fmt(p.netRevenue)}</td>
+                                  <td className="px-2 py-1.5 text-right text-gray-700">{fmt(p.cogs)}</td>
+                                  <td className="px-2 py-1.5 text-right font-semibold text-gray-800">{fmt(p.grossProfit)}</td>
+                                  <td className="px-1.5 py-1.5 text-right font-semibold text-[#0077CC]">{p.profitMargin.toFixed(2)} %</td>
+                                </>
+                              )}
+                              {interestType === 'Xuất kho' && (
+                                <>
+                                  <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold">{fmtQty(p.soldQty)}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold text-[#0077CC]">{fmt(p.revenue)}</td>
+                                </>
+                              )}
+                              {interestType === 'Nhập kho' && (
+                                <>
+                                  <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold">{fmtQty(p.returnQty)}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold text-rose-600">{fmt(p.returnVal)}</td>
+                                </>
+                              )}
+                              {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
+                                <>
+                                  <td className="px-2 py-1.5 text-center text-gray-600">{p.unit}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-semibold">{fmtQty(p.stock)}</td>
+                                  <td className="px-2.5 py-1.5 text-right text-gray-600">{fmt(p.costPrice)}</td>
+                                  <td className="px-2.5 py-1.5 text-right font-bold text-[#0077CC]">{fmt(p.stockValue)}</td>
+                                </>
+                              )}
+                            </tr>
+                          ))
+                        ) : (
+                          loading ? (
+                            <LoadingStateRow colSpan={interestType === 'Lợi nhuận' ? 10 : 7} />
+                          ) : (
+                            <tr>
+                              <td colSpan={interestType === 'Lợi nhuận' ? 10 : 7} className="py-12 text-center text-gray-400 font-medium">
+                                Không tìm thấy hàng hóa nào phù hợp
+                              </td>
+                            </tr>
+                          )
+                        )}
+
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* ─── MOBILE SMART CARDS VIEW (Matching EndOfDay & Sales Report) ─── */}
+                  <div className="block sm:hidden flex flex-col gap-2.5 mb-6">
+                    {/* Gold Summary Card */}
+                    {processedData.length > 0 && (
+                      <div className="bg-[#F7F2E8] border border-[#e5dcbc] rounded-lg p-3 shadow-xs">
+                        <div 
+                          onClick={() => setSingleDayExpanded(!singleDayExpanded)}
+                          className="flex items-center justify-between cursor-pointer font-bold text-slate-900 pb-2 border-b border-[#e5dcbc]"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="font-mono text-[#0077CC] font-bold">{singleDayExpanded ? '[−]' : '[+]'}</span>
+                            <span className="font-extrabold">Mặt hàng: {processedData.length} SP</span>
+                          </div>
+                          <span className="text-xs text-slate-800 font-extrabold">
+                            SL Bán: {fmtQty(totalSoldQty)}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
+                          <div>
+                            <span className="text-gray-500 block text-[10px]">Doanh thu</span>
+                            <span className="font-extrabold text-slate-900">{fmt(totalRevenue)}</span>
+                          </div>
+                          <div className="text-right">
+                            {interestType === 'Lợi nhuận' ? (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Lợi nhuận gộp</span>
+                                <span className="font-extrabold text-emerald-700">{fmt(totalGrossProfit)} ({avgProfitMargin.toFixed(1)}%)</span>
+                              </>
+                            ) : (interestType === 'Tồn kho' || interestType === 'Hàng hóa') ? (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Tổng tồn kho</span>
+                                <span className="font-extrabold text-[#0077CC]">{fmtQty(totalStock)}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Doanh thu thuần</span>
+                                <span className="font-extrabold text-[#0077CC]">{fmt(totalNet)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Product Cards */}
+                    {singleDayExpanded && (
+                      processedData.length > 0 ? (
+                        processedData.map((p, idx) => (
+                          <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 shadow-xs text-xs flex flex-col gap-2">
+                            {/* Card Top: SKU, Name, Unit */}
+                            <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-1.5">
+                              <div className="flex flex-col min-w-0">
+                                <a 
+                                  href={`/products?search=${encodeURIComponent(p.sku)}`}
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="text-[#0077CC] font-bold hover:underline text-xs"
+                                >
+                                  {p.sku}
+                                </a>
+                                <span className="font-bold text-slate-900 text-[12.5px] truncate max-w-[220px]" title={p.name}>
+                                  {p.name}
+                                </span>
+                              </div>
+                              <span className="text-gray-500 text-[11px] font-medium shrink-0 pt-0.5 bg-gray-100 px-1.5 py-0.5 rounded">
+                                {p.unit || 'Cái'}
+                              </span>
+                            </div>
+
+                            {/* Card Body based on interestType */}
+                            {interestType === 'Bán hàng' && (
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">SL Bán</span>
+                                  <span className="font-semibold text-gray-800">{fmtQty(p.soldQty)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Doanh thu</span>
+                                  <span className="font-semibold text-slate-900">{fmt(p.revenue)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Doanh thu thuần</span>
+                                  <span className="font-bold text-[#0077CC]">{fmt(p.netRevenue)}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {interestType === 'Lợi nhuận' && (
+                              <div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-gray-400 text-[10px] block">SL Bán</span>
+                                    <span className="font-semibold text-gray-800">{fmtQty(p.soldQty)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-400 text-[10px] block">Doanh thu</span>
+                                    <span className="font-semibold text-slate-900">{fmt(p.revenue)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-gray-400 text-[10px] block">Lợi nhuận</span>
+                                    <span className="font-bold text-emerald-700">{fmt(p.grossProfit)}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-1.5 pt-1.5 border-t border-dashed border-gray-150 flex justify-between items-center text-[11px]">
+                                  <span className="text-gray-500">Giá vốn: <b className="text-gray-700">{fmt(p.cogs)}</b></span>
+                                  <span className="text-[#0077CC] font-bold">Tỷ suất: {p.profitMargin.toFixed(2)}%</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {interestType === 'Xuất kho' && (
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">SL Xuất bán</span>
+                                  <span className="font-semibold text-gray-800">{fmtQty(p.soldQty)} {p.unit}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Doanh thu xuất</span>
+                                  <span className="font-bold text-[#0077CC]">{fmt(p.revenue)}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {interestType === 'Nhập kho' && (
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">SL Khách trả</span>
+                                  <span className="font-semibold text-gray-800">{fmtQty(p.returnQty)} {p.unit}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Giá trị hàng trả</span>
+                                  <span className="font-bold text-rose-600">{fmt(p.returnVal)}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {(interestType === 'Tồn kho' || interestType === 'Hàng hóa') && (
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Tồn kho</span>
+                                  <span className="font-semibold text-gray-800">{fmtQty(p.stock)} {p.unit}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Giá vốn</span>
+                                  <span className="font-semibold text-slate-900">{fmt(p.costPrice)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Giá trị tồn</span>
+                                  <span className="font-bold text-[#0077CC]">{fmt(p.stockValue)}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         ))
                       ) : (
-                        loading ? (
-                          <LoadingStateRow colSpan={7} />
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="py-12 text-center text-gray-400 font-medium">
-                              Không tìm thấy hàng hóa nào phù hợp
-                            </td>
-                          </tr>
-                        )
-                      )}
+                        <div className="py-12 text-center text-gray-400 font-medium bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                          {loading ? "Đang tải dữ liệu..." : "Không tìm thấy hàng hóa nào phù hợp"}
+                        </div>
+                      )
+                    )}
+                  </div>
 
-                    </tbody>
-                  </table>
                 </div>
-
               </div>
 
             </div>
-          </div>
-        )}
+          )}
 
-      </main>
+        </main>
+
+      </div>
 
     </div>
   );
 }
-
