@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { 
   FileSpreadsheet, RotateCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Maximize2, ExternalLink,
-  ChevronDown, Search, Download
+  ChevronDown, Search, Download, Filter
 } from 'lucide-react';
 import ReportTimeFilter, { formatDateVN, formatDateYMD } from '../../components/ui/ReportTimeFilter';
 import { formatLocalYMD, getRangeByCreatedLabel, getWorkingHoursYMD, formatWorkingHoursTime, inDateRange, buildCustomRange, parseFlexibleDate } from '../../utils/dateFilterUtils';
@@ -91,6 +91,8 @@ export default function CustomersReportPage() {
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [singleDayExpanded, setSingleDayExpanded] = useState(true);
 
   // Filters
   const [viewType, setViewType] = useState('Báo cáo'); // Biểu đồ / Báo cáo
@@ -467,20 +469,28 @@ export default function CustomersReportPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative">
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative animate-page-in text-[13px] text-gray-800">
       
-      {/* Top Header Bar */}
-      <div className="flex flex-col gap-2 mb-2 bg-white p-2 sm:p-2.5 rounded-xl shadow-sm border border-gray-100 flex-none z-30 relative">
-        <h1 className="text-sm sm:text-base font-extrabold text-gray-800 tracking-tight flex items-center gap-2 m-0">
-          Báo cáo khách hàng
-        </h1>
+      {/* Mobile Filter Toggle Bar */}
+      <div className="lg:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm text-xs font-bold text-slate-800 shrink-0 mb-2">
+        <button 
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="flex items-center gap-2 text-[#0077CC] font-extrabold cursor-pointer bg-transparent border-none p-0 select-none"
+        >
+          <Filter size={15} />
+          <span>{showMobileFilters ? 'Ẩn bộ lọc báo cáo' : 'Hiện bộ lọc báo cáo'}</span>
+          <ChevronDown size={14} className={`transition-transform duration-200 ${showMobileFilters ? 'rotate-180' : ''}`} />
+        </button>
+        <span className="text-[11px] text-gray-500 font-medium truncate max-w-[170px] text-right">
+          {interestType} • {getFormattedDateRange()}
+        </span>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:flex-row gap-2.5 items-start min-h-0 relative">
         
         {/* Left Sidebar Filters */}
-        <aside className="w-full lg:w-[260px] bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex flex-col gap-3.5 flex-none overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar">
+        <aside className={`${showMobileFilters ? 'flex' : 'hidden'} lg:flex w-full lg:w-[260px] bg-white border border-gray-200 rounded-xl p-3 shadow-sm flex-col gap-3.5 flex-none overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar z-20`}>
           
           {/* Kiểu hiển thị */}
           <div className="flex flex-col gap-1.5">
@@ -726,8 +736,8 @@ export default function CustomersReportPage() {
                     </div>
                   </div>
 
-                  {/* Table */}
-                  <div className="border border-gray-300 rounded-sm overflow-x-auto mb-6 bg-white shadow-sm w-full custom-scrollbar">
+                  {/* ─── DESKTOP TABLE VIEW ─── */}
+                  <div className="hidden sm:block border border-gray-300 rounded-sm overflow-x-auto mb-6 bg-white shadow-sm w-full custom-scrollbar">
                     <table className="w-full text-[12px] border-collapse min-w-[680px]">
                       <thead>
                         {interestType === 'Bán hàng' && (
@@ -926,6 +936,149 @@ export default function CustomersReportPage() {
 
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* ─── MOBILE SMART CARDS VIEW (Matching EndOfDay & Sales Report) ─── */}
+                  <div className="block sm:hidden flex flex-col gap-2.5 mb-6">
+                    {/* Gold Summary Card */}
+                    {processedData.length > 0 && (
+                      <div className="bg-[#F7F2E8] border border-[#e5dcbc] rounded-lg p-3 shadow-xs">
+                        <div 
+                          onClick={() => setSingleDayExpanded(!singleDayExpanded)}
+                          className="flex items-center justify-between cursor-pointer font-bold text-slate-900 pb-2 border-b border-[#e5dcbc]"
+                        >
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="font-mono text-[#0077CC] font-bold">{singleDayExpanded ? '[−]' : '[+]'}</span>
+                            <span className="font-extrabold">Khách hàng: {processedData.length} KH</span>
+                          </div>
+                          <span className="text-xs text-slate-800 font-extrabold">
+                            {interestType === 'Bán hàng' && `Đơn: ${totalOrderCount}`}
+                            {interestType === 'Lợi nhuận' && `LN: ${fmt(totalGrossProfit)}`}
+                            {interestType === 'Công nợ' && `Nợ: ${fmt(totalDebt)}`}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
+                          <div>
+                            <span className="text-gray-500 block text-[10px]">Doanh thu</span>
+                            <span className="font-extrabold text-slate-900">{fmt(totalRevenue)}</span>
+                          </div>
+                          <div className="text-right">
+                            {interestType === 'Bán hàng' && (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Doanh thu thuần</span>
+                                <span className="font-extrabold text-[#0077CC]">{fmt(totalNet)}</span>
+                              </>
+                            )}
+                            {interestType === 'Lợi nhuận' && (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Lợi nhuận gộp</span>
+                                <span className="font-extrabold text-emerald-700">{fmt(totalGrossProfit)} ({avgProfitMargin.toFixed(1)}%)</span>
+                              </>
+                            )}
+                            {interestType === 'Công nợ' && (
+                              <>
+                                <span className="text-gray-500 block text-[10px]">Tổng nợ hiện tại</span>
+                                <span className="font-extrabold text-rose-600">{fmt(totalDebt)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Customer Cards */}
+                    {singleDayExpanded && (
+                      processedData.length > 0 ? (
+                        processedData.map((item, idx) => (
+                          <div key={idx} className="bg-white border border-gray-200 rounded-lg p-3 shadow-xs text-xs flex flex-col gap-2">
+                            {/* Card Top: Code, Name, Phone */}
+                            <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-1.5">
+                              <div className="flex flex-col min-w-0">
+                                <a 
+                                  href={`/customers?search=${encodeURIComponent(item.code || item.name)}`}
+                                  target="_blank" 
+                                  rel="noreferrer"
+                                  className="text-[#0077CC] font-bold hover:underline text-xs"
+                                >
+                                  {item.code || `KH${String(item.id).padStart(5, '0')}`}
+                                </a>
+                                <span className="font-bold text-slate-900 text-[12.5px] truncate max-w-[200px]" title={item.name}>
+                                  {item.name}
+                                </span>
+                              </div>
+                              {item.phone && (
+                                <span className="text-gray-500 text-[11px] font-medium shrink-0 pt-0.5">
+                                  {item.phone}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Card Middle: 3 Stats Columns */}
+                            {interestType === 'Bán hàng' && (
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Số đơn</span>
+                                  <span className="font-semibold text-gray-800">{item.orderCount}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Doanh thu</span>
+                                  <span className="font-semibold text-slate-900">{fmt(item.revenue)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Doanh thu thuần</span>
+                                  <span className="font-bold text-[#0077CC]">{fmt(item.netRevenue)}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {interestType === 'Lợi nhuận' && (
+                              <div>
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-gray-400 text-[10px] block">Số đơn</span>
+                                    <span className="font-semibold text-gray-800">{item.orderCount}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-400 text-[10px] block">Doanh thu</span>
+                                    <span className="font-semibold text-slate-900">{fmt(item.revenue)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-gray-400 text-[10px] block">Lợi nhuận</span>
+                                    <span className="font-bold text-emerald-700">{fmt(item.grossProfit)}</span>
+                                  </div>
+                                </div>
+                                <div className="mt-1.5 pt-1.5 border-t border-dashed border-gray-150 flex justify-between items-center text-[11px]">
+                                  <span className="text-gray-500">Giá vốn: <b className="text-gray-700">{fmt(item.cogs)}</b></span>
+                                  <span className="text-[#0077CC] font-bold">Tỷ suất: {item.profitMargin.toFixed(2)}%</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {interestType === 'Công nợ' && (
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Tổng mua</span>
+                                  <span className="font-semibold text-slate-900">{fmt(item.revenue)}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 text-[10px] block">Đã thanh toán</span>
+                                  <span className="font-semibold text-emerald-700">{fmt(item.paid)}</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-gray-400 text-[10px] block">Nợ hiện tại</span>
+                                  <span className="font-bold text-rose-600">{fmt(item.debt)}</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-12 text-center text-gray-400 font-medium bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                          {loading ? "Đang tải dữ liệu..." : "Không tìm thấy khách hàng nào phù hợp"}
+                        </div>
+                      )
+                    )}
                   </div>
 
                 </div>
