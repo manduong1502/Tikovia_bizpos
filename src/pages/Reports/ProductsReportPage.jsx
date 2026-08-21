@@ -265,16 +265,18 @@ export default function ProductsReportPage() {
 
   const processedData = useMemo(() => {
     const targetYMD = formatDateYMD(selectedSingleDate);
-    const dateRange = timeRangeType === 'date'
-      ? buildCustomRange(targetYMD, targetYMD)
-      : (customFromDate && customToDate ? buildCustomRange(customFromDate, customToDate) : null);
-
     const prodMap = {};
 
     (rawOrders || []).forEach(o => {
       if (o.status === 'CANCELLED' || o.isCancelled) return;
-      const oDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
-      if (dateRange && !inDateRange(oDateVal, dateRange)) return;
+      const oTimeVal = o.time || o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+      const ymd = getWorkingHoursYMD(oTimeVal);
+      if (timeRangeType === 'date') {
+        if (ymd !== targetYMD) return;
+      } else {
+        if (customFromDate && (!ymd || ymd < customFromDate)) return;
+        if (customToDate && (!ymd || ymd > customToDate)) return;
+      }
 
       (o.items || o._items || o.order_items || o.details || []).forEach(it => {
         const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
@@ -340,8 +342,14 @@ export default function ProductsReportPage() {
 
     (rawReturns || []).forEach(r => {
       if (r.status === 'CANCELLED' || r.isCancelled) return;
-      const rDateVal = r.created_at || r.createdAt || r.date || r.time;
-      if (dateRange && !inDateRange(rDateVal, dateRange)) return;
+      const rTimeVal = r.time || r.created_at || r.createdAt || r.date;
+      const ymd = getWorkingHoursYMD(rTimeVal);
+      if (timeRangeType === 'date') {
+        if (ymd !== targetYMD) return;
+      } else {
+        if (customFromDate && (!ymd || ymd < customFromDate)) return;
+        if (customToDate && (!ymd || ymd > customToDate)) return;
+      }
 
       (r.items || r._items || r.return_items || r.details || []).forEach(it => {
         const rawSku = it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';

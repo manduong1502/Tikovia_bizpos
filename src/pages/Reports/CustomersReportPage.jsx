@@ -249,23 +249,25 @@ export default function CustomersReportPage() {
 
   const processedData = useMemo(() => {
     const targetYMD = formatDateYMD(selectedSingleDate);
-    const dateRange = timeRangeType === 'date'
-      ? buildCustomRange(targetYMD, targetYMD)
-      : (customFromDate && customToDate ? buildCustomRange(customFromDate, customToDate) : null);
-
     const custMap = {};
 
     // 1. Process Orders
     (rawOrders || []).forEach(o => {
       if (o.status === 'CANCELLED' || o.status === 'cancelled' || o.status === 'Đã hủy' || o.isCancelled) return;
-      const oDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
-      if (dateRange && !inDateRange(oDateVal, dateRange)) return;
+      const oTimeVal = o.time || o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+      const ymd = getWorkingHoursYMD(oTimeVal);
+      if (timeRangeType === 'date') {
+        if (ymd !== targetYMD) return;
+      } else {
+        if (customFromDate && (!ymd || ymd < customFromDate)) return;
+        if (customToDate && (!ymd || ymd > customToDate)) return;
+      }
 
-      const oTime = formatWorkingHoursTime(oDateVal);
+      const oTime = formatWorkingHoursTime(oTimeVal);
       if (timeFrom && oTime < timeFrom) return;
       if (timeTo && oTime > timeTo) return;
 
-      const custKey = o.customer_id || o.customerId || o.customerName || 'KH_LE';
+      const custKey = o.customer_id || o.customerId || o.customer?.id || o.customerName || 'KH_LE';
       const custName = o.customerName || o.customer_name || o.customer?.name || 'Khách lẻ';
       const custCode = o.customer?.code || o.customer_code || o.customerCode || (o.customer_id ? `KH${String(o.customer_id).padStart(5, '0')}` : '---');
       const custPhone = o.customerPhone || o.customer_phone || o.customer?.phone || '';
@@ -289,39 +291,49 @@ export default function CustomersReportPage() {
         };
       }
       custMap[custKey].orderCount += 1;
-      custMap[custKey].revenue += Number(o.total || 0);
-      custMap[custKey].paid += Number(o.paid || o.paid_amount || o.total || 0);
+      const orderRevenue = Number(o.total || o.revenue || 0);
+      custMap[custKey].revenue += orderRevenue;
+      custMap[custKey].paid += Number(o.paid || o.paid_amount || orderRevenue);
 
       // COGS
       const items = o.items || o._items || o.order_items || o.details || [];
-      const orderCogs = items.reduce((sum, it) => {
-        const sku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
-        const name = it.product_name || it.name || '';
-        const price = Number(it.price || it.unit_price || 0);
+      let orderCogs = 0;
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product_name || it.name || '';
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.unit_price || 0);
 
-        let itemCost = Number(it.cost_price || it.costPrice || productCostMap[it.product_id || it.productId || it.id] || productCostMap[sku] || productCostMap[name] || 0);
-        if (itemCost === 0 && purchaseCostMap[sku]) {
-          itemCost = purchaseCostMap[sku];
-        } else if (itemCost === 0 && price > 0) {
-          itemCost = Math.round(price * 0.9491);
-        }
+          let itemCost = purchaseCostMap[rawSku] || purchaseCostMap[String(rawSku).trim().toLowerCase()] || purchaseCostMap[rawName] || productCostMap[it.productId || it.product_id] || productCostMap[rawSku] || productCostMap[rawName] || Number(it.cost_price || it.costPrice || 0);
+          if (!itemCost || itemCost <= 0) itemCost = Math.round(price * 0.9491);
 
-        return sum + (itemCost * Number(it.quantity || it.qty || 0));
-      }, 0);
+          orderCogs += (qty * itemCost);
+        });
+      }
+      if (orderCogs === 0 && orderRevenue > 0) {
+        orderCogs = Math.round(orderRevenue * 0.9491);
+      }
       custMap[custKey].cogs += orderCogs;
     });
 
     // 2. Process Returns
     (rawReturns || []).forEach(r => {
       if (r.status === 'CANCELLED' || r.status === 'cancelled' || r.status === 'Đã hủy' || r.isCancelled) return;
-      const rDateVal = r.created_at || r.createdAt || r.date || r.time;
-      if (dateRange && !inDateRange(rDateVal, dateRange)) return;
+      const rTimeVal = r.time || r.created_at || r.createdAt || r.date;
+      const ymd = getWorkingHoursYMD(rTimeVal);
+      if (timeRangeType === 'date') {
+        if (ymd !== targetYMD) return;
+      } else {
+        if (customFromDate && (!ymd || ymd < customFromDate)) return;
+        if (customToDate && (!ymd || ymd > customToDate)) return;
+      }
 
-      const rTime = formatWorkingHoursTime(rDateVal);
+      const rTime = formatWorkingHoursTime(rTimeVal);
       if (timeFrom && rTime < timeFrom) return;
       if (timeTo && rTime > timeTo) return;
 
-      const custKey = r.customer_id || r.customerId || r.customerName || 'KH_LE';
+      const custKey = r.customer_id || r.customerId || r.customer?.id || r.customerName || 'KH_LE';
       const custName = r.customerName || r.customer_name || r.customer?.name || 'Khách lẻ';
       const custCode = r.customer?.code || r.customer_code || r.customerCode || (r.customer_id ? `KH${String(r.customer_id).padStart(5, '0')}` : '---');
       const custPhone = r.customerPhone || r.customer_phone || r.customer?.phone || '';
@@ -344,30 +356,34 @@ export default function CustomersReportPage() {
           debt: initialDebt
         };
       }
-      custMap[custKey].returnVal += Number(r.total || 0);
+      const returnRevenue = Math.abs(Number(r.total || r.revenue || 0));
+      custMap[custKey].returnVal += returnRevenue;
 
       const items = r.items || r._items || r.return_items || r.details || [];
-      const returnCogs = items.reduce((sum, it) => {
-        const sku = it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
-        const name = it.product?.name || it.product_name || it.name || '';
-        const price = Number(it.price || it.returnPrice || it.unit_price || 0);
+      let returnCogs = 0;
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product?.name || it.product_name || it.name || '';
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.returnPrice || it.unit_price || 0);
 
-        let itemCost = Number(it.cost_price || it.costPrice || productCostMap[it.product_id || it.productId || it.id] || productCostMap[sku] || productCostMap[name] || 0);
-        if (itemCost === 0 && purchaseCostMap[sku]) {
-          itemCost = purchaseCostMap[sku];
-        } else if (itemCost === 0 && price > 0) {
-          itemCost = Math.round(price * 0.9491);
-        }
+          let itemCost = purchaseCostMap[rawSku] || purchaseCostMap[String(rawSku).trim().toLowerCase()] || purchaseCostMap[rawName] || productCostMap[it.productId || it.product_id] || productCostMap[rawSku] || productCostMap[rawName] || Number(it.cost_price || it.costPrice || 0);
+          if (!itemCost || itemCost <= 0) itemCost = Math.round(price * 0.9491);
 
-        return sum + (itemCost * Number(it.quantity || it.qty || 0));
-      }, 0);
+          returnCogs += (qty * itemCost);
+        });
+      }
+      if (returnCogs === 0 && returnRevenue > 0) {
+        returnCogs = Math.round(returnRevenue * 0.9491);
+      }
       custMap[custKey].cogs = Math.max(0, custMap[custKey].cogs - returnCogs);
     });
 
     Object.values(custMap).forEach(c => {
       c.netRevenue = c.revenue - c.returnVal;
       c.grossProfit = c.netRevenue - c.cogs;
-      c.profitMargin = c.netRevenue !== 0 ? (c.grossProfit / c.netRevenue) * 100 : 0;
+      c.profitMargin = c.netRevenue > 0 ? (c.grossProfit / c.netRevenue) * 100 : 0;
     });
 
     // 3. Search Filter
@@ -386,7 +402,7 @@ export default function CustomersReportPage() {
     }
 
     return result;
-  }, [rawOrders, rawReturns, customerDebtMap, productCostMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, searchQuery, interestType]);
+  }, [rawOrders, rawReturns, customerDebtMap, productCostMap, purchaseCostMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, searchQuery, interestType]);
 
   // Summaries
   const totalOrderCount = processedData.reduce((acc, c) => acc + (c.orderCount || 0), 0);
