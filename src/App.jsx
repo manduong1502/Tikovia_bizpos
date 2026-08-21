@@ -126,9 +126,14 @@ function App() {
         () => import('./pages/Categories/CategoriesPage'),
         () => import('./pages/PriceBooks/PriceBooksPage'),
         () => import('./pages/PurchaseReturns/PurchaseReturnsPage'),
+        () => import('./pages/Reports/EndOfDayReportPage'),
+        () => import('./pages/Reports/SalesReportPage'),
+        () => import('./pages/Reports/ProductsReportPage'),
+        () => import('./pages/Reports/CustomersReportPage'),
+        () => import('./pages/Reports/FinancialReportPage'),
       ];
       pageImports.forEach(fn => fn().catch(() => {}));
-    }, 2000);
+    }, 1000);
 
     return () => clearTimeout(prefetchTimer);
   }, []);

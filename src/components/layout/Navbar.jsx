@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, ChevronDown, ChevronRight } from 'lucide-react';
+import { reportAPI } from '../../services/api';
 
 export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
   const location = useLocation();
@@ -62,17 +63,23 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
           <Link className={`${navItemBase} ${page === '/customers' ? navItemActive : ''}`} to="/customers">Khách hàng</Link>
           <Link className={`${navItemBase} ${page === '/cashbook' ? navItemActive : ''}`} to="/cashbook">Sổ quỹ</Link>
 
-          <div className={`${navItemBase} ${page.startsWith('/reports') ? navItemActive : ''}`}>
+          <div 
+            className={`${navItemBase} ${page.startsWith('/reports') ? navItemActive : ''}`}
+            onMouseEnter={() => {
+              reportAPI.getEndOfDay({}).catch(() => {});
+              reportAPI.getSales({}).catch(() => {});
+            }}
+          >
             Báo cáo
             <div className={dropdownWrapper}>
               <div className={dropdownBox}>
                 <div className="w-[180px] py-1">
                   <div className={dropdownHeading}>BÁO CÁO</div>
-                  <Link className={dropdownItem} to="/reports/financial">Tài chính</Link>
-                  <Link className={dropdownItem} to="/reports/end-of-day">Cuối ngày</Link>
-                  <Link className={dropdownItem} to="/reports/sales">Bán hàng</Link>
-                  <Link className={dropdownItem} to="/reports/products">Hàng hóa</Link>
-                  <Link className={dropdownItem} to="/reports/customers">Khách hàng</Link>
+                  <Link className={dropdownItem} to="/reports/financial" onMouseEnter={() => reportAPI.getFinancial({}).catch(() => {})}>Tài chính</Link>
+                  <Link className={dropdownItem} to="/reports/end-of-day" onMouseEnter={() => reportAPI.getEndOfDay({}).catch(() => {})}>Cuối ngày</Link>
+                  <Link className={dropdownItem} to="/reports/sales" onMouseEnter={() => reportAPI.getSales({}).catch(() => {})}>Bán hàng</Link>
+                  <Link className={dropdownItem} to="/reports/products" onMouseEnter={() => reportAPI.getProducts({}).catch(() => {})}>Hàng hóa</Link>
+                  <Link className={dropdownItem} to="/reports/customers" onMouseEnter={() => reportAPI.getCustomers({}).catch(() => {})}>Khách hàng</Link>
                 </div>
               </div>
             </div>

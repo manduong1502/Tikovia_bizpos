@@ -32,8 +32,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-const clientMemoryCache = {
+// ─── High Performance RAM & Storage Cache with SWR & Request Deduplication ───
+const RAM_CACHE = new Map();
+const IN_FLIGHT_REQUESTS = new Map();
+
+export const clientMemoryCache = {
   get(key) {
+    if (RAM_CACHE.has(key)) {
+      const item = RAM_CACHE.get(key);
+      if (item && Date.now() < item.expiry) {
+        return item;
+      }
+    }
     if (typeof window === 'undefined') return null;
     try {
       const stored = sessionStorage.getItem('TIKO_CACHE_' + key) || localStorage.getItem('TIKO_CACHE_' + key);
@@ -44,45 +54,116 @@ const clientMemoryCache = {
         localStorage.removeItem('TIKO_CACHE_' + key);
         return null;
       }
+      RAM_CACHE.set(key, parsed);
       return parsed;
     } catch {
       return null;
     }
   },
   set(key, val) {
+    const entry = {
+      ...val,
+      timestamp: val.timestamp || Date.now()
+    };
+    RAM_CACHE.set(key, entry);
     if (typeof window === 'undefined') return;
     try {
-      const payload = JSON.stringify(val);
+      const payload = JSON.stringify(entry);
       sessionStorage.setItem('TIKO_CACHE_' + key, payload);
-      localStorage.setItem('TIKO_CACHE_' + key, payload);
     } catch {}
   },
   clear(pattern = '') {
+    RAM_CACHE.clear();
+    IN_FLIGHT_REQUESTS.clear();
     if (typeof window === 'undefined') return;
     try {
       const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
-          keysToRemove.push(k);
-        }
-      }
       for (let i = 0; i < sessionStorage.length; i++) {
         const k = sessionStorage.key(i);
         if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
           keysToRemove.push(k);
         }
       }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
+          keysToRemove.push(k);
+        }
+      }
       keysToRemove.forEach(k => {
-        localStorage.removeItem(k);
         sessionStorage.removeItem(k);
+        localStorage.removeItem(k);
       });
     } catch {}
   }
 };
-const CACHE_TTL_MS = 300 * 1000; // 5 minutes persistent client cache
+const CACHE_TTL_MS = 300 * 1000; // 5 minutes fresh client cache
+
+// ─── Instant SWR Fetcher (Stale-While-Revalidate) ───
+export const fetchWithSWR = (key, fetcher, ttl = CACHE_TTL_MS) => {
+  const cached = clientMemoryCache.get(key);
+  const now = Date.now();
+
+  // 1. If cache exists and is fresh (< 20s), return immediately
+  if (cached && cached.data !== undefined) {
+    const age = now - (cached.timestamp || 0);
+    if (age < 20000) {
+      return Promise.resolve(cached.data);
+    }
+    // 2. If stale but valid, trigger background revalidation without blocking UI
+    if (!IN_FLIGHT_REQUESTS.has(key)) {
+      const bgPromise = fetcher()
+        .then(data => {
+          clientMemoryCache.set(key, { data, expiry: now + ttl, timestamp: Date.now() });
+          IN_FLIGHT_REQUESTS.delete(key);
+          return data;
+        })
+        .catch(err => {
+          IN_FLIGHT_REQUESTS.delete(key);
+          return cached.data;
+        });
+      IN_FLIGHT_REQUESTS.set(key, bgPromise);
+    }
+    return Promise.resolve(cached.data);
+  }
+
+  // 3. If in-flight request already exists, reuse the same promise
+  if (IN_FLIGHT_REQUESTS.has(key)) {
+    return IN_FLIGHT_REQUESTS.get(key);
+  }
+
+  // 4. Fetch fresh and cache
+  const reqPromise = fetcher()
+    .then(data => {
+      clientMemoryCache.set(key, { data, expiry: Date.now() + ttl, timestamp: Date.now() });
+      IN_FLIGHT_REQUESTS.delete(key);
+      return data;
+    })
+    .catch(err => {
+      IN_FLIGHT_REQUESTS.delete(key);
+      if (cached && cached.data !== undefined) return cached.data;
+      throw err;
+    });
+
+  IN_FLIGHT_REQUESTS.set(key, reqPromise);
+  return reqPromise;
+};
 
 export const loadInitialCache = (pattern, fallback = []) => {
+  // 1. Check ultra-fast RAM cache first (<0.01ms)
+  for (const [k, v] of RAM_CACHE.entries()) {
+    if (k.includes(pattern) && v && v.data !== undefined) {
+      const inner = v.data;
+      if (Array.isArray(fallback)) {
+        if (Array.isArray(inner)) return inner;
+        if (inner && Array.isArray(inner.data)) return inner.data;
+        return fallback;
+      }
+      return inner;
+    }
+  }
+
+  // 2. Check Session & Local Storage
   if (typeof window === 'undefined') return fallback;
   try {
     for (let i = 0; i < sessionStorage.length; i++) {
@@ -91,6 +172,7 @@ export const loadInitialCache = (pattern, fallback = []) => {
         const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
         if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
           const inner = parsed.data;
+          RAM_CACHE.set(k.replace('TIKO_CACHE_', ''), parsed);
           if (Array.isArray(fallback)) {
             if (Array.isArray(inner)) return inner;
             if (inner && Array.isArray(inner.data)) return inner.data;
@@ -106,6 +188,7 @@ export const loadInitialCache = (pattern, fallback = []) => {
         const parsed = JSON.parse(localStorage.getItem(k) || '{}');
         if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
           const inner = parsed.data;
+          RAM_CACHE.set(k.replace('TIKO_CACHE_', ''), parsed);
           if (Array.isArray(fallback)) {
             if (Array.isArray(inner)) return inner;
             if (inner && Array.isArray(inner.data)) return inner.data;
@@ -120,6 +203,9 @@ export const loadInitialCache = (pattern, fallback = []) => {
 };
 
 export const hasInitialCache = (pattern) => {
+  for (const [k, v] of RAM_CACHE.entries()) {
+    if (k.includes(pattern) && v && v.data !== undefined) return true;
+  }
   if (typeof window === 'undefined') return false;
   try {
     for (let i = 0; i < sessionStorage.length; i++) {
@@ -127,20 +213,7 @@ export const hasInitialCache = (pattern) => {
       if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
         const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
         if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
-          const inner = parsed.data;
-          if (Array.isArray(inner) && inner.length > 0) return true;
-          if (inner && Array.isArray(inner.data) && inner.data.length > 0) return true;
-        }
-      }
-    }
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
-        const parsed = JSON.parse(localStorage.getItem(k) || '{}');
-        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
-          const inner = parsed.data;
-          if (Array.isArray(inner) && inner.length > 0) return true;
-          if (inner && Array.isArray(inner.data) && inner.data.length > 0) return true;
+          return true;
         }
       }
     }
@@ -295,9 +368,30 @@ const isNetworkError = (error) => {
 };
 
 // ─── Orders ───
-// Normalize Prisma camelCase → snake_case keys that OrdersPage uses
+// Normalize Prisma camelCase → snake_case keys that OrdersPage & Reports use
 function normalizeOrder(o) {
   if (!o) return o;
+  const rawItems = o.items || o.order_items || o._items || [];
+  const normalizedItems = rawItems.map(it => ({
+    ...it,
+    id: it.id || it.productId || it.product_id || it.product?.id,
+    productId: it.productId || it.product_id || it.product?.id,
+    product_id: it.productId || it.product_id || it.product?.id,
+    sku: it.sku || it.product_sku || it.product?.sku || (it.productId ? `SP${it.productId}` : ''),
+    product_sku: it.sku || it.product_sku || it.product?.sku || (it.productId ? `SP${it.productId}` : ''),
+    name: it.name || it.product_name || it.product?.name || 'Sản phẩm',
+    product_name: it.name || it.product_name || it.product?.name || 'Sản phẩm',
+    quantity: Number(it.quantity || 0),
+    price: Number(it.price ?? it.unit_price ?? 0),
+    unit_price: Number(it.unit_price ?? it.price ?? 0),
+    category: it.category || it.category_name || it.product?.category?.name || '',
+    categoryId: it.categoryId || it.category_id || it.product?.categoryId || it.product?.category?.id,
+    brand: it.brand || it.brand_name || it.product?.brand?.name || '',
+    cost_price: Number(it.cost_price ?? it.costPrice ?? it.product?.cost_price ?? 0),
+    discount: Number(it.discount || 0),
+    total: Number(it.total ?? ((it.price || it.unit_price || 0) * (it.quantity || 0) - (it.discount || 0))),
+  }));
+
   return {
     ...o,
     order_code: o.order_code || o.code,
@@ -319,24 +413,14 @@ function normalizeOrder(o) {
     delivery_address: o.deliveryAddress || o.delivery_address || null,
     receiver_name: o.receiverName || o.receiver_name || null,
     receiver_phone: o.receiverPhone || o.receiver_phone || null,
+    items: normalizedItems,
+    _items: normalizedItems,
   };
 }
 
 function normalizeOrderDetail(o) {
   if (!o) return o;
-  const base = normalizeOrder(o);
-  if (o.items) {
-    base.items = o.items.map(it => ({
-      ...it,
-      product_sku: it.product_sku || it.product?.sku || '',
-      product_name: it.product_name || it.product?.name || '',
-      quantity: Number(it.quantity || 0),
-      unit_price: Number(it.unit_price ?? it.price ?? 0),
-      discount: Number(it.discount || 0),
-      total: Number(it.total ?? ((it.price || 0) * (it.quantity || 0) - (it.discount || 0))),
-    }));
-  }
-  return base;
+  return normalizeOrder(o);
 }
 
 // ─── Orders ───
@@ -1011,18 +1095,23 @@ const persistPOs = () => {
 
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
-  getAll: (params) => api.get('/purchase-orders', { params }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
-    const existingCodes = new Set(list.map(o => o.code || o.po_code));
-    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_PURCHASE_ORDERS.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
-    const existingCodes = new Set(list.map(o => o.code || o.po_code));
-    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
-    return [...toAdd, ...list];
-  }),
+  getAll: (params) => {
+    const cacheKey = 'purchase_orders:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return fetchWithSWR(cacheKey, () => {
+      return api.get('/purchase-orders', { params }).then(r => {
+        let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+        list = list.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+        const existingCodes = new Set(list.map(o => o.code || o.po_code));
+        const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+        return [...toAdd, ...list];
+      }).catch(() => {
+        let list = FALLBACK_PURCHASE_ORDERS.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+        const existingCodes = new Set(list.map(o => o.code || o.po_code));
+        const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+        return [...toAdd, ...list];
+      });
+    });
+  },
   getById: (id) => api.get(`/purchase-orders/${id}`, { hideErrorToast: true })
     .then(r => r.data)
     .catch(() => {
@@ -1332,52 +1421,39 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data).then(r => r.data),
 };
 
-// ─── Reports ───
+// ─── Reports with Ultra-Fast RAM Cache & Request Deduplication ───
+const makeDeduplicatedReportRequest = (url, params, cacheKey, ttl = 300000) => {
+  return fetchWithSWR(cacheKey, () => {
+    return api.get(url, { params, hideErrorToast: true })
+      .then(r => r.data)
+      .catch(err => {
+        const cached = clientMemoryCache.get(cacheKey);
+        if (cached && cached.data !== undefined) return cached.data;
+        throw err;
+      });
+  }, ttl);
+};
+
 export const reportAPI = {
   getFinancial: (params) => {
     const cacheKey = 'reports:financial:' + JSON.stringify(params || {}) + ':' + getSubdomain();
-    const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
-    return api.get('/reports/financial', { params }).then(r => {
-      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
-      return r.data;
-    });
+    return makeDeduplicatedReportRequest('/reports/financial', params, cacheKey);
   },
   getEndOfDay: (params) => {
     const cacheKey = 'reports:endofday:' + JSON.stringify(params || {}) + ':' + getSubdomain();
-    const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
-    return api.get('/reports/end-of-day', { params }).then(r => {
-      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
-      return r.data;
-    });
+    return makeDeduplicatedReportRequest('/reports/end-of-day', params, cacheKey);
   },
   getSales: (params) => {
     const cacheKey = 'reports:sales:' + JSON.stringify(params || {}) + ':' + getSubdomain();
-    const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
-    return api.get('/reports/sales', { params }).then(r => {
-      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
-      return r.data;
-    });
+    return makeDeduplicatedReportRequest('/reports/sales', params, cacheKey);
   },
   getProducts: (params) => {
     const cacheKey = 'reports:products:' + JSON.stringify(params || {}) + ':' + getSubdomain();
-    const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
-    return api.get('/reports/products', { params }).then(r => {
-      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
-      return r.data;
-    });
+    return makeDeduplicatedReportRequest('/reports/products', params, cacheKey);
   },
   getCustomers: (params) => {
     const cacheKey = 'reports:customers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
-    const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
-    return api.get('/reports/customers', { params }).then(r => {
-      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 180000 });
-      return r.data;
-    });
+    return makeDeduplicatedReportRequest('/reports/customers', params, cacheKey);
   },
 };
 
