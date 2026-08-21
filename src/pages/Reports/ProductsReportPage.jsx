@@ -431,27 +431,37 @@ export default function ProductsReportPage() {
       });
     });
 
-    if (Object.keys(prodMap).length === 0 && prodDirectList.length > 0) {
-      prodDirectList.forEach(p => {
-        const sku = p.sku || p.product_sku || `SP${p.id || ''}`;
-        const costPrice = Number(p.cost_price || p.costPrice || 0);
-        const stock = Number(p.stock !== undefined ? p.stock : (p.inventory || p.quantity || 0));
-        const soldQty = Number(p.soldQty || p.quantity || 0);
-        const revenue = Number(p.revenue || p.total || 0);
-        const returnQty = Number(p.returnQty || 0);
-        const returnVal = Number(p.returnVal || 0);
-        const netRevenue = Number(p.netRevenue || (revenue - returnVal));
+    if (interestType === 'Tồn kho' || interestType === 'Hàng hóa') {
+      (productsList || []).forEach(p => {
+        const sku = p.sku || p.code || (p.id ? `SP${p.id}` : '');
+        const name = p.name || 'Sản phẩm';
+        const costPrice = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.import_price ?? 0);
+        const stock = Number(p.stock !== undefined ? p.stock : (p.inventory ?? p.quantity ?? 0));
+        const unit = p.unit || 'Cái';
+        const stockValue = stock * costPrice;
 
-        prodMap[sku] = {
-          id: p.id || sku, sku,
-          name: p.name || p.product_name || 'Sản phẩm',
-          unit: p.unit || 'Cái', costPrice, stock, soldQty, revenue, returnQty, returnVal, netRevenue,
-          cogs: soldQty * costPrice,
-          grossProfit: netRevenue - (soldQty * costPrice),
-          profitMargin: netRevenue > 0 ? ((netRevenue - (soldQty * costPrice)) / netRevenue) * 100 : 0,
-          stockValue: stock * costPrice,
-          category: p.category || '', brand: p.brand || ''
-        };
+        if (sku) {
+          prodMap[sku] = {
+            id: p.id || sku,
+            sku,
+            name,
+            unit,
+            costPrice,
+            stock,
+            soldQty: 0,
+            revenue: 0,
+            returnQty: 0,
+            returnVal: 0,
+            netRevenue: 0,
+            cogs: 0,
+            grossProfit: 0,
+            profitMargin: 0,
+            stockValue,
+            categoryId: p.category?.id || p.categoryId || p.category_id,
+            category: p.category?.name || p.category || '',
+            brand: p.brand?.name || p.brand || ''
+          };
+        }
       });
     }
 
