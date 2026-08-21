@@ -1,14 +1,21 @@
-import { useState, useEffect } from 'react';
-import api from '../../services/api';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Users, ShoppingCart, RotateCcw, Package, TrendingUp, TrendingDown, 
   Eye, EyeOff, Calendar, ChevronDown, Plus, AlertTriangle, ArrowUpRight, 
-  Layers, CreditCard, Sparkles
+  Layers, CreditCard, Sparkles, RefreshCw
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Dropdown from '../../components/ui/Dropdown';
+import { 
+  orderAPI, returnAPI, productAPI, customerAPI, purchaseOrderAPI, 
+  reportAPI, loadInitialCache 
+} from '../../services/api';
+import { 
+  getRangeByCreatedLabel, getWorkingHoursYMD, formatLocalYMD, 
+  parseFlexibleDate 
+} from '../../utils/dateFilterUtils';
 
-const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
 
 const fmtSmart = (n) => {
   const num = Number(n || 0);
@@ -23,8 +30,7 @@ const fmtSmart = (n) => {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showProfit, setShowProfit] = useState(true);
 
   // Time filters
@@ -34,57 +40,299 @@ export default function DashboardPage() {
   const [filterProd, setFilterProd] = useState('Tháng này');
   const [filterCust, setFilterCust] = useState('Tháng này');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get(
-          `/dashboard?timeRange=${encodeURIComponent(timeRange)}&timeProd=${encodeURIComponent(filterProd)}&timeCust=${encodeURIComponent(filterCust)}`
-        );
-        setData(res.data);
-      } catch (e) {
-        setData({ 
-          todayStats: { revenue: 0, orders: 0, returns: 0 }, 
-          periodStats: { orderCount: 0, revenue: 0, profit: 0, returnCount: 0, returnAmount: 0 },
-          overview: { totalProducts: 0, lowStockProducts: 0, totalCustomers: 0 }, 
-          monthly_revenue: 0, 
-          prev_month_revenue: 0, 
-          daily_revenues: [], 
-          top_products: [], 
-          top_customers: [], 
-          recentOrders: [] 
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [timeRange, filterProd, filterCust]);
+  // Live Data State
+  const [rawOrders, setRawOrders] = useState(() => loadInitialCache('orders:', []));
+  const [rawReturns, setRawReturns] = useState(() => loadInitialCache('returns:', []));
+  const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
+  const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
+  const [customersList, setCustomersList] = useState(() => loadInitialCache('customers:', []));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[65vh]">
-        <div className="text-center">
-          <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <div className="text-xs font-bold text-gray-500 tracking-wide">Đang tải dữ liệu tổng quan...</div>
-        </div>
-      </div>
-    );
-  }
+  const loadData = async () => {
+    try {
+      const [ordersRes, returnsRes, prodsRes, poRes, custsRes] = await Promise.all([
+        orderAPI.getAll({ limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ limit: 5000 }).catch(() => []),
+        productAPI.getAll().catch(() => []),
+        purchaseOrderAPI.getAll({ limit: 2000 }).catch(() => []),
+        customerAPI.getAll({ limit: 1000 }).catch(() => [])
+      ]);
 
-  const d = data || {};
-  const period = d.periodStats || {
-    orderCount: d.todayStats?.orders || 0,
-    revenue: d.monthly_revenue || 0,
-    profit: Math.round((d.monthly_revenue || 0) * 0.18),
-    returnCount: d.todayStats?.returns || 0,
-    returnAmount: 0
+      const oList = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : []);
+      const rList = Array.isArray(returnsRes?.data) ? returnsRes.data : (Array.isArray(returnsRes) ? returnsRes : []);
+      const pList = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
+      const poList = Array.isArray(poRes?.data) ? poRes.data : (Array.isArray(poRes) ? poRes : []);
+      const cList = Array.isArray(custsRes?.data) ? custsRes.data : (Array.isArray(custsRes) ? custsRes : []);
+
+      setRawOrders(oList);
+      setRawReturns(rList);
+      setProductsList(pList);
+      setPurchaseOrdersList(poList);
+      setCustomersList(cList);
+    } catch (e) {
+      console.warn("Dashboard sync warning:", e);
+    }
   };
 
-  const pct = d.prev_month_revenue > 0 ? ((d.monthly_revenue / d.prev_month_revenue - 1) * 100).toFixed(1) : '0';
-  const isUp = parseFloat(pct) >= 0;
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const revenues = d.daily_revenues || [];
-  const maxRev = Math.max(...revenues.map(r => r.revenue), 1);
+  // Purchase Cost Map (Moving Weighted Average)
+  const purchaseCostMap = useMemo(() => {
+    const acc = {};
+    (purchaseOrdersList || []).forEach(po => {
+      if (po.status === 'CANCELLED' || po.status === 'cancelled' || po.isCancelled) return;
+      (po.items || po._items || po.details || []).forEach(it => {
+        const sku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+        const name = it.product_name || it.name || '';
+        const qty = Number(it.quantity || it.qty || 0);
+        const price = Number(it.unit_price ?? it.price ?? it.cost_price ?? it.import_price ?? 0);
+        if (qty > 0 && price > 0) {
+          [sku, String(sku).trim().toLowerCase(), name, String(name).trim().toLowerCase()].forEach(k => {
+            if (!k) return;
+            if (!acc[k]) acc[k] = { totalQty: 0, totalVal: 0 };
+            acc[k].totalQty += qty;
+            acc[k].totalVal += (qty * price);
+          });
+        }
+      });
+    });
+
+    const costMap = {};
+    Object.keys(acc).forEach(k => {
+      if (acc[k].totalQty > 0) {
+        costMap[k] = Math.round(acc[k].totalVal / acc[k].totalQty);
+      }
+    });
+    return costMap;
+  }, [purchaseOrdersList]);
+
+  // Product Info Map
+  const productInfoMap = useMemo(() => {
+    const map = {};
+    (productsList || []).forEach(p => {
+      if (!p) return;
+      const cost = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.last_import_price ?? p.import_price ?? p.importPrice ?? p.gia_von ?? p.giaVon ?? 0);
+      const info = { cost, name: p.name, sku: p.sku || p.code };
+      if (p.id) { map[p.id] = info; map[String(p.id)] = info; }
+      if (p.code) { map[p.code] = info; map[String(p.code).trim().toLowerCase()] = info; }
+      if (p.sku) { map[p.sku] = info; map[String(p.sku).trim().toLowerCase()] = info; }
+      if (p.name) { map[p.name] = info; map[String(p.name).trim().toLowerCase()] = info; }
+    });
+    return map;
+  }, [productsList]);
+
+  // Normalized Orders with real profit & cost
+  const normalizedOrders = useMemo(() => {
+    return (rawOrders || []).map(o => {
+      if (o.status === 'CANCELLED' || o.status === 'cancelled' || o.isCancelled) return null;
+      const revenue = Number(o.total || o.revenue || 0);
+      const items = (Array.isArray(o.items) && o.items.length > 0) ? o.items : (o._items || o.order_items || o.details || []);
+      const timeVal = o.createdAt || o.created_at || o.time || o.order_date || o.orderDate || o.date;
+      const dateObj = parseFlexibleDate(timeVal) || new Date();
+      const ymd = getWorkingHoursYMD(timeVal);
+
+      let totalCost = 0;
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product_name || it.name || it.title || '';
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.unit_price || 0);
+
+          let unitCost = purchaseCostMap[rawSku] || purchaseCostMap[String(rawSku).trim().toLowerCase()] || purchaseCostMap[rawName] || productInfoMap[rawSku]?.cost || 0;
+          if (!unitCost || unitCost <= 0) unitCost = Number(it.cost_price || it.costPrice || 0);
+          if (!unitCost || unitCost <= 0) unitCost = Math.round(price * 0.9491);
+          totalCost += (qty * unitCost);
+        });
+      } else {
+        totalCost = Math.round(revenue * 0.9491);
+      }
+
+      return {
+        ...o,
+        revenue,
+        items,
+        dateObj,
+        ymd,
+        totalCost,
+        profit: revenue - totalCost
+      };
+    }).filter(Boolean);
+  }, [rawOrders, purchaseCostMap, productInfoMap]);
+
+  // Normalized Returns
+  const normalizedReturns = useMemo(() => {
+    return (rawReturns || []).map(r => {
+      if (r.status === 'CANCELLED' || r.status === 'cancelled' || r.isCancelled) return null;
+      const amount = Math.abs(Number(r.total || r.revenue || 0));
+      const timeVal = r.createdAt || r.created_at || r.time || r.date;
+      const dateObj = parseFlexibleDate(timeVal) || new Date();
+      const ymd = getWorkingHoursYMD(timeVal);
+      return {
+        ...r,
+        amount,
+        dateObj,
+        ymd
+      };
+    }).filter(Boolean);
+  }, [rawReturns]);
+
+  // Filter helper
+  const filterByRange = (items, rangeLabel) => {
+    if (rangeLabel === 'Toàn thời gian') return items;
+    const range = getRangeByCreatedLabel(rangeLabel);
+    if (!range || !range.start || !range.end) return items;
+
+    const startYMD = formatLocalYMD(range.start);
+    const endYMD = formatLocalYMD(range.end);
+
+    return items.filter(it => {
+      const itYMD = it.ymd || formatLocalYMD(it.dateObj);
+      return itYMD >= startYMD && itYMD <= endYMD;
+    });
+  };
+
+  // Main Card Metrics (Selected timeRange)
+  const period = useMemo(() => {
+    const matchedOrders = filterByRange(normalizedOrders, timeRange);
+    const matchedReturns = filterByRange(normalizedReturns, timeRange);
+
+    const orderCount = matchedOrders.length;
+    const revenue = matchedOrders.reduce((sum, o) => sum + o.revenue, 0);
+    const profit = matchedOrders.reduce((sum, o) => sum + o.profit, 0);
+    const returnCount = matchedReturns.length;
+    const returnAmount = matchedReturns.reduce((sum, r) => sum + r.amount, 0);
+
+    return {
+      orderCount,
+      revenue,
+      profit,
+      returnCount,
+      returnAmount
+    };
+  }, [normalizedOrders, normalizedReturns, timeRange]);
+
+  // Monthly Revenue Chart Data
+  const { chartRevenue, prevChartRevenue, chartData, pct, isUp } = useMemo(() => {
+    const matchedOrders = filterByRange(normalizedOrders, filterRev);
+    const totalRev = matchedOrders.reduce((sum, o) => sum + o.revenue, 0);
+
+    // Previous period
+    const prevRangeLabel = filterRev === 'Tháng này' ? 'Tháng trước' : (filterRev === 'Hôm nay' ? 'Hôm qua' : 'Tháng trước');
+    const prevOrders = filterByRange(normalizedOrders, prevRangeLabel);
+    const prevTotalRev = prevOrders.reduce((sum, o) => sum + o.revenue, 0);
+
+    const percent = prevTotalRev > 0 ? (((totalRev - prevTotalRev) / prevTotalRev) * 100).toFixed(1) : (totalRev > 0 ? '+100' : '0');
+    const up = parseFloat(percent) >= 0;
+
+    // Build Chart breakdown
+    let breakdown = [];
+    if (tab === 'hourly') {
+      const hoursMap = {};
+      for (let h = 6; h <= 22; h++) hoursMap[h] = 0;
+      matchedOrders.forEach(o => {
+        const h = o.dateObj ? o.dateObj.getHours() : 0;
+        if (hoursMap[h] !== undefined) hoursMap[h] += o.revenue;
+      });
+      breakdown = Object.keys(hoursMap).map(h => ({
+        day: `${h}h`,
+        revenue: hoursMap[h]
+      }));
+    } else if (tab === 'weekday') {
+      const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      const daysMap = { 'T2': 0, 'T3': 0, 'T4': 0, 'T5': 0, 'T6': 0, 'T7': 0, 'CN': 0 };
+      matchedOrders.forEach(o => {
+        const dayIdx = o.dateObj ? o.dateObj.getDay() : 0;
+        const dayName = weekdays[dayIdx];
+        if (daysMap[dayName] !== undefined) daysMap[dayName] += o.revenue;
+      });
+      breakdown = Object.keys(daysMap).map(d => ({
+        day: d,
+        revenue: daysMap[d]
+      }));
+    } else {
+      // Daily breakdown
+      const dayMap = {};
+      // Initialize all days of current month or 31 days
+      for (let d = 1; d <= 31; d++) dayMap[d] = 0;
+      matchedOrders.forEach(o => {
+        const day = o.dateObj ? o.dateObj.getDate() : 1;
+        dayMap[day] = (dayMap[day] || 0) + o.revenue;
+      });
+      breakdown = Object.keys(dayMap).map(d => ({
+        day: Number(d),
+        revenue: dayMap[d]
+      }));
+    }
+
+    return {
+      chartRevenue: totalRev,
+      prevChartRevenue: prevTotalRev,
+      chartData: breakdown,
+      pct: percent,
+      isUp: up
+    };
+  }, [normalizedOrders, filterRev, tab]);
+
+  const maxRev = useMemo(() => {
+    return Math.max(...chartData.map(r => r.revenue), 1);
+  }, [chartData]);
+
+  // Top Products
+  const topProducts = useMemo(() => {
+    const matchedOrders = filterByRange(normalizedOrders, filterProd);
+    const map = {};
+
+    matchedOrders.forEach(o => {
+      (o.items || []).forEach(it => {
+        const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+        const name = it.product_name || it.name || it.title || 'Sản phẩm';
+        const key = rawSku || name;
+        const qty = Number(it.quantity || it.qty || 0);
+        const price = Number(it.price || it.unit_price || 0);
+        const lineTotal = Number(it.total || (qty * price) || 0);
+
+        if (!map[key]) {
+          map[key] = { name, total_sold: 0, total_revenue: 0 };
+        }
+        map[key].total_sold += qty;
+        map[key].total_revenue += lineTotal;
+      });
+    });
+
+    return Object.values(map)
+      .sort((a, b) => b.total_revenue - a.total_revenue)
+      .slice(0, 5);
+  }, [normalizedOrders, filterProd]);
+
+  // Top Customers
+  const topCustomers = useMemo(() => {
+    const matchedOrders = filterByRange(normalizedOrders, filterCust);
+    const map = {};
+
+    matchedOrders.forEach(o => {
+      const name = o.customerName || o.customer_name || o.customer?.name || 'Khách lẻ';
+      const key = o.customer_id || o.customerId || name;
+
+      if (!map[key]) {
+        map[key] = { name, order_count: 0, total_spent: 0 };
+      }
+      map[key].order_count += 1;
+      map[key].total_spent += o.revenue;
+    });
+
+    return Object.values(map)
+      .filter(c => c.name !== 'Khách lẻ')
+      .sort((a, b) => b.total_spent - a.total_spent)
+      .slice(0, 5);
+  }, [normalizedOrders, filterCust]);
+
+  // Recent Activities
+  const recentOrders = useMemo(() => {
+    const list = [...(rawOrders || [])].slice(0, 10);
+    return list;
+  }, [rawOrders]);
 
   const TIME_OPTIONS = [
     { value: 'Hôm nay', label: 'Hôm nay' },
@@ -98,7 +346,6 @@ export default function DashboardPage() {
     { value: 'Quý này', label: 'Quý này' },
     { value: 'Quý trước', label: 'Quý trước' },
     { value: 'Năm nay', label: 'Năm nay' },
-    { value: 'Năm trước', label: 'Năm trước' },
     { value: 'Toàn thời gian', label: 'Toàn thời gian' },
   ];
 
@@ -108,7 +355,7 @@ export default function DashboardPage() {
         {/* Left Area */}
         <div className="flex flex-col gap-5 min-w-0">
           
-          {/* Main KiotViet Overview Card (Hóa đơn, Doanh thu, Lợi nhuận, Đơn trả hàng) */}
+          {/* Main Overview Card (Hóa đơn, Doanh thu, Lợi nhuận, Đơn trả hàng) */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 transition-all hover:shadow-md">
             {/* Top Bar: Range Filter Selector */}
             <div className="flex items-center justify-between mb-5">
@@ -181,7 +428,7 @@ export default function DashboardPage() {
               <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
                 {timeRange === 'Hôm nay' ? 'Doanh thu hôm nay' : `Doanh thu (${timeRange.toLowerCase()})`}
               </div>
-              <div className="text-base sm:text-xl font-black text-primary truncate">{fmt(period.revenue)}</div>
+              <div className="text-base sm:text-xl font-black text-primary truncate">{fmt(period.revenue)} đ</div>
             </div>
             <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
               <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
@@ -202,7 +449,7 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <h3 className="text-base font-extrabold text-gray-900 m-0">Doanh thu thuần</h3>
-                <span className="text-lg font-black text-primary">{fmt(d.monthly_revenue)}</span>
+                <span className="text-lg font-black text-primary">{fmt(chartRevenue)} đ</span>
                 <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-0.5 ${isUp ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                   {isUp ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
                   {pct}%
@@ -212,8 +459,11 @@ export default function DashboardPage() {
                 <Dropdown
                   value={filterRev}
                   options={[
+                    { value: 'Hôm nay', label: 'Hôm nay' },
+                    { value: '7 ngày qua', label: '7 ngày qua' },
                     { value: 'Tháng này', label: 'Tháng này' },
                     { value: 'Tháng trước', label: 'Tháng trước' },
+                    { value: 'Năm nay', label: 'Năm nay' },
                   ]}
                   onChange={setFilterRev}
                 />
@@ -243,12 +493,12 @@ export default function DashboardPage() {
 
             {/* Bar chart */}
             <div className="flex items-end gap-[3px] sm:gap-[4px] h-[150px] sm:h-[180px] px-1 sm:px-2 overflow-x-auto custom-scrollbar">
-              {revenues.map((r, i) => (
+              {chartData.map((r, i) => (
                 <div key={i} className="flex-1 min-w-[12px] sm:min-w-[16px] flex flex-col items-center gap-1 group cursor-pointer">
                   <div
                     className="w-full bg-blue-100 group-hover:bg-primary rounded-t-sm transition-all duration-200 min-h-[4px]"
                     style={{ height: `${Math.max((r.revenue / maxRev) * 140, 4)}px` }}
-                    title={`Ngày ${r.day}: ${fmt(r.revenue)} đ`}
+                    title={`${r.day}: ${fmt(r.revenue)} đ`}
                   />
                   <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 group-hover:text-primary transition-colors">{String(r.day).padStart(2, '0')}</span>
                 </div>
@@ -277,7 +527,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                {(d.top_products || []).slice(0, 5).map((p, i) => (
+                {(topProducts || []).map((p, i) => (
                   <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                       i === 0 ? 'bg-amber-100 text-amber-800' : i === 1 ? 'bg-gray-200 text-gray-700' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'
@@ -287,7 +537,7 @@ export default function DashboardPage() {
                     <span className="text-xs font-extrabold text-primary shrink-0">{fmt(p.total_revenue)}</span>
                   </div>
                 ))}
-                {(!d.top_products || d.top_products.length === 0) && (
+                {(!topProducts || topProducts.length === 0) && (
                   <div className="text-center py-6 text-gray-400 text-xs font-medium">
                     <Package size={24} className="mx-auto text-gray-300 mb-1.5" />
                     Chưa có dữ liệu hàng hóa
@@ -315,7 +565,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                {(d.top_customers || []).slice(0, 5).map((c, i) => (
+                {(topCustomers || []).map((c, i) => (
                   <div key={i} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                       i === 0 ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500'
@@ -325,7 +575,7 @@ export default function DashboardPage() {
                     <span className="text-xs font-extrabold text-primary shrink-0">{fmt(c.total_spent)}</span>
                   </div>
                 ))}
-                {(!d.top_customers || d.top_customers.length === 0) && (
+                {(!topCustomers || topCustomers.length === 0) && (
                   <div className="text-center py-6 text-gray-400 text-xs font-medium">
                     <Users size={24} className="mx-auto text-gray-300 mb-1.5" />
                     Chưa có dữ liệu khách hàng
@@ -348,7 +598,7 @@ export default function DashboardPage() {
                 <ArrowUpRight size={14} className="text-gray-400" />
               </div>
               <div className="text-xs font-bold text-gray-500">Sản phẩm</div>
-              <div className="text-base font-black text-gray-900 mt-0.5">{d.overview?.totalProducts || 0}</div>
+              <div className="text-base font-black text-gray-900 mt-0.5">{productsList?.length || 0}</div>
             </Link>
 
             <Link to="/customers" className="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:border-primary/40 transition-all no-underline">
@@ -357,7 +607,7 @@ export default function DashboardPage() {
                 <ArrowUpRight size={14} className="text-gray-400" />
               </div>
               <div className="text-xs font-bold text-gray-500">Khách hàng</div>
-              <div className="text-base font-black text-gray-900 mt-0.5">{d.overview?.totalCustomers || 0}</div>
+              <div className="text-base font-black text-gray-900 mt-0.5">{customersList?.length || 0}</div>
             </Link>
           </div>
 
@@ -368,7 +618,7 @@ export default function DashboardPage() {
               <Link to="/orders" className="text-xs font-bold text-primary hover:underline no-underline">Xem tất cả</Link>
             </div>
             <div className="space-y-3.5 overflow-y-auto pr-1 custom-scrollbar flex-1 max-h-[500px]">
-              {(d.recentOrders || []).map((o, i) => {
+              {(recentOrders || []).map((o, i) => {
                 const isReturn = o.status === 'RETURNED' || o.type === 'RETURN';
                 return (
                   <div key={i} className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50/80 transition-colors">
@@ -379,20 +629,20 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs text-gray-700 font-medium leading-snug">
-                        <span className="font-extrabold text-gray-900">{o.user?.fullName || 'Quản trị viên'}</span> vừa 
+                        <span className="font-extrabold text-gray-900">{o.createdBy || o.seller?.name || o.user?.fullName || 'Quản trị viên'}</span> vừa 
                         <Link to="/orders" className="text-primary hover:underline font-bold mx-1 no-underline">
                           {isReturn ? 'trả đơn hàng' : 'bán đơn hàng'}
                         </Link> 
-                        giá trị <span className="font-extrabold text-gray-900">{fmt(o.total)} đ</span>
+                        giá trị <span className="font-extrabold text-gray-900">{fmt(o.total || o.revenue)} đ</span>
                       </div>
                       <div className="text-[10px] font-semibold text-gray-400 mt-1">
-                        {o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''}
+                        {o.createdAt || o.time ? new Date(o.createdAt || o.time).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : ''}
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {(!d.recentOrders || d.recentOrders.length === 0) && (
+              {(!recentOrders || recentOrders.length === 0) && (
                 <div className="text-center py-8 text-gray-400 text-xs font-medium">
                   <ShoppingCart size={28} className="mx-auto text-gray-200 mb-2" />
                   Chưa có hoạt động nào gần đây

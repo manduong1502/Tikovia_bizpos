@@ -82,12 +82,12 @@ const LoadingStateRow = ({ colSpan, text = "Đang tải dữ liệu báo cáo, v
 );
 
 export default function CustomersReportPage() {
-  const [rawOrders, setRawOrders] = useState(() => loadInitialCache('orders:', []));
-  const [rawReturns, setRawReturns] = useState(() => loadInitialCache('returns:', []));
+  const [rawOrders, setRawOrders] = useState([]);
+  const [rawReturns, setRawReturns] = useState([]);
   const [customersList, setCustomersList] = useState(() => loadInitialCache('customers:', []));
   const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
   const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -122,9 +122,7 @@ export default function CustomersReportPage() {
   };
 
   const fetchData = async () => {
-    if (customersList.length === 0 && rawOrders.length === 0) {
-      setLoading(true);
-    }
+    setLoading(true);
     const params = {
       period: timeRangeType,
       date: formatDateYMD(selectedSingleDate),
@@ -137,27 +135,74 @@ export default function CustomersReportPage() {
     try {
       const [endOfDayRes, ordersRes, returnsRes, custsRes, prodsRes, poRes] = await Promise.all([
         reportAPI.getEndOfDay(params).catch(() => null),
-        orderAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
-        returnAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
+        orderAPI.getAll({ limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ limit: 5000 }).catch(() => []),
         customerAPI.getAll({ limit: 1000 }).catch(() => []),
         productAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 2000 }).catch(() => [])
       ]);
 
-      const oList = Array.isArray(ordersRes?.data) && ordersRes.data.length > 0
-        ? ordersRes.data
-        : (Array.isArray(ordersRes) && ordersRes.length > 0 ? ordersRes : (endOfDayRes?.transactions || []));
-
-      const rList = Array.isArray(returnsRes?.data) && returnsRes.data.length > 0
-        ? returnsRes.data
-        : (Array.isArray(returnsRes) && returnsRes.length > 0 ? returnsRes : (endOfDayRes?.returns || []));
-
+      const rawOrderList = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : []);
+      const rawReturnList = Array.isArray(returnsRes?.data) ? returnsRes.data : (Array.isArray(returnsRes) ? returnsRes : []);
       const cList = Array.isArray(custsRes?.data) ? custsRes.data : (Array.isArray(custsRes) ? custsRes : []);
       const pList = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
       const poList = Array.isArray(poRes?.data) ? poRes.data : (Array.isArray(poRes) ? poRes : []);
 
-      setRawOrders(oList);
-      setRawReturns(rList);
+      const orderItemsMap = {};
+      rawOrderList.forEach(o => {
+        const code = o.code || (o.id ? `HD${String(o.id).padStart(5, '0')}` : '');
+        const items = o.items || o._items || o.order_items || o.details || [];
+        if (code) orderItemsMap[code] = { items, order: o };
+        if (o.id) orderItemsMap[o.id] = { items, order: o };
+      });
+
+      const returnItemsMap = {};
+      rawReturnList.forEach(r => {
+        const code = r.code || (r.id ? `TH${String(r.id).padStart(5, '0')}` : '');
+        const items = r.items || r._items || r.return_items || r.details || [];
+        if (code) returnItemsMap[code] = { items, returnOrder: r };
+        if (r.id) returnItemsMap[r.id] = { items, returnOrder: r };
+      });
+
+      let rawTx = (endOfDayRes?.transactions && endOfDayRes.transactions.length > 0) ? endOfDayRes.transactions : rawOrderList;
+      let rawRet = (endOfDayRes?.returns && endOfDayRes.returns.length > 0) ? endOfDayRes.returns : rawReturnList;
+
+      const combinedTransactions = rawTx.map(tx => {
+        const code = tx.code || (tx.id ? `HD${String(tx.id).padStart(5, '0')}` : '---');
+        const lookup = orderItemsMap[code] || orderItemsMap[tx.id] || {};
+        let items = (Array.isArray(tx.items) && tx.items.length > 0) ? tx.items : (lookup.items || tx._items || tx.details || []);
+        const fullOrder = lookup.order || tx;
+        const revenue = Number(fullOrder.total || tx.revenue || 0);
+        const time = tx.time || tx.created_at || tx.createdAt || tx.date || new Date().toISOString();
+        return {
+          ...tx,
+          id: tx.id || code,
+          code,
+          time,
+          revenue,
+          items,
+          order: fullOrder
+        };
+      });
+
+      const combinedReturns = rawRet.map(ret => {
+        const code = ret.code || (ret.id ? `TH${String(ret.id).padStart(5, '0')}` : '---');
+        const lookup = returnItemsMap[code] || returnItemsMap[ret.id] || {};
+        let items = (Array.isArray(ret.items) && ret.items.length > 0) ? ret.items : (lookup.items || ret._items || ret.details || []);
+        const revenue = Math.abs(Number(ret.revenue || ret.total || 0));
+        const time = ret.time || ret.created_at || ret.createdAt || ret.date || new Date().toISOString();
+        return {
+          ...ret,
+          id: ret.id || code,
+          code,
+          time,
+          revenue,
+          items
+        };
+      });
+
+      setRawOrders(combinedTransactions);
+      setRawReturns(combinedReturns);
       setCustomersList(cList);
       setProductsList(pList);
       setPurchaseOrdersList(poList);

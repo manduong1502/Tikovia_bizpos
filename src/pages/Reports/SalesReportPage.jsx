@@ -286,12 +286,8 @@ const LoadingStateRow = ({ colSpan, text = "Đang tải dữ liệu báo cáo, v
 export default function SalesReportPage() {
   const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
   const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
-  const [data, setData] = useState(() => {
-    const cached = loadInitialCache('reports:sales') || loadInitialCache('reports:endofday');
-    if (cached && (cached.transactions || cached.data)) return cached;
-    return { transactions: [], returns: [], orderCount: 0, totalSales: 0, totalPaid: 0, totalReturns: 0, netRevenue: 0 };
-  });
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState({ transactions: [], returns: [], orderCount: 0, totalSales: 0, totalPaid: 0, totalReturns: 0, netRevenue: 0 });
+  const [loading, setLoading] = useState(true);
   const [expandedDates, setExpandedDates] = useState({});
   const [singleDayExpanded, setSingleDayExpanded] = useState(true);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -371,9 +367,7 @@ export default function SalesReportPage() {
   }, [productsList]);
 
   const fetchData = async () => {
-    if (!data.transactions || data.transactions.length === 0) {
-      setLoading(true);
-    }
+    setLoading(true);
     let params = {};
     if (timeRangeType === 'date') {
       const d = new Date(selectedSingleDate);
@@ -411,6 +405,43 @@ export default function SalesReportPage() {
 
       setProductsList(prods);
       setPurchaseOrdersList(poList);
+
+      // Build local cost maps directly from fresh poList & prods to avoid React state lag
+      const localPurchaseCostMap = {};
+      const acc = {};
+      (poList || []).forEach(po => {
+        if (po.status === 'CANCELLED' || po.status === 'cancelled' || po.isCancelled) return;
+        (po.items || po._items || po.details || []).forEach(it => {
+          const sku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const name = it.product_name || it.name || '';
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.unit_price ?? it.price ?? it.cost_price ?? it.import_price ?? 0);
+          if (qty > 0 && price > 0) {
+            [sku, String(sku).trim().toLowerCase(), name, String(name).trim().toLowerCase()].forEach(k => {
+              if (!k) return;
+              if (!acc[k]) acc[k] = { totalQty: 0, totalVal: 0 };
+              acc[k].totalQty += qty;
+              acc[k].totalVal += (qty * price);
+            });
+          }
+        });
+      });
+      Object.keys(acc).forEach(k => {
+        if (acc[k].totalQty > 0) {
+          localPurchaseCostMap[k] = Math.round(acc[k].totalVal / acc[k].totalQty);
+        }
+      });
+
+      const localProductInfoMap = {};
+      (prods || []).forEach(p => {
+        if (!p) return;
+        const cost = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.last_import_price ?? p.import_price ?? p.importPrice ?? p.gia_von ?? p.giaVon ?? 0);
+        const info = { cost, name: p.name, sku: p.sku || p.code };
+        if (p.id) { localProductInfoMap[p.id] = info; localProductInfoMap[String(p.id)] = info; }
+        if (p.code) { localProductInfoMap[p.code] = info; localProductInfoMap[String(p.code).trim().toLowerCase()] = info; }
+        if (p.sku) { localProductInfoMap[p.sku] = info; localProductInfoMap[String(p.sku).trim().toLowerCase()] = info; }
+        if (p.name) { localProductInfoMap[p.name] = info; localProductInfoMap[String(p.name).trim().toLowerCase()] = info; }
+      });
 
       const orderItemsMap = {};
       rawOrderList.forEach(o => {
@@ -453,7 +484,7 @@ export default function SalesReportPage() {
             const qty = Number(it.quantity || it.qty || 0);
             const price = Number(it.price || it.unit_price || 0);
 
-            let unitCost = purchaseCostMap[rawSku] || purchaseCostMap[String(rawSku).trim().toLowerCase()] || purchaseCostMap[rawName] || productInfoMap[rawSku]?.cost || 0;
+            let unitCost = localPurchaseCostMap[rawSku] || localPurchaseCostMap[String(rawSku).trim().toLowerCase()] || localPurchaseCostMap[rawName] || localProductInfoMap[rawSku]?.cost || 0;
             if (!unitCost || unitCost <= 0) unitCost = Number(it.cost_price || it.costPrice || 0);
             if (!unitCost || unitCost <= 0) unitCost = Math.round(price * 0.9491);
             totalCost += (qty * unitCost);
@@ -490,7 +521,7 @@ export default function SalesReportPage() {
         let totalCost = 0;
         items.forEach(it => {
           const rawSku = it.product_sku || it.sku || (it.productId ? `SP${it.productId}` : '') || '';
-          let unitCost = purchaseCostMap[rawSku] || productInfoMap[rawSku]?.cost || 0;
+          let unitCost = localPurchaseCostMap[rawSku] || localProductInfoMap[rawSku]?.cost || 0;
           if (!unitCost || unitCost <= 0) unitCost = Math.round((Number(it.price || it.returnPrice || 0)) * 0.9491);
           totalCost += (Number(it.quantity || it.qty || 0) * unitCost);
         });
@@ -522,7 +553,7 @@ export default function SalesReportPage() {
     fetchData();
   }, [timeRangeType, selectedSingleDate, customFromDate, customToDate]);
 
-  // Filter transactions
+  // Filter transactions with dynamic reactive cost calculation
   const filteredTransactions = useMemo(() => {
     let txList = data.transactions || [];
     const targetYMD = formatDateYMD(selectedSingleDate);
@@ -538,8 +569,32 @@ export default function SalesReportPage() {
     if (timeTo) txList = txList.filter(tx => { const t = formatWorkingHoursTime(tx.time); return !t || t <= timeTo; });
     if (seller) txList = txList.filter(tx => tx.createdBy === seller);
 
-    return txList;
-  }, [data.transactions, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, seller]);
+    return txList.map(tx => {
+      let totalCost = 0;
+      const items = tx.items || [];
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product_name || it.name || it.title || '';
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.unit_price || 0);
+
+          let unitCost = purchaseCostMap[rawSku] || purchaseCostMap[String(rawSku).trim().toLowerCase()] || purchaseCostMap[rawName] || productInfoMap[rawSku]?.cost || 0;
+          if (!unitCost || unitCost <= 0) unitCost = Number(it.cost_price || it.costPrice || 0);
+          if (!unitCost || unitCost <= 0) unitCost = Math.round(price * 0.9491);
+          totalCost += (qty * unitCost);
+        });
+      } else {
+        totalCost = Math.round(Number(tx.revenue || 0) * 0.9491);
+      }
+
+      return {
+        ...tx,
+        costPrice: totalCost,
+        grossProfit: Number(tx.revenue || 0) - totalCost
+      };
+    });
+  }, [data.transactions, purchaseCostMap, productInfoMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, seller]);
 
   // Filter returns
   const filteredReturns = useMemo(() => {

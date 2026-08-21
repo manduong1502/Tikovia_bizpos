@@ -54,26 +54,22 @@ const LoadingStateRow = ({ colSpan, text = "Đang tải dữ liệu báo cáo, v
 );
 
 export default function EndOfDayReportPage() {
-  const [data, setData] = useState(() => {
-    const cached = loadInitialCache('reports:endofday');
-    if (cached && (cached.transactions || cached.orderCount)) return cached;
-    return { 
-      transactions: [], 
-      returns: [],
-      cashbook: [],
-      productsSummary: [],
-      orderCount: 0, 
-      returnCount: 0,
-      totalSales: 0, 
-      totalPaid: 0, 
-      totalReturns: 0, 
-      totalReturnPaid: 0,
-      cashbookIncome: 0,
-      cashbookExpense: 0,
-      netRevenue: 0 
-    };
+  const [data, setData] = useState({ 
+    transactions: [], 
+    returns: [],
+    cashbook: [],
+    productsSummary: [],
+    orderCount: 0, 
+    returnCount: 0,
+    totalSales: 0, 
+    totalPaid: 0, 
+    totalReturns: 0, 
+    totalReturnPaid: 0,
+    cashbookIncome: 0,
+    cashbookExpense: 0,
+    netRevenue: 0 
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [expandedOrders, setExpandedOrders] = useState({ invoices: true, returns: false });
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -126,9 +122,7 @@ export default function EndOfDayReportPage() {
 
   // Fetch report data from API
   const fetchData = async () => {
-    if (!data.transactions || data.transactions.length === 0) {
-      setLoading(true);
-    }
+    setLoading(true);
     let params = {};
 
     if (timeRangeType === 'date') {

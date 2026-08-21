@@ -17,8 +17,8 @@ export default function FinancialReportPage() {
   const [rawCashbook, setRawCashbook] = useState(() => loadInitialCache('cashbook:', []));
   const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
   const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
-  const [serverFinData, setServerFinData] = useState(() => loadInitialCache('reports:financial', null));
-  const [loading, setLoading] = useState(false);
+  const [serverFinData, setServerFinData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -45,28 +45,33 @@ export default function FinancialReportPage() {
   };
 
   const fetchReport = async () => {
-    if (rawOrders.length === 0) {
-      setLoading(true);
-    }
-    const params = {
-      period: timeRangeType,
-      date: formatDateYMD(selectedSingleDate),
-    };
+    setLoading(true);
+    let params = {};
     if (timeRangeType === 'date') {
-      const nextDay = new Date(selectedSingleDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      params.fromDate = formatDateYMD(selectedSingleDate);
-      params.toDate = formatDateYMD(nextDay);
-    } else if (timeRangeType === 'custom') {
-      if (customFromDate) params.fromDate = customFromDate;
-      if (customToDate) params.toDate = customToDate;
+      const d = new Date(selectedSingleDate);
+      const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+      const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+      params.fromDate = formatLocalYMD(prevDay);
+      params.toDate = formatLocalYMD(nextDay);
+      params.date = formatLocalYMD(selectedSingleDate);
+    } else {
+      if (customFromDate) {
+        const d = new Date(customFromDate);
+        const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+        params.fromDate = formatLocalYMD(prevDay);
+      }
+      if (customToDate) {
+        const d = new Date(customToDate);
+        const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+        params.toDate = formatLocalYMD(nextDay);
+      }
     }
 
     try {
       const [finRes, ordersRes, returnsRes, cashbookRes, prodsRes, poRes, endOfDayRes] = await Promise.all([
         reportAPI.getFinancial(params).catch(() => null),
-        orderAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
-        returnAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
+        orderAPI.getAll({ limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ limit: 5000 }).catch(() => []),
         cashbookAPI.getAll({ limit: 5000 }).catch(() => []),
         productAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 2000 }).catch(() => []),
@@ -75,25 +80,69 @@ export default function FinancialReportPage() {
 
       setServerFinData(finRes);
 
-      const oList = Array.isArray(ordersRes?.data) && ordersRes.data.length > 0
-        ? ordersRes.data
-        : (Array.isArray(ordersRes) && ordersRes.length > 0 ? ordersRes : (endOfDayRes?.transactions || []));
-
-      const rList = Array.isArray(returnsRes?.data) && returnsRes.data.length > 0
-        ? returnsRes.data
-        : (Array.isArray(returnsRes) && returnsRes.length > 0 ? returnsRes : (endOfDayRes?.returns || []));
-
-      const cbList = Array.isArray(cashbookRes?.data) && cashbookRes.data.length > 0
-        ? cashbookRes.data
-        : (Array.isArray(cashbookRes) && cashbookRes.length > 0 ? cashbookRes : (endOfDayRes?.cashbook || []));
-
-      const pList = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
+      const rawOrderList = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : []);
+      const rawReturnList = Array.isArray(returnsRes?.data) ? returnsRes.data : (Array.isArray(returnsRes) ? returnsRes : []);
+      const cbList = Array.isArray(cashbookRes?.data) ? cashbookRes.data : (Array.isArray(cashbookRes) ? cashbookRes : []);
+      const prods = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
       const poList = Array.isArray(poRes?.data) ? poRes.data : (Array.isArray(poRes) ? poRes : []);
 
-      setRawOrders(oList);
-      setRawReturns(rList);
+      const orderItemsMap = {};
+      rawOrderList.forEach(o => {
+        const code = o.code || (o.id ? `HD${String(o.id).padStart(5, '0')}` : '');
+        const items = o.items || o._items || o.order_items || o.details || [];
+        if (code) orderItemsMap[code] = { items, order: o };
+        if (o.id) orderItemsMap[o.id] = { items, order: o };
+      });
+
+      const returnItemsMap = {};
+      rawReturnList.forEach(r => {
+        const code = r.code || (r.id ? `TH${String(r.id).padStart(5, '0')}` : '');
+        const items = r.items || r._items || r.return_items || r.details || [];
+        if (code) returnItemsMap[code] = { items, returnOrder: r };
+        if (r.id) returnItemsMap[r.id] = { items, returnOrder: r };
+      });
+
+      let rawTx = (endOfDayRes?.transactions && endOfDayRes.transactions.length > 0) ? endOfDayRes.transactions : rawOrderList;
+      let rawRet = (endOfDayRes?.returns && endOfDayRes.returns.length > 0) ? endOfDayRes.returns : rawReturnList;
+
+      const combinedTransactions = rawTx.map(tx => {
+        const code = tx.code || (tx.id ? `HD${String(tx.id).padStart(5, '0')}` : '---');
+        const lookup = orderItemsMap[code] || orderItemsMap[tx.id] || {};
+        let items = (Array.isArray(tx.items) && tx.items.length > 0) ? tx.items : (lookup.items || tx._items || tx.details || []);
+        const fullOrder = lookup.order || tx;
+        const revenue = Number(fullOrder.total || tx.revenue || 0);
+        const time = tx.time || tx.created_at || tx.createdAt || tx.date || new Date().toISOString();
+        return {
+          ...tx,
+          id: tx.id || code,
+          code,
+          time,
+          revenue,
+          items,
+          order: fullOrder
+        };
+      });
+
+      const combinedReturns = rawRet.map(ret => {
+        const code = ret.code || (ret.id ? `TH${String(ret.id).padStart(5, '0')}` : '---');
+        const lookup = returnItemsMap[code] || returnItemsMap[ret.id] || {};
+        let items = (Array.isArray(ret.items) && ret.items.length > 0) ? ret.items : (lookup.items || ret._items || ret.details || []);
+        const revenue = Math.abs(Number(ret.revenue || ret.total || 0));
+        const time = ret.time || ret.created_at || ret.createdAt || ret.date || new Date().toISOString();
+        return {
+          ...ret,
+          id: ret.id || code,
+          code,
+          time,
+          revenue,
+          items
+        };
+      });
+
+      setRawOrders(combinedTransactions);
+      setRawReturns(combinedReturns);
       setRawCashbook(cbList);
-      setProductsList(pList);
+      setProductsList(prods);
       setPurchaseOrdersList(poList);
     } catch (err) {
       console.error("Error loading financial report:", err);
@@ -139,19 +188,6 @@ export default function FinancialReportPage() {
   const productInfoMap = useMemo(() => {
     const map = {};
     let allProds = [...(productsList || [])];
-    if (typeof window !== 'undefined') {
-      if (window.__tikovia_products_cache && Array.isArray(window.__tikovia_products_cache)) {
-        allProds = [...allProds, ...window.__tikovia_products_cache];
-      }
-      try {
-        const s = sessionStorage.getItem('tikovia_products_cache');
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (Array.isArray(parsed)) allProds = [...allProds, ...parsed];
-        }
-      } catch (e) {}
-    }
-
     allProds.forEach(p => {
       if (!p) return;
       const cost = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.last_import_price ?? p.import_price ?? p.importPrice ?? p.gia_von ?? p.giaVon ?? 0);
@@ -159,22 +195,12 @@ export default function FinancialReportPage() {
       const unit = p.unit || 'Cái';
       const catName = p.category?.name || p.category || '';
       const brandName = p.brand?.name || p.brand || '';
-      const info = { cost, stock, unit, category: catName, brand: brandName };
+      const info = { cost, stock, unit, category: catName, brand: brandName, name: p.name, sku: p.sku || p.code };
 
-      if (p.id) map[p.id] = info;
-      if (p.id) map[String(p.id)] = info;
-      if (p.code) {
-        map[p.code] = info;
-        map[String(p.code).trim().toLowerCase()] = info;
-      }
-      if (p.sku) {
-        map[p.sku] = info;
-        map[String(p.sku).trim().toLowerCase()] = info;
-      }
-      if (p.name) {
-        map[p.name] = info;
-        map[String(p.name).trim().toLowerCase()] = info;
-      }
+      if (p.id) { map[p.id] = info; map[String(p.id)] = info; }
+      if (p.code) { map[p.code] = info; map[String(p.code).trim().toLowerCase()] = info; }
+      if (p.sku) { map[p.sku] = info; map[String(p.sku).trim().toLowerCase()] = info; }
+      if (p.name) { map[p.name] = info; map[String(p.name).trim().toLowerCase()] = info; }
     });
     return map;
   }, [productsList]);
@@ -220,10 +246,11 @@ export default function FinancialReportPage() {
       if (timeFrom && oTime < timeFrom) return;
       if (timeTo && oTime > timeTo) return;
 
-      const total = Number(o.total || o.revenue || 0);
-      const items = o.items || o._items || o.order_items || o.details || [];
+      const fullOrder = o.order || o;
+      const total = Number(fullOrder.total || o.revenue || 0);
+      const items = (Array.isArray(o.items) && o.items.length > 0) ? o.items : [];
       const itemTotal = items.reduce((sum, it) => sum + (Number(it.quantity || it.qty || 0) * Number(it.price || it.unit_price || 0)), 0);
-      const discount = Number(o.discount_amount || o.discount || (itemTotal > total ? itemTotal - total : 0));
+      const discount = Number(fullOrder.discount || fullOrder.discount_amount || (itemTotal > total ? itemTotal - total : 0));
       const subtotal = itemTotal > 0 ? itemTotal : (total + discount);
 
       grossRevenue += subtotal;
@@ -246,7 +273,6 @@ export default function FinancialReportPage() {
             || productInfoMap[String(sku).trim().toLowerCase()]?.cost
             || productInfoMap[rawName]?.cost
             || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
-            || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
             || 0;
 
           if (unitCost <= 0 && price > 0) {
@@ -282,7 +308,7 @@ export default function FinancialReportPage() {
       returnTotalVal += total;
       returnFeeIncome += Number(r.returnFee || r.fee || 0);
 
-      const items = r.items || r._items || r.return_items || r.details || [];
+      const items = (Array.isArray(r.items) && r.items.length > 0) ? r.items : [];
       let retCogs = 0;
       if (items.length > 0) {
         items.forEach(it => {
@@ -300,7 +326,6 @@ export default function FinancialReportPage() {
             || productInfoMap[String(sku).trim().toLowerCase()]?.cost
             || productInfoMap[rawName]?.cost
             || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
-            || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
             || 0;
 
           if (unitCost <= 0 && price > 0) {
@@ -329,8 +354,15 @@ export default function FinancialReportPage() {
 
       const amount = Math.abs(Number(cb.amount || 0));
       const cat = (cb.groupName || cb.group_name || cb.category || cb.note || '').toLowerCase();
+      const isSupplierTx = cb.supplierId || cb.supplier_id || cb.purchaseOrderId || cb.purchase_order_id 
+        || cat.includes('nhà cung cấp') || cat.includes('nhập hàng') || cat.includes('ncc') || cat.includes('nhap hang');
+      const isCustomerTx = cb.customerId || cb.customer_id || cb.orderId || cb.order_id 
+        || cat.includes('khách hàng') || cat.includes('bán hàng') || cat.includes('hóa đơn') || cat.includes('thu nợ') || cat.includes('thu tiền bán') || cat.includes('thu tiền khách');
 
       if (cb.type === 'EXPENSE' || cb.type === 'PAYMENT') {
+        // Skip supplier payments to avoid double counting with COGS
+        if (isSupplierTx) return;
+
         if (cat.includes('lương') || cat.includes('salary') || cat.includes('nhân viên')) {
           staffSalary += amount;
         } else if (cat.includes('giao hàng') || cat.includes('vận chuyển') || cat.includes('ship') || cat.includes('đtgh')) {
@@ -345,13 +377,14 @@ export default function FinancialReportPage() {
           pointsPayment += amount;
         } else if (cat.includes('chiết khấu')) {
           customerPaymentDiscount += amount;
-        } else if (cat.includes('khác')) {
+        } else if (cat.includes('chi khác') || cat.includes('chi ngoài')) {
           otherExpenses += amount;
-        } else {
-          otherOperatingExpenses += amount;
         }
       } else if (cb.type === 'INCOME' || cb.type === 'RECEIPT') {
-        if (!cat.includes('bán hàng') && !cat.includes('hóa đơn') && !cat.includes('thu tiền bán') && !cat.includes('thu tiền khách')) {
+        // Skip customer invoice receipts to avoid double counting with Revenue
+        if (isCustomerTx) return;
+
+        if (cat.includes('thu khác') || cat.includes('thanh lý') || cat.includes('thu ngoài')) {
           otherIncomeFromCashbook += amount;
         }
       }
@@ -362,11 +395,12 @@ export default function FinancialReportPage() {
     const netCogs = Math.max(0, cogs - returnCogs);
     const grossProfit = netRevenue - netCogs;
 
-    const operatingExpenses = staffSalary + shippingFee + refundCustomer + discardGoods + pointsPayment + customerPaymentDiscount + voucherExpenses + roundingPurchaseDiff + roundingSalesDiff + otherOperatingExpenses;
+    const operatingExpenses = staffSalary + shippingFee + refundCustomer + discardGoods + pointsPayment + customerPaymentDiscount + voucherExpenses + roundingPurchaseDiff + roundingSalesDiff;
     const operatingProfit = grossProfit - operatingExpenses;
 
     const otherIncome = returnFeeIncome + otherIncomeFromCashbook;
-    const netProfit = (operatingProfit + otherIncome) - otherExpenses;
+    const otherProfit = otherIncome - otherExpenses;
+    const netProfit = operatingProfit + otherProfit;
 
     return {
       grossRevenue,

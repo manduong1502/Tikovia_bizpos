@@ -94,12 +94,12 @@ const LoadingStateRow = ({ colSpan, text = "Đang tải dữ liệu báo cáo, v
 );
 
 export default function ProductsReportPage() {
-  const [rawOrders, setRawOrders] = useState(() => loadInitialCache('orders:', []));
-  const [rawReturns, setRawReturns] = useState(() => loadInitialCache('returns:', []));
+  const [rawOrders, setRawOrders] = useState([]);
+  const [rawReturns, setRawReturns] = useState([]);
   const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
   const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
   const [prodDirectList, setProdDirectList] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(() => loadInitialCache('categories', []));
   const [zoom, setZoom] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -159,51 +159,100 @@ export default function ProductsReportPage() {
   };
 
   const fetchData = async () => {
-    if (rawOrders.length === 0 && productsList.length === 0) {
-      setLoading(true);
-    }
-    const params = {
-      period: timeRangeType,
-      date: formatDateYMD(selectedSingleDate),
-    };
+    setLoading(true);
+    let params = {};
     if (timeRangeType === 'date') {
-      const nextDay = new Date(selectedSingleDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      params.fromDate = formatDateYMD(selectedSingleDate);
-      params.toDate = formatDateYMD(nextDay);
-    } else if (timeRangeType === 'custom') {
-      if (customFromDate) params.fromDate = customFromDate;
-      if (customToDate) params.toDate = customToDate;
+      const d = new Date(selectedSingleDate);
+      const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+      const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+      params.fromDate = formatLocalYMD(prevDay);
+      params.toDate = formatLocalYMD(nextDay);
+      params.date = formatLocalYMD(selectedSingleDate);
+    } else {
+      if (customFromDate) {
+        const d = new Date(customFromDate);
+        const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+        params.fromDate = formatLocalYMD(prevDay);
+      }
+      if (customToDate) {
+        const d = new Date(customToDate);
+        const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+        params.toDate = formatLocalYMD(nextDay);
+      }
     }
 
     try {
-      const [prodRes, endOfDayRes, ordersRes, returnsRes, prodsRes, poRes] = await Promise.all([
-        reportAPI.getProducts(params).catch(() => null),
+      const [endOfDayRes, ordersRes, returnsRes, prodsRes, poRes] = await Promise.all([
         reportAPI.getEndOfDay(params).catch(() => null),
-        orderAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
-        returnAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
+        orderAPI.getAll({ limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ limit: 5000 }).catch(() => []),
         productAPI.getAll().catch(() => []),
         purchaseOrderAPI.getAll({ limit: 2000 }).catch(() => [])
       ]);
 
-      const direct = Array.isArray(prodRes?.data) ? prodRes.data : (Array.isArray(prodRes) ? prodRes : []);
-      setProdDirectList(direct);
-
-      const oList = Array.isArray(ordersRes?.data) && ordersRes.data.length > 0
-        ? ordersRes.data
-        : (Array.isArray(ordersRes) && ordersRes.length > 0 ? ordersRes : (endOfDayRes?.transactions || []));
-
-      const rList = Array.isArray(returnsRes?.data) && returnsRes.data.length > 0
-        ? returnsRes.data
-        : (Array.isArray(returnsRes) && returnsRes.length > 0 ? returnsRes : (endOfDayRes?.returns || []));
-
-      const pList = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
+      const rawOrderList = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : []);
+      const rawReturnList = Array.isArray(returnsRes?.data) ? returnsRes.data : (Array.isArray(returnsRes) ? returnsRes : []);
+      const prods = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
       const poList = Array.isArray(poRes?.data) ? poRes.data : (Array.isArray(poRes) ? poRes : []);
 
-      setRawOrders(oList);
-      setRawReturns(rList);
-      setProductsList(pList);
+      setProductsList(prods);
       setPurchaseOrdersList(poList);
+
+      const orderItemsMap = {};
+      rawOrderList.forEach(o => {
+        const code = o.code || (o.id ? `HD${String(o.id).padStart(5, '0')}` : '');
+        const items = o.items || o._items || o.order_items || o.details || [];
+        if (code) orderItemsMap[code] = { items, order: o };
+        if (o.id) orderItemsMap[o.id] = { items, order: o };
+      });
+
+      const returnItemsMap = {};
+      rawReturnList.forEach(r => {
+        const code = r.code || (r.id ? `TH${String(r.id).padStart(5, '0')}` : '');
+        const items = r.items || r._items || r.return_items || r.details || [];
+        if (code) returnItemsMap[code] = { items, returnOrder: r };
+        if (r.id) returnItemsMap[r.id] = { items, returnOrder: r };
+      });
+
+      let rawTx = (endOfDayRes?.transactions && endOfDayRes.transactions.length > 0) ? endOfDayRes.transactions : rawOrderList;
+      let rawRet = (endOfDayRes?.returns && endOfDayRes.returns.length > 0) ? endOfDayRes.returns : rawReturnList;
+
+      const combinedTransactions = rawTx.map(tx => {
+        const code = tx.code || (tx.id ? `HD${String(tx.id).padStart(5, '0')}` : '---');
+        const lookup = orderItemsMap[code] || orderItemsMap[tx.id] || {};
+        let items = (Array.isArray(tx.items) && tx.items.length > 0) ? tx.items : (lookup.items || tx._items || tx.details || []);
+        const fullOrder = lookup.order || tx;
+        const revenue = Number(fullOrder.total || tx.revenue || 0);
+        const time = tx.time || tx.created_at || tx.createdAt || tx.date || new Date().toISOString();
+        return {
+          ...tx,
+          id: tx.id || code,
+          code,
+          time,
+          revenue,
+          items,
+          order: fullOrder
+        };
+      });
+
+      const combinedReturns = rawRet.map(ret => {
+        const code = ret.code || (ret.id ? `TH${String(ret.id).padStart(5, '0')}` : '---');
+        const lookup = returnItemsMap[code] || returnItemsMap[ret.id] || {};
+        let items = (Array.isArray(ret.items) && ret.items.length > 0) ? ret.items : (lookup.items || ret._items || ret.details || []);
+        const revenue = Math.abs(Number(ret.revenue || ret.total || 0));
+        const time = ret.time || ret.created_at || ret.createdAt || ret.date || new Date().toISOString();
+        return {
+          ...ret,
+          id: ret.id || code,
+          code,
+          time,
+          revenue,
+          items
+        };
+      });
+
+      setRawOrders(combinedTransactions);
+      setRawReturns(combinedReturns);
     } catch (err) {
       console.error("Error loading products report:", err);
       toast.error('Lỗi tải dữ liệu báo cáo hàng hóa');
@@ -247,21 +296,7 @@ export default function ProductsReportPage() {
 
   const productInfoMap = useMemo(() => {
     const map = {};
-    
     let allProds = [...(productsList || [])];
-    if (typeof window !== 'undefined') {
-      if (window.__tikovia_products_cache && Array.isArray(window.__tikovia_products_cache)) {
-        allProds = [...allProds, ...window.__tikovia_products_cache];
-      }
-      try {
-        const s = sessionStorage.getItem('tikovia_products_cache');
-        if (s) {
-          const parsed = JSON.parse(s);
-          if (Array.isArray(parsed)) allProds = [...allProds, ...parsed];
-        }
-      } catch (e) {}
-    }
-
     allProds.forEach(p => {
       if (!p) return;
       const cost = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.last_import_price ?? p.import_price ?? p.importPrice ?? p.gia_von ?? p.giaVon ?? 0);
@@ -269,22 +304,12 @@ export default function ProductsReportPage() {
       const unit = p.unit || 'Cái';
       const catName = p.category?.name || p.category || '';
       const brandName = p.brand?.name || p.brand || '';
-      const info = { cost, stock, unit, category: catName, brand: brandName };
+      const info = { cost, stock, unit, category: catName, brand: brandName, name: p.name, sku: p.sku || p.code };
 
-      if (p.id) map[p.id] = info;
-      if (p.id) map[String(p.id)] = info;
-      if (p.code) {
-        map[p.code] = info;
-        map[String(p.code).trim().toLowerCase()] = info;
-      }
-      if (p.sku) {
-        map[p.sku] = info;
-        map[String(p.sku).trim().toLowerCase()] = info;
-      }
-      if (p.name) {
-        map[p.name] = info;
-        map[String(p.name).trim().toLowerCase()] = info;
-      }
+      if (p.id) { map[p.id] = info; map[String(p.id)] = info; }
+      if (p.code) { map[p.code] = info; map[String(p.code).trim().toLowerCase()] = info; }
+      if (p.sku) { map[p.sku] = info; map[String(p.sku).trim().toLowerCase()] = info; }
+      if (p.name) { map[p.name] = info; map[String(p.name).trim().toLowerCase()] = info; }
     });
     return map;
   }, [productsList]);
@@ -297,6 +322,8 @@ export default function ProductsReportPage() {
       if (o.status === 'CANCELLED' || o.isCancelled) return;
       const oTimeVal = o.time || o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
       const ymd = getWorkingHoursYMD(oTimeVal);
+      const timeStr = formatWorkingHoursTime(oTimeVal);
+
       if (timeRangeType === 'date') {
         if (ymd !== targetYMD) return;
       } else {
@@ -304,7 +331,14 @@ export default function ProductsReportPage() {
         if (customToDate && (!ymd || ymd > customToDate)) return;
       }
 
-      (o.items || o._items || o.order_items || o.details || []).forEach(it => {
+      if (timeFrom && (!timeStr || timeStr < timeFrom)) return;
+      if (timeTo && (!timeStr || timeStr > timeTo)) return;
+
+      const items = (Array.isArray(o.items) && o.items.length > 0) ? o.items : [];
+      const orderRevenue = Number(o.revenue !== undefined ? o.revenue : (o.total || 0));
+      const itemsGrossSum = items.reduce((sum, it) => sum + (Number(it.quantity || it.qty || 0) * Number(it.price || it.unit_price || 0)), 0);
+
+      items.forEach(it => {
         const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
         const rawName = it.product_name || it.name || it.title || 'Sản phẩm';
         const sku = rawSku || rawName;
@@ -318,9 +352,14 @@ export default function ProductsReportPage() {
 
         const qty = Number(it.quantity || it.qty || 0);
         const price = Number(it.price || it.unit_price || 0);
-        const lineTotal = Number(it.total || (qty * price) || 0);
+        const lineGross = Number(it.total || (qty * price) || 0);
 
-        let costPrice = purchaseCostMap[sku]
+        // Proportional allocation of order discount:
+        const allocatedRevenue = (itemsGrossSum > 0 && orderRevenue > 0)
+          ? (itemsGrossSum === orderRevenue ? lineGross : Math.round((lineGross / itemsGrossSum) * orderRevenue))
+          : lineGross;
+
+        let unitCost = purchaseCostMap[sku]
           || purchaseCostMap[String(sku).trim().toLowerCase()]
           || purchaseCostMap[rawName]
           || productInfoMap[it.product_id || it.productId || it.id]?.cost
@@ -329,11 +368,10 @@ export default function ProductsReportPage() {
           || productInfoMap[rawName]?.cost
           || pInfo.cost
           || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
-          || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
           || 0;
 
-        if (costPrice <= 0 && price > 0) {
-          costPrice = Math.round(price * 0.9491);
+        if (unitCost <= 0 && price > 0) {
+          unitCost = Math.round(price * 0.9491);
         }
 
         const unit = it.unit || pInfo.unit || 'Cái';
@@ -345,7 +383,7 @@ export default function ProductsReportPage() {
             sku,
             name: rawName,
             unit,
-            costPrice,
+            costPrice: unitCost,
             stock,
             soldQty: 0,
             revenue: 0,
@@ -356,15 +394,15 @@ export default function ProductsReportPage() {
             grossProfit: 0,
             profitMargin: 0,
             stockValue: 0,
-            categoryId: it.categoryId || it.category_id || it.category,
+            categoryId: it.categoryId || it.category_id || it.category || pInfo.category,
             category: it.category || pInfo.category || '',
             brand: it.brand || it.brand_name || pInfo.brand || ''
           };
         }
         
         prodMap[sku].soldQty += qty;
-        prodMap[sku].revenue += lineTotal;
-        prodMap[sku].cogs += (qty * costPrice);
+        prodMap[sku].revenue += allocatedRevenue;
+        prodMap[sku].cogs += (qty * unitCost);
       });
     });
 
@@ -372,6 +410,8 @@ export default function ProductsReportPage() {
       if (r.status === 'CANCELLED' || r.isCancelled) return;
       const rTimeVal = r.time || r.created_at || r.createdAt || r.date;
       const ymd = getWorkingHoursYMD(rTimeVal);
+      const timeStr = formatWorkingHoursTime(rTimeVal);
+
       if (timeRangeType === 'date') {
         if (ymd !== targetYMD) return;
       } else {
@@ -379,7 +419,14 @@ export default function ProductsReportPage() {
         if (customToDate && (!ymd || ymd > customToDate)) return;
       }
 
-      (r.items || r._items || r.return_items || r.details || []).forEach(it => {
+      if (timeFrom && (!timeStr || timeStr < timeFrom)) return;
+      if (timeTo && (!timeStr || timeStr > timeTo)) return;
+
+      const items = (Array.isArray(r.items) && r.items.length > 0) ? r.items : [];
+      const returnTotal = Math.abs(Number(r.revenue !== undefined ? r.revenue : (r.total || 0)));
+      const itemsGrossSum = items.reduce((sum, it) => sum + (Number(it.quantity || it.qty || 0) * Number(it.price || it.returnPrice || it.unit_price || 0)), 0);
+
+      items.forEach(it => {
         const rawSku = it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
         const rawName = it.product?.name || it.product_name || it.name || 'Sản phẩm';
         const sku = rawSku || rawName;
@@ -393,9 +440,13 @@ export default function ProductsReportPage() {
 
         const qty = Number(it.quantity || it.qty || 0);
         const price = Number(it.price || it.returnPrice || it.unit_price || 0);
-        const lineTotal = Number(it.total || (qty * price) || 0);
+        const lineGross = Number(it.total || (qty * price) || 0);
 
-        let costPrice = purchaseCostMap[sku]
+        const allocatedReturnVal = (itemsGrossSum > 0 && returnTotal > 0)
+          ? (itemsGrossSum === returnTotal ? lineGross : Math.round((lineGross / itemsGrossSum) * returnTotal))
+          : lineGross;
+
+        let unitCost = purchaseCostMap[sku]
           || purchaseCostMap[String(sku).trim().toLowerCase()]
           || purchaseCostMap[rawName]
           || productInfoMap[it.product_id || it.productId || it.id]?.cost
@@ -404,11 +455,10 @@ export default function ProductsReportPage() {
           || productInfoMap[rawName]?.cost
           || pInfo.cost
           || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
-          || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
           || 0;
 
-        if (costPrice <= 0 && price > 0) {
-          costPrice = Math.round(price * 0.9491);
+        if (unitCost <= 0 && price > 0) {
+          unitCost = Math.round(price * 0.9491);
         }
 
         const unit = it.unit || pInfo.unit || 'Cái';
@@ -420,7 +470,7 @@ export default function ProductsReportPage() {
             sku,
             name: rawName,
             unit,
-            costPrice,
+            costPrice: unitCost,
             stock,
             soldQty: 0,
             revenue: 0,
@@ -431,40 +481,17 @@ export default function ProductsReportPage() {
             grossProfit: 0,
             profitMargin: 0,
             stockValue: 0,
+            categoryId: it.categoryId || it.category_id || it.category || pInfo.category,
             category: it.category || pInfo.category || '',
             brand: it.brand || pInfo.brand || ''
           };
         }
         
         prodMap[sku].returnQty += qty;
-        prodMap[sku].returnVal += lineTotal;
-        prodMap[sku].cogs = Math.max(0, prodMap[sku].cogs - (qty * costPrice));
+        prodMap[sku].returnVal += allocatedReturnVal;
+        prodMap[sku].cogs = Math.max(0, prodMap[sku].cogs - (qty * unitCost));
       });
     });
-
-    if (Object.keys(prodMap).length === 0 && prodDirectList.length > 0) {
-      prodDirectList.forEach(p => {
-        const sku = p.sku || p.product_sku || `SP${p.id || ''}`;
-        const costPrice = Number(p.cost_price || p.costPrice || 0);
-        const stock = Number(p.stock !== undefined ? p.stock : (p.inventory || p.quantity || 0));
-        const soldQty = Number(p.soldQty || p.quantity || 0);
-        const revenue = Number(p.revenue || p.total || 0);
-        const returnQty = Number(p.returnQty || 0);
-        const returnVal = Number(p.returnVal || 0);
-        const netRevenue = Number(p.netRevenue || (revenue - returnVal));
-
-        prodMap[sku] = {
-          id: p.id || sku, sku,
-          name: p.name || p.product_name || 'Sản phẩm',
-          unit: p.unit || 'Cái', costPrice, stock, soldQty, revenue, returnQty, returnVal, netRevenue,
-          cogs: soldQty * costPrice,
-          grossProfit: netRevenue - (soldQty * costPrice),
-          profitMargin: netRevenue > 0 ? ((netRevenue - (soldQty * costPrice)) / netRevenue) * 100 : 0,
-          stockValue: stock * costPrice,
-          category: p.category || '', brand: p.brand || ''
-        };
-      });
-    }
 
     Object.values(prodMap).forEach(p => {
       p.netRevenue = p.revenue - p.returnVal;
@@ -480,14 +507,14 @@ export default function ProductsReportPage() {
       }
       if (selectedCategory) {
         const pCat = String(p.category || '').toLowerCase().trim();
-        const pCatId = String(p.categoryId || '').trim();
+        const pCatId = String(p.categoryId || '').toLowerCase().trim();
         const selCat = String(selectedCategory).toLowerCase().trim();
-        if (pCat !== selCat && pCatId !== selCat) return false;
+        if (pCat !== selCat && pCatId !== selCat && !pCat.includes(selCat)) return false;
       }
       if (selectedBrand) {
         const pBrand = String(p.brand || '').toLowerCase().trim();
         const selBrand = String(selectedBrand).toLowerCase().trim();
-        if (pBrand !== selBrand) return false;
+        if (pBrand !== selBrand && !pBrand.includes(selBrand)) return false;
       }
       return true;
     });
@@ -505,7 +532,7 @@ export default function ProductsReportPage() {
     }
 
     return result;
-  }, [rawOrders, rawReturns, prodDirectList, productInfoMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, searchQuery, selectedCategory, selectedBrand, interestType]);
+  }, [rawOrders, rawReturns, purchaseCostMap, productInfoMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo, searchQuery, selectedCategory, selectedBrand, interestType]);
 
   const totalSoldQty = processedData.reduce((acc, p) => acc + (p.soldQty || 0), 0);
   const totalRevenue = processedData.reduce((acc, p) => acc + (p.revenue || 0), 0);
