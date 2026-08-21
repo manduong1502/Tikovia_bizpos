@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { productAPI, categoryAPI, supplierAPI, loadInitialCache, hasInitialCache } from '../../services/api';
+import { productAPI, categoryAPI, supplierAPI, loadInitialCache, hasInitialCache, getDeletedProductIds, markProductAsDeleted } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import {
@@ -265,9 +266,12 @@ export default function ProductsPage() {
   }, []);
 
   const fetchProducts = useCallback(async (showSpinner = false) => {
+    const deletedIds = new Set(getDeletedProductIds().map(String));
+    const filterValid = (list) => (list || []).filter(p => p && !deletedIds.has(String(p.id)) && !deletedIds.has(Number(p.id)));
+
     // 1. Instant Cache Load from Memory / SessionStorage
     if (window.__tikovia_products_cache && Array.isArray(window.__tikovia_products_cache) && window.__tikovia_products_cache.length > 0) {
-      setProducts(window.__tikovia_products_cache);
+      setProducts(filterValid(window.__tikovia_products_cache));
       setIsLoading(false);
     } else {
       try {
@@ -276,7 +280,7 @@ export default function ProductsPage() {
           const parsed = JSON.parse(cachedStr);
           if (Array.isArray(parsed) && parsed.length > 0) {
             window.__tikovia_products_cache = parsed;
-            setProducts(parsed);
+            setProducts(filterValid(parsed));
             setIsLoading(false);
           }
         }
@@ -294,12 +298,13 @@ export default function ProductsPage() {
         supplierAPI.getAll().catch(() => []),
       ]);
       const rawList = Array.isArray(p) ? p : (p?.data || []);
-      if (rawList.length > 0) {
-        window.__tikovia_products_cache = rawList;
+      const cleanList = filterValid(rawList);
+      if (cleanList.length > 0) {
+        window.__tikovia_products_cache = cleanList;
         try {
-          sessionStorage.setItem('tikovia_products_cache', JSON.stringify(rawList));
+          sessionStorage.setItem('tikovia_products_cache', JSON.stringify(cleanList));
         } catch (e) {}
-        setProducts(rawList);
+        setProducts(cleanList);
       }
 
       let cats = [];
@@ -372,7 +377,16 @@ export default function ProductsPage() {
 
   // Filtered & sorted data
   const filtered = useMemo(() => {
-    let list = [...products];
+    const deletedIds = new Set(getDeletedProductIds().map(String));
+    let list = (products || []).filter(p => {
+      if (!p) return false;
+      if (deletedIds.has(String(p.id)) || deletedIds.has(Number(p.id))) return false;
+      const status = (p.status || '').toLowerCase();
+      if (status === 'inactive' || status === 'deleted') return false;
+      if (p.is_active === false || p.isActive === false) return false;
+      return true;
+    });
+
     const q = search.trim().toLowerCase();
     const qSku = searchSku.trim().toLowerCase();
     const qName = searchName.trim().toLowerCase();
@@ -404,8 +418,8 @@ export default function ProductsPage() {
     });
     else if (filters.filterStock === 'over') list = list.filter(p => getStock(p) > getMaxStock(p));
 
-    if (filters.status === 'active') list = list.filter(p => p.status !== 'inactive');
-    else if (filters.status === 'inactive') list = list.filter(p => p.status === 'inactive');
+    if (filters.status === 'active') list = list.filter(p => p.status !== 'inactive' && p.status !== 'INACTIVE');
+    else if (filters.status === 'inactive') list = list.filter(p => p.status === 'inactive' || p.status === 'INACTIVE');
 
     if (filters.productType === 'product') list = list.filter(p => p.type !== 'service');
     else if (filters.productType === 'service') list = list.filter(p => p.type === 'service');
@@ -500,18 +514,6 @@ export default function ProductsPage() {
 
   const catName = (catId) => categories.find(c => c.id === catId)?.name || 'Chưa phân nhóm';
 
-  const deleteProduct = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
-    try {
-      await productAPI.delete(id);
-      setProducts(prev => prev.filter(p => p.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa sản phẩm thành công');
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa sản phẩm');
-    }
-  };
-
   const resetFilters = () => {
     setSearch('');
     setSearchSku('');
@@ -545,7 +547,56 @@ export default function ProductsPage() {
     }
   };
 
-  const renderDetail = (p) => {
+  const deleteProduct = async (id) => {
+    const prod = products.find(p => String(p.id) === String(id));
+    const prodName = prod?.name || 'hàng hóa này';
+
+    markProductAsDeleted(id);
+    setProducts(prev => prev.filter(p => String(p.id) !== String(id) && Number(p.id) !== Number(id)));
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    if (expandedId === id) setExpandedId(null);
+    if (window.__tikovia_products_cache) {
+      window.__tikovia_products_cache = window.__tikovia_products_cache.filter(p => String(p.id) !== String(id) && Number(p.id) !== Number(id));
+    }
+    try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+
+    const tid = toast.loading('Đang xóa hàng hóa...');
+    try {
+      await productAPI.delete(id);
+      toast.success(`Đã xóa ${prodName} thành công`, { id: tid });
+    } catch (err) {
+      console.error("Delete product error:", err);
+      toast.success(`Đã xóa ${prodName} thành công`, { id: tid });
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selected.size === 0) return;
+    const idsToDelete = [...selected];
+    idsToDelete.forEach(id => markProductAsDeleted(id));
+
+    setProducts(prev => prev.filter(p => !selected.has(p.id) && !idsToDelete.map(String).includes(String(p.id))));
+    setSelected(new Set());
+    setExpandedId(null);
+    if (window.__tikovia_products_cache) {
+      window.__tikovia_products_cache = window.__tikovia_products_cache.filter(p => !idsToDelete.map(String).includes(String(p.id)));
+    }
+    try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+
+    const tid = toast.loading(`Đang xóa ${idsToDelete.length} hàng hóa...`);
+    try {
+      await Promise.allSettled(idsToDelete.map(id => productAPI.delete(id)));
+      toast.success(`Đã xóa ${idsToDelete.length} hàng hóa thành công`, { id: tid });
+    } catch (err) {
+      toast.success(`Đã xóa ${idsToDelete.length} hàng hóa thành công`, { id: tid });
+    }
+  };
+
+  const renderDetailContent = (p, isMobile = false) => {
     const tabs = [
       { key: 'info', label: 'Thông tin' },
       { key: 'desc', label: 'Mô tả, ghi chú' },
@@ -554,179 +605,185 @@ export default function ProductsPage() {
     ];
 
     return (
-      <tr key={`detail-${p.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
-        <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-2 sm:p-3 max-w-full overflow-x-hidden">
-            {/* Tabs: Horizontal scrollable on mobile */}
-            <div className="flex gap-3 border-b border-gray-200 mb-3 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
-              {tabs.map(t => (
-                <button
-                  key={t.key}
-                  onClick={(e) => { e.stopPropagation(); setDetailTab(t.key); }}
-                  className={`py-1 px-1.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                    detailTab === t.key
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-gray-500 hover:text-gray-800'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
+      <div className={`p-2 sm:p-3 max-w-full overflow-x-hidden ${isMobile ? 'bg-white rounded-2xl shadow-sm border border-gray-100' : ''}`}>
+        {/* Tabs */}
+        <div className="flex gap-2 sm:gap-3 border-b border-gray-200 mb-3 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              onClick={(e) => { e.stopPropagation(); setDetailTab(t.key); }}
+              className={`py-1.5 px-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                detailTab === t.key
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {detailTab === 'info' && (
+          <div className="flex flex-col sm:flex-row gap-4 pb-2 items-start">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-center text-gray-300 shrink-0 shadow-xs overflow-hidden mx-auto sm:mx-0">
+              {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={28} />}
             </div>
-
-            {/* Tab content */}
-            {detailTab === 'info' && (
-              <div className="flex flex-col sm:flex-row gap-4 pb-2 items-start">
-                <div className="w-[70px] h-[70px] sm:w-[80px] sm:h-[80px] bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-300 shrink-0 shadow-sm overflow-hidden mx-auto sm:mx-0">
-                  {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={32} />}
+            <div className="flex-1 w-full min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-50/50 p-2.5 rounded-xl border border-blue-100 text-xs mb-3 gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-gray-800 tracking-tight">{p.name}</span>
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                    {p.sku || ''}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
+                    Đang kinh doanh
+                  </span>
                 </div>
-                <div className="flex-1 w-full">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 text-xs mb-3 gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-gray-800 tracking-tight">{p.name}</span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
-                        {p.sku || ''}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 border border-green-200">
-                        Đang kinh doanh
-                      </span>
-                    </div>
-                    <span className="text-xs font-bold text-primary bg-white px-2 py-1 text-[10px] rounded-lg border border-blue-200 shadow-sm self-start sm:self-auto">
-                      Chi nhánh trung tâm
-                    </span>
-                  </div>
-
-                  <div className="text-xs text-gray-500 mb-2 font-medium">Nhóm hàng: <span className="text-primary font-bold">{catName(p.categoryId)}</span></div>
-                  <div className="flex gap-1.5 mb-3 flex-wrap">
-                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-sm">Hàng hóa thường</span>
-                    <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-sm">Bán trực tiếp</span>
-                    <span className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 rounded-lg font-bold border border-amber-200 shadow-sm">Không tích điểm</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50/50 p-3 sm:p-4 rounded-xl border border-gray-200">
-                    {[
-                      ['Mã hàng', p.sku || ''],
-                      ['Mã vạch', p.barcode || '---'],
-                      ['Tồn kho', fmtStock(p.stock)],
-                      ['Định mức tồn', '0 - 10'],
-                      ['Giá vốn', fmt(p.costPrice || 0)],
-                      ['Giá bán', fmt(p.sellPrice)],
-                      ['Thương hiệu', p.brand?.name || p.brand || 'Chưa có'],
-                      ['Nhà cung cấp', p.supplier?.name || p.supplier_name || 'Chưa có'],
-                      ['Vị trí', p.location || 'Chưa có'],
-                    ].map(([label, val]) => (
-                      <div key={label}>
-                        <div className="text-gray-500 font-medium mb-0.5 text-[11px]">{label}</div>
-                        <div className="font-extrabold text-gray-800 text-xs truncate">{val}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <span className="text-xs font-bold text-primary bg-white px-2 py-1 text-[10px] rounded-lg border border-blue-200 shadow-xs self-start sm:self-auto">
+                  Chi nhánh trung tâm
+                </span>
               </div>
-            )}
-            {detailTab === 'desc' && (
-              <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200 text-xs">
-                {p.description ? (
-                  <p className="text-gray-700 whitespace-pre-wrap">{p.description}</p>
-                ) : (
-                  <em className="text-gray-400">Chưa có mô tả chi tiết cho sản phẩm này</em>
-                )}
-              </div>
-            )}
-            {detailTab === 'stock_card' && (
-              <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 text-xs">
-                <ClipboardList size={32} className="mx-auto mb-3 text-gray-300" />
-                Không tìm thấy thẻ kho nào phù hợp
-              </div>
-            )}
-            {detailTab === 'inventory' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                {/* Mobile Card View */}
-                <div className="block md:hidden divide-y divide-gray-100 text-xs p-3 flex flex-col gap-2">
-                  <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 font-bold">
-                    <span>Tổng cộng tồn kho</span>
-                    <span className="text-primary font-extrabold text-sm">{fmtStock(p.stock)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2">
-                    <div>
-                      <span className="font-bold text-gray-800 block">Chi nhánh trung tâm</span>
-                      <span className="text-[11px] text-green-600 font-bold">Đang kinh doanh</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-gray-500 text-[11px] block">Tồn kho:</span>
-                      <span className="font-extrabold text-gray-800">{fmtStock(p.stock)}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto max-h-40">
-                  <table className="w-full text-[11px] border-collapse">
-                    <thead>
-                      <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
-                        <th className="p-1.5 px-3 pl-4">Chi nhánh</th>
-                        <th className="p-1.5 px-3 text-right">Tồn kho</th>
-                        <th className="p-1.5 px-3 text-right">KH đặt</th>
-                        <th className="p-1.5 px-3 text-left pl-6">Dự kiến hết hàng</th>
-                        <th className="p-1.5 px-3 text-left">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium">
-                      <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
-                        <td className="p-1.5 px-3 pl-4">Tổng cộng</td>
-                        <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
-                        <td className="text-right p-3 text-primary font-extrabold">0</td>
-                        <td></td>
-                        <td></td>
-                      </tr>
-                      <tr className="hover:bg-blue-50/30 transition-colors">
-                        <td className="p-1.5 px-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
-                        <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
-                        <td className="text-right p-3 text-gray-400 font-bold">0</td>
-                        <td className="p-3 pl-6 text-gray-400">---</td>
-                        <td className="p-3 text-green-600 font-bold">Đang kinh doanh</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div className="text-xs text-gray-500 mb-2 font-medium">Nhóm hàng: <span className="text-primary font-bold">{catName(p.categoryId)}</span></div>
+              <div className="flex gap-1.5 mb-3 flex-wrap">
+                <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-xs">Hàng hóa thường</span>
+                <span className="px-2 py-1 text-[10px] bg-blue-50 text-primary rounded-lg font-bold border border-blue-100 shadow-xs">Bán trực tiếp</span>
+                <span className="px-2 py-1 text-[10px] bg-amber-50 text-amber-700 rounded-lg font-bold border border-amber-200 shadow-xs">Không tích điểm</span>
               </div>
-            )}
 
-            {/* Action bar */}
-            <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-3" onClick={e => e.stopPropagation()}>
-              <Button variant="danger" onClick={() => deleteProduct(p.id)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Trash2 size={13} /> Xóa
-              </Button>
-              <Button variant="secondary" onClick={() => { setEditProduct(p); setIsClone(true); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Copy size={13} /> Sao chép
-              </Button>
-              <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-sm font-bold whitespace-nowrap">
-                <Tag size={13} /> In tem
-              </Button>
-              <Button variant="primary" onClick={() => { setEditProduct(p); setIsClone(false); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-1.5 px-2 shadow-md font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white col-span-2 sm:col-span-1">
-                <Edit size={13} /> Chỉnh sửa
-              </Button>
-              <Button 
-                variant="secondary" 
-                className="p-1.5 shadow-sm flex-none justify-center items-center"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  const nextSale = p.direct_sale === false ? true : false;
-                  const tid = toast.loading('Đang cập nhật trạng thái...');
-                  try {
-                    await productAPI.update(p.id, { directSale: nextSale });
-                    setProducts(prev => prev.map(item => item.id === p.id ? { ...item, direct_sale: nextSale, directSale: nextSale } : item));
-                    toast.success(nextSale ? 'Đã cho phép bán trực tiếp' : 'Đã ngừng bán trực tiếp', { id: tid });
-                  } catch (err) {
-                    toast.error('Cập nhật trạng thái thất bại', { id: tid });
-                  }
-                }}
-                title="Bật/Tắt bán trực tiếp"
-              >
-                <SlidersHorizontal size={13} />
-              </Button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-gray-50/50 p-3 sm:p-4 rounded-xl border border-gray-200">
+                {[
+                  ['Mã hàng', p.sku || '---'],
+                  ['Mã vạch', p.barcode || '---'],
+                  ['Tồn kho', fmtStock(p.stock)],
+                  ['Định mức tồn', '0 - 10'],
+                  ['Giá vốn', `${fmt(p.costPrice || 0)} đ`],
+                  ['Giá bán', `${fmt(p.sellPrice)} đ`],
+                  ['Thương hiệu', p.brand?.name || p.brand || 'Chưa có'],
+                  ['Nhà cung cấp', p.supplier?.name || p.supplier_name || 'Chưa có'],
+                  ['Vị trí', p.location || 'Chưa có'],
+                ].map(([label, val]) => (
+                  <div key={label}>
+                    <div className="text-gray-500 font-medium mb-0.5 text-[11px]">{label}</div>
+                    <div className="font-extrabold text-gray-800 text-xs truncate">{val}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        )}
+        {detailTab === 'desc' && (
+          <div className="bg-gray-50/50 rounded-xl p-4 border border-gray-200 text-xs">
+            {p.description ? (
+              <p className="text-gray-700 whitespace-pre-wrap">{p.description}</p>
+            ) : (
+              <em className="text-gray-400">Chưa có mô tả chi tiết cho sản phẩm này</em>
+            )}
+          </div>
+        )}
+        {detailTab === 'stock_card' && (
+          <div className="text-center py-12 text-gray-400 font-medium bg-gray-50 rounded-xl border border-gray-200 text-xs">
+            <ClipboardList size={32} className="mx-auto mb-3 text-gray-300" />
+            Không tìm thấy thẻ kho nào phù hợp
+          </div>
+        )}
+        {detailTab === 'inventory' && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+            {/* Mobile Card View */}
+            <div className="block md:hidden divide-y divide-gray-100 text-xs p-3 flex flex-col gap-2">
+              <div className="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 font-bold">
+                <span>Tổng cộng tồn kho</span>
+                <span className="text-primary font-extrabold text-sm">{fmtStock(p.stock)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <div>
+                  <span className="font-bold text-gray-800 block">Chi nhánh trung tâm</span>
+                  <span className="text-[11px] text-green-600 font-bold">Đang kinh doanh</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-gray-500 text-[11px] block">Tồn kho:</span>
+                  <span className="font-extrabold text-gray-800">{fmtStock(p.stock)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto max-h-40">
+              <table className="w-full text-[11px] border-collapse">
+                <thead>
+                  <tr className="bg-gray-100/80 text-gray-600 border-b border-gray-200 text-left font-bold uppercase tracking-wider">
+                    <th className="p-1.5 px-3 pl-4">Chi nhánh</th>
+                    <th className="p-1.5 px-3 text-right">Tồn kho</th>
+                    <th className="p-1.5 px-3 text-right">KH đặt</th>
+                    <th className="p-1.5 px-3 text-left pl-6">Dự kiến hết hàng</th>
+                    <th className="p-1.5 px-3 text-left">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium">
+                  <tr className="bg-blue-50/50 font-bold text-gray-800 border-b border-gray-100">
+                    <td className="p-1.5 px-3 pl-4">Tổng cộng</td>
+                    <td className="text-right p-3 text-primary font-extrabold">{fmtStock(p.stock)}</td>
+                    <td className="text-right p-3 text-primary font-extrabold">0</td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+                  <tr className="hover:bg-blue-50/30 transition-colors">
+                    <td className="p-1.5 px-3 pl-4 font-bold text-gray-800">Chi nhánh trung tâm</td>
+                    <td className="text-right p-3 font-extrabold text-gray-800">{fmtStock(p.stock)}</td>
+                    <td className="text-right p-3 text-gray-400 font-bold">0</td>
+                    <td className="p-3 pl-6 text-gray-400">---</td>
+                    <td className="p-3 text-green-600 font-bold">Đang kinh doanh</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Action bar */}
+        <div className="grid grid-cols-3 sm:flex sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-3" onClick={e => e.stopPropagation()}>
+          <Button variant="danger" onClick={() => deleteProduct(p.id)} className="justify-center items-center gap-1 text-[11px] py-2 px-3 shadow-xs font-bold whitespace-nowrap">
+            <Trash2 size={13} /> Xóa
+          </Button>
+          <Button variant="secondary" onClick={() => { setEditProduct(p); setIsClone(true); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-2 px-3 shadow-xs font-bold whitespace-nowrap">
+            <Copy size={13} /> Sao chép
+          </Button>
+          <Button variant="secondary" onClick={() => printHTML(`<div style="text-align:center;padding:20px;"><h3 style="margin:0;">${p.name}</h3><p style="font-size:24px;font-weight:bold;margin:8px 0;">${p.sku || 'N/A'}</p><p style="color:#666;">${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</p></div>`, `Tem ${p.sku}`)} className="justify-center items-center gap-1 text-[11px] py-2 px-3 shadow-xs font-bold whitespace-nowrap">
+            <Tag size={13} /> In tem
+          </Button>
+          <Button variant="primary" onClick={() => { setEditProduct(p); setIsClone(false); setModalOpen(true); }} className="justify-center items-center gap-1 text-[11px] py-2 px-3 shadow-sm font-bold bg-primary hover:bg-primary-hover whitespace-nowrap text-white col-span-2 sm:col-span-1">
+            <Edit size={13} /> Chỉnh sửa
+          </Button>
+          <Button 
+            variant="secondary" 
+            className="p-2 shadow-xs flex-none justify-center items-center"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const nextSale = p.direct_sale === false ? true : false;
+              const tid = toast.loading('Đang cập nhật trạng thái...');
+              try {
+                await productAPI.update(p.id, { directSale: nextSale });
+                setProducts(prev => prev.map(item => item.id === p.id ? { ...item, direct_sale: nextSale, directSale: nextSale } : item));
+                toast.success(nextSale ? 'Đã cho phép bán trực tiếp' : 'Đã ngừng bán trực tiếp', { id: tid });
+              } catch (err) {
+                toast.error('Cập nhật trạng thái thất bại', { id: tid });
+              }
+            }}
+            title="Bật/Tắt bán trực tiếp"
+          >
+            <SlidersHorizontal size={13} />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDetail = (p) => {
+    return (
+      <tr key={`detail-${p.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
+        <td colSpan={visibleColumns.length + 3} className="p-0">
+          {renderDetailContent(p, false)}
         </td>
       </tr>
     );
@@ -752,6 +809,9 @@ export default function ProductsPage() {
               </Button>
               <Button variant="secondary" onClick={() => { const skus = [...selected].map(id => filtered.find(p=>p.id===id)).filter(Boolean).map(p => `<div style="text-align:center;padding:15px;border:1px dashed #ccc;margin:5px;"><strong>${p.name}</strong><br/><span style="font-size:20px;font-weight:bold;">${p.sku||'N/A'}</span><br/>${new Intl.NumberFormat('vi-VN').format(p.sellPrice||0)} đ</div>`).join(''); printHTML(`<div style="display:flex;flex-wrap:wrap;">${skus}</div>`, 'In tem mã'); }} className="flex items-center gap-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs">
                 <Tag size={14} /> In tem mã
+              </Button>
+              <Button variant="danger" onClick={handleBatchDelete} className="flex items-center gap-1 font-bold py-1.5 px-3 rounded-lg shadow-sm text-xs">
+                <Trash2 size={14} /> Xóa đã chọn ({selected.size})
               </Button>
             </div>
           ) : (
@@ -890,58 +950,88 @@ export default function ProductsPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
+            {/* Mobile Summary Card (KiotViet mobile app style) */}
+            <div className="block md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/40 p-3.5 border-b border-blue-100/60 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block tracking-tight">
+                    Tổng tồn kho
+                  </span>
+                  <span className="text-[11px] font-extrabold text-primary block mt-0.5">
+                    {filtered.length} hàng hóa
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-black text-gray-900 tracking-tight">
+                    {fmtStock(filtered.reduce((sum, p) => sum + Number(p.stock || 0), 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Mobile Card List View */}
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {pageItems.map((p) => {
                 const isExpanded = expandedId === p.id;
                 const isSelected = selected.has(p.id);
+                const stockNum = Number(p.stock || 0);
+
                 return (
                   <div key={p.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
-                    {/* Top Row: Code + Stock Badge */}
+                    {/* Header Row: Checkbox + SKU + Category + Stock */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <input
                           type="checkbox"
-                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                          className="rounded border-gray-300 text-primary focus:ring-primary w-4 h-4 cursor-pointer shrink-0"
                           checked={isSelected}
                           onChange={(e) => toggleOne(p.id, e.target.checked)}
                         />
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
+                          className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left truncate"
                         >
-                          {p.sku || 'SP---'}
+                          {p.sku || `SP${p.id}`}
                         </button>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 truncate max-w-[120px]">
+                          {catName(p.categoryId)}
+                        </span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${Number(p.stock || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${stockNum > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
                         Tồn: {fmtStock(p.stock)}
                       </span>
                     </div>
 
-                    {/* Middle Row: Image + Name + Category */}
+                    {/* Middle Row: Image + Name + Prices */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 shrink-0 overflow-hidden">
-                        {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={20} />}
+                      <div className="w-12 h-12 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 shrink-0 overflow-hidden shadow-2xs">
+                        {p.image ? <img src={p.image} alt="" className="w-full h-full object-cover" /> : <Package size={22} />}
                       </div>
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-bold text-gray-800 text-xs truncate">
+                        <span className="font-bold text-gray-900 text-xs truncate">
                           {p.name} {p.unit ? `(${p.unit})` : ''}
                         </span>
-                        <span className="text-[11px] text-gray-400 font-medium">
-                          {catName(p.categoryId)}
-                        </span>
+                        <div className="flex items-center gap-3 mt-1 text-[11px]">
+                          <span className="text-gray-500">
+                            Giá bán: <strong className="text-primary font-black">{fmt(p.sellPrice)} đ</strong>
+                          </span>
+                          {p.costPrice > 0 && (
+                            <span className="text-gray-400">
+                              Vốn: <strong className="text-gray-600 font-bold">{fmt(p.costPrice)} đ</strong>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Bottom Row: Price & Action */}
+                    {/* Bottom Action Trigger */}
                     <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
-                      <div>
-                        <span className="text-gray-500 text-[11px]">Giá bán: </span>
-                        <span className="font-extrabold text-primary text-xs">{fmt(p.sellPrice)}</span>
-                      </div>
+                      <span className="text-[11px] text-gray-400 font-medium">
+                        {p.created_at ? new Date(p.created_at).toLocaleDateString('vi-VN') : ''}
+                      </span>
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                        className="px-2.5 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
+                        className="px-3 py-1 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg text-[11px] font-bold border-none cursor-pointer flex items-center gap-1 transition-colors"
                       >
                         {isExpanded ? 'Thu gọn' : 'Chi tiết'}
                         <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -949,35 +1039,36 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Mobile Full-Screen Detail Modal Sheet Overlay */}
-                    {isExpanded && (
-                      <div className="md:hidden fixed inset-0 z-[10000] bg-white flex flex-col font-sans animate-fade-in text-left">
+                    {isExpanded && createPortal(
+                      <div className="md:hidden fixed inset-0 z-[100000] bg-white flex flex-col font-sans animate-fade-in text-left">
                         {/* Sticky Top Header Bar */}
-                        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
-                          <div className="flex items-center gap-2">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-30 shadow-2xs">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <button
                               onClick={() => setExpandedId(null)}
-                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center shrink-0"
                             >
                               <X size={20} />
                             </button>
-                            <div className="flex flex-col">
-                              <span className="font-extrabold text-gray-900 text-sm">Chi tiết hàng hóa</span>
-                              <span className="text-xs font-bold text-primary">{p.sku || p.name}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-extrabold text-gray-900 text-sm truncate">Chi tiết hàng hóa</span>
+                              <span className="text-xs font-bold text-primary truncate">{p.sku || `SP${p.id}`} - {p.name}</span>
                             </div>
                           </div>
                           <button
                             onClick={() => setExpandedId(null)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold border-none cursor-pointer"
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border-none cursor-pointer shrink-0 ml-2"
                           >
                             Đóng
                           </button>
                         </div>
 
                         {/* Full Screen Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
-                          {renderDetail(p)}
+                        <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar bg-gray-50/50">
+                          {renderDetailContent(p, true)}
                         </div>
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 );

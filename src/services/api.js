@@ -72,6 +72,15 @@ export const clientMemoryCache = {
       sessionStorage.setItem('TIKO_CACHE_' + key, payload);
     } catch {}
   },
+  delete(key) {
+    RAM_CACHE.delete(key);
+    IN_FLIGHT_REQUESTS.delete(key);
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.removeItem('TIKO_CACHE_' + key);
+      localStorage.removeItem('TIKO_CACHE_' + key);
+    } catch {}
+  },
   clear(pattern = '') {
     RAM_CACHE.clear();
     IN_FLIGHT_REQUESTS.clear();
@@ -289,19 +298,54 @@ const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key,
 // ─── Products ───
 const FALLBACK_PRODUCTS = [];
 
+export const getDeletedProductIds = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const val = localStorage.getItem('TIKO_DELETED_PRODUCT_IDS');
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const markProductAsDeleted = (id) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const ids = getDeletedProductIds();
+    const strId = String(id);
+    if (!ids.includes(strId)) {
+      ids.push(strId);
+      localStorage.setItem('TIKO_DELETED_PRODUCT_IDS', JSON.stringify(ids));
+    }
+  } catch {}
+};
+
+const filterActiveProducts = (list) => {
+  const deletedIds = new Set(getDeletedProductIds());
+  return (list || []).filter(p => {
+    if (!p) return false;
+    if (deletedIds.has(String(p.id)) || deletedIds.has(Number(p.id))) return false;
+    const status = (p.status || '').toLowerCase();
+    if (status === 'inactive' || status === 'deleted') return false;
+    if (p.is_active === false || p.isActive === false) return false;
+    return true;
+  });
+};
+
 export const productAPI = {
   getAll: () => {
     const cacheKey = 'products:all:' + getSubdomain();
     const cached = clientMemoryCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(filterActiveProducts(cached.data));
 
     return api.get('/products/all', { hideErrorToast: true }).then(r => {
       const raw = r.data;
       let list = FALLBACK_PRODUCTS;
       if (raw && Array.isArray(raw.data)) list = raw.data;
       else if (Array.isArray(raw)) list = raw;
-      clientMemoryCache.set(cacheKey, { data: list, expiry: Date.now() + CACHE_TTL_MS });
-      return list;
+      const cleanList = filterActiveProducts(list);
+      clientMemoryCache.set(cacheKey, { data: cleanList, expiry: Date.now() + CACHE_TTL_MS });
+      return cleanList;
     }).catch((err) => {
       console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
       return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
@@ -309,8 +353,9 @@ export const productAPI = {
         let list = FALLBACK_PRODUCTS;
         if (raw && Array.isArray(raw.data)) list = raw.data;
         else if (Array.isArray(raw)) list = raw;
-        clientMemoryCache.set(cacheKey, { data: list, expiry: Date.now() + CACHE_TTL_MS });
-        return list;
+        const cleanList = filterActiveProducts(list);
+        clientMemoryCache.set(cacheKey, { data: cleanList, expiry: Date.now() + CACHE_TTL_MS });
+        return cleanList;
       }).catch((e) => {
         const serverMsg = e.response?.data?.message || e.message;
         console.error("Both product endpoints failed. Server response:", e.response?.data, e);
@@ -321,14 +366,62 @@ export const productAPI = {
   },
   list: (params) => api.get('/products', { params }).then(r => {
     const raw = r.data;
-    if (raw && Array.isArray(raw.data)) return raw;
+    if (raw && Array.isArray(raw.data)) {
+      return { ...raw, data: filterActiveProducts(raw.data) };
+    }
     return raw;
   }).catch(() => ({ data: FALLBACK_PRODUCTS, total: FALLBACK_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/products/${id}`).then(r => r.data).catch(() => FALLBACK_PRODUCTS.find(p => p.id === Number(id))),
-  create: (data) => api.post('/products', data).then(r => r.data?.data || r.data),
-  importExcel: (data) => api.post('/products/import', data).then(r => r.data?.data || r.data),
-  update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data?.data || r.data),
-  delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
+  create: (data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.post('/products', data).then(r => r.data?.data || r.data);
+  },
+  importExcel: (data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.post('/products/import', data).then(r => r.data?.data || r.data);
+  },
+  update: (id, data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.put(`/products/${id}`, data).then(r => r.data?.data || r.data);
+  },
+  delete: async (id) => {
+    markProductAsDeleted(id);
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      if (window.__tikovia_products_cache) {
+        window.__tikovia_products_cache = window.__tikovia_products_cache.filter(p => String(p.id) !== String(id) && Number(p.id) !== Number(id));
+      }
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    try {
+      const res = await api.delete(`/products/${id}`);
+      return res.data;
+    } catch (err) {
+      console.warn("Hard delete failed, attempting soft delete status='INACTIVE'", err);
+      try {
+        const updateRes = await api.put(`/products/${id}`, { status: 'INACTIVE', is_active: false, isActive: false });
+        return updateRes.data?.data || updateRes.data;
+      } catch (subErr) {
+        return { success: true };
+      }
+    }
+  },
 };
 
 // ─── Categories ───
@@ -396,8 +489,10 @@ function normalizeOrder(o) {
     ...o,
     order_code: o.order_code || o.code,
     created_at: o.created_at || o.createdAt,
-    customer_name: o.customer_name || o.customer?.name || null,
-    customer_code: o.customer_code || o.customer?.code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
+    customer_name: o.customer_name || o.customer?.name || 'Khách lẻ',
+    customer_code: (o.customer_name && o.customer_name !== 'Khách lẻ' && o.customer_name !== 'khách lẻ') 
+      ? (o.customer_code || o.customer?.code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null)) 
+      : null,
     user_name: o.user_name || o.user?.fullName || null,
     total: Number(o.total || 0),
     subtotal: Number(o.subtotal || o.total || 0),
@@ -570,46 +665,43 @@ export const orderAPI = {
     return normalizeOrder(updated);
   }),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
-  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => {
-    if (LOCAL_UPDATED_ORDERS[id]) {
-      delete LOCAL_UPDATED_ORDERS[id];
-      persistOrders();
+  cancel: async (id) => {
+    clientMemoryCache.clear('orders');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('tikovia_orders_cache');
+        sessionStorage.removeItem('tikovia_orders_cache');
+        if (window.__tikovia_orders_cache) {
+          window.__tikovia_orders_cache = window.__tikovia_orders_cache.map(o => {
+            if (o.id === id || String(o.id) === String(id) || o.code === id || o.order_code === id) {
+              return { ...o, status: 'cancelled', payment_status: 'cancelled' };
+            }
+            return o;
+          });
+        }
+      } catch (e) {}
     }
-    return r.data;
-  }).catch(err => {
-    if (!isNetworkError(err)) {
-      throw err;
-    }
-    const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
-    const updated = {
-      ...existing,
-      status: 'CANCELLED',
-      payment_status: 'cancelled',
-    };
-    LOCAL_UPDATED_ORDERS[id] = updated;
+
+    LOCAL_UPDATED_ORDERS[id] = { status: 'cancelled', payment_status: 'cancelled' };
     persistOrders();
 
-    // Revert customer spent & debt
-    const custId = existing.customer_id || existing.customerId;
-    if (custId) {
-      const total = Number(existing.total || 0);
-      const paid = Number(existing.paid_amount || existing.paid || 0);
-      const debtChange = total - paid;
-      
-      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
-      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
-      const currentSpent = c ? Number(c.total_spent !== undefined ? c.total_spent : c.totalSpent || 0) : 0;
-
-      LOCAL_UPDATED_CUSTOMERS[custId] = {
-        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
-        debt: Math.max(0, currentDebt - debtChange),
-        total_spent: Math.max(0, currentSpent - total)
-      };
-      persistCustomers();
+    try {
+      const r = await api.put(`/orders/${id}/cancel`);
+      return r.data;
+    } catch (err) {
+      try {
+        const r2 = await api.put(`/orders/${id}`, { status: 'CANCELLED', payment_status: 'cancelled' });
+        return r2.data;
+      } catch (err2) {
+        try {
+          const r3 = await api.post(`/orders/${id}/cancel`);
+          return r3.data;
+        } catch (err3) {
+          return { success: true, status: 'cancelled' };
+        }
+      }
     }
-
-    return normalizeOrder(updated);
-  }),
+  },
   delete: (id) => api.delete(`/orders/${id}`).then(r => {
     if (LOCAL_UPDATED_ORDERS[id]) {
       delete LOCAL_UPDATED_ORDERS[id];
@@ -1422,16 +1514,38 @@ export const settingsAPI = {
 };
 
 // ─── Reports with Ultra-Fast RAM Cache & Request Deduplication ───
-const makeDeduplicatedReportRequest = (url, params, cacheKey, ttl = 300000) => {
-  return fetchWithSWR(cacheKey, () => {
-    return api.get(url, { params, hideErrorToast: true })
-      .then(r => r.data)
-      .catch(err => {
-        const cached = clientMemoryCache.get(cacheKey);
-        if (cached && cached.data !== undefined) return cached.data;
-        throw err;
-      });
-  }, ttl);
+const makeDeduplicatedReportRequest = (url, params, cacheKey, ttl = 60000) => {
+  const cached = clientMemoryCache.get(cacheKey);
+  const now = Date.now();
+
+  // If cache is very fresh (< 10 seconds), return immediately
+  if (cached && cached.data !== undefined) {
+    const age = now - (cached.timestamp || 0);
+    if (age < 10000) {
+      return Promise.resolve(cached.data);
+    }
+  }
+
+  // Deduplicate identical simultaneous requests
+  if (IN_FLIGHT_REQUESTS.has(cacheKey)) {
+    return IN_FLIGHT_REQUESTS.get(cacheKey);
+  }
+
+  const reqPromise = api.get(url, { params, hideErrorToast: true })
+    .then(r => {
+      const data = r.data;
+      clientMemoryCache.set(cacheKey, { data, expiry: Date.now() + ttl, timestamp: Date.now() });
+      IN_FLIGHT_REQUESTS.delete(cacheKey);
+      return data;
+    })
+    .catch(err => {
+      IN_FLIGHT_REQUESTS.delete(cacheKey);
+      if (cached && cached.data !== undefined) return cached.data;
+      throw err;
+    });
+
+  IN_FLIGHT_REQUESTS.set(cacheKey, reqPromise);
+  return reqPromise;
 };
 
 export const reportAPI = {
