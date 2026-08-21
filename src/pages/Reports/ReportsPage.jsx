@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { reportAPI } from '../../services/api';
+import { reportAPI, loadInitialCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Package } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -19,13 +19,15 @@ import Dropdown from '../../components/ui/Dropdown';
 
 export default function ReportsPage() {
   const [tab, setTab] = useState('revenue');
-  const [finData, setFinData] = useState(null);
-  const [salesData, setSalesData] = useState([]);
+  const [finData, setFinData] = useState(() => loadInitialCache('reports:financial', null));
+  const [salesData, setSalesData] = useState(() => loadInitialCache('reports:sales', []));
   const [timeRange, setTimeRange] = useState('Tháng này');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    if (!finData && salesData.length === 0) {
+      setLoading(true);
+    }
     let fromDate = '';
     let toDate = '';
     const now = new Date();
