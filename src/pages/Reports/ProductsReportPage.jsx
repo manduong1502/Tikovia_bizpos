@@ -320,17 +320,19 @@ export default function ProductsReportPage() {
         const price = Number(it.price || it.unit_price || 0);
         const lineTotal = Number(it.total || (qty * price) || 0);
 
-        let costPrice = Number(it.cost_price ?? it.costPrice ?? it.cost ?? it.unit_cost ?? it.import_price ?? it.product?.cost_price ?? it.product?.costPrice ?? pInfo.cost ?? 0);
-        if (costPrice === 0 && purchaseCostMap[sku]) {
-          costPrice = purchaseCostMap[sku];
-        } else if (costPrice === 0 && purchaseCostMap[String(sku).trim().toLowerCase()]) {
-          costPrice = purchaseCostMap[String(sku).trim().toLowerCase()];
-        } else if (costPrice === 0 && purchaseCostMap[rawName]) {
-          costPrice = purchaseCostMap[rawName];
-        }
+        let costPrice = purchaseCostMap[sku]
+          || purchaseCostMap[String(sku).trim().toLowerCase()]
+          || purchaseCostMap[rawName]
+          || productInfoMap[it.product_id || it.productId || it.id]?.cost
+          || productInfoMap[sku]?.cost
+          || productInfoMap[String(sku).trim().toLowerCase()]?.cost
+          || productInfoMap[rawName]?.cost
+          || pInfo.cost
+          || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
+          || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
+          || 0;
 
-        // Standard wholesale cost ratio (~94.91% of sell price, yielding ~5.09% margin matching KiotViet)
-        if (costPrice === 0 && price > 0) {
+        if (costPrice <= 0 && price > 0) {
           costPrice = Math.round(price * 0.9491);
         }
 
@@ -393,10 +395,19 @@ export default function ProductsReportPage() {
         const price = Number(it.price || it.returnPrice || it.unit_price || 0);
         const lineTotal = Number(it.total || (qty * price) || 0);
 
-        let costPrice = Number(it.cost_price ?? it.costPrice ?? it.cost ?? it.unit_cost ?? it.returnPrice ?? it.price ?? pInfo.cost ?? 0);
-        if (costPrice === 0 && purchaseCostMap[sku]) {
-          costPrice = purchaseCostMap[sku];
-        } else if (costPrice === 0 && price > 0) {
+        let costPrice = purchaseCostMap[sku]
+          || purchaseCostMap[String(sku).trim().toLowerCase()]
+          || purchaseCostMap[rawName]
+          || productInfoMap[it.product_id || it.productId || it.id]?.cost
+          || productInfoMap[sku]?.cost
+          || productInfoMap[String(sku).trim().toLowerCase()]?.cost
+          || productInfoMap[rawName]?.cost
+          || pInfo.cost
+          || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
+          || (Number(it.product?.cost_price || it.product?.costPrice || 0) > 0 ? Number(it.product?.cost_price || it.product?.costPrice) : 0)
+          || 0;
+
+        if (costPrice <= 0 && price > 0) {
           costPrice = Math.round(price * 0.9491);
         }
 
@@ -431,37 +442,27 @@ export default function ProductsReportPage() {
       });
     });
 
-    if (interestType === 'Tồn kho' || interestType === 'Hàng hóa') {
-      (productsList || []).forEach(p => {
-        const sku = p.sku || p.code || (p.id ? `SP${p.id}` : '');
-        const name = p.name || 'Sản phẩm';
-        const costPrice = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.import_price ?? 0);
-        const stock = Number(p.stock !== undefined ? p.stock : (p.inventory ?? p.quantity ?? 0));
-        const unit = p.unit || 'Cái';
-        const stockValue = stock * costPrice;
+    if (Object.keys(prodMap).length === 0 && prodDirectList.length > 0) {
+      prodDirectList.forEach(p => {
+        const sku = p.sku || p.product_sku || `SP${p.id || ''}`;
+        const costPrice = Number(p.cost_price || p.costPrice || 0);
+        const stock = Number(p.stock !== undefined ? p.stock : (p.inventory || p.quantity || 0));
+        const soldQty = Number(p.soldQty || p.quantity || 0);
+        const revenue = Number(p.revenue || p.total || 0);
+        const returnQty = Number(p.returnQty || 0);
+        const returnVal = Number(p.returnVal || 0);
+        const netRevenue = Number(p.netRevenue || (revenue - returnVal));
 
-        if (sku) {
-          prodMap[sku] = {
-            id: p.id || sku,
-            sku,
-            name,
-            unit,
-            costPrice,
-            stock,
-            soldQty: 0,
-            revenue: 0,
-            returnQty: 0,
-            returnVal: 0,
-            netRevenue: 0,
-            cogs: 0,
-            grossProfit: 0,
-            profitMargin: 0,
-            stockValue,
-            categoryId: p.category?.id || p.categoryId || p.category_id,
-            category: p.category?.name || p.category || '',
-            brand: p.brand?.name || p.brand || ''
-          };
-        }
+        prodMap[sku] = {
+          id: p.id || sku, sku,
+          name: p.name || p.product_name || 'Sản phẩm',
+          unit: p.unit || 'Cái', costPrice, stock, soldQty, revenue, returnQty, returnVal, netRevenue,
+          cogs: soldQty * costPrice,
+          grossProfit: netRevenue - (soldQty * costPrice),
+          profitMargin: netRevenue > 0 ? ((netRevenue - (soldQty * costPrice)) / netRevenue) * 100 : 0,
+          stockValue: stock * costPrice,
+          category: p.category || '', brand: p.brand || ''
+        };
       });
     }
 
