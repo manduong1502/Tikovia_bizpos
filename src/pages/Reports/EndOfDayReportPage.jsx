@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { reportAPI, employeeAPI, orderAPI, cashbookAPI } from '../../services/api';
+import { reportAPI, employeeAPI, orderAPI, returnAPI, productAPI, cashbookAPI, loadInitialCache } from '../../services/api';
 import PortalPopover from '../../components/ui/PortalPopover';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
 import toast from 'react-hot-toast';
@@ -41,21 +41,37 @@ function formatDateYMD(d) {
   return `${year}-${month}-${day}`;
 }
 
+const LoadingStateRow = ({ colSpan, text = "Đang tải dữ liệu báo cáo, vui lòng đợi trong giây lát..." }) => (
+  <tr>
+    <td colSpan={colSpan} className="text-center py-16 text-gray-500 font-medium">
+      <div className="flex flex-col items-center justify-center gap-3">
+        <div className="w-9 h-9 border-3 border-blue-100 border-t-[#0077CC] rounded-full animate-spin" />
+        <span className="text-xs font-bold text-slate-700">{text}</span>
+        <span className="text-[11px] text-gray-400">Hệ thống đang xử lý và tổng hợp số liệu...</span>
+      </div>
+    </td>
+  </tr>
+);
+
 export default function EndOfDayReportPage() {
-  const [data, setData] = useState({ 
-    transactions: [], 
-    returns: [],
-    cashbook: [],
-    productsSummary: [],
-    orderCount: 0, 
-    returnCount: 0,
-    totalSales: 0, 
-    totalPaid: 0, 
-    totalReturns: 0, 
-    totalReturnPaid: 0,
-    cashbookIncome: 0,
-    cashbookExpense: 0,
-    netRevenue: 0 
+  const [data, setData] = useState(() => {
+    const cached = loadInitialCache('reports:endofday');
+    if (cached && (cached.transactions || cached.orderCount)) return cached;
+    return { 
+      transactions: [], 
+      returns: [],
+      cashbook: [],
+      productsSummary: [],
+      orderCount: 0, 
+      returnCount: 0,
+      totalSales: 0, 
+      totalPaid: 0, 
+      totalReturns: 0, 
+      totalReturnPaid: 0,
+      cashbookIncome: 0,
+      cashbookExpense: 0,
+      netRevenue: 0 
+    };
   });
   const [loading, setLoading] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState({ invoices: true, returns: false });
@@ -101,7 +117,7 @@ export default function EndOfDayReportPage() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('');
   const [cashbookTypeFilter, setCashbookTypeFilter] = useState('Tất cả'); // 'Tất cả' | 'Thu' | 'Chi'
 
-  const [employees, setEmployees] = useState([]);
+  const [employees, setEmployees] = useState(() => loadInitialCache('employees', []));
 
   // Fetch employees list
   useEffect(() => {
@@ -109,8 +125,10 @@ export default function EndOfDayReportPage() {
   }, []);
 
   // Fetch report data from API
-  const fetchData = () => {
-    setLoading(true);
+  const fetchData = async () => {
+    if (!data.transactions || data.transactions.length === 0) {
+      setLoading(true);
+    }
     let params = {};
 
     if (timeRangeType === 'date') {
@@ -133,27 +151,169 @@ export default function EndOfDayReportPage() {
       }
     }
 
-    Promise.all([
-      reportAPI.getEndOfDay(params),
-      cashbookAPI.getAll({ limit: 1000 }).catch(() => [])
-    ])
-      .then(([res, allCb]) => {
-        let combined = res || {};
-        const cbList = Array.isArray(allCb) ? allCb : (allCb?.data || []);
-        if (!combined.cashbook || combined.cashbook.length === 0) {
-          combined.cashbook = cbList;
-        } else if (cbList.length > 0) {
-          const existingCodes = new Set(combined.cashbook.map(c => c.code || c.id));
-          const extra = cbList.filter(c => !existingCodes.has(c.code || c.id));
-          combined.cashbook = [...combined.cashbook, ...extra];
-        }
-        setData(combined);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching end of day report:", err);
-        setLoading(false);
+    try {
+      const [res, allCb, allOrders, allReturns] = await Promise.all([
+        reportAPI.getEndOfDay(params).catch(() => null),
+        cashbookAPI.getAll({ limit: 1000 }).catch(() => []),
+        orderAPI.getAll({ ...params, limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ ...params, limit: 5000 }).catch(() => [])
+      ]);
+
+      const rawOrderList = Array.isArray(allOrders?.data) ? allOrders.data : (Array.isArray(allOrders) ? allOrders : []);
+      const rawReturnList = Array.isArray(allReturns?.data) ? allReturns.data : (Array.isArray(allReturns) ? allReturns : []);
+
+      // Build full items lookup map from raw orders & returns
+      const orderItemsMap = {};
+      rawOrderList.forEach(o => {
+        const code = o.code || o.order_code || o.orderCode || (o.id ? `HD${String(o.id).padStart(5, '0')}` : '');
+        const items = (Array.isArray(o.items) && o.items.length > 0)
+          ? o.items
+          : (o._items || o.order_items || o.details || []);
+        if (code) orderItemsMap[code] = items;
+        if (o.id) orderItemsMap[o.id] = items;
       });
+
+      const returnItemsMap = {};
+      rawReturnList.forEach(r => {
+        const code = r.code || r.return_code || r.returnCode || (r.id ? `TH${String(r.id).padStart(5, '0')}` : '');
+        const items = (Array.isArray(r.items) && r.items.length > 0)
+          ? r.items
+          : (r._items || r.return_items || r.details || []);
+        if (code) returnItemsMap[code] = items;
+        if (r.id) returnItemsMap[r.id] = items;
+      });
+
+      let rawTx = Array.isArray(res?.transactions) && res.transactions.length > 0
+        ? res.transactions
+        : rawOrderList;
+
+      let rawRet = Array.isArray(res?.returns) && res.returns.length > 0
+        ? res.returns
+        : rawReturnList;
+
+      // Normalize transactions to guarantee all fields & items exist
+      const transactions = rawTx.map(tx => {
+        const code = tx.code || tx.order_code || tx.orderCode || (tx.id ? `HD${String(tx.id).padStart(5, '0')}` : '---');
+        let items = (Array.isArray(tx.items) && tx.items.length > 0)
+          ? tx.items
+          : (tx._items || tx.order_items || tx.details || []);
+        
+        if (items.length === 0) {
+          items = orderItemsMap[code] || orderItemsMap[tx.id] || [];
+        }
+        
+        const time = tx.time || tx.created_at || tx.createdAt || tx.order_date || tx.orderDate || tx.date || new Date().toISOString();
+        const customerName = tx.customerName || tx.customer_name || tx.customer?.name || 'Khách lẻ';
+        const customerPhone = tx.customerPhone || tx.customer_phone || tx.customer?.phone || '';
+        const createdBy = tx.createdBy || tx.created_by || tx.creator?.name || tx.seller?.name || 'Admin';
+        const paymentMethod = tx.paymentMethod || tx.payment_method || (tx.payments?.[0]?.method) || 'Tiền mặt';
+        
+        const quantity = tx.quantity !== undefined 
+          ? Number(tx.quantity) 
+          : items.reduce((sum, it) => sum + Number(it.quantity || it.qty || 0), 0);
+          
+        const revenue = tx.revenue !== undefined 
+          ? Number(tx.revenue) 
+          : Number(tx.total || tx.subtotal || (items.reduce((sum, it) => sum + (Number(it.quantity || it.qty || 0) * Number(it.price || it.unit_price || 0)), 0)));
+          
+        const paid = tx.paid !== undefined 
+          ? Number(tx.paid) 
+          : Number(tx.paid_amount || tx.paidAmount || tx.total || revenue);
+
+        return {
+          ...tx,
+          id: tx.id || code,
+          code,
+          time,
+          customerName,
+          customerPhone,
+          createdBy,
+          paymentMethod,
+          quantity,
+          revenue,
+          paid,
+          items: items.map(it => ({
+            ...it,
+            sku: it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '',
+            name: it.product_name || it.name || it.title || 'Sản phẩm',
+            quantity: Number(it.quantity || it.qty || 0),
+            price: Number(it.price || it.unit_price || 0),
+            total: Number(it.total || (Number(it.quantity || it.qty || 0) * Number(it.price || it.unit_price || 0)))
+          }))
+        };
+      });
+
+      // Normalize returns
+      const returns = rawRet.map(ret => {
+        const code = ret.code || ret.return_code || ret.returnCode || (ret.id ? `TH${String(ret.id).padStart(5, '0')}` : '---');
+        let items = (Array.isArray(ret.items) && ret.items.length > 0)
+          ? ret.items
+          : (ret._items || ret.return_items || ret.details || []);
+
+        if (items.length === 0) {
+          items = returnItemsMap[code] || returnItemsMap[ret.id] || [];
+        }
+
+        const time = ret.time || ret.created_at || ret.createdAt || ret.date || new Date().toISOString();
+        const customerName = ret.customerName || ret.customer_name || ret.customer?.name || 'Khách lẻ';
+        const customerPhone = ret.customerPhone || ret.customer_phone || ret.customer?.phone || '';
+        const createdBy = ret.createdBy || ret.created_by || ret.creator?.name || 'Admin';
+        const paymentMethod = ret.paymentMethod || ret.payment_method || 'Tiền mặt';
+
+        const quantity = ret.quantity !== undefined
+          ? Number(ret.quantity)
+          : items.reduce((sum, it) => sum + Number(it.quantity || it.qty || 0), 0);
+
+        const revenue = ret.revenue !== undefined
+          ? Number(ret.revenue)
+          : Number(ret.total || ret.subtotal || 0);
+
+        const paid = ret.paid !== undefined
+          ? Number(ret.paid)
+          : Number(ret.paid_amount || ret.paidAmount || ret.total || revenue);
+
+        return {
+          ...ret,
+          id: ret.id || code,
+          code,
+          time,
+          customerName,
+          customerPhone,
+          createdBy,
+          paymentMethod,
+          quantity,
+          revenue,
+          paid,
+          items: items.map(it => ({
+            ...it,
+            sku: it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '',
+            name: it.product?.name || it.product_name || it.name || 'Sản phẩm',
+            quantity: Number(it.quantity || it.qty || 0),
+            price: Number(it.price || it.returnPrice || it.unit_price || 0),
+            total: Number(it.total || (Number(it.quantity || it.qty || 0) * Number(it.price || it.returnPrice || it.unit_price || 0)))
+          }))
+        };
+      });
+
+      const cbList = Array.isArray(allCb) ? allCb : (allCb?.data || []);
+      let cashbook = Array.isArray(res?.cashbook) && res.cashbook.length > 0 ? res.cashbook : cbList;
+      if (cbList.length > 0 && Array.isArray(res?.cashbook)) {
+        const existingCodes = new Set(res.cashbook.map(c => c.code || c.id));
+        const extra = cbList.filter(c => !existingCodes.has(c.code || c.id));
+        cashbook = [...res.cashbook, ...extra];
+      }
+
+      setData({
+        transactions,
+        returns,
+        cashbook,
+        productsSummary: res?.productsSummary || []
+      });
+    } catch (err) {
+      console.error("Error loading end of day report:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -329,13 +489,20 @@ export default function EndOfDayReportPage() {
     let hasItems = false;
 
     filteredTransactions.forEach(tx => {
-      if (Array.isArray(tx.items) && tx.items.length > 0) {
+      const items = (Array.isArray(tx.items) && tx.items.length > 0)
+        ? tx.items
+        : (tx._items || tx.order_items || tx.details || []);
+
+      if (items.length > 0) {
         hasItems = true;
-        tx.items.forEach(it => {
-          const sku = it.sku || `SP${it.productId || '0'}`;
-          const name = it.name || 'Sản phẩm';
-          const qty = Number(it.quantity || 0);
-          const rev = Number(it.price || 0) * qty;
+        items.forEach(it => {
+          const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product_name || it.name || it.title || 'Sản phẩm';
+          const sku = rawSku || rawName;
+          const name = rawName;
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.unit_price || 0);
+          const rev = Number(it.total || (qty * price) || 0);
           if (!map[sku]) map[sku] = { sku, name, soldQty: 0, revenue: 0 };
           map[sku].soldQty += qty;
           map[sku].revenue += rev;
@@ -345,12 +512,13 @@ export default function EndOfDayReportPage() {
 
     if (!hasItems && Array.isArray(data.productsSummary) && data.productsSummary.length > 0) {
       data.productsSummary.forEach(p => {
-        const sku = p.sku || `SP${p.productId || '0'}`;
+        const sku = p.sku || p.product_sku || `SP${p.productId || p.product_id || '0'}`;
+        const name = p.name || p.product_name || 'Sản phẩm';
         map[sku] = {
           sku,
-          name: p.name || 'Sản phẩm',
+          name,
           soldQty: Number(p.soldQty || p.quantity || 0),
-          revenue: Number(p.revenue || 0),
+          revenue: Number(p.revenue || (Number(p.soldQty || p.quantity || 0) * Number(p.price || 0)) || 0),
         };
       });
     }
@@ -362,6 +530,8 @@ export default function EndOfDayReportPage() {
       const q = customerQuery.toLowerCase();
       list = list.filter(g => (g.sku || '').toLowerCase().includes(q) || (g.name || '').toLowerCase().includes(q));
     }
+
+    list.sort((a, b) => (b.revenue || 0) - (a.revenue || 0));
 
     return list;
   }, [filteredTransactions, data.productsSummary, customerQuery]);
@@ -1372,6 +1542,13 @@ export default function EndOfDayReportPage() {
           </div>
         </div>
 
+        {/* Top Loading Progress Bar */}
+        {loading && (
+          <div className="w-full h-1 bg-blue-100 overflow-hidden shrink-0 z-20">
+            <div className="w-full h-full bg-[#0077CC] animate-pulse" />
+          </div>
+        )}
+
         {/* ─── PRINTED A4 SHEET CANVAS (Grey #808a95 Container) ─── */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-6 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full max-w-full">
           
@@ -1560,11 +1737,15 @@ export default function EndOfDayReportPage() {
                           )}
                         </>
                       ) : (
-                        <tr>
-                          <td colSpan={9} className="text-center py-10 text-gray-400 font-medium text-[12px]">
-                            Báo cáo không có dữ liệu
-                          </td>
-                        </tr>
+                        loading ? (
+                          <LoadingStateRow colSpan={9} />
+                        ) : (
+                          <tr>
+                            <td colSpan={9} className="text-center py-10 text-gray-400 font-medium text-[12px]">
+                              Báo cáo không có dữ liệu
+                            </td>
+                          </tr>
+                        )
                       )}
                     </tbody>
                   </table>
@@ -1725,11 +1906,15 @@ export default function EndOfDayReportPage() {
                           </tr>
                         ))
                       ) : (
-                        <tr>
-                          <td colSpan={8} className="text-center py-10 text-gray-400 font-medium text-[12px]">
-                            Báo cáo không có dữ liệu
-                          </td>
-                        </tr>
+                        loading ? (
+                          <LoadingStateRow colSpan={8} />
+                        ) : (
+                          <tr>
+                            <td colSpan={8} className="text-center py-10 text-gray-400 font-medium text-[12px]">
+                              Báo cáo không có dữ liệu
+                            </td>
+                          </tr>
+                        )
                       )}
                     </tbody>
                   </table>
@@ -1794,11 +1979,15 @@ export default function EndOfDayReportPage() {
                           ))}
                         </>
                       ) : (
-                        <tr>
-                          <td colSpan={4} className="text-center py-10 text-gray-400 font-medium text-[12px]">
-                            Báo cáo không có dữ liệu
-                          </td>
-                        </tr>
+                        loading ? (
+                          <LoadingStateRow colSpan={4} />
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="text-center py-10 text-gray-400 font-medium text-[12px]">
+                              Báo cáo không có dữ liệu
+                            </td>
+                          </tr>
+                        )
                       )}
                     </tbody>
                   </table>
