@@ -697,11 +697,11 @@ export default function CustomersReportPage() {
               )}
 
               {/* Document Canvas Container (#808a95) */}
-              <div className="flex-1 overflow-y-auto p-3 sm:p-8 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full">
+              <div className="flex-1 overflow-y-auto p-2 sm:p-6 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full">
                 
                 <div 
                   id="printed-report-page"
-                  className="bg-white text-slate-900 shadow-2xl p-4 sm:p-10 min-h-[850px] h-fit border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text mb-12 w-full max-w-full sm:max-w-[850px]"
+                  className="bg-white text-slate-900 shadow-2xl p-3 sm:px-6 sm:py-8 min-h-[850px] h-fit border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text mb-12 w-full max-w-full sm:max-w-[960px] box-border"
                   style={{ 
                     transform: `scale(${zoom / 100})`, 
                     transformOrigin: 'top center',
@@ -727,40 +727,40 @@ export default function CustomersReportPage() {
                   </div>
 
                   {/* Table */}
-                  <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white shadow-sm w-full">
-                    <table className="w-full text-[12px] border-collapse">
+                  <div className="border border-gray-300 rounded-sm overflow-x-auto mb-6 bg-white shadow-sm w-full custom-scrollbar">
+                    <table className="w-full text-[12px] border-collapse min-w-[680px]">
                       <thead>
                         {interestType === 'Bán hàng' && (
                           <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
-                            <th className="px-3 py-2 text-left w-[110px]">Mã KH</th>
-                            <th className="px-3 py-2 text-left">Khách hàng</th>
-                            <th className="px-3 py-2 text-right w-[80px]">Số đơn</th>
-                            <th className="px-3 py-2 text-right w-[120px]">Doanh thu</th>
-                            <th className="px-3 py-2 text-right w-[110px]">Giá trị trả</th>
-                            <th className="px-3 py-2 text-right w-[130px]">Doanh thu thuần</th>
+                            <th className="px-2.5 py-2 text-left w-[90px]">Mã KH</th>
+                            <th className="px-2.5 py-2 text-left min-w-[160px]">Khách hàng</th>
+                            <th className="px-2 py-2 text-right w-[75px]">Số đơn</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">Doanh thu</th>
+                            <th className="px-2.5 py-2 text-right w-[100px]">Giá trị trả</th>
+                            <th className="px-2.5 py-2 text-right w-[120px]">Doanh thu thuần</th>
                           </tr>
                         )}
                         {interestType === 'Lợi nhuận' && (
                           <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
-                            <th className="px-3 py-2 text-left w-[100px]">Mã KH</th>
-                            <th className="px-3 py-2 text-left">Khách hàng</th>
-                            <th className="px-2 py-2 text-right w-[70px]">Số đơn</th>
-                            <th className="px-3 py-2 text-right w-[110px]">Doanh thu</th>
-                            <th className="px-3 py-2 text-right w-[100px]">Giá trị trả</th>
-                            <th className="px-3 py-2 text-right w-[115px]">Doanh thu thuần</th>
-                            <th className="px-3 py-2 text-right w-[110px]">Tổng giá vốn</th>
-                            <th className="px-3 py-2 text-right w-[110px]">Lợi nhuận</th>
-                            <th className="px-2 py-2 text-right w-[80px]">Tỷ suất</th>
+                            <th className="px-2.5 py-2 text-left w-[85px]">Mã KH</th>
+                            <th className="px-2.5 py-2 text-left min-w-[150px]">Khách hàng</th>
+                            <th className="px-2 py-2 text-right w-[65px]">Số đơn</th>
+                            <th className="px-2.5 py-2 text-right w-[105px]">Doanh thu</th>
+                            <th className="px-2.5 py-2 text-right w-[95px]">Giá trị trả</th>
+                            <th className="px-2.5 py-2 text-right w-[110px]">Doanh thu thuần</th>
+                            <th className="px-2.5 py-2 text-right w-[105px]">Tổng giá vốn</th>
+                            <th className="px-2.5 py-2 text-right w-[105px]">Lợi nhuận</th>
+                            <th className="px-2 py-2 text-right w-[75px]">Tỷ suất</th>
                           </tr>
                         )}
                         {interestType === 'Công nợ' && (
                           <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
-                            <th className="px-3 py-2 text-left w-[110px]">Mã KH</th>
-                            <th className="px-3 py-2 text-left">Khách hàng</th>
-                            <th className="px-3 py-2 text-left w-[110px]">Điện thoại</th>
-                            <th className="px-3 py-2 text-right w-[120px]">Tổng mua</th>
-                            <th className="px-3 py-2 text-right w-[120px]">Đã thanh toán</th>
-                            <th className="px-3 py-2 text-right w-[120px]">Nợ hiện tại</th>
+                            <th className="px-2.5 py-2 text-left w-[90px]">Mã KH</th>
+                            <th className="px-2.5 py-2 text-left min-w-[160px]">Khách hàng</th>
+                            <th className="px-2 py-2 text-left w-[100px]">Điện thoại</th>
+                            <th className="px-2.5 py-2 text-right w-[115px]">Tổng mua</th>
+                            <th className="px-2.5 py-2 text-right w-[115px]">Đã thanh toán</th>
+                            <th className="px-2.5 py-2 text-right w-[125px]">Nợ hiện tại</th>
                           </tr>
                         )}
                       </thead>
@@ -769,19 +769,19 @@ export default function CustomersReportPage() {
                         {/* Top Summary Row (#EDE7D6 Gold Bar) */}
                         {interestType === 'Bán hàng' && (
                           <tr className="bg-[#EDE7D6] text-slate-900 font-extrabold border-b border-gray-300">
-                            <td className="px-3 py-2" colSpan={2}>
+                            <td className="px-2.5 py-2" colSpan={2}>
                               SL khách hàng: {processedData.length}
                             </td>
                             <td className="px-2 py-2 text-right font-extrabold text-slate-900">
                               {totalOrderCount}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">
                               {fmt(totalRevenue)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-800">
+                            <td className="px-2.5 py-2 text-right text-gray-800">
                               {fmt(totalReturnVal)}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-[#0077CC]">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-[#0077CC]">
                               {fmt(totalNet)}
                             </td>
                           </tr>
@@ -789,25 +789,25 @@ export default function CustomersReportPage() {
 
                         {interestType === 'Lợi nhuận' && (
                           <tr className="bg-[#EDE7D6] text-slate-900 font-extrabold border-b border-gray-300">
-                            <td className="px-3 py-2" colSpan={2}>
+                            <td className="px-2.5 py-2" colSpan={2}>
                               SL khách hàng: {processedData.length}
                             </td>
                             <td className="px-2 py-2 text-right font-extrabold text-slate-900">
                               {totalOrderCount}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">
                               {fmt(totalRevenue)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-800">
+                            <td className="px-2.5 py-2 text-right text-gray-800">
                               {fmt(totalReturnVal)}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">
                               {fmt(totalNet)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-800">
+                            <td className="px-2.5 py-2 text-right text-gray-800">
                               {fmt(totalCogs)}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">
                               {fmt(totalGrossProfit)}
                             </td>
                             <td className="px-2 py-2 text-right font-extrabold text-[#0077CC]">
@@ -818,16 +818,16 @@ export default function CustomersReportPage() {
 
                         {interestType === 'Công nợ' && (
                           <tr className="bg-[#EDE7D6] text-slate-900 font-extrabold border-b border-gray-300">
-                            <td className="px-3 py-2" colSpan={3}>
+                            <td className="px-2.5 py-2" colSpan={3}>
                               SL khách hàng: {processedData.length}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-slate-900">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-slate-900">
                               {fmt(totalRevenue)}
                             </td>
-                            <td className="px-3 py-2 text-right text-emerald-700">
+                            <td className="px-2.5 py-2 text-right text-emerald-700 font-extrabold">
                               {fmt(totalPaid)}
                             </td>
-                            <td className="px-3 py-2 text-right font-extrabold text-rose-600">
+                            <td className="px-2.5 py-2 text-right font-extrabold text-rose-600">
                               {fmt(totalDebt)}
                             </td>
                           </tr>
@@ -837,7 +837,7 @@ export default function CustomersReportPage() {
                         {processedData.length > 0 ? (
                           processedData.map((item, idx) => (
                             <tr key={idx} className="hover:bg-blue-50/40 transition-colors">
-                              <td className="px-3 py-2 font-bold text-[#0077CC]">
+                              <td className="px-2.5 py-2 font-bold text-[#0077CC]">
                                 <a 
                                   href={`/customers?search=${encodeURIComponent(item.code || item.name)}`}
                                   target="_blank" 
@@ -847,7 +847,7 @@ export default function CustomersReportPage() {
                                   {item.code || `KH${String(item.id).padStart(5, '0')}`}
                                 </a>
                               </td>
-                              <td className="px-3 py-2 text-gray-800 font-medium">
+                              <td className="px-2.5 py-2 text-gray-800 font-medium max-w-[240px] break-words">
                                 {item.name}
                               </td>
 
@@ -856,13 +856,13 @@ export default function CustomersReportPage() {
                                   <td className="px-2 py-2 text-right text-gray-700">
                                     {item.orderCount}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-800 font-semibold">
+                                  <td className="px-2.5 py-2 text-right text-gray-800 font-semibold">
                                     {fmt(item.revenue)}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-500">
+                                  <td className="px-2.5 py-2 text-right text-gray-500">
                                     {fmt(item.returnVal)}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-800 font-bold">
+                                  <td className="px-2.5 py-2 text-right text-gray-800 font-bold">
                                     {fmt(item.netRevenue)}
                                   </td>
                                 </>
@@ -873,19 +873,19 @@ export default function CustomersReportPage() {
                                   <td className="px-2 py-2 text-right text-gray-700">
                                     {item.orderCount}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-medium text-gray-800">
+                                  <td className="px-2.5 py-2 text-right font-medium text-gray-800">
                                     {fmt(item.revenue)}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-500">
+                                  <td className="px-2.5 py-2 text-right text-gray-500">
                                     {fmt(item.returnVal)}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-medium text-gray-800">
+                                  <td className="px-2.5 py-2 text-right font-medium text-gray-800">
                                     {fmt(item.netRevenue)}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-700">
+                                  <td className="px-2.5 py-2 text-right text-gray-700">
                                     {fmt(item.cogs)}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                                  <td className="px-2.5 py-2 text-right font-semibold text-gray-800">
                                     {fmt(item.grossProfit)}
                                   </td>
                                   <td className="px-2 py-2 text-right font-semibold text-[#0077CC]">
@@ -896,16 +896,16 @@ export default function CustomersReportPage() {
 
                               {interestType === 'Công nợ' && (
                                 <>
-                                  <td className="px-3 py-2 text-left text-gray-600">
+                                  <td className="px-2 py-2 text-left text-gray-600">
                                     {item.phone || '---'}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-gray-800 font-semibold">
+                                  <td className="px-2.5 py-2 text-right text-gray-800 font-semibold">
                                     {fmt(item.revenue)}
                                   </td>
-                                  <td className="px-3 py-2 text-right text-emerald-700 font-medium">
+                                  <td className="px-2.5 py-2 text-right text-emerald-700 font-medium">
                                     {fmt(item.paid)}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-bold text-rose-600">
+                                  <td className="px-2.5 py-2 text-right font-bold text-rose-600">
                                     {fmt(item.debt)}
                                   </td>
                                 </>
