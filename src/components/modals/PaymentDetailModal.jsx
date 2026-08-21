@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, Printer } from 'lucide-react';
 import Button from '../ui/Button';
 import { cashbookAPI } from '../../services/api';
@@ -27,9 +28,9 @@ export default function PaymentDetailModal({ open, onClose, data, partnerName, o
     }
   };
   
-  return (
-    <div className="fixed inset-0 z-[999990] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-[800px] max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[200000] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans text-left" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[800px] max-h-[90vh] overflow-y-auto flex flex-col custom-scrollbar" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-extrabold text-gray-800 tracking-tight">{isIncome ? 'Phiếu thu' : 'Phiếu chi'}</h2>
@@ -75,6 +76,7 @@ export default function PaymentDetailModal({ open, onClose, data, partnerName, o
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

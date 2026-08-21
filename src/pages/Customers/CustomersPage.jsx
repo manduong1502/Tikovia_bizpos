@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { customerAPI, orderAPI, cashbookAPI, returnAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import Button from '../../components/ui/Button';
@@ -123,72 +124,84 @@ export default function CustomersPage() {
   const [paymentModalCustomer, setPaymentModalCustomer] = useState(null);
 
   const handleOpenOrder = async (orderId, partnerName, defaultData = null) => {
-    if (!orderId) {
-      if (defaultData) setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      return;
-    }
-    const tid = toast.loading('Đang tải chi tiết hóa đơn...');
-    try {
-      const realId = typeof orderId === 'string' && orderId.includes('-')
-        ? Number(orderId.split('-')[0])
-        : orderId;
-      const detail = await orderAPI.getById(realId);
-      if (detail) {
-        setSelectedTx({
-          ...defaultData,
-          ...detail,
-          type: 'Bán hàng',
-          partnerName: partnerName
-        });
-      } else if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      } else {
-        toast.error('Không tìm thấy chi tiết hóa đơn');
+    const parsedId = typeof orderId === 'string' && orderId.includes('-')
+      ? orderId.split('-')[0]
+      : orderId;
+    const targetCode = defaultData?.code || defaultData?.order_code;
+    
+    const rawOrder = defaultData?.raw || orders.find(o => 
+      (parsedId && String(o.id) === String(parsedId)) || 
+      (targetCode && (o.order_code === targetCode || o.code === targetCode))
+    );
+
+    const baseData = {
+      ...(rawOrder || {}),
+      ...(defaultData || {}),
+      id: rawOrder?.id || parsedId || orderId,
+      code: targetCode || rawOrder?.order_code || rawOrder?.code,
+      type: 'Bán hàng',
+      partnerName: partnerName || rawOrder?.customer_name || 'Khách lẻ',
+      items: rawOrder?.items || defaultData?.items || []
+    };
+
+    setSelectedTx(baseData);
+
+    const realId = rawOrder?.id || (typeof parsedId === 'number' || (typeof parsedId === 'string' && /^\d+$/.test(parsedId)) ? Number(parsedId) : null);
+    if (realId) {
+      try {
+        const detail = await orderAPI.getById(realId);
+        if (detail) {
+          setSelectedTx(prev => ({
+            ...(prev || {}),
+            ...detail,
+            type: 'Bán hàng',
+            partnerName: partnerName || detail.customer_name || 'Khách lẻ'
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch full order API detail, used local data', err);
       }
-    } catch (err) {
-      console.error(err);
-      if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      } else {
-        toast.error('Không thể tải chi tiết hóa đơn');
-      }
-    } finally {
-      toast.dismiss(tid);
     }
   };
 
   const handleOpenReturn = async (returnId, partnerName, defaultData = null) => {
-    if (!returnId) {
-      if (defaultData) setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      return;
-    }
-    const tid = toast.loading('Đang tải chi tiết phiếu trả hàng...');
-    try {
-      const realId = typeof returnId === 'string' && returnId.includes('-')
-        ? Number(returnId.split('-')[0])
-        : returnId;
-      const detail = await returnAPI.getById(realId);
-      if (detail) {
-        setSelectedTx({
-          ...defaultData,
-          ...detail,
-          type: 'Trả hàng',
-          partnerName: partnerName
-        });
-      } else if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      } else {
-        toast.error('Không tìm thấy chi tiết phiếu trả hàng');
+    const parsedId = typeof returnId === 'string' && returnId.includes('-')
+      ? returnId.split('-')[0]
+      : returnId;
+    const targetCode = defaultData?.code;
+
+    const rawReturn = defaultData?.raw || returns.find(r => 
+      (parsedId && String(r.id) === String(parsedId)) || 
+      (targetCode && r.code === targetCode)
+    );
+
+    const baseData = {
+      ...(rawReturn || {}),
+      ...(defaultData || {}),
+      id: rawReturn?.id || parsedId || returnId,
+      code: targetCode || rawReturn?.code,
+      type: 'Trả hàng',
+      partnerName: partnerName || rawReturn?.customer_name || 'Khách lẻ',
+      items: rawReturn?.items || defaultData?.items || []
+    };
+
+    setSelectedTx(baseData);
+
+    const realId = rawReturn?.id || (typeof parsedId === 'number' || (typeof parsedId === 'string' && /^\d+$/.test(parsedId)) ? Number(parsedId) : null);
+    if (realId) {
+      try {
+        const detail = await returnAPI.getById(realId);
+        if (detail) {
+          setSelectedTx(prev => ({
+            ...(prev || {}),
+            ...detail,
+            type: 'Trả hàng',
+            partnerName: partnerName || detail.customer_name || 'Khách lẻ'
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch full return API detail, used local data', err);
       }
-    } catch (err) {
-      console.error(err);
-      if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      } else {
-        toast.error('Không thể tải chi tiết phiếu trả hàng');
-      }
-    } finally {
-      toast.dismiss(tid);
     }
   };
 
@@ -781,7 +794,7 @@ export default function CustomersPage() {
     }
   };
 
-  const renderDetail = (c) => {
+  const renderDetailContent = (c, isMobile = false) => {
     const currentNote = custNotes[c.id] ?? c.note ?? '';
     const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
 
@@ -824,6 +837,7 @@ export default function CustomersPage() {
             total: total,
             paid: 0,
             debt: total,
+            raw: o
           }
         ];
       }),
@@ -838,6 +852,7 @@ export default function CustomersPage() {
           total: paid > 0 ? paid : total,
           paid: paid,
           debt: paid > 0 ? -paid : -total,
+          raw: r
         };
       }),
       ...cashbooks.filter(cb => {
@@ -865,6 +880,7 @@ export default function CustomersPage() {
         total: Number(cb.amount || 0),
         paid: cb.amount,
         debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+        raw: cb
       }))
     ].sort((a, b) => {
       const getMinuteTime = (d) => {
@@ -886,29 +902,9 @@ export default function CustomersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
-    // Calculate running debt backwards from the current debt
     const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
-    const sortedNewFirst = [...debtTransactions].sort((a, b) => {
-      const getMinuteTime = (d) => {
-        if (!d) return 0;
-        const dateObj = new Date(d);
-        if (isNaN(dateObj.getTime())) return 0;
-        dateObj.setSeconds(0, 0);
-        return dateObj.getTime();
-      };
-
-      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-      if (timeDiff !== 0) return timeDiff;
-      const getPriority = (type) => {
-        if (type === 'Thanh toán') return 1;
-        if (type === 'Trả hàng') return 2;
-        if (type === 'Bán hàng') return 3;
-        return 4;
-      };
-      return getPriority(a.type) - getPriority(b.type);
-    });
     let tempDebt = currentFinalDebt;
-    const transactionsWithDebt = sortedNewFirst.map(tx => {
+    const transactionsWithDebt = debtTransactions.map(tx => {
       const runningDebt = tempDebt;
       tempDebt -= tx.debt;
       return { ...tx, runningDebt };
@@ -921,574 +917,525 @@ export default function CustomersPage() {
     const paginatedDebtTxs = transactionsWithDebt.slice((currentDebtPage - 1) * debtPageSize, currentDebtPage * debtPageSize);
 
     return (
-      <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
-        <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-3 sm:p-4 bg-gray-50/10 max-w-full overflow-x-hidden">
-            {/* Top Tabs: Horizontal scrollable on mobile */}
-            <div className="flex gap-3 border-b border-gray-200 mb-4 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
-              {[
-                { key: 'info', label: 'Thông tin' },
-                { key: 'history', label: 'Lịch sử mua hàng' },
-                { key: 'address', label: 'Địa chỉ nhận hàng' },
-                { key: 'debt', label: 'Nợ cần thu từ khách' },
-              ].map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setDetailTab(t.key)}
-                  className={`py-1.5 px-1 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                    detailTab === t.key ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
-                  }`}
+      <div className="p-2 sm:p-4 bg-gray-50/30 max-w-full overflow-x-hidden font-sans text-left">
+        {/* Top Tabs: 4-column responsive grid on mobile, flexible tabs on desktop */}
+        <div className="grid grid-cols-4 sm:flex sm:gap-2 border-b-0 sm:border-b sm:border-gray-200 mb-3 bg-gray-100/70 sm:bg-transparent p-1 sm:p-0 rounded-xl sm:rounded-none">
+          {[
+            { key: 'info', shortLabel: 'Thông tin', label: 'Thông tin' },
+            { key: 'history', shortLabel: 'Lịch sử', label: 'Lịch sử mua hàng' },
+            { key: 'address', shortLabel: 'Địa chỉ', label: 'Địa chỉ nhận hàng' },
+            { key: 'debt', shortLabel: 'Công nợ', label: 'Nợ cần thu từ khách' },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setDetailTab(t.key)}
+              className={`py-2 px-1 sm:px-3 text-center text-[11px] sm:text-xs font-bold transition-all cursor-pointer rounded-lg sm:rounded-t-lg sm:rounded-b-none ${
+                detailTab === t.key 
+                  ? 'bg-white sm:bg-primary/5 text-primary shadow-xs sm:shadow-none sm:border-b-2 sm:border-primary' 
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-white/50 sm:hover:bg-transparent sm:border-b-2 sm:border-transparent'
+              }`}
+            >
+              <span className="sm:hidden">{t.shortLabel}</span>
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab: Thông tin */}
+        {detailTab === 'info' && (
+          <div className="flex flex-col gap-3 p-1">
+            {/* Header Info */}
+            <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100 text-xs flex flex-col gap-2.5 shadow-xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-sm font-extrabold text-gray-900 tracking-tight">{c.name}</span>
+                <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                  {code}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600 pt-1.5 border-t border-blue-100/60">
+                <div><span className="text-gray-500 font-medium">Điện thoại:</span> <span className="font-extrabold text-gray-900 ml-1">{c.phone || '---'}</span></div>
+                <div><span className="text-gray-500 font-medium">Email:</span> <span className="font-extrabold text-gray-900 ml-1">{c.email || '---'}</span></div>
+                <div className="sm:col-span-1 truncate"><span className="text-gray-500 font-medium">Địa chỉ:</span> <span className="font-extrabold text-gray-900 ml-1">{c.address || '---'}</span></div>
+              </div>
+            </div>
+
+            {/* Grid Info */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-white rounded-xl border border-gray-200 text-xs shadow-xs">
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span>
+                <span className="font-bold text-gray-800">Khách hàng chung</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span>
+                <span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Giới tính</span>
+                <span className="font-bold text-gray-800">{c.gender || '---'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Ngày sinh</span>
+                <span className="font-bold text-gray-800">---</span>
+              </div>
+            </div>
+
+            {/* Bottom Section: Note & Summary Box */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch text-xs">
+              <div className="sm:col-span-2">
+                <textarea
+                  placeholder="Ghi chú..."
+                  className="w-full h-full min-h-[90px] border border-gray-200 rounded-xl p-3 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs resize-none bg-white font-medium"
+                  value={currentNote}
+                  onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
+                />
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-xs">
+                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-0.5">
+                  <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
+                  <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
+                    {fmt(c.debt || c.totalDebt || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1">
+              {/* Left side actions */}
+              <div className="contents sm:flex sm:items-center sm:gap-2">
+                <button 
+                  onClick={() => handleDelete(c.id)}
+                  className="px-3 py-2 bg-white border border-red-300 hover:bg-red-50 text-red-600 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  {t.label}
+                  <Trash2 size={13} /> <span>Xóa</span>
                 </button>
+                <button 
+                  onClick={() => toast.info('Đã sao chép')}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Copy size={13} className="text-gray-500" /> <span>Sao chép</span>
+                </button>
+                <button 
+                  onClick={handleExport}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer col-span-2 sm:col-span-1"
+                >
+                  <Download size={13} className="text-gray-500" /> <span>Xuất file</span>
+                </button>
+              </div>
+
+              {/* Right side actions */}
+              <div className="contents sm:flex sm:items-center sm:gap-2">
+                <button 
+                  onClick={() => { setEditCustomer(c); setModalOpen(true); }}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Edit size={13} className="text-gray-500" /> <span>Sửa</span>
+                </button>
+                <button 
+                  onClick={() => handleSaveNote(c.id, currentNote)}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Save size={13} className="text-gray-500" /> <span>Lưu</span>
+                </button>
+                <button 
+                  onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                  className="px-3 py-2 bg-[#0070F4] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <DollarSign size={13} /> <span>Thanh toán</span>
+                </button>
+                <button 
+                  onClick={() => handlePrintCustomer(c)}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Printer size={13} className="text-gray-500" /> <span>In</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Lịch sử mua hàng */}
+        {detailTab === 'history' && (() => {
+          const custOrders = orders.filter(o => {
+            const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
+            const cNameMatches = o.customer_name && o.customer_name === c.name;
+            const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
+            return cIdMatches || cNameMatches || cCodeMatches;
+          });
+
+          const custReturns = returns.filter(r => {
+            const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
+            const cNameMatches = r.customer_name && r.customer_name === c.name;
+            const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
+            return cIdMatches || cNameMatches || cCodeMatches;
+          });
+
+          const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+          const dVal = Number(c.debt || c.totalDebt || 0);
+
+          const combinedHistory = [
+            ...custOrders.map(o => ({
+              id: o.id,
+              code: o.order_code || o.code,
+              type: 'Bán hàng',
+              typeName: 'Bán hàng',
+              date: o.createdAt || o.created_at,
+              branch: o.branch || 'Chi nhánh trung tâm',
+              total: Number(o.total || 0),
+              paid: Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0)),
+              status: o.status,
+              raw: o
+            })),
+            ...custReturns.map(r => ({
+              id: r.id,
+              code: r.code,
+              type: 'Trả hàng',
+              typeName: 'Trả hàng',
+              date: r.createdAt || r.created_at,
+              branch: r.branch || 'Chi nhánh trung tâm',
+              total: -Number(r.total || 0),
+              paid: Number(r.paid || 0),
+              status: r.status,
+              raw: r
+            }))
+          ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+          return (
+            <div className="flex flex-col gap-3 p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-xs">
+                <div>
+                  <span className="text-gray-500 font-medium block">Số đơn hàng</span>
+                  <span className="font-extrabold text-gray-900 text-sm">{custOrders.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Số đơn trả hàng</span>
+                  <span className="font-extrabold text-gray-900 text-sm">{custReturns.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Tổng tiền mua</span>
+                  <span className="font-extrabold text-primary text-sm">{fmt(baseAmt)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Nợ hiện tại</span>
+                  <span className={`font-extrabold text-sm ${dVal > 0 ? 'text-red-600' : 'text-gray-800'}`}>{fmt(dVal)}</span>
+                </div>
+              </div>
+
+              {combinedHistory.length > 0 ? (
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                  {/* Mobile list view */}
+                  <div className="block sm:hidden divide-y divide-gray-100">
+                    {combinedHistory.map((item, idx) => (
+                      <div key={idx} className="p-3 flex flex-col gap-1.5 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span 
+                            className="font-extrabold text-primary cursor-pointer hover:underline"
+                            onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
+                          >
+                            {item.code}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            {item.type}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-gray-500">
+                          <span>{formatLiteralDateTime(item.date)}</span>
+                          <span className="font-bold text-gray-700">{item.branch}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs pt-1 border-t border-gray-50">
+                          <span className="text-gray-500 text-[11px]">Tổng tiền:</span>
+                          <span className={`font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-primary'}`}>
+                            {fmt(item.total)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-left font-bold text-gray-600">
+                          <th className="py-2.5 px-3">Mã chứng từ</th>
+                          <th className="py-2.5 px-3">Thời gian</th>
+                          <th className="py-2.5 px-3">Loại</th>
+                          <th className="py-2.5 px-3">Chi nhánh</th>
+                          <th className="py-2.5 px-3 text-right">Tổng tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {combinedHistory.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="py-2 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}>
+                              {item.code}
+                            </td>
+                            <td className="py-2 px-3 text-gray-600">{formatLiteralDateTime(item.date)}</td>
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                {item.type}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-gray-600">{item.branch}</td>
+                            <td className={`py-2 px-3 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                              {fmt(item.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-white border border-gray-200 rounded-xl text-gray-400 font-medium text-xs">
+                  <User size={32} className="mx-auto mb-2 text-gray-300" />
+                  Khách hàng chưa phát sinh hóa đơn giao dịch nào
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Tab: Địa chỉ nhận hàng */}
+        {detailTab === 'address' && (
+          <div className="flex flex-col gap-3 p-1 text-xs">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Danh sách địa chỉ giao hàng của khách
+              </h3>
+              <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-4 shadow-xs relative overflow-hidden flex flex-col gap-1.5">
+                <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
+                  Mặc định
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
+                  <span className="text-xs font-extrabold text-gray-800">{c.name}</span>
+                </div>
+                <div className="text-xs text-gray-500 font-medium flex flex-col gap-0.5 pl-7">
+                  <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
+                  <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Nợ cần thu từ khách */}
+        {detailTab === 'debt' && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs flex flex-col animate-fade-in text-xs max-h-[620px]">
+            <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+              <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
+              <select 
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
+                onChange={(e) => {
+                  const tbody = e.target.closest('.border').querySelector('tbody');
+                  if (tbody) {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const val = e.target.value;
+                    rows.forEach(r => {
+                      if (r.querySelector('td[colspan]')) return;
+                      if (val === 'all') r.style.display = '';
+                      else {
+                         const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
+                         r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
+                      }
+                    });
+                  }
+                }}
+              >
+                <option value="all">Tất cả giao dịch</option>
+                <option value="Bán hàng">Bán hàng</option>
+                <option value="Trả hàng">Trả hàng</option>
+                <option value="Thanh toán">Thanh toán</option>
+              </select>
+            </div>
+
+            {/* Mobile View: Cards */}
+            <div className="block md:hidden divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
+              {transactionsWithDebt.map((tx, idx) => (
+                <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => {
+                      if (tx.type === 'Bán hàng') handleOpenOrder(tx.id, c.name, tx);
+                      else if (tx.type === 'Trả hàng') handleOpenReturn(tx.id, c.name, tx);
+                      else setSelectedTx({ ...tx, partnerName: c.name });
+                    }}>{tx.code}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {tx.type}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-gray-500">{formatLiteralDateTime(tx.date)}</span>
+                    <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                      {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
+                    <span className="text-gray-500">Dư nợ sau giao dịch:</span>
+                    <span className={`font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</span>
+                  </div>
+                </div>
               ))}
             </div>
 
-            {/* Tab: Thông tin */}
-            {detailTab === 'info' && (
-              <div className="flex flex-col gap-3.5 p-1">
-                {/* Header Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-gray-900 tracking-tight">{c.name}</span>
-                    <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
-                      {code}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-xs">
-                    <div><span className="text-gray-500 font-medium">Điện thoại:</span> <span className="font-extrabold text-gray-900">{c.phone || '---'}</span></div>
-                    <div><span className="text-gray-500 font-medium">Email:</span> <span className="font-extrabold text-gray-900">{c.email || '---'}</span></div>
-                    <div><span className="text-gray-500 font-medium">Địa chỉ:</span> <span className="font-extrabold text-gray-900">{c.address || '---'}</span></div>
-                  </div>
-                </div>
-
-                {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-gray-50/60 rounded-xl border border-gray-200 text-xs">
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span>
-                    <span className="font-bold text-gray-800">Khách hàng chung</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span>
-                    <span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Giới tính</span>
-                    <span className="font-bold text-gray-800">{c.gender || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Ngày sinh</span>
-                    <span className="font-bold text-gray-800">---</span>
-                  </div>
-                </div>
-
-                {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-stretch text-xs">
-                  <div className="sm:col-span-2">
-                    <textarea
-                      placeholder="Ghi chú..."
-                      className="w-full h-full min-h-[90px] border border-gray-300 rounded-xl p-3 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
-                      value={currentNote}
-                      onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
-                    />
-                  </div>
-                  <div className="bg-gray-50/80 border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-sm">
-                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-0.5">
-                      <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
-                      <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
-                        {fmt(c.debt || c.totalDebt || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Action Bar matching Image 2 */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-gray-200 pt-3 mt-1">
-                  {/* Left side actions */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleDelete(c.id)}
-                      className="px-3 py-1.5 bg-white border border-red-300 hover:bg-red-50 text-red-600 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Trash2 size={13} /> <span>Xóa</span>
-                    </button>
-                    <button 
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Copy size={13} className="text-gray-500" /> <span>Sao chép</span>
-                    </button>
-                    <button 
-                      onClick={handleExport}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" /> <span>Xuất file</span>
-                    </button>
-                  </div>
-
-                  {/* Right side actions */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => { setEditCustomer(c); setModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Edit size={13} className="text-gray-500" /> <span>Sửa</span>
-                    </button>
-                    <button 
-                      onClick={() => handleSaveNote(c.id, currentNote)}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Save size={13} className="text-gray-500" /> <span>Lưu</span>
-                    </button>
-                    <button 
-                      onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={() => handlePrintCustomer(c)}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Printer size={13} className="text-gray-500" /> <span>In</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Lịch sử mua hàng */}
-            {detailTab === 'history' && (() => {
-              const custOrders = orders.filter(o => {
-                const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
-                const cNameMatches = o.customer_name && o.customer_name === c.name;
-                const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
-                return cIdMatches || cNameMatches || cCodeMatches;
-              });
-
-              const custReturns = returns.filter(r => {
-                const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
-                const cNameMatches = r.customer_name && r.customer_name === c.name;
-                const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
-                return cIdMatches || cNameMatches || cCodeMatches;
-              });
-
-              const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
-              const dVal = Number(c.debt || c.totalDebt || 0);
-
-              const combinedHistory = [
-                ...custOrders.map(o => ({
-                  id: o.id,
-                  code: o.order_code || o.code,
-                  type: 'Bán hàng',
-                  typeName: 'Bán hàng',
-                  date: o.createdAt || o.created_at,
-                  branch: o.branch || 'Chi nhánh trung tâm',
-                  total: Number(o.total || 0),
-                  paid: Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0)),
-                  status: o.status,
-                  raw: o
-                })),
-                ...custReturns.map(r => ({
-                  id: r.id,
-                  code: r.code,
-                  type: 'Trả hàng',
-                  typeName: 'Trả hàng',
-                  date: r.createdAt || r.created_at,
-                  branch: r.branch || 'Chi nhánh trung tâm',
-                  total: -Number(r.total || 0),
-                  paid: -Number(r.paid || 0),
-                  status: r.status,
-                  raw: r
-                }))
-              ].sort((a, b) => {
-                const getMinuteTime = (d) => {
-                  if (!d) return 0;
-                  const dateObj = new Date(d);
-                  if (isNaN(dateObj.getTime())) return 0;
-                  dateObj.setSeconds(0, 0);
-                  return dateObj.getTime();
-                };
-                const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-                if (timeDiff !== 0) return timeDiff;
-                const getPriority = (type) => {
-                  if (type === 'Thanh toán') return 1;
-                  if (type === 'Trả hàng') return 2;
-                  if (type === 'Bán hàng') return 3;
-                  return 4;
-                };
-                return getPriority(a.type) - getPriority(b.type);
-              });
-
-              return (
-                <div className="flex flex-col gap-3 p-1">
-                  {/* Micro metrics: 2 cols on mobile, 4 on desktop */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng giao dịch</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-gray-800">{combinedHistory.length} giao dịch</span>
-                    </div>
-                    <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-primary">{fmt(baseAmt)}</span>
-                    </div>
-                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-emerald-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Khách đã trả</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
-                    </div>
-                    <div className="bg-rose-50/40 border border-rose-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-rose-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Còn nợ lại</span>
-                      <span className={`text-xs sm:text-sm font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
-                    </div>
-                  </div>
-
-                  {combinedHistory.length > 0 ? (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                      {/* Mobile View: Cards */}
-                      <div className="block md:hidden divide-y divide-gray-100 max-h-60 overflow-y-auto custom-scrollbar">
-                        {combinedHistory.map((item, i) => (
-                          <div key={i} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                            <div className="flex items-center justify-between gap-2">
-                              <span 
-                                className="font-extrabold text-primary hover:underline cursor-pointer"
-                                onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
-                              >
-                                {item.code}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                {item.typeName}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-[11px] text-gray-500">
-                              <span>{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</span>
-                              <span className={`font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
-                              <span className="text-gray-500">Đã trả: <strong className="text-emerald-600">{fmt(Math.abs(item.paid))}</strong></span>
-                              <span className="text-gray-400">{item.branch}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Desktop Table View */}
-                      <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar">
-                        <table className="w-full text-xs min-w-[700px] border-collapse">
-                          <thead>
-                            <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                              <th className="py-2.5 px-3.5">Mã hóa đơn</th>
-                              <th className="py-2.5 px-3.5">Thời gian</th>
-                              <th className="py-2.5 px-3.5">Chi nhánh</th>
-                              <th className="py-2.5 px-3.5">Loại</th>
-                              <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
-                              <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
-                              <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 font-medium">
-                            {combinedHistory.map((item, i) => (
-                              <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                                <td
-                                  className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer"
-                                  onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
-                                >
-                                  {item.code}
-                                </td>
-                                <td className="py-2 px-3.5 text-gray-500">{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</td>
-                                <td className="py-2 px-3.5 text-gray-600">{item.branch}</td>
-                                <td className="py-2 px-3.5">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                    {item.typeName}
-                                  </span>
-                                </td>
-                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                  {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
-                                </td>
-                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.paid < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                  {item.paid < 0 ? '-' : ''}{fmt(Math.abs(item.paid))}
-                                </td>
-                                <td className="py-2 px-3.5 text-center">
-                                  {item.status === 'CANCELLED' || item.status === 'cancelled' ? (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
-                                      Đã hủy
-                                    </span>
-                                  ) : item.type === 'Trả hàng' ? (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                      Hoàn thành
-                                    </span>
-                                  ) : (() => {
-                                    const total = Number(item.total || 0);
-                                    const paid = Number(item.paid);
-                                    if (paid >= total && total > 0) {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                          Hoàn thành
-                                        </span>
-                                      );
-                                    } else if (paid > 0 && paid < total) {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
-                                          Một phần
-                                        </span>
-                                      );
-                                    } else {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-                                          Chưa trả
-                                        </span>
-                                      );
-                                    }
-                                  })()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-400 font-medium text-xs">
-                      <User size={32} className="mx-auto mb-2 text-gray-300" />
-                      Khách hàng chưa phát sinh hóa đơn giao dịch nào
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Tab: Địa chỉ nhận hàng */}
-            {detailTab === 'address' && (
-              <div className="flex flex-col gap-3 p-1 text-xs">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                    Danh sách địa chỉ giao hàng của khách
-                  </h3>
-                  <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
-                    <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
-                      Mặc định
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
-                      <span className="text-xs font-extrabold text-gray-800">{c.name}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 font-medium flex flex-col gap-0.5 pl-7">
-                      <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
-                      <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Nợ cần thu từ khách */}
-            {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-[620px]">
-                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                  <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
-                  <select 
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
-                    onChange={(e) => {
-                      const tbody = e.target.closest('.border').querySelector('tbody');
-                      if (tbody) {
-                        const rows = Array.from(tbody.querySelectorAll('tr'));
-                        const val = e.target.value;
-                        rows.forEach(r => {
-                          if (r.querySelector('td[colspan]')) return;
-                          if (val === 'all') r.style.display = '';
-                          else {
-                             const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
-                             r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
-                          }
-                        });
-                      }
-                    }}
-                  >
-                    <option value="all">Tất cả giao dịch</option>
-                    <option value="Bán hàng">Bán hàng</option>
-                    <option value="Trả hàng">Trả hàng</option>
-                    <option value="Thanh toán">Thanh toán</option>
-                  </select>
-                </div>
-
-                {/* Mobile View: Cards */}
-                <div className="block md:hidden divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
-                  {transactionsWithDebt.map((tx, idx) => (
-                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => {
-                          if (tx.type === 'Bán hàng') handleOpenOrder(tx.id, c.name, tx);
-                          else if (tx.type === 'Trả hàng') handleOpenReturn(tx.id, c.name, tx);
-                          else setSelectedTx({ ...tx, partnerName: c.name });
-                        }}>{tx.code}</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-xs mb-3">
+              <table className="w-full text-xs table-fixed min-w-full">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider">
+                    <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
+                    <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
+                    <th className="py-2.5 px-3 w-[16%]">Loại</th>
+                    <th className="py-2.5 px-3 w-[22%] text-right">Giá trị</th>
+                    <th className="py-2.5 px-3 w-[22%] text-right">Dư nợ khách hàng</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium text-xs">
+                  {paginatedDebtTxs.map((tx, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                      <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
+                        if (tx.type === 'Bán hàng') {
+                          handleOpenOrder(tx.id, c.name, tx);
+                        } else if (tx.type === 'Trả hàng') {
+                          handleOpenReturn(tx.id, c.name, tx);
+                        } else {
+                          setSelectedTx({ ...tx, partnerName: c.name });
+                        }
+                      }}>{tx.code}</td>
+                      <td className="py-2 px-3.5 text-gray-600">
+                        {formatLiteralDateTime(tx.date)}
+                      </td>
+                      <td className="py-2 px-3.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                           {tx.type}
                         </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-gray-500">{formatLiteralDateTime(tx.date)}</span>
-                        <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
-                        <span className="text-gray-500">Dư nợ sau giao dịch:</span>
-                        <span className={`font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</span>
-                      </div>
-                    </div>
+                      </td>
+                      <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-gray-900' : tx.debt < 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                        {tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                      </td>
+                      <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-gray-900' : tx.runningDebt < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
+                    </tr>
                   ))}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
-                  <table className="w-full text-xs table-fixed min-w-full">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider">
-                        <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
-                        <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
-                        <th className="py-2.5 px-3 w-[16%]">Loại</th>
-                        <th className="py-2.5 px-3 w-[22%] text-right">Giá trị</th>
-                        <th className="py-2.5 px-3 w-[22%] text-right">Dư nợ khách hàng</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium text-xs">
-                      {paginatedDebtTxs.map((tx, idx) => (
-                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
-                            if (tx.type === 'Bán hàng') {
-                              handleOpenOrder(tx.id, c.name, tx);
-                            } else if (tx.type === 'Trả hàng') {
-                              handleOpenReturn(tx.id, c.name, tx);
-                            } else {
-                              setSelectedTx({ ...tx, partnerName: c.name });
-                            }
-                          }}>{tx.code}</td>
-                          <td className="py-2 px-3.5 text-gray-600">
-                            {formatLiteralDateTime(tx.date)}
-                          </td>
-                          <td className="py-2 px-3.5">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-gray-900' : tx.debt < 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
-                            {tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
-                          </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-gray-900' : tx.runningDebt < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
-                        </tr>
-                      ))}
-                      {paginatedDebtTxs.length === 0 && (
-                        <tr><td colSpan={5} className="p-6 text-center text-gray-400">Không có giao dịch nào</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Action & Pagination Bar matching KiotViet */}
-                <div className="p-3 border border-gray-200 bg-gray-50/70 rounded-xl flex flex-col md:flex-row justify-between items-center gap-3">
-                  {/* Left: Export buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" />
-                      <span>Xuất file công nợ</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" />
-                      <span>Xuất file</span>
-                    </button>
-                  </div>
-
-                  {/* Center: Pagination */}
-                  {totalDebtRows > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                      <button 
-                        disabled={currentDebtPage === 1}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: 1 }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang đầu"
-                      >
-                        &laquo;
-                      </button>
-                      <button 
-                        disabled={currentDebtPage === 1}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.max(1, currentDebtPage - 1) }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang trước"
-                      >
-                        &lsaquo;
-                      </button>
-                      <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
-                        {currentDebtPage} / {totalDebtPages}
-                      </span>
-                      <button 
-                        disabled={currentDebtPage === totalDebtPages}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang sau"
-                      >
-                        &rsaquo;
-                      </button>
-                      <button 
-                        disabled={currentDebtPage === totalDebtPages}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: totalDebtPages }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang cuối"
-                      >
-                        &raquo;
-                      </button>
-                      <span className="font-bold text-gray-600 ml-1.5">
-                        {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows} dòng
-                      </span>
-                    </div>
+                  {paginatedDebtTxs.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-gray-400">Không có giao dịch nào</td></tr>
                   )}
+                </tbody>
+              </table>
+            </div>
 
-                  {/* Right: Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
-                      className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <DollarSign size={13} />
-                      <span>Thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setAdjustModalCustomer(c); setAdjustModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Pen size={13} className="text-gray-500" />
-                      <span>Điều chỉnh</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Percent size={13} className="text-gray-500" />
-                      <span>Chiết khấu thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toast.info('Tạo QR thanh toán'); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Tạo QR</span>
-                    </button>
-                  </div>
-                </div>
+            {/* Bottom Action & Pagination Bar */}
+            <div className="p-3 border border-gray-200 bg-gray-50/70 rounded-xl flex flex-col md:flex-row justify-between items-center gap-3">
+              {/* Left: Export buttons */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={13} className="text-gray-500" />
+                  <span>Xuất file công nợ</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={13} className="text-gray-500" />
+                  <span>Xuất file</span>
+                </button>
               </div>
-            )}
+
+              {/* Center: Pagination */}
+              {totalDebtRows > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <button 
+                    disabled={currentDebtPage === 1}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: 1 }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang đầu"
+                  >
+                    &laquo;
+                  </button>
+                  <button 
+                    disabled={currentDebtPage === 1}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.max(1, currentDebtPage - 1) }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang trước"
+                  >
+                    &lsaquo;
+                  </button>
+                  <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
+                    {currentDebtPage} / {totalDebtPages}
+                  </span>
+                  <button 
+                    disabled={currentDebtPage === totalDebtPages}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang sau"
+                  >
+                    &rsaquo;
+                  </button>
+                  <button 
+                    disabled={currentDebtPage === totalDebtPages}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: totalDebtPages }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang cuối"
+                  >
+                    &raquo;
+                  </button>
+                  <span className="font-bold text-gray-600 ml-1.5">
+                    {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows} dòng
+                  </span>
+                </div>
+              )}
+
+              {/* Right: Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                  className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <DollarSign size={13} />
+                  <span>Thanh toán</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setAdjustModalCustomer(c); setAdjustModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Pen size={13} className="text-gray-500" />
+                  <span>Điều chỉnh</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Percent size={13} className="text-gray-500" />
+                  <span>Chiết khấu thanh toán</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toast.info('Tạo QR thanh toán'); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Tạo QR</span>
+                </button>
+              </div>
+            </div>
           </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDetail = (c) => {
+    return (
+      <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
+        <td colSpan={visibleColumns.length + 3} className="p-0">
+          {renderDetailContent(c, false)}
         </td>
       </tr>
     );
@@ -1520,7 +1467,7 @@ export default function CustomersPage() {
               <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Tìm khách hàng"
+                placeholder="Theo mã, tên khách hàng, SĐT"
                 className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -1836,15 +1783,37 @@ export default function CustomersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            {/* Mobile Card List View */}
+            {/* Mobile Summary Card (KiotViet mobile app style) */}
+            <div className="block md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/40 p-3.5 border-b border-blue-100/60 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block tracking-tight">
+                    Tổng nợ hiện tại
+                  </span>
+                  <span className="text-[11px] font-extrabold text-primary block mt-0.5">
+                    {filtered.length} khách hàng
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-black text-gray-900 tracking-tight">
+                    {fmt(sumDebt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Card List View (No horizontal scroll needed) */}
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((c) => {
                 const isExpanded = expandedId === c.id;
                 const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
                 const debt = Number(c.debt !== undefined ? c.debt : (c.totalDebt || 0));
+                const totalSpent = Number(c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0));
+                const isActive = c.status !== 'INACTIVE' && c.status !== 'Ngừng hoạt động';
+
                 return (
                   <div key={c.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
-                    {/* Top Row: Name + Code */}
+                    {/* Header: Checkbox + Code + Status + Date / Phone */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <input
@@ -1857,30 +1826,40 @@ export default function CustomersPage() {
                           onClick={() => setExpandedId(isExpanded ? null : c.id)}
                           className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
                         >
-                          {c.name}
+                          {code}
                         </button>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
-                        {code}
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                          {isActive ? 'Hoàn thành' : 'Ngừng HĐ'}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-medium">
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : (c.phone || '')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Customer Name & Phone / Group */}
+                    <div className="flex items-center justify-between text-xs text-gray-700">
+                      <span className="font-bold text-gray-800 flex items-center gap-1">
+                        <User size={13} className="text-gray-400" />
+                        {c.name}
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        {c.phone || c.group_name || ''}
                       </span>
                     </div>
 
-                    {/* Middle Row: Phone & Address */}
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <span className="font-medium flex items-center gap-1">
-                        <Phone size={12} className="text-gray-400" />
-                        {c.phone || '---'}
-                      </span>
-                      <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
-                        {c.address || '---'}
-                      </span>
-                    </div>
-
-                    {/* Bottom Row: Total spent & Debt */}
+                    {/* Money & Detail Trigger */}
                     <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
                       <div>
-                        <span className="text-gray-500 text-[11px]">Nợ hiện tại: </span>
-                        <span className={`font-extrabold text-xs ${debt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(debt)}</span>
+                        <span className="text-gray-500 text-[11px]">Tổng bán: </span>
+                        <span className="font-extrabold text-primary text-xs">{fmt(totalSpent)}</span>
+                        {debt > 0 && (
+                          <span className="ml-2 text-[11px] font-bold text-rose-600">
+                            (Nợ: {fmt(debt)})
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : c.id)}
@@ -1890,36 +1869,38 @@ export default function CustomersPage() {
                         <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
+
                     {/* Mobile Full-Screen Detail Modal Sheet Overlay */}
-                    {isExpanded && (
-                      <div className="md:hidden fixed inset-0 z-[10000] bg-white flex flex-col font-sans animate-fade-in text-left">
+                    {isExpanded && createPortal(
+                      <div className="md:hidden fixed inset-0 z-[100000] bg-white flex flex-col font-sans animate-fade-in text-left">
                         {/* Sticky Top Header Bar */}
-                        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
-                          <div className="flex items-center gap-2">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-30 shadow-xs">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <button
                               onClick={() => setExpandedId(null)}
-                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center shrink-0"
                             >
                               <X size={20} />
                             </button>
-                            <div className="flex flex-col">
-                              <span className="font-extrabold text-gray-900 text-sm">Chi tiết khách hàng</span>
-                              <span className="text-xs font-bold text-primary">{code} - {c.name}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-extrabold text-gray-900 text-sm truncate">Chi tiết khách hàng</span>
+                              <span className="text-xs font-bold text-primary truncate">{code} - {c.name}</span>
                             </div>
                           </div>
                           <button
                             onClick={() => setExpandedId(null)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold border-none cursor-pointer"
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border-none cursor-pointer shrink-0 ml-2"
                           >
                             Đóng
                           </button>
                         </div>
 
                         {/* Full Screen Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
-                          {renderDetail(c)}
+                        <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar bg-gray-50/50">
+                          {renderDetailContent(c, true)}
                         </div>
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 );

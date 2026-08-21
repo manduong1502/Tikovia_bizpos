@@ -1007,7 +1007,7 @@ export default function OrdersPage() {
                       )}
                       {visibleColumns.includes('customer_code') && (
                         <td className="py-2.5 px-3 font-medium text-gray-700">
-                          {o.customer_code || `KH${String(o.id).padStart(6, '0')}`}
+                          {o.customer_name && o.customer_name !== 'Khách lẻ' && o.customer_name !== 'khách lẻ' ? (o.customer_code || (o.customerId ? `KH${String(o.customerId).padStart(6, '0')}` : '---')) : '---'}
                         </td>
                       )}
                       {visibleColumns.includes('customer_name') && (

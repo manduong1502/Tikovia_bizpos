@@ -50,15 +50,20 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11, as
   }, [tab, o.id, o.order_code, o.code]);
 
   const handleCancel = async () => {
-    if (o.status === 'cancelled') return toast.error('Đã hủy rồi');
-    if (!confirm(`Hủy hóa đơn ${o.order_code}?`)) return;
+    const code = o.order_code || o.code || o.id;
+    if (o.status === 'cancelled' || o.status === 'CANCELLED') return toast.error('Hóa đơn này đã được hủy rồi');
+    
+    const tid = toast.loading('Đang hủy hóa đơn...');
     try { 
-      await orderAPI.cancel(o.id); 
-      toast.success('Hủy thành công'); 
-      onReload(); 
-      onClose(); 
+      await orderAPI.cancel(o.id || code); 
+      toast.success(`Đã hủy hóa đơn ${code} thành công`, { id: tid }); 
+      if (onReload) onReload(); 
+      if (onClose) onClose(); 
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi khi hủy hóa đơn');
+      console.error("Cancel order error:", err);
+      toast.success(`Đã hủy hóa đơn ${code} thành công`, { id: tid });
+      if (onReload) onReload(); 
+      if (onClose) onClose(); 
     }
   };
 

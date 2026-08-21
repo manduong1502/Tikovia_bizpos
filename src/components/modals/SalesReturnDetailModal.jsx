@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, Printer, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
@@ -52,9 +53,9 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
   const paidVal = Number(data.paid || 0);
   const refundAmount = Number(data.total || 0) - discountVal;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2 sm:p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[900px] max-h-[90vh] overflow-y-auto flex flex-col" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/40 p-2 sm:p-4 animate-fade-in font-sans text-left" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[900px] max-h-[90vh] overflow-y-auto flex flex-col custom-scrollbar" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <h2 className="text-base sm:text-lg font-extrabold text-gray-800 tracking-tight">Phiếu trả hàng</h2>
@@ -203,6 +204,7 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
