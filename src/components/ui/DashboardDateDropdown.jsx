@@ -201,7 +201,7 @@ export default function DashboardDateDropdown({ value, onChange, className = '' 
 
       {/* Popover */}
       <PortalPopover anchorEl={triggerRef.current} open={open} onClose={() => setOpen(false)} widthMatch={false}>
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl z-[10000] p-0 w-[95vw] sm:w-[560px] max-w-full max-h-[88vh] overflow-hidden flex flex-col font-sans animate-fade-in text-left">
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl z-[10000] p-0 w-full max-w-[560px] max-h-[88vh] overflow-hidden flex flex-col font-sans animate-fade-in text-left">
           
           {/* Header Mode Switcher */}
           <div className="flex items-center border-b border-gray-100 bg-gray-50/70 p-1.5 gap-1">

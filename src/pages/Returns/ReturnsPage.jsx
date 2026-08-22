@@ -106,7 +106,7 @@ export default function ReturnsPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -194,6 +194,9 @@ export default function ReturnsPage() {
             end: passedDate.end ? new Date(passedDate.end) : null,
           }
         }));
+      }
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSidebarOpen(false);
       }
     }
   }, [location.state]);

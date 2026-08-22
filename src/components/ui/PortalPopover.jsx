@@ -61,14 +61,25 @@ export default function PortalPopover({ anchorEl, open, onClose, widthMatch = tr
 
       // Horizontal positioning (only if we don't force widthMatch)
       if (!widthMatch) {
-        if (spaceRight < contentWidth && rect.right > contentWidth) {
-          // Align right edge of popover with right edge of anchor
-          newStyle.right = window.innerWidth - rect.right;
-          newStyle.left = 'auto';
+        const screenW = window.innerWidth;
+        if (screenW <= 640 || contentWidth >= screenW - 24) {
+          // Mobile: Center or pin to screen margins
+          newStyle.left = 12;
+          newStyle.right = 12;
+          newStyle.width = 'auto';
         } else {
-          // Default: align left edges
-          newStyle.left = rect.left;
-          newStyle.right = 'auto';
+          // Desktop / Tablet: check if anchor is on the right side of the screen
+          const spaceRight = screenW - rect.left;
+          if (spaceRight < contentWidth) {
+            // Align with right edge of anchor, or clamp to right margin
+            const rightAlignedLeft = rect.right - contentWidth;
+            newStyle.left = Math.max(12, Math.min(rightAlignedLeft, screenW - contentWidth - 12));
+            newStyle.right = 'auto';
+          } else {
+            // Default: align with left edge of anchor, but ensure it doesn't overflow right
+            newStyle.left = Math.max(12, Math.min(rect.left, screenW - contentWidth - 12));
+            newStyle.right = 'auto';
+          }
         }
       } else {
         newStyle.left = rect.left;

@@ -87,8 +87,7 @@ export default function OrdersPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
-  const [searchProduct, setSearchProduct] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   const { registerOrderUpdateCallback, unregisterOrderUpdateCallback } = useSocket() || {};
 
@@ -411,6 +410,10 @@ export default function OrdersPage() {
             end: passedDate.end ? new Date(passedDate.end) : null,
           }
         }));
+      }
+      // On mobile screen, close filter sidebar drawer so the orders list is visible immediately
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSidebarOpen(false);
       }
     }
   }, [location.state]);
