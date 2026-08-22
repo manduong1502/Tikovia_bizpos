@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
   ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight, 
@@ -7,11 +8,12 @@ import {
 } from 'lucide-react';
 import { reportAPI, orderAPI, returnAPI, cashbookAPI, productAPI, purchaseOrderAPI, loadInitialCache } from '../../services/api';
 import ReportTimeFilter, { formatDateVN, formatDateYMD } from '../../components/ui/ReportTimeFilter';
-import { formatLocalYMD, getWorkingHoursYMD, formatWorkingHoursTime, inDateRange, buildCustomRange, parseFlexibleDate } from '../../utils/dateFilterUtils';
+import { formatLocalYMD, getWorkingHoursYMD, formatWorkingHoursTime, inDateRange, buildCustomRange, parseFlexibleDate, getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
 
 export default function FinancialReportPage() {
+  const location = useLocation();
   const [rawOrders, setRawOrders] = useState(() => loadInitialCache('orders:', []));
   const [rawReturns, setRawReturns] = useState(() => loadInitialCache('returns:', []));
   const [rawCashbook, setRawCashbook] = useState(() => loadInitialCache('cashbook:', []));
@@ -31,6 +33,54 @@ export default function FinancialReportPage() {
   const [timeTo, setTimeTo] = useState('');
   const [customFromDate, setCustomFromDate] = useState('');
   const [customToDate, setCustomToDate] = useState('');
+
+  useEffect(() => {
+    const passedDate = location.state?.dateFilter || location.state?.orderDate || location.state?.timeRange;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        if (passedDate === 'Hôm nay') {
+          setTimeRangeType('date');
+          setSelectedSingleDate(new Date());
+        } else if (passedDate === 'Hôm qua') {
+          const y = new Date();
+          y.setDate(y.getDate() - 1);
+          setTimeRangeType('date');
+          setSelectedSingleDate(y);
+        } else {
+          const range = getRangeByCreatedLabel(passedDate);
+          if (range && range.start && range.end) {
+            setTimeRangeType('custom');
+            setCustomFromDate(formatLocalYMD(range.start));
+            setCustomToDate(formatLocalYMD(range.end));
+          }
+        }
+      } else if (typeof passedDate === 'object') {
+        if (passedDate.mode === 'custom' && passedDate.start) {
+          setTimeRangeType('custom');
+          setCustomFromDate(formatLocalYMD(new Date(passedDate.start)));
+          setCustomToDate(formatLocalYMD(new Date(passedDate.end || passedDate.start)));
+        } else if (passedDate.label) {
+          const lbl = passedDate.label;
+          if (lbl === 'Hôm nay') {
+            setTimeRangeType('date');
+            setSelectedSingleDate(new Date());
+          } else if (lbl === 'Hôm qua') {
+            const y = new Date();
+            y.setDate(y.getDate() - 1);
+            setTimeRangeType('date');
+            setSelectedSingleDate(y);
+          } else {
+            const range = getRangeByCreatedLabel(lbl);
+            if (range && range.start && range.end) {
+              setTimeRangeType('custom');
+              setCustomFromDate(formatLocalYMD(range.start));
+              setCustomToDate(formatLocalYMD(range.end));
+            }
+          }
+        }
+      }
+    }
+  }, [location.state]);
 
   const getFormattedDateRange = () => {
     if (timeRangeType === 'date') {

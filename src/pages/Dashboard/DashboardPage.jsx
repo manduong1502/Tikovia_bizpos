@@ -394,6 +394,16 @@ export default function DashboardPage() {
     });
   };
 
+  const handleNavigateFinancial = () => {
+    navigate('/reports/financial', {
+      state: {
+        dateFilter: timeRange,
+        orderDate: timeRange,
+        timeRange: timeRange
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-5 max-w-full font-sans pb-6">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 min-w-0">
@@ -482,9 +492,9 @@ export default function DashboardPage() {
           {/* Quick Metrics Grid */}
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
             <div 
-              onClick={handleNavigateInvoices}
+              onClick={handleNavigateFinancial}
               className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between cursor-pointer hover:border-primary/40 hover:bg-blue-50/20 transition-all group"
-              title={`Xem doanh thu hóa đơn (${timeLabel})`}
+              title={`Xem Báo cáo tài chính (${timeLabel})`}
             >
               <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1 group-hover:text-primary transition-colors flex items-center justify-between">
                 <span>{timeLabel === 'Hôm nay' ? 'Doanh thu hôm nay' : `Doanh thu (${timeLabel.toLowerCase()})`}</span>
