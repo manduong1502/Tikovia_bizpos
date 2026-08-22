@@ -197,6 +197,7 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
                 </button>
                 {mobileSubmenu === 'reports' && (
                   <div className="flex flex-col pl-6 pr-2 py-1 gap-1 border-l-2 border-gray-100 ml-4 my-1">
+                    <Link to="/reports/financial" className={`py-1.5 text-[13px] no-underline ${page === '/reports/financial' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Tài chính</Link>
                     <Link to="/reports/end-of-day" className={`py-1.5 text-[13px] no-underline ${page === '/reports/end-of-day' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Cuối ngày</Link>
                     <Link to="/reports/sales" className={`py-1.5 text-[13px] no-underline ${page === '/reports/sales' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Bán hàng</Link>
                     <Link to="/reports/products" className={`py-1.5 text-[13px] no-underline ${page === '/reports/products' ? 'text-[#1E3A8A] font-bold' : 'text-gray-600'}`} onClick={() => setMobileMenuOpen(false)}>Hàng hóa</Link>
