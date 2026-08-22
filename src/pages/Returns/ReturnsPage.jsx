@@ -177,6 +177,28 @@ export default function ReturnsPage() {
   }, [reload]);
 
   useEffect(() => {
+    const passedDate = location.state?.dateRange || location.state?.orderDate || location.state?.dateFilter;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        setFilters(prev => ({
+          ...prev,
+          dateRange: { mode: 'all', label: passedDate, start: null, end: null }
+        }));
+      } else if (typeof passedDate === 'object') {
+        setFilters(prev => ({
+          ...prev,
+          dateRange: {
+            mode: passedDate.mode || (passedDate.start ? 'custom' : 'all'),
+            label: passedDate.label || 'Tháng này',
+            start: passedDate.start ? new Date(passedDate.start) : null,
+            end: passedDate.end ? new Date(passedDate.end) : null,
+          }
+        }));
+      }
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const codeFromState = location.state?.openReturnCode;
     const returnIdFromState = location.state?.openReturnId;
     const params = new URLSearchParams(location.search);

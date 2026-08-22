@@ -394,6 +394,28 @@ export default function OrdersPage() {
   }, [search, searchCode, searchCustomer, searchProduct]);
 
   useEffect(() => {
+    const passedDate = location.state?.orderDate || location.state?.dateFilter;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        setFilters(prev => ({
+          ...prev,
+          orderDate: { mode: 'all', label: passedDate, start: null, end: null }
+        }));
+      } else if (typeof passedDate === 'object') {
+        setFilters(prev => ({
+          ...prev,
+          orderDate: {
+            mode: passedDate.mode || (passedDate.start ? 'custom' : 'all'),
+            label: passedDate.label || 'Tháng này',
+            start: passedDate.start ? new Date(passedDate.start) : null,
+            end: passedDate.end ? new Date(passedDate.end) : null,
+          }
+        }));
+      }
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const codeFromState = location.state?.openOrderCode;
     const orderIdFromState = location.state?.openOrderId;
     const params = new URLSearchParams(location.search);

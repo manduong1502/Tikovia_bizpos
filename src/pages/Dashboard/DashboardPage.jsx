@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Dropdown from '../../components/ui/Dropdown';
+import DashboardDateDropdown from '../../components/ui/DashboardDateDropdown';
 import { 
   orderAPI, returnAPI, productAPI, customerAPI, purchaseOrderAPI, 
   reportAPI, loadInitialCache 
@@ -34,7 +35,7 @@ export default function DashboardPage() {
   const [showProfit, setShowProfit] = useState(true);
 
   // Time filters
-  const [timeRange, setTimeRange] = useState('Tháng này');
+  const [timeRange, setTimeRange] = useState({ mode: 'all', label: 'Tháng này', start: null, end: null });
   const [tab, setTab] = useState('daily');
   const [filterRev, setFilterRev] = useState('Tháng này');
   const [filterProd, setFilterProd] = useState('Tháng này');
@@ -179,14 +180,39 @@ export default function DashboardPage() {
   }, [rawReturns]);
 
   // Filter helper
-  const filterByRange = (items, rangeLabel) => {
-    if (rangeLabel === 'Toàn thời gian') return items;
-    const range = getRangeByCreatedLabel(rangeLabel);
-    if (!range || !range.start || !range.end) return items;
+  const filterByRange = (items, rangeFilter) => {
+    if (!rangeFilter) return items;
 
+    // String label (e.g. 'Tháng này')
+    if (typeof rangeFilter === 'string') {
+      if (rangeFilter === 'Toàn thời gian') return items;
+      const range = getRangeByCreatedLabel(rangeFilter);
+      if (!range || !range.start || !range.end) return items;
+      const startYMD = formatLocalYMD(range.start);
+      const endYMD = formatLocalYMD(range.end);
+      return items.filter(it => {
+        const itYMD = it.ymd || formatLocalYMD(it.dateObj);
+        return itYMD >= startYMD && itYMD <= endYMD;
+      });
+    }
+
+    // Custom date range object
+    if (rangeFilter.mode === 'custom' && rangeFilter.start) {
+      const startYMD = formatLocalYMD(new Date(rangeFilter.start));
+      const endYMD = formatLocalYMD(new Date(rangeFilter.end || rangeFilter.start));
+      return items.filter(it => {
+        const itYMD = it.ymd || formatLocalYMD(it.dateObj);
+        return itYMD >= startYMD && itYMD <= endYMD;
+      });
+    }
+
+    // Preset object with label
+    const label = rangeFilter.label || 'Tháng này';
+    if (label === 'Toàn thời gian') return items;
+    const range = getRangeByCreatedLabel(label);
+    if (!range || !range.start || !range.end) return items;
     const startYMD = formatLocalYMD(range.start);
     const endYMD = formatLocalYMD(range.end);
-
     return items.filter(it => {
       const itYMD = it.ymd || formatLocalYMD(it.dateObj);
       return itYMD >= startYMD && itYMD <= endYMD;
@@ -349,6 +375,25 @@ export default function DashboardPage() {
     { value: 'Toàn thời gian', label: 'Toàn thời gian' },
   ];
 
+  const timeLabel = typeof timeRange === 'string' ? timeRange : (timeRange?.label || 'Tháng này');
+
+  const handleNavigateInvoices = () => {
+    navigate('/invoices', {
+      state: {
+        orderDate: timeRange,
+        dateFilter: timeRange
+      }
+    });
+  };
+
+  const handleNavigateReturns = () => {
+    navigate('/returns', {
+      state: {
+        dateRange: timeRange
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-5 max-w-full font-sans pb-6">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 min-w-0">
@@ -363,10 +408,9 @@ export default function DashboardPage() {
                 Kết quả bán hàng
               </span>
 
-              <div className="w-36">
-                <Dropdown
+              <div className="min-w-[140px]">
+                <DashboardDateDropdown
                   value={timeRange}
-                  options={TIME_OPTIONS}
                   onChange={setTimeRange}
                 />
               </div>
@@ -374,13 +418,20 @@ export default function DashboardPage() {
 
             {/* Metrics Row: Revenue & Profit */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
-              {/* Revenue & Invoices */}
-              <div className="flex flex-col gap-1">
-                <span className="text-xs sm:text-sm font-semibold text-gray-500">
-                  {fmt(period.orderCount)} hoá đơn
-                </span>
+              {/* Revenue & Invoices (Clickable -> Invoices Page with active filter) */}
+              <div 
+                onClick={handleNavigateInvoices}
+                className="flex flex-col gap-1 cursor-pointer group p-3 -m-3 rounded-2xl hover:bg-blue-50/70 transition-all border border-transparent hover:border-blue-200 select-none"
+                title={`Bấm để mở danh sách ${fmt(period.orderCount)} hóa đơn (${timeLabel})`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-bold text-gray-500 group-hover:text-primary transition-colors">
+                    {fmt(period.orderCount)} hoá đơn
+                  </span>
+                  <ArrowUpRight size={14} className="text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all shrink-0" />
+                </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-primary tracking-tight">
+                  <span className="text-2xl sm:text-3xl font-black text-primary group-hover:text-blue-700 tracking-tight transition-colors">
                     {fmtSmart(period.revenue)}
                   </span>
                 </div>
@@ -393,6 +444,7 @@ export default function DashboardPage() {
                     Lợi nhuận
                   </span>
                   <button
+                    type="button"
                     onClick={() => setShowProfit(!showProfit)}
                     className="p-1 text-gray-400 hover:text-primary rounded-lg transition-colors border-none bg-transparent cursor-pointer"
                     title={showProfit ? 'Ẩn lợi nhuận' : 'Hiện lợi nhuận'}
@@ -408,37 +460,57 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Divider & Returns Row */}
+            {/* Divider & Returns Row (Clickable -> Returns Page with active filter) */}
             <div className="border-t border-gray-100 pt-3.5 mt-5 flex items-center justify-between text-xs text-gray-600 font-medium">
-              <div className="flex items-center gap-2">
-                <RotateCcw size={15} className="text-amber-500" />
+              <div 
+                onClick={handleNavigateReturns}
+                className="flex items-center gap-2 cursor-pointer group p-1.5 -m-1.5 rounded-xl hover:bg-amber-50/70 transition-all select-none"
+                title={`Bấm để mở danh sách ${period.returnCount} đơn trả hàng (${timeLabel})`}
+              >
+                <RotateCcw size={15} className="text-amber-500 group-hover:rotate-[-45deg] transition-transform" />
                 <span>
-                  <strong>{period.returnCount}</strong> đơn trả hàng – <strong className="text-gray-900">{fmtSmart(period.returnAmount)}</strong>
+                  <strong className="group-hover:text-amber-700 group-hover:underline">{period.returnCount}</strong> đơn trả hàng – <strong className="text-gray-900 group-hover:text-amber-700">{fmtSmart(period.returnAmount)}</strong>
                 </span>
+                <ArrowUpRight size={13} className="text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-amber-600 transition-opacity" />
               </div>
-              <span className="text-[11px] text-gray-400 hidden sm:inline">
-                {timeRange}
+              <span className="text-[11px] text-gray-400 hidden sm:inline font-semibold">
+                {timeLabel}
               </span>
             </div>
           </div>
 
           {/* Quick Metrics Grid */}
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
-                {timeRange === 'Hôm nay' ? 'Doanh thu hôm nay' : `Doanh thu (${timeRange.toLowerCase()})`}
+            <div 
+              onClick={handleNavigateInvoices}
+              className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between cursor-pointer hover:border-primary/40 hover:bg-blue-50/20 transition-all group"
+              title={`Xem doanh thu hóa đơn (${timeLabel})`}
+            >
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1 group-hover:text-primary transition-colors flex items-center justify-between">
+                <span>{timeLabel === 'Hôm nay' ? 'Doanh thu hôm nay' : `Doanh thu (${timeLabel.toLowerCase()})`}</span>
+                <ArrowUpRight size={13} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="text-base sm:text-xl font-black text-primary truncate">{fmt(period.revenue)} đ</div>
             </div>
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
-                {timeRange === 'Hôm nay' ? 'Đơn hôm nay' : `Đơn (${timeRange.toLowerCase()})`}
+            <div 
+              onClick={handleNavigateInvoices}
+              className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between cursor-pointer hover:border-primary/40 hover:bg-blue-50/20 transition-all group"
+              title={`Xem danh sách đơn bán (${timeLabel})`}
+            >
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1 group-hover:text-primary transition-colors flex items-center justify-between">
+                <span>{timeLabel === 'Hôm nay' ? 'Đơn hôm nay' : `Đơn (${timeLabel.toLowerCase()})`}</span>
+                <ArrowUpRight size={13} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="text-base sm:text-xl font-black text-gray-800">{period.orderCount}</div>
             </div>
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
-              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1">
-                {timeRange === 'Hôm nay' ? 'Trả hàng hôm nay' : `Trả hàng (${timeRange.toLowerCase()})`}
+            <div 
+              onClick={handleNavigateReturns}
+              className="bg-white p-3.5 sm:p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between cursor-pointer hover:border-amber-400/50 hover:bg-amber-50/20 transition-all group"
+              title={`Xem danh sách trả hàng (${timeLabel})`}
+            >
+              <div className="text-[11px] sm:text-xs font-bold text-gray-500 mb-1 group-hover:text-amber-700 transition-colors flex items-center justify-between">
+                <span>{timeLabel === 'Hôm nay' ? 'Trả hàng hôm nay' : `Trả hàng (${timeLabel.toLowerCase()})`}</span>
+                <ArrowUpRight size={13} className="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="text-base sm:text-xl font-black text-amber-600">{period.returnCount}</div>
             </div>
