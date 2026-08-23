@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { customerAPI, orderAPI, cashbookAPI, returnAPI, loadInitialCache, hasInitialCache } from '../../services/api';
+import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal, Phone, ChevronDown
+  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, AlertTriangle, X, Upload, SlidersHorizontal, Phone, ChevronDown
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
 // Dynamic imports will be used for XLSX and exportCSV to speed up route loading
@@ -363,6 +364,9 @@ export default function CustomersPage() {
 
   const [detailTab, setDetailTab] = useState('info');
   const [custNotes, setCustNotes] = useState({});
+
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
 
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
@@ -781,16 +785,29 @@ export default function CustomersPage() {
     printWindow.document.close();
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa khách hàng này?')) return;
-    const tid = toast.loading('Đang xóa khách hàng...');
+  const handleDelete = (idOrCust) => {
+    const cust = typeof idOrCust === 'object' && idOrCust !== null ? idOrCust : customers.find(c => c.id === idOrCust);
+    if (cust) {
+      setCustomerToDelete(cust);
+    }
+  };
+
+  const handleConfirmDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    const cid = customerToDelete.id;
+    setIsDeletingCustomer(true);
+    const tid = toast.loading('Đang xóa khách hàng và làm sạch dữ liệu...');
     try {
-      await customerAPI.delete(id);
-      setCustomers(prev => prev.filter(c => c.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa khách hàng thành công', { id: tid });
+      await customerAPI.delete(cid);
+      setCustomers(prev => prev.filter(c => c.id !== cid));
+      setCustomerToDelete(null);
+      toast.success('Đã xóa khách hàng và toàn bộ hóa đơn, giao dịch liên quan thành công!', { id: tid });
+      reload(false, true);
+      window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type: 'customer-deleted', customerId: cid } }));
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa khách hàng', { id: tid });
+    } finally {
+      setIsDeletingCustomer(false);
     }
   };
 
@@ -2122,6 +2139,55 @@ export default function CustomersPage() {
     </div>
 
       <CustomerModal open={modalOpen} onClose={() => setModalOpen(false)} customer={editCustomer} onSaved={reload} />
+
+      {/* Cascade Delete Customer Confirmation Modal */}
+      {customerToDelete && (
+        <Modal
+          open={!!customerToDelete}
+          onClose={() => !isDeletingCustomer && setCustomerToDelete(null)}
+          title="Xác nhận xóa khách hàng"
+        >
+          <div className="flex flex-col gap-4 font-sans text-left">
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0 mt-0.5">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="font-extrabold text-sm text-red-900 m-0">
+                  Cảnh báo xóa sạch hóa đơn và giao dịch đi kèm
+                </h3>
+                <p className="text-xs text-red-700 leading-relaxed m-0">
+                  Bạn đang yêu cầu xóa khách hàng: <strong className="font-bold text-gray-900">{customerToDelete.name}</strong> ({customerToDelete.code || `KH${String(customerToDelete.id).padStart(6, '0')}`}).
+                </p>
+                <div className="text-xs text-red-800 bg-white/80 border border-red-100 rounded-lg p-2.5 mt-1 font-medium leading-relaxed">
+                  ⚠️ <strong>Để bảo đảm không sai sót hóa đơn:</strong> Toàn bộ <strong>hóa đơn bán hàng, phiếu trả hàng và công nợ</strong> liên quan của khách hàng này sẽ được <strong>xóa sạch đồng thời</strong> khỏi hệ thống.
+                </div>
+                <p className="text-[11px] font-semibold text-gray-500 m-0 mt-0.5">
+                  * Hành động này không thể hoàn tác sau khi thực hiện.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button
+                variant="secondary"
+                disabled={isDeletingCustomer}
+                onClick={() => setCustomerToDelete(null)}
+                className="text-xs font-semibold py-2 px-4"
+              >
+                Hủy bỏ
+              </Button>
+              <button
+                disabled={isDeletingCustomer}
+                onClick={handleConfirmDeleteCustomer}
+                className="py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5 border-none"
+              >
+                {isDeletingCustomer ? 'Đang xóa...' : 'Đồng ý xóa sạch'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <CustomerExportDebtModal 
         open={exportModalOpen} 

@@ -81,7 +81,39 @@ export const clientMemoryCache = {
       localStorage.removeItem('TIKO_CACHE_' + key);
     } catch {}
   },
+  deletePattern(pattern) {
+    if (!pattern) return;
+    for (const k of RAM_CACHE.keys()) {
+      if (k.includes(pattern)) RAM_CACHE.delete(k);
+    }
+    for (const k of IN_FLIGHT_REQUESTS.keys()) {
+      if (k.includes(pattern)) IN_FLIGHT_REQUESTS.delete(k);
+    }
+    if (typeof window === 'undefined') return;
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.includes(pattern)) keysToRemove.push(k);
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.includes(pattern)) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => {
+        sessionStorage.removeItem(k);
+        localStorage.removeItem(k);
+      });
+    } catch {}
+  },
+  clearPattern(pattern) {
+    this.deletePattern(pattern);
+  },
   clear(pattern = '') {
+    if (pattern) {
+      this.deletePattern(pattern);
+      return;
+    }
     RAM_CACHE.clear();
     IN_FLIGHT_REQUESTS.clear();
     if (typeof window === 'undefined') return;
@@ -89,13 +121,13 @@ export const clientMemoryCache = {
       const keysToRemove = [];
       for (let i = 0; i < sessionStorage.length; i++) {
         const k = sessionStorage.key(i);
-        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
+        if (k && k.startsWith('TIKO_CACHE_')) {
           keysToRemove.push(k);
         }
       }
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith('TIKO_CACHE_') && (!pattern || k.includes(pattern))) {
+        if (k && k.startsWith('TIKO_CACHE_')) {
           keysToRemove.push(k);
         }
       }
