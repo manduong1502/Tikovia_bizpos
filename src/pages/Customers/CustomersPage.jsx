@@ -915,11 +915,12 @@ export default function CustomersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
-    const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
+    const currentFinalDebt = Number(c.debt !== undefined ? c.debt : c.totalDebt || 0);
     let tempDebt = currentFinalDebt;
     const transactionsWithDebt = debtTransactions.map(tx => {
-      const runningDebt = tempDebt;
+      const runningDebt = Math.max(0, tempDebt);
       tempDebt -= tx.debt;
+      if (tempDebt < 0) tempDebt = 0;
       return { ...tx, runningDebt };
     });
 
