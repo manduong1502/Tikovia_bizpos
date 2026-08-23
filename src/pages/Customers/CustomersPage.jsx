@@ -823,89 +823,117 @@ export default function CustomersPage() {
       return false;
     }).filter(r => r.status !== 'CANCELLED' && r.status !== 'cancelled');
 
-    // Build transactions for debt tab from real orders
-    const debtTransactions = [
-      ...custOrders.flatMap(o => {
-        const total = Number(o.total || 0);
-        const rawCode = o.order_code || o.code;
-        return [
-          {
-            id: `${o.id}-sale`,
-            code: rawCode,
-            type: 'Bán hàng',
-            date: o.created_at || o.createdAt,
-            total: total,
-            paid: 0,
-            debt: total,
-            raw: o
-          }
-        ];
-      }),
-      ...custReturns.map(r => {
-        const total = Number(r.total || 0);
-        const paid = Number(r.paid || 0);
-        return {
-          id: r.id,
-          code: r.code,
-          type: 'Trả hàng',
-          date: r.created_at || r.createdAt,
-          total: paid > 0 ? paid : total,
+    // Build transactions for debt tab from real orders and cashbooks
+    const matchedCashbookCodes = new Set(
+      cashbooks.map(cb => String(cb.code || '').trim().toLowerCase()).filter(Boolean)
+    );
+
+    const custOrderTxs = custOrders.flatMap(o => {
+      const total = Number(o.total || 0);
+      const paid = Number(o.paid || o.paid_amount || 0);
+      const rawCode = o.order_code || o.code;
+      const txs = [
+        {
+          id: `${o.id}-sale`,
+          code: rawCode,
+          type: 'Bán hàng',
+          date: o.created_at || o.createdAt,
+          total: total,
           paid: paid,
-          debt: paid > 0 ? -paid : -total,
-          raw: r
-        };
-      }),
-      ...cashbooks.filter(cb => {
-        if (!cb) return false;
-        if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
-        if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
-
-        const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
-        if (cbCustId && String(cbCustId) === String(c.id)) return true;
-
-        const cbCustCode = cb.customer_code || cb.supplier_code;
-        if (cbCustCode && c.code && cbCustCode === c.code) return true;
-
-        if (cb.orderId && custOrders.some(o => o.id === cb.orderId)) return true;
-        if (cb.returnId && custReturns.some(r => r.id === cb.returnId)) return true;
-
-        if (c.phone && c.phone.length >= 8) {
-          if (cb.partnerPhone && cb.partnerPhone === c.phone) return true;
-          if (cb.phone && cb.phone === c.phone) return true;
+          debt: total,
+          raw: o
         }
+      ];
 
-        if (cb.partnerName) {
-          const pName = cb.partnerName.trim().toLowerCase();
-          const cName = (c.name || '').trim().toLowerCase();
-          if (pName === cName) return true;
-          if (c.code && pName.includes(c.code.toLowerCase())) return true;
+      if (paid > 0) {
+        const expectedPayCode = String(rawCode).startsWith('HD') ? `TT${rawCode}` : `TT-${rawCode}`;
+        const hasSeparateCB = cashbooks.some(cb => 
+          (cb.orderId && cb.orderId === o.id) ||
+          (cb.code && matchedCashbookCodes.has(String(cb.code).trim().toLowerCase()))
+        );
+        if (!hasSeparateCB) {
+          txs.push({
+            id: `${o.id}-payment`,
+            code: expectedPayCode,
+            type: 'Thanh toán',
+            cashbookType: 'INCOME',
+            status: 'completed',
+            note: 'Thanh toán đơn hàng',
+            date: o.created_at || o.createdAt,
+            total: paid,
+            paid: paid,
+            debt: -paid,
+            raw: o
+          });
         }
+      }
+      return txs;
+    });
 
-        return false;
-      }).map(cb => ({
-        id: cb.id,
-        code: cb.code,
-        type: 'Thanh toán',
-        cashbookType: cb.type,
-        status: cb.status,
-        note: cb.note,
-        date: cb.createdAt || cb.created_at || cb.date,
-        total: Number(cb.amount || 0),
-        paid: cb.amount,
-        debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
-        raw: cb
-      }))
-    ].sort((a, b) => {
-      const getMinuteTime = (d) => {
-        if (!d) return 0;
-        const dateObj = new Date(d);
-        if (isNaN(dateObj.getTime())) return 0;
-        dateObj.setSeconds(0, 0);
-        return dateObj.getTime();
+    const custReturnTxs = custReturns.map(r => {
+      const total = Number(r.total || 0);
+      const paid = Number(r.paid || 0);
+      return {
+        id: r.id,
+        code: r.code,
+        type: 'Trả hàng',
+        date: r.created_at || r.createdAt,
+        total: total,
+        paid: paid,
+        debt: -total,
+        raw: r
       };
+    });
 
-      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-      if (timeDiff !== 0) return timeDiff;
+    const custCashbookTxs = cashbooks.filter(cb => {
+      if (!cb) return false;
+      if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
+      if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
+
+      const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
+      if (cbCustId && String(cbCustId) === String(c.id)) return true;
+
+      const cbCustCode = cb.customer_code || cb.supplier_code;
+      if (cbCustCode && c.code && cbCustCode === c.code) return true;
+
+      if (cb.orderId && custOrders.some(o => o.id === cb.orderId)) return true;
+      if (cb.returnId && custReturns.some(r => r.id === cb.returnId)) return true;
+
+      if (c.phone && c.phone.length >= 8) {
+        if (cb.partnerPhone && cb.partnerPhone === c.phone) return true;
+        if (cb.phone && cb.phone === c.phone) return true;
+      }
+
+      if (cb.partnerName) {
+        const pName = cb.partnerName.trim().toLowerCase();
+        const cName = (c.name || '').trim().toLowerCase();
+        if (pName === cName) return true;
+        if (c.code && pName.includes(c.code.toLowerCase())) return true;
+      }
+
+      return false;
+    }).map(cb => ({
+      id: cb.id,
+      code: cb.code,
+      type: 'Thanh toán',
+      cashbookType: cb.type,
+      status: cb.status,
+      note: cb.note,
+      date: cb.createdAt || cb.created_at || cb.date,
+      total: Number(cb.amount || 0),
+      paid: cb.amount,
+      debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+      raw: cb
+    }));
+
+    const debtTransactions = [
+      ...custOrderTxs,
+      ...custReturnTxs,
+      ...custCashbookTxs
+    ].sort((a, b) => {
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      if (timeB !== timeA) return timeB - timeA;
       const getPriority = (type) => {
         if (type === 'Thanh toán') return 1;
         if (type === 'Trả hàng') return 2;
@@ -919,8 +947,7 @@ export default function CustomersPage() {
     let tempDebt = currentFinalDebt;
     const transactionsWithDebt = debtTransactions.map(tx => {
       const runningDebt = Math.max(0, tempDebt);
-      tempDebt -= tx.debt;
-      if (tempDebt < 0) tempDebt = 0;
+      tempDebt = Math.max(0, tempDebt - tx.debt);
       return { ...tx, runningDebt };
     });
 
