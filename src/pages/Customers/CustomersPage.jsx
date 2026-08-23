@@ -856,20 +856,33 @@ export default function CustomersPage() {
         };
       }),
       ...cashbooks.filter(cb => {
+        if (!cb) return false;
         if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
+        if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
+
         const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
         if (cbCustId && String(cbCustId) === String(c.id)) return true;
+
         const cbCustCode = cb.customer_code || cb.supplier_code;
         if (cbCustCode && c.code && cbCustCode === c.code) return true;
+
+        if (cb.orderId && custOrders.some(o => o.id === cb.orderId)) return true;
+        if (cb.returnId && custReturns.some(r => r.id === cb.returnId)) return true;
+
+        if (c.phone && c.phone.length >= 8) {
+          if (cb.partnerPhone && cb.partnerPhone === c.phone) return true;
+          if (cb.phone && cb.phone === c.phone) return true;
+        }
+
         if (cb.partnerName) {
           const pName = cb.partnerName.trim().toLowerCase();
           const cName = (c.name || '').trim().toLowerCase();
           if (pName === cName) return true;
           if (c.code && pName.includes(c.code.toLowerCase())) return true;
-          if (c.phone && c.phone.length >= 6 && pName.includes(c.phone.toLowerCase())) return true;
         }
+
         return false;
-      }).filter(cb => cb.status !== 'cancelled' && cb.status !== 'CANCELLED').map(cb => ({
+      }).map(cb => ({
         id: cb.id,
         code: cb.code,
         type: 'Thanh toán',
