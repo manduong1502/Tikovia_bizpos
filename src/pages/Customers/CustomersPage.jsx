@@ -846,11 +846,18 @@ export default function CustomersPage() {
       ];
 
       if (paid > 0) {
-        const expectedPayCode = String(rawCode).startsWith('HD') ? `TT${rawCode}` : `TT-${rawCode}`;
-        const hasSeparateCB = cashbooks.some(cb => 
-          (cb.orderId && cb.orderId === o.id) ||
-          (cb.code && matchedCashbookCodes.has(String(cb.code).trim().toLowerCase()))
-        );
+        const cleanRawCode = String(rawCode || '').trim();
+        const expectedPayCode = cleanRawCode.startsWith('HD') ? `TT${cleanRawCode}` : `TT-${cleanRawCode}`;
+        const hasSeparateCB = cashbooks.some(cb => {
+          if (!cb) return false;
+          if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
+          if (cb.orderId && (cb.orderId === o.id || String(cb.orderId) === String(o.id))) return true;
+          if (cb.order_id && (cb.order_id === o.id || String(cb.order_id) === String(o.id))) return true;
+          if (cb.code && String(cb.code).trim().toLowerCase() === expectedPayCode.toLowerCase()) return true;
+          if (cb.code && cleanRawCode && String(cb.code).trim().toLowerCase().includes(cleanRawCode.toLowerCase())) return true;
+          return false;
+        });
+
         if (!hasSeparateCB) {
           txs.push({
             id: `${o.id}-payment`,
