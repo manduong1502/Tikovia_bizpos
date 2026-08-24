@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, AlertTriangle, X, Upload, SlidersHorizontal, Phone, ChevronDown
+  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, AlertTriangle, X, Upload, SlidersHorizontal, Phone, ChevronDown, ArrowUpDown
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
 // Dynamic imports will be used for XLSX and exportCSV to speed up route loading
@@ -25,6 +25,23 @@ import NumericInput from '../../components/ui/NumericInput';
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 const formatLiteralDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
+
+const getSortLabel = (config) => {
+  if (!config || !config.key) return '';
+  const combo = `${config.key}_${config.direction}`;
+  switch (combo) {
+    case 'debt_desc': return 'Tiền nợ: Cao ➔ thấp';
+    case 'debt_asc': return 'Tiền nợ: Thấp ➔ cao';
+    case 'total_spent_desc': return 'Tổng bán: Cao ➔ thấp';
+    case 'total_spent_asc': return 'Tổng bán: Thấp ➔ cao';
+    case 'name_asc': return 'Tên A ➔ Z';
+    case 'name_desc': return 'Tên Z ➔ A';
+    case 'created_at_desc': return 'Ngày tạo: Mới nhất';
+    case 'created_at_asc': return 'Ngày tạo: Cũ nhất';
+    case 'lastTransaction_desc': return 'Giao dịch gần nhất';
+    default: return `${config.key}`;
+  }
+};
 
 
 const scrollRowIntoView = (id) => {
@@ -679,11 +696,19 @@ export default function CustomersPage() {
       let valB = b[sortConfig.key];
 
       if (sortConfig.key === 'debt') {
-        valA = Number(a.debt || a.totalDebt || 0);
-        valB = Number(b.debt || b.totalDebt || 0);
+        valA = Number(a.debt !== undefined ? a.debt : (a.totalDebt || 0));
+        valB = Number(b.debt !== undefined ? b.debt : (b.totalDebt || 0));
       } else if (sortConfig.key === 'total_spent') {
-        valA = Number(a.total_spent || a.totalSpent || 0);
-        valB = Number(b.total_spent || b.totalSpent || 0);
+        valA = Number(a.total_spent !== undefined ? a.total_spent : (a.totalSpent || 0));
+        valB = Number(b.total_spent !== undefined ? b.total_spent : (b.totalSpent || 0));
+      } else if (sortConfig.key === 'created_at' || sortConfig.key === 'createdAt') {
+        valA = new Date(a.created_at || a.createdAt || a.createdAtDate || 0).getTime();
+        valB = new Date(b.created_at || b.createdAt || b.createdAtDate || 0).getTime();
+      } else if (sortConfig.key === 'lastTransaction') {
+        const dateA = a.lastTransaction || a.last_transaction || a.lastOrderDate || a.created_at || a.createdAt || 0;
+        const dateB = b.lastTransaction || b.last_transaction || b.lastOrderDate || b.created_at || b.createdAt || 0;
+        valA = new Date(dateA).getTime();
+        valB = new Date(dateB).getTime();
       } else {
         valA = String(valA || '').toLowerCase();
         valB = String(valB || '').toLowerCase();
@@ -1653,10 +1678,87 @@ export default function CustomersPage() {
 
         {/* Left Filter Sidebar */}
         <div className={`fixed top-[104px] bottom-0 left-0 z-[9950] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-all duration-300 ${sidebarOpen ? 'lg:static lg:z-auto lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 translate-x-0' : '-translate-x-full lg:hidden'} flex flex-col gap-3 font-sans`}>
-          <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+          <div className="flex items-center justify-between mb-2 border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center" title="Ẩn bộ lọc"><X size={20} /></button>
           </div>
+
+          {/* Sắp xếp theo */}
+          <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/30 p-3 rounded-xl border border-blue-100">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
+                <ArrowUpDown size={15} className="text-primary" />
+                Sắp xếp theo
+              </span>
+              {sortConfig.key && (
+                <button 
+                  type="button" 
+                  onClick={() => setSortConfig({ key: '', direction: 'asc' })}
+                  className="text-xs text-red-500 font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Xóa sắp xếp
+                </button>
+              )}
+            </div>
+            <select
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white mb-2"
+              value={sortConfig.key ? `${sortConfig.key}_${sortConfig.direction}` : ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) {
+                  setSortConfig({ key: '', direction: 'asc' });
+                } else {
+                  const lastUnderscore = val.lastIndexOf('_');
+                  const key = val.substring(0, lastUnderscore);
+                  const direction = val.substring(lastUnderscore + 1);
+                  setSortConfig({ key, direction });
+                }
+              }}
+            >
+              <option value="">Mặc định (Tự nhiên)</option>
+              <option value="debt_desc">🔻 Tiền nợ: Cao đến thấp (Nợ nhiều nhất)</option>
+              <option value="debt_asc">🔺 Tiền nợ: Thấp đến cao (Nợ ít nhất)</option>
+              <option value="total_spent_desc">💰 Tổng bán: Cao đến thấp (Mua nhiều nhất)</option>
+              <option value="total_spent_asc">📉 Tổng bán: Thấp đến cao (Mua ít nhất)</option>
+              <option value="name_asc">🔤 Tên khách hàng: A → Z</option>
+              <option value="name_desc">🔤 Tên khách hàng: Z → A</option>
+              <option value="created_at_desc">⏱️ Ngày tạo: Mới nhất</option>
+              <option value="created_at_asc">⏱️ Ngày tạo: Cũ nhất</option>
+              <option value="lastTransaction_desc">🛒 Giao dịch gần nhất</option>
+            </select>
+
+            {/* Quick action chips */}
+            <div className="flex flex-wrap gap-1">
+              {[
+                { label: 'Nợ cao ➔ thấp', key: 'debt', dir: 'desc' },
+                { label: 'Nợ thấp ➔ cao', key: 'debt', dir: 'asc' },
+                { label: 'Tổng bán cao', key: 'total_spent', dir: 'desc' },
+                { label: 'Tên A-Z', key: 'name', dir: 'asc' },
+                { label: 'Mới nhất', key: 'created_at', dir: 'desc' },
+              ].map(opt => {
+                const isActive = sortConfig.key === opt.key && sortConfig.direction === opt.dir;
+                return (
+                  <button
+                    key={`${opt.key}_${opt.dir}`}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) setSortConfig({ key: '', direction: 'asc' });
+                      else setSortConfig({ key: opt.key, direction: opt.dir });
+                    }}
+                    className={`px-2 py-1 text-[11px] rounded-lg border font-bold transition-all cursor-pointer ${
+                      isActive 
+                        ? 'bg-primary text-white border-primary shadow-sm' 
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50 hover:bg-blue-50/50 hover:text-primary'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
           
           {/* Nhóm khách hàng */}
           <div>
@@ -1865,6 +1967,22 @@ export default function CustomersPage() {
                   </span>
                 </div>
               </div>
+
+              {sortConfig.key && (
+                <div className="mt-2 pt-2 border-t border-blue-100/80 flex items-center justify-between text-[11px]">
+                  <span className="text-gray-600 font-medium flex items-center gap-1">
+                    <ArrowUpDown size={12} className="text-primary" />
+                    Sắp xếp: <b className="text-primary">{getSortLabel(sortConfig)}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSortConfig({ key: '', direction: 'asc' })}
+                    className="text-red-500 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer text-[10px]"
+                  >
+                    Xóa sắp xếp
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mobile Card List View (No horizontal scroll needed) */}
