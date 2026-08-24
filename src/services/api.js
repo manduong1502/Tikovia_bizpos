@@ -1515,9 +1515,25 @@ export const dashboardAPI = {
   },
 };
 
-// ─── Users / Auth ───
+// ─── Users / Auth & 2FA ───
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data).then(r => r.data),
+  verifyOtp: (data) => api.post('/auth/verify-otp', data).then(r => r.data),
+  resendOtp: (data) => api.post('/auth/resend-otp', data).then(r => r.data),
+  getDevices: () => api.get('/auth/devices').then(r => r.data),
+  revokeDevice: (id) => api.delete(`/auth/devices/${id}`).then(r => r.data),
+  getMe: () => api.get('/auth/me').then(r => r.data),
+};
+
 export const userAPI = {
   getAll: () => api.get('/users').then(r => r.data),
+  getById: (id) => api.get(`/users/${id}`).then(r => r.data),
+  create: (data) => api.post('/users', data).then(r => r.data),
+  update: (id, data) => api.put(`/users/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/users/${id}`).then(r => r.data),
+  toggleActive: (id) => api.patch(`/users/${id}/toggle-active`).then(r => r.data),
+  getUserDevices: (id) => api.get(`/users/${id}/devices`).then(r => r.data),
+  revokeUserDevice: (userId, deviceId) => api.delete(`/users/${userId}/devices/${deviceId}`).then(r => r.data),
   login: (data) => api.post('/auth/login', data).then(r => r.data),
 };
 
