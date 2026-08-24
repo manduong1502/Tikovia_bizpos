@@ -174,13 +174,19 @@ export default function LoginPage() {
     }
   };
 
-  // OTP Input handlers
+  // OTP Input handlers - Smooth continuous typing without skipping boxes
   const handleOtpChange = (index, val) => {
     const cleanVal = val.replace(/\D/g, '');
     const newDigits = [...otpDigits];
 
+    if (!cleanVal) {
+      newDigits[index] = '';
+      setOtpDigits(newDigits);
+      return;
+    }
+
     if (cleanVal.length > 1) {
-      // Handle paste of multiple digits
+      // Handle paste or fast multi-character buffer from IME
       const pasted = cleanVal.slice(0, 6).split('');
       pasted.forEach((ch, idx) => {
         if (index + idx < 6) {
@@ -190,22 +196,58 @@ export default function LoginPage() {
       setOtpDigits(newDigits);
       const nextFocus = Math.min(5, index + pasted.length);
       otpInputsRef.current[nextFocus]?.focus();
+      otpInputsRef.current[nextFocus]?.select();
       return;
     }
 
-    newDigits[index] = cleanVal;
+    // Single digit typed - replace current and advance
+    const singleChar = cleanVal.slice(-1);
+    newDigits[index] = singleChar;
     setOtpDigits(newDigits);
 
-    // Auto advance to next input
-    if (cleanVal && index < 5) {
+    // Advance to next box immediately
+    if (index < 5) {
       otpInputsRef.current[index + 1]?.focus();
+      otpInputsRef.current[index + 1]?.select();
     }
   };
 
   const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+      const newDigits = [...otpDigits];
+      if (newDigits[index]) {
+        newDigits[index] = '';
+        setOtpDigits(newDigits);
+      } else if (index > 0) {
+        newDigits[index - 1] = '';
+        setOtpDigits(newDigits);
+        otpInputsRef.current[index - 1]?.focus();
+        otpInputsRef.current[index - 1]?.select();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
       otpInputsRef.current[index - 1]?.focus();
+      otpInputsRef.current[index - 1]?.select();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      e.preventDefault();
+      otpInputsRef.current[index + 1]?.focus();
+      otpInputsRef.current[index + 1]?.select();
     }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pastedData) return;
+    const newDigits = ['', '', '', '', '', ''];
+    pastedData.split('').forEach((ch, idx) => {
+      newDigits[idx] = ch;
+    });
+    setOtpDigits(newDigits);
+    const nextIndex = Math.min(5, pastedData.length);
+    otpInputsRef.current[nextIndex]?.focus();
+    otpInputsRef.current[nextIndex]?.select();
   };
 
   const handleVerifyOtp = async (e) => {
@@ -368,10 +410,12 @@ export default function LoginPage() {
                         ref={el => otpInputsRef.current[idx] = el}
                         type="text"
                         inputMode="numeric"
-                        maxLength={1}
+                        pattern="[0-9]*"
                         value={digit}
+                        onFocus={e => e.target.select()}
                         onChange={e => handleOtpChange(idx, e.target.value)}
                         onKeyDown={e => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
                         className="w-12 h-14 text-center text-xl font-extrabold text-gray-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 outline-none transition-all shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         autoFocus={idx === 0}
                       />
