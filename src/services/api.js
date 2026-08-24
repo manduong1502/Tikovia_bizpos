@@ -6,7 +6,9 @@ export const getSubdomain = () => {
 };
 
 export const api = axios.create({
-  baseURL: 'https://api.tikovia.vn/api',
+  baseURL: (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+    ? 'http://localhost:4001/api'
+    : 'https://api.tikovia.vn/api',
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
