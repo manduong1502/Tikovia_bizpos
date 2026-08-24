@@ -15,7 +15,7 @@ export default function UserDevicesModal({ open, onClose, user }) {
     setLoading(true);
     try {
       const res = await userAPI.getUserDevices(user.id);
-      setDevices(res.devices || []);
+      setDevices(Array.isArray(res) ? res : (res?.devices || []));
     } catch (err) {
       console.error(err);
       toast.error('Không thể tải danh sách thiết bị');

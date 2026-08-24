@@ -106,7 +106,7 @@ export default function SettingsPage() {
     setLoadingMyDevices(true);
     try {
       const res = await authAPI.getDevices();
-      setMyDevices(res.devices || []);
+      setMyDevices(Array.isArray(res) ? res : (res?.devices || []));
     } catch (err) {
       console.error(err);
     } finally {
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                     ) : (
                       filteredUsers.map(u => {
                         const roleInfo = ROLE_MAP[u.role] || { label: u.role, color: 'bg-gray-100 text-gray-700 border-gray-200' };
-                        const deviceCount = u.trustedDevices?.length || 0;
+                        const deviceCount = u._count?.trustedDevices !== undefined ? u._count.trustedDevices : (u.trustedDevices?.length || 0);
                         return (
                           <tr key={u.id} className="hover:bg-gray-50/60 transition-colors">
                             <td className="py-3 px-4 font-bold text-gray-800">
