@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { reportAPI, loadInitialCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart, BarChart3, Users, Package } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -19,13 +19,15 @@ import Dropdown from '../../components/ui/Dropdown';
 
 export default function ReportsPage() {
   const [tab, setTab] = useState('revenue');
-  const [finData, setFinData] = useState(null);
-  const [salesData, setSalesData] = useState([]);
+  const [finData, setFinData] = useState(() => loadInitialCache('reports:financial', null));
+  const [salesData, setSalesData] = useState(() => loadInitialCache('reports:sales', []));
   const [timeRange, setTimeRange] = useState('Tháng này');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    if (!finData && salesData.length === 0) {
+      setLoading(true);
+    }
     let fromDate = '';
     let toDate = '';
     const now = new Date();
@@ -51,11 +53,11 @@ export default function ReportsPage() {
     }
 
     Promise.all([
-      axios.get('/api/reports/financial', { params: { fromDate, toDate } }).catch(() => ({ data: null })),
-      axios.get('/api/reports/sales', { params: { days: 30 } }).catch(() => ({ data: [] }))
+      reportAPI.getFinancial({ fromDate, toDate }).catch(() => null),
+      reportAPI.getSales({ days: 30 }).catch(() => [])
     ]).then(([finRes, salesRes]) => {
-      setFinData(finRes.data || null);
-      setSalesData(Array.isArray(salesRes.data) ? salesRes.data : []);
+      setFinData(finRes || null);
+      setSalesData(Array.isArray(salesRes) ? salesRes : []);
     }).finally(() => {
       setLoading(false);
     });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { api, cashbookAPI, customerAPI } from '../../services/api';
+import { api, cashbookAPI, customerAPI, clientMemoryCache } from '../../services/api';
 import Button from '../../components/ui/Button';
 import NumericInput from '../../components/ui/NumericInput';
 
@@ -23,7 +23,7 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
   if (!open || !customer) return null;
 
-  const currentDebt = Number(String(customer.debt || customer.totalDebt || 0).replace(/[^0-9.-]/g, '')) || 0;
+  const currentDebt = Math.max(0, Number(customer.debt || customer.totalDebt || 0));
   const remaining = currentDebt - (Number(payAmount) || 0);
 
   // Get orders with debt from this customer
@@ -62,6 +62,8 @@ export default function CustomerPaymentModal({ open, onClose, customer, orders =
 
       await cashbookAPI.create(payload);
       toast.success(`Đã thanh toán ${fmt(val)} cho khách hàng`);
+      clientMemoryCache.deletePattern('customers');
+      clientMemoryCache.deletePattern('cashbook');
       window.__tikovia_customers_cache = null;
       try {
         localStorage.removeItem('tikovia_customers_cache');

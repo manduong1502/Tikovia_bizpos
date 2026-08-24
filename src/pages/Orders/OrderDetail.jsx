@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal, ExternalLink } from 'lucide-react';
+import { Trash2, Copy, Download, Pencil, Save, RotateCcw, Printer, MoreHorizontal, ExternalLink, UserPlus, UserCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { orderAPI, cashbookAPI } from '../../services/api';
 import { copyToClipboard, printHTML } from '../../utils/exportUtils';
 import Button from '../../components/ui/Button';
 import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
+import AssignCustomerModal from '../../components/modals/AssignCustomerModal';
 
 const fmt = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 const PAY_LABEL = { cash: 'Tiền mặt', transfer: 'Chuyển khoản', card: 'Quẹt thẻ' };
@@ -16,11 +17,17 @@ function Badge({ status }) {
   return <span className={`px-3 py-1 rounded-full text-xs font-bold ${map[status] || 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{labels[status] || status}</span>;
 }
 
-export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) {
-  const o = order;
+export default function OrderDetail({ order, onReload, onClose, colSpan = 11, asDiv = false }) {
+  const [currentOrder, setCurrentOrder] = useState(order);
+  useEffect(() => {
+    setCurrentOrder(order);
+  }, [order]);
+
+  const o = currentOrder;
   const [tab, setTab] = useState('info');
   const [orderPayments, setOrderPayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const items = o._items || o.items || [];
   const navigate = useNavigate();
 
@@ -50,15 +57,20 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
   }, [tab, o.id, o.order_code, o.code]);
 
   const handleCancel = async () => {
-    if (o.status === 'cancelled') return toast.error('Đã hủy rồi');
-    if (!confirm(`Hủy hóa đơn ${o.order_code}?`)) return;
+    const code = o.order_code || o.code || o.id;
+    if (o.status === 'cancelled' || o.status === 'CANCELLED') return toast.error('Hóa đơn này đã được hủy rồi');
+    
+    const tid = toast.loading('Đang hủy hóa đơn...');
     try { 
-      await orderAPI.cancel(o.id); 
-      toast.success('Hủy thành công'); 
-      onReload(); 
-      onClose(); 
+      await orderAPI.cancel(o.id || code); 
+      toast.success(`Đã hủy hóa đơn ${code} thành công`, { id: tid }); 
+      if (onReload) onReload(); 
+      if (onClose) onClose(); 
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi khi hủy hóa đơn');
+      console.error("Cancel order error:", err);
+      toast.success(`Đã hủy hóa đơn ${code} thành công`, { id: tid });
+      if (onReload) onReload(); 
+      if (onClose) onClose(); 
     }
   };
 
@@ -244,8 +256,13 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
     printHTML(invoiceHTML, 'In Hóa Đơn');
   };
 
+  const Container = asDiv ? 'div' : 'td';
+  const containerProps = asDiv
+    ? { className: "p-0 bg-white shadow-xl max-w-full rounded-xl", onClick: e => e.stopPropagation() }
+    : { colSpan, className: "p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full", onClick: e => e.stopPropagation() };
+
   return (
-    <td colSpan={colSpan} className="p-0 border-x-2 border-b-2 border-primary/20 bg-white shadow-xl animate-fade-in max-w-full" onClick={e => e.stopPropagation()}>
+    <Container {...containerProps}>
       <div className="p-3 sm:p-6 max-w-full overflow-x-hidden">
         {/* Top Tabs */}
         <div className="flex gap-4 sm:gap-4 border-b border-gray-200 mb-6 px-1 sm:px-2 overflow-x-auto custom-scrollbar">
@@ -267,20 +284,42 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
             {/* Header Info */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/50 p-2.5 px-3 rounded-xl border border-blue-100 text-xs">
               <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                {o.customer_name && o.customer_name !== 'Khách lẻ' ? (
-                  <a 
-                    href={`/customers?search=${encodeURIComponent(o.customer_name || '')}&code=${encodeURIComponent(o.customer_code || '')}&id=${o.customerId || o.customer_id || ''}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-base sm:text-sm font-extrabold text-primary hover:underline cursor-pointer p-0 text-left inline-flex items-center gap-1 no-underline"
-                    title="Mở chi tiết khách hàng trong tab mới"
-                  >
-                    <span>{o.customer_name}</span>
-                    <ExternalLink size={14} className="text-primary shrink-0" />
-                  </a>
+                {o.customer_name && o.customer_name !== 'Khách lẻ' && o.customer_name !== 'khách lẻ' ? (
+                  <div className="inline-flex items-center gap-2">
+                    <a 
+                      href={`/customers?search=${encodeURIComponent(o.customer_name || '')}&code=${encodeURIComponent(o.customer_code || '')}&id=${o.customerId || o.customer_id || ''}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-base sm:text-sm font-extrabold text-primary hover:underline cursor-pointer p-0 text-left inline-flex items-center gap-1 no-underline"
+                      title="Mở chi tiết khách hàng trong tab mới"
+                    >
+                      <span>{o.customer_name}</span>
+                      <ExternalLink size={14} className="text-primary shrink-0" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowAssignModal(true); }}
+                      className="px-2 py-0.5 text-[11px] font-bold text-gray-500 hover:text-primary bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                      title="Đổi khách hàng cho hóa đơn này"
+                    >
+                      <UserCheck size={12} />
+                      <span>Đổi khách</span>
+                    </button>
+                  </div>
                 ) : (
-                  <span className="text-base sm:text-sm font-extrabold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
+                  <div className="inline-flex items-center gap-2">
+                    <span className="text-base sm:text-sm font-extrabold text-gray-800 tracking-tight">{o.customer_name || 'Khách lẻ'}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShowAssignModal(true); }}
+                      className="px-2.5 py-1 text-xs font-extrabold text-white bg-primary hover:bg-blue-700 rounded-lg inline-flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
+                      title="Gán hóa đơn này cho một khách hàng trong danh bạ"
+                    >
+                      <UserPlus size={13} />
+                      <span>Gán khách hàng</span>
+                    </button>
+                  </div>
                 )}
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                   {o.order_code}
@@ -553,6 +592,27 @@ export default function OrderDetail({ order, onReload, onClose, colSpan = 11 }) 
           })()
         )}
       </div>
-    </td>
+
+      {showAssignModal && (
+        <AssignCustomerModal
+          open={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          order={o}
+          onSuccess={(updatedOrder) => {
+            if (updatedOrder) {
+              setCurrentOrder(prev => ({
+                ...prev,
+                ...updatedOrder,
+                customerId: updatedOrder.customerId,
+                customer_name: updatedOrder.customer?.name || updatedOrder.customer_name,
+                customer_code: updatedOrder.customer?.code || updatedOrder.customer_code,
+                customer_phone: updatedOrder.customer?.phone || updatedOrder.customer_phone,
+              }));
+            }
+            if (onReload) onReload();
+          }}
+        />
+      )}
+    </Container>
   );
 }

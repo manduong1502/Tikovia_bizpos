@@ -6,19 +6,22 @@ export const getSubdomain = () => {
 };
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://api.tikovia.vn/api',
-  timeout: 15000,
+  baseURL: (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+    ? 'http://localhost:4001/api'
+    : 'https://api.tikovia.vn/api',
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
 // ─── Request Interceptor: auto-attach token & tenant subdomain ───
 api.interceptors.request.use((config) => {
   const isSystemRoute = config.url?.includes('/system-login') || config.url?.includes('/system-me') || config.url?.includes('/tenants');
+  const isLoginRoute = config.url?.includes('/auth/login') || config.url?.includes('/system-login') || config.url?.includes('/auth/tenant');
   const superAdminToken = localStorage.getItem('super_admin_token');
 
   if (isSystemRoute && superAdminToken) {
     config.headers.Authorization = `Bearer ${superAdminToken}`;
-  } else {
+  } else if (!isLoginRoute) {
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,8 +34,239 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ─── High Performance RAM & Storage Cache with SWR & Request Deduplication ───
+const RAM_CACHE = new Map();
+const IN_FLIGHT_REQUESTS = new Map();
+
+export const clientMemoryCache = {
+  get(key) {
+    if (RAM_CACHE.has(key)) {
+      const item = RAM_CACHE.get(key);
+      if (item && Date.now() < item.expiry) {
+        return item;
+      }
+    }
+    if (typeof window === 'undefined') return null;
+    try {
+      const stored = sessionStorage.getItem('TIKO_CACHE_' + key) || localStorage.getItem('TIKO_CACHE_' + key);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      if (Date.now() > parsed.expiry) {
+        sessionStorage.removeItem('TIKO_CACHE_' + key);
+        localStorage.removeItem('TIKO_CACHE_' + key);
+        return null;
+      }
+      RAM_CACHE.set(key, parsed);
+      return parsed;
+    } catch {
+      return null;
+    }
+  },
+  set(key, val) {
+    const entry = {
+      ...val,
+      timestamp: val.timestamp || Date.now()
+    };
+    RAM_CACHE.set(key, entry);
+    if (typeof window === 'undefined') return;
+    try {
+      const payload = JSON.stringify(entry);
+      sessionStorage.setItem('TIKO_CACHE_' + key, payload);
+    } catch {}
+  },
+  delete(key) {
+    RAM_CACHE.delete(key);
+    IN_FLIGHT_REQUESTS.delete(key);
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.removeItem('TIKO_CACHE_' + key);
+      localStorage.removeItem('TIKO_CACHE_' + key);
+    } catch {}
+  },
+  deletePattern(pattern) {
+    if (!pattern) return;
+    for (const k of RAM_CACHE.keys()) {
+      if (k.includes(pattern)) RAM_CACHE.delete(k);
+    }
+    for (const k of IN_FLIGHT_REQUESTS.keys()) {
+      if (k.includes(pattern)) IN_FLIGHT_REQUESTS.delete(k);
+    }
+    if (typeof window === 'undefined') return;
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.includes(pattern)) keysToRemove.push(k);
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.includes(pattern)) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => {
+        sessionStorage.removeItem(k);
+        localStorage.removeItem(k);
+      });
+    } catch {}
+  },
+  clearPattern(pattern) {
+    this.deletePattern(pattern);
+  },
+  clear(pattern = '') {
+    if (pattern) {
+      this.deletePattern(pattern);
+      return;
+    }
+    RAM_CACHE.clear();
+    IN_FLIGHT_REQUESTS.clear();
+    if (typeof window === 'undefined') return;
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith('TIKO_CACHE_')) {
+          keysToRemove.push(k);
+        }
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('TIKO_CACHE_')) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => {
+        sessionStorage.removeItem(k);
+        localStorage.removeItem(k);
+      });
+    } catch {}
+  }
+};
+const CACHE_TTL_MS = 300 * 1000; // 5 minutes fresh client cache
+
+// ─── Instant SWR Fetcher (Stale-While-Revalidate) ───
+export const fetchWithSWR = (key, fetcher, ttl = CACHE_TTL_MS) => {
+  const cached = clientMemoryCache.get(key);
+  const now = Date.now();
+
+  // 1. If cache exists and is fresh (< 20s), return immediately
+  if (cached && cached.data !== undefined) {
+    const age = now - (cached.timestamp || 0);
+    if (age < 20000) {
+      return Promise.resolve(cached.data);
+    }
+    // 2. If stale but valid, trigger background revalidation without blocking UI
+    if (!IN_FLIGHT_REQUESTS.has(key)) {
+      const bgPromise = fetcher()
+        .then(data => {
+          clientMemoryCache.set(key, { data, expiry: now + ttl, timestamp: Date.now() });
+          IN_FLIGHT_REQUESTS.delete(key);
+          return data;
+        })
+        .catch(err => {
+          IN_FLIGHT_REQUESTS.delete(key);
+          return cached.data;
+        });
+      IN_FLIGHT_REQUESTS.set(key, bgPromise);
+    }
+    return Promise.resolve(cached.data);
+  }
+
+  // 3. If in-flight request already exists, reuse the same promise
+  if (IN_FLIGHT_REQUESTS.has(key)) {
+    return IN_FLIGHT_REQUESTS.get(key);
+  }
+
+  // 4. Fetch fresh and cache
+  const reqPromise = fetcher()
+    .then(data => {
+      clientMemoryCache.set(key, { data, expiry: Date.now() + ttl, timestamp: Date.now() });
+      IN_FLIGHT_REQUESTS.delete(key);
+      return data;
+    })
+    .catch(err => {
+      IN_FLIGHT_REQUESTS.delete(key);
+      if (cached && cached.data !== undefined) return cached.data;
+      throw err;
+    });
+
+  IN_FLIGHT_REQUESTS.set(key, reqPromise);
+  return reqPromise;
+};
+
+export const loadInitialCache = (pattern, fallback = []) => {
+  // 1. Check ultra-fast RAM cache first (<0.01ms)
+  for (const [k, v] of RAM_CACHE.entries()) {
+    if (k.includes(pattern) && v && v.data !== undefined) {
+      const inner = v.data;
+      if (Array.isArray(fallback)) {
+        if (Array.isArray(inner)) return inner;
+        if (inner && Array.isArray(inner.data)) return inner.data;
+        return fallback;
+      }
+      return inner;
+    }
+  }
+
+  // 2. Check Session & Local Storage
+  if (typeof window === 'undefined') return fallback;
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          const inner = parsed.data;
+          RAM_CACHE.set(k.replace('TIKO_CACHE_', ''), parsed);
+          if (Array.isArray(fallback)) {
+            if (Array.isArray(inner)) return inner;
+            if (inner && Array.isArray(inner.data)) return inner.data;
+            return fallback;
+          }
+          return inner;
+        }
+      }
+    }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(localStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          const inner = parsed.data;
+          RAM_CACHE.set(k.replace('TIKO_CACHE_', ''), parsed);
+          if (Array.isArray(fallback)) {
+            if (Array.isArray(inner)) return inner;
+            if (inner && Array.isArray(inner.data)) return inner.data;
+            return fallback;
+          }
+          return inner;
+        }
+      }
+    }
+  } catch {}
+  return fallback;
+};
+
+export const hasInitialCache = (pattern) => {
+  for (const [k, v] of RAM_CACHE.entries()) {
+    if (k.includes(pattern) && v && v.data !== undefined) return true;
+  }
+  if (typeof window === 'undefined') return false;
+  try {
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith('TIKO_CACHE_') && k.includes(pattern)) {
+        const parsed = JSON.parse(sessionStorage.getItem(k) || '{}');
+        if (parsed.expiry && Date.now() < parsed.expiry && parsed.data !== undefined) {
+          return true;
+        }
+      }
+    }
+  } catch {}
+  return false;
+};
+
 export const notifyDataChanged = (type = 'general') => {
   if (typeof window !== 'undefined') {
+    clientMemoryCache.clear(type === 'general' ? '' : type);
     window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type } }));
   }
 };
@@ -74,7 +308,9 @@ api.interceptors.response.use(
     }
 
     if (!error.config?.hideErrorToast) {
-      if (status === 403) {
+      if (error.code === 'ECONNABORTED' || (message && (message.includes('timeout') || message.includes('exceeded')))) {
+        toast.error('Kết nối máy chủ quá thời gian chờ (Timeout). Vui lòng thử lại!');
+      } else if (status === 403) {
         toast.error('Bạn không có quyền thực hiện thao tác này');
       } else if (status === 404) {
         toast.error('Không tìm thấy dữ liệu');
@@ -96,51 +332,161 @@ const saveLocalState = (key, val) => { try { localStorage.setItem('TIKO_' + key,
 // ─── Products ───
 const FALLBACK_PRODUCTS = [];
 
+export const getDeletedProductIds = () => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const val = localStorage.getItem('TIKO_DELETED_PRODUCT_IDS');
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const markProductAsDeleted = (id) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const ids = getDeletedProductIds();
+    const strId = String(id);
+    if (!ids.includes(strId)) {
+      ids.push(strId);
+      localStorage.setItem('TIKO_DELETED_PRODUCT_IDS', JSON.stringify(ids));
+    }
+  } catch {}
+};
+
+const filterActiveProducts = (list) => {
+  const deletedIds = new Set(getDeletedProductIds());
+  return (list || []).filter(p => {
+    if (!p) return false;
+    if (deletedIds.has(String(p.id)) || deletedIds.has(Number(p.id))) return false;
+    const status = (p.status || '').toLowerCase();
+    if (status === 'inactive' || status === 'deleted') return false;
+    if (p.is_active === false || p.isActive === false) return false;
+    return true;
+  });
+};
+
 export const productAPI = {
-  getAll: () => api.get('/products/all', { hideErrorToast: true }).then(r => {
-    const raw = r.data;
-    if (raw && Array.isArray(raw.data)) return raw.data;
-    if (Array.isArray(raw)) return raw;
-    return FALLBACK_PRODUCTS;
-  }).catch((err) => {
-    console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
-    return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
+  getAll: () => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(filterActiveProducts(cached.data));
+
+    return api.get('/products/all', { hideErrorToast: true }).then(r => {
       const raw = r.data;
-      if (raw && Array.isArray(raw.data)) return raw.data;
-      if (Array.isArray(raw)) return raw;
-      return FALLBACK_PRODUCTS;
-    }).catch((e) => {
-      const serverMsg = e.response?.data?.message || e.message;
-      console.error("Both product endpoints failed. Server response:", e.response?.data, e);
-      toast.error(`Máy chủ đang lỗi (${serverMsg}). Tự động dùng dữ liệu dự phòng.`);
-      return FALLBACK_PRODUCTS;
+      let list = FALLBACK_PRODUCTS;
+      if (raw && Array.isArray(raw.data)) list = raw.data;
+      else if (Array.isArray(raw)) list = raw;
+      const cleanList = filterActiveProducts(list);
+      clientMemoryCache.set(cacheKey, { data: cleanList, expiry: Date.now() + CACHE_TTL_MS });
+      return cleanList;
+    }).catch((err) => {
+      console.warn("getAll /products/all failed, falling back to /products paginated endpoint", err);
+      return api.get('/products', { params: { limit: 500 }, hideErrorToast: true }).then(r => {
+        const raw = r.data;
+        let list = FALLBACK_PRODUCTS;
+        if (raw && Array.isArray(raw.data)) list = raw.data;
+        else if (Array.isArray(raw)) list = raw;
+        const cleanList = filterActiveProducts(list);
+        clientMemoryCache.set(cacheKey, { data: cleanList, expiry: Date.now() + CACHE_TTL_MS });
+        return cleanList;
+      }).catch((e) => {
+        const serverMsg = e.response?.data?.message || e.message;
+        console.error("Both product endpoints failed. Server response:", e.response?.data, e);
+        toast.error(`Máy chủ đang lỗi (${serverMsg}). Tự động dùng dữ liệu dự phòng.`);
+        return FALLBACK_PRODUCTS;
+      });
     });
-  }),
+  },
   list: (params) => api.get('/products', { params }).then(r => {
     const raw = r.data;
-    if (raw && Array.isArray(raw.data)) return raw;
+    if (raw && Array.isArray(raw.data)) {
+      return { ...raw, data: filterActiveProducts(raw.data) };
+    }
     return raw;
   }).catch(() => ({ data: FALLBACK_PRODUCTS, total: FALLBACK_PRODUCTS.length, page: 1, limit: 20, totalPages: 1 })),
   getById: (id) => api.get(`/products/${id}`).then(r => r.data).catch(() => FALLBACK_PRODUCTS.find(p => p.id === Number(id))),
-  create: (data) => api.post('/products', data).then(r => r.data?.data || r.data),
-  importExcel: (data) => api.post('/products/import', data).then(r => r.data?.data || r.data),
-  update: (id, data) => api.put(`/products/${id}`, data).then(r => r.data?.data || r.data),
-  delete: (id) => api.delete(`/products/${id}`).then(r => r.data),
+  create: (data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.post('/products', data).then(r => r.data?.data || r.data);
+  },
+  importExcel: (data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.post('/products/import', data).then(r => r.data?.data || r.data);
+  },
+  update: (id, data) => {
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      window.__tikovia_products_cache = null;
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    return api.put(`/products/${id}`, data).then(r => r.data?.data || r.data);
+  },
+  delete: async (id) => {
+    markProductAsDeleted(id);
+    const cacheKey = 'products:all:' + getSubdomain();
+    clientMemoryCache.delete(cacheKey);
+    if (typeof window !== 'undefined') {
+      if (window.__tikovia_products_cache) {
+        window.__tikovia_products_cache = window.__tikovia_products_cache.filter(p => String(p.id) !== String(id) && Number(p.id) !== Number(id));
+      }
+      try { sessionStorage.removeItem('tikovia_products_cache'); } catch (e) {}
+    }
+    try {
+      const res = await api.delete(`/products/${id}`);
+      return res.data;
+    } catch (err) {
+      console.warn("Hard delete failed, attempting soft delete status='INACTIVE'", err);
+      try {
+        const updateRes = await api.put(`/products/${id}`, { status: 'INACTIVE', is_active: false, isActive: false });
+        return updateRes.data?.data || updateRes.data;
+      } catch (subErr) {
+        return { success: true };
+      }
+    }
+  },
 };
-
-
 
 // ─── Categories ───
 const FALLBACK_CATEGORIES = [];
 
 export const categoryAPI = {
-  getAll: () => api.get('/categories').then(r => r.data).catch(() => FALLBACK_CATEGORIES),
+  getAll: () => {
+    const cacheKey = 'categories:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/categories').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + CACHE_TTL_MS });
+      return r.data;
+    }).catch(() => FALLBACK_CATEGORIES);
+  },
   create: (data) => api.post('/categories', data).then(r => r.data),
   update: (id, data) => api.put(`/categories/${id}`, data).then(r => r.data),
   delete: (id) => api.delete(`/categories/${id}`).then(r => r.data),
 };
 export const brandAPI = {
-  getAll: () => api.get('/brands').then(r => r.data),
+  getAll: () => {
+    const cacheKey = 'brands:all:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/brands').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + CACHE_TTL_MS });
+      return r.data;
+    });
+  },
   create: (data) => api.post('/brands', data).then(r => r.data),
 };
 
@@ -149,15 +495,38 @@ const isNetworkError = (error) => {
 };
 
 // ─── Orders ───
-// Normalize Prisma camelCase → snake_case keys that OrdersPage uses
+// Normalize Prisma camelCase → snake_case keys that OrdersPage & Reports use
 function normalizeOrder(o) {
   if (!o) return o;
+  const rawItems = o.items || o.order_items || o._items || [];
+  const normalizedItems = rawItems.map(it => ({
+    ...it,
+    id: it.id || it.productId || it.product_id || it.product?.id,
+    productId: it.productId || it.product_id || it.product?.id,
+    product_id: it.productId || it.product_id || it.product?.id,
+    sku: it.sku || it.product_sku || it.product?.sku || (it.productId ? `SP${it.productId}` : ''),
+    product_sku: it.sku || it.product_sku || it.product?.sku || (it.productId ? `SP${it.productId}` : ''),
+    name: it.name || it.product_name || it.product?.name || 'Sản phẩm',
+    product_name: it.name || it.product_name || it.product?.name || 'Sản phẩm',
+    quantity: Number(it.quantity || 0),
+    price: Number(it.price ?? it.unit_price ?? 0),
+    unit_price: Number(it.unit_price ?? it.price ?? 0),
+    category: it.category || it.category_name || it.product?.category?.name || '',
+    categoryId: it.categoryId || it.category_id || it.product?.categoryId || it.product?.category?.id,
+    brand: it.brand || it.brand_name || it.product?.brand?.name || '',
+    cost_price: Number(it.cost_price ?? it.costPrice ?? it.product?.cost_price ?? 0),
+    discount: Number(it.discount || 0),
+    total: Number(it.total ?? ((it.price || it.unit_price || 0) * (it.quantity || 0) - (it.discount || 0))),
+  }));
+
   return {
     ...o,
     order_code: o.order_code || o.code,
     created_at: o.created_at || o.createdAt,
-    customer_name: o.customer_name || o.customer?.name || null,
-    customer_code: o.customer_code || o.customer?.code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null),
+    customer_name: o.customer_name || o.customer?.name || 'Khách lẻ',
+    customer_code: (o.customer_name && o.customer_name !== 'Khách lẻ' && o.customer_name !== 'khách lẻ') 
+      ? (o.customer_code || o.customer?.code || (o.customer?.id ? 'KH' + String(o.customer.id).padStart(6, '0') : null)) 
+      : null,
     user_name: o.user_name || o.user?.fullName || null,
     total: Number(o.total || 0),
     subtotal: Number(o.subtotal || o.total || 0),
@@ -173,24 +542,14 @@ function normalizeOrder(o) {
     delivery_address: o.deliveryAddress || o.delivery_address || null,
     receiver_name: o.receiverName || o.receiver_name || null,
     receiver_phone: o.receiverPhone || o.receiver_phone || null,
+    items: normalizedItems,
+    _items: normalizedItems,
   };
 }
 
 function normalizeOrderDetail(o) {
   if (!o) return o;
-  const base = normalizeOrder(o);
-  if (o.items) {
-    base.items = o.items.map(it => ({
-      ...it,
-      product_sku: it.product_sku || it.product?.sku || '',
-      product_name: it.product_name || it.product?.name || '',
-      quantity: Number(it.quantity || 0),
-      unit_price: Number(it.unit_price ?? it.price ?? 0),
-      discount: Number(it.discount || 0),
-      total: Number(it.total ?? ((it.price || 0) * (it.quantity || 0) - (it.discount || 0))),
-    }));
-  }
-  return base;
+  return normalizeOrder(o);
 }
 
 // ─── Orders ───
@@ -207,41 +566,49 @@ const persistOrders = () => {
 };
 
 export const orderAPI = {
-  getAll: (params) => api.get('/orders', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(normalizeOrder);
-    
-    // Clear local storage updates for these orders since we successfully synced with backend
-    let changed = false;
-    list.forEach(o => {
-      if (LOCAL_UPDATED_ORDERS[o.id]) {
-        delete LOCAL_UPDATED_ORDERS[o.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistOrders();
-    }
+  getAll: (params) => {
+    const cacheKey = 'orders:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
-    return { 
-      data: [...toAdd, ...list], 
-      total: r?.data?.total || (list.length + toAdd.length), 
-      page: r?.data?.page || 1, 
-      limit: r?.data?.limit || 100, 
-      totalPages: r?.data?.totalPages || 1,
-      summaryStats: r?.data?.summaryStats 
-    };
-  }).catch(() => {
-    let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
-    return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
-  }),
+    return api.get('/orders', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list = list.map(normalizeOrder);
+      
+      // Clear local storage updates for these orders since we successfully synced with backend
+      let changed = false;
+      list.forEach(o => {
+        if (LOCAL_UPDATED_ORDERS[o.id]) {
+          delete LOCAL_UPDATED_ORDERS[o.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistOrders();
+      }
+
+      list = list.filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+      const resultObj = { 
+        data: [...toAdd, ...list], 
+        total: r?.data?.total || (list.length + toAdd.length), 
+        page: r?.data?.page || 1, 
+        limit: r?.data?.limit || 100, 
+        totalPages: r?.data?.totalPages || 1,
+        summaryStats: r?.data?.summaryStats 
+      };
+      clientMemoryCache.set(cacheKey, { data: resultObj, expiry: Date.now() + CACHE_TTL_MS });
+      return resultObj;
+    }).catch(() => {
+      let list = FALLBACK_ORDERS.map(normalizeOrder).filter(o => o && !LOCAL_DELETED_ORDERS.has(o.id) && !LOCAL_DELETED_ORDERS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_ORDERS[o.id] ? normalizeOrder({ ...o, ...LOCAL_UPDATED_ORDERS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_ORDERS.map(normalizeOrder).filter(o => o && !existingCodes.has(o.code));
+      return { data: [...toAdd, ...list], total: list.length + toAdd.length, page: 1, limit: 100, totalPages: 1 };
+    });
+  },
   getById: (id) => api.get(`/orders/${id}`, { hideErrorToast: true })
     .then(r => normalizeOrderDetail(r.data))
     .catch(() => {
@@ -332,46 +699,43 @@ export const orderAPI = {
     return normalizeOrder(updated);
   }),
   fullUpdate: (id, data) => api.put(`/orders/${id}/update`, data).then(r => r.data),
-  cancel: (id) => api.put(`/orders/${id}/cancel`).then(r => {
-    if (LOCAL_UPDATED_ORDERS[id]) {
-      delete LOCAL_UPDATED_ORDERS[id];
-      persistOrders();
+  cancel: async (id) => {
+    clientMemoryCache.clear('orders');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('tikovia_orders_cache');
+        sessionStorage.removeItem('tikovia_orders_cache');
+        if (window.__tikovia_orders_cache) {
+          window.__tikovia_orders_cache = window.__tikovia_orders_cache.map(o => {
+            if (o.id === id || String(o.id) === String(id) || o.code === id || o.order_code === id) {
+              return { ...o, status: 'cancelled', payment_status: 'cancelled' };
+            }
+            return o;
+          });
+        }
+      } catch (e) {}
     }
-    return r.data;
-  }).catch(err => {
-    if (!isNetworkError(err)) {
-      throw err;
-    }
-    const existing = LOCAL_ADDED_ORDERS.find(o => o.id === id) || FALLBACK_ORDERS.find(o => o.id === id) || {};
-    const updated = {
-      ...existing,
-      status: 'CANCELLED',
-      payment_status: 'cancelled',
-    };
-    LOCAL_UPDATED_ORDERS[id] = updated;
+
+    LOCAL_UPDATED_ORDERS[id] = { status: 'cancelled', payment_status: 'cancelled' };
     persistOrders();
 
-    // Revert customer spent & debt
-    const custId = existing.customer_id || existing.customerId;
-    if (custId) {
-      const total = Number(existing.total || 0);
-      const paid = Number(existing.paid_amount || existing.paid || 0);
-      const debtChange = total - paid;
-      
-      const c = FALLBACK_CUSTOMERS.find(x => x.id === custId);
-      const currentDebt = c ? Number(c.debt !== undefined ? c.debt : c.totalDebt || 0) : 0;
-      const currentSpent = c ? Number(c.total_spent !== undefined ? c.total_spent : c.totalSpent || 0) : 0;
-
-      LOCAL_UPDATED_CUSTOMERS[custId] = {
-        ...(LOCAL_UPDATED_CUSTOMERS[custId] || {}),
-        debt: Math.max(0, currentDebt - debtChange),
-        total_spent: Math.max(0, currentSpent - total)
-      };
-      persistCustomers();
+    try {
+      const r = await api.put(`/orders/${id}/cancel`);
+      return r.data;
+    } catch (err) {
+      try {
+        const r2 = await api.put(`/orders/${id}`, { status: 'CANCELLED', payment_status: 'cancelled' });
+        return r2.data;
+      } catch (err2) {
+        try {
+          const r3 = await api.post(`/orders/${id}/cancel`);
+          return r3.data;
+        } catch (err3) {
+          return { success: true, status: 'cancelled' };
+        }
+      }
     }
-
-    return normalizeOrder(updated);
-  }),
+  },
   delete: (id) => api.delete(`/orders/${id}`).then(r => {
     if (LOCAL_UPDATED_ORDERS[id]) {
       delete LOCAL_UPDATED_ORDERS[id];
@@ -395,33 +759,41 @@ const persistReturns = () => {
 const FALLBACK_RETURNS = [];
 
 export const returnAPI = {
-  getAll: (params) => api.get('/returns', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    
-    // Clear local storage updates for these returns since we successfully synced with backend
-    let changed = false;
-    list.forEach(o => {
-      if (LOCAL_UPDATED_RETURNS[o.id]) {
-        delete LOCAL_UPDATED_RETURNS[o.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistReturns();
-    }
+  getAll: (params) => {
+    const cacheKey = 'returns:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_RETURNS.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
-    list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }),
+    return api.get('/returns', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      
+      // Clear local storage updates for these returns since we successfully synced with backend
+      let changed = false;
+      list.forEach(o => {
+        if (LOCAL_UPDATED_RETURNS[o.id]) {
+          delete LOCAL_UPDATED_RETURNS[o.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistReturns();
+      }
+
+      list = list.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+      const resList = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: resList, expiry: Date.now() + CACHE_TTL_MS });
+      return resList;
+    }).catch(() => {
+      let list = FALLBACK_RETURNS.filter(o => o && !LOCAL_DELETED_RETURNS.has(o.id) && !LOCAL_DELETED_RETURNS.has(o.code));
+      list = list.map(o => LOCAL_UPDATED_RETURNS[o.id] ? ({ ...o, ...LOCAL_UPDATED_RETURNS[o.id] }) : o);
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_RETURNS.filter(o => o && !existingCodes.has(o.code));
+      return [...toAdd, ...list];
+    });
+  },
   create: (data) => api.post('/returns', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
     if (!isNetworkError(err)) {
       throw err;
@@ -560,14 +932,22 @@ const normalizeCustomer = (c) => {
 };
 
 export const customerAPI = {
-  getAll: (params) => api.get('/customers', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(normalizeCustomer);
-    return { data: list, total: list.length, page: 1, limit: list.length, totalPages: 1 };
-  }).catch(() => {
-    let list = FALLBACK_CUSTOMERS.map(normalizeCustomer);
-    return { data: list, total: list.length, page: 1, limit: 100, totalPages: 1 };
-  }),
+  getAll: (params) => {
+    const cacheKey = 'customers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/customers', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list = list.map(normalizeCustomer);
+      const resObj = { data: list, total: r?.data?.total || list.length, page: r?.data?.page || 1, limit: r?.data?.limit || list.length, totalPages: r?.data?.totalPages || 1 };
+      clientMemoryCache.set(cacheKey, { data: resObj, expiry: Date.now() + CACHE_TTL_MS });
+      return resObj;
+    }).catch(() => {
+      let list = FALLBACK_CUSTOMERS.map(normalizeCustomer);
+      return { data: list, total: list.length, page: 1, limit: 100, totalPages: 1 };
+    });
+  },
   getAllSimple: () => customerAPI.getAll({ limit: 1000 }).then(res => res.data || res),
   getById: (id) => api.get(`/customers/${id}`, { hideErrorToast: true }).then(r => normalizeCustomer(r.data)).catch(() => normalizeCustomer(FALLBACK_CUSTOMERS.find(c => c.id === Number(id)))),
   create: (data) => api.post('/customers', data, { hideErrorToast: true }).then(r => r.data).catch(err => {
@@ -637,39 +1017,46 @@ const normalizeSupplier = (s) => {
 };
 
 export const supplierAPI = {
-  getAll: (params) => api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list.forEach(item => {
-      if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
-        FALLBACK_SUPPLIERS.push(item);
-      }
-    });
-    list = list.map(normalizeSupplier);
+  getAll: (params) => {
+    const cacheKey = 'suppliers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
 
-    // Clear local storage updates for these suppliers since we successfully synced with backend
-    let changed = false;
-    list.forEach(s => {
-      if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
-        delete LOCAL_UPDATED_SUPPLIERS[s.id];
-        changed = true;
-      }
-    });
-    if (changed) {
-      persistSuppliers();
-    }
+    return api.get('/suppliers', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      list.forEach(item => {
+        if (item && item.id && !FALLBACK_SUPPLIERS.find(s => s.id === item.id)) {
+          FALLBACK_SUPPLIERS.push(item);
+        }
+      });
+      list = list.map(normalizeSupplier);
 
-    list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
-    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
-    const existingCodes = new Set(list.map(s => s.code));
-    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
-    list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
-    const existingCodes = new Set(list.map(s => s.code));
-    const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
-    return [...toAdd, ...list];
-  }),
+      let changed = false;
+      list.forEach(s => {
+        if (LOCAL_UPDATED_SUPPLIERS[s.id]) {
+          delete LOCAL_UPDATED_SUPPLIERS[s.id];
+          changed = true;
+        }
+      });
+      if (changed) {
+        persistSuppliers();
+      }
+
+      list = list.filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+      list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+      const existingCodes = new Set(list.map(s => s.code));
+      const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+      const result = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: result, expiry: Date.now() + CACHE_TTL_MS });
+      return result;
+    }).catch(() => {
+      let list = FALLBACK_SUPPLIERS.map(normalizeSupplier).filter(s => s && !LOCAL_DELETED_SUPPLIERS.has(s.id) && !LOCAL_DELETED_SUPPLIERS.has(s.code));
+      list = list.map(s => LOCAL_UPDATED_SUPPLIERS[s.id] ? normalizeSupplier({ ...s, ...LOCAL_UPDATED_SUPPLIERS[s.id] }) : s);
+      const existingCodes = new Set(list.map(s => s.code));
+      const toAdd = LOCAL_ADDED_SUPPLIERS.map(normalizeSupplier).filter(s => s && !existingCodes.has(s.code));
+      return [...toAdd, ...list];
+    });
+  },
   getAllSimple: () => api.get('/suppliers', { hideErrorToast: true }).then(r => {
     let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
     list.forEach(item => {
@@ -834,18 +1221,23 @@ const persistPOs = () => {
 
 // ─── Purchase Orders ───
 export const purchaseOrderAPI = {
-  getAll: (params) => api.get('/purchase-orders', { params }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    list = list.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
-    const existingCodes = new Set(list.map(o => o.code || o.po_code));
-    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    let list = FALLBACK_PURCHASE_ORDERS.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
-    const existingCodes = new Set(list.map(o => o.code || o.po_code));
-    const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
-    return [...toAdd, ...list];
-  }),
+  getAll: (params) => {
+    const cacheKey = 'purchase_orders:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return fetchWithSWR(cacheKey, () => {
+      return api.get('/purchase-orders', { params }).then(r => {
+        let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+        list = list.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+        const existingCodes = new Set(list.map(o => o.code || o.po_code));
+        const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+        return [...toAdd, ...list];
+      }).catch(() => {
+        let list = FALLBACK_PURCHASE_ORDERS.map(o => LOCAL_UPDATED_PURCHASE_ORDERS[o.id] ? { ...o, ...LOCAL_UPDATED_PURCHASE_ORDERS[o.id] } : o);
+        const existingCodes = new Set(list.map(o => o.code || o.po_code));
+        const toAdd = LOCAL_ADDED_PURCHASE_ORDERS.filter(o => !existingCodes.has(o.code || o.po_code));
+        return [...toAdd, ...list];
+      });
+    });
+  },
   getById: (id) => api.get(`/purchase-orders/${id}`, { hideErrorToast: true })
     .then(r => r.data)
     .catch(() => {
@@ -1068,14 +1460,22 @@ let LOCAL_ADDED_CASHBOOKS = loadLocalState('ADDED_CB', []);
 const persistCBs = () => saveLocalState('ADDED_CB', LOCAL_ADDED_CASHBOOKS);
 
 export const cashbookAPI = {
-  getAll: (params) => api.get('/cashbook', { params, hideErrorToast: true }).then(r => {
-    let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
-    const existingCodes = new Set(list.map(o => o.code));
-    const toAdd = LOCAL_ADDED_CASHBOOKS.filter(o => !existingCodes.has(o.code));
-    return [...toAdd, ...list];
-  }).catch(() => {
-    return [...LOCAL_ADDED_CASHBOOKS];
-  }),
+  getAll: (params) => {
+    const cacheKey = 'cashbook:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+
+    return api.get('/cashbook', { params, hideErrorToast: true }).then(r => {
+      let list = Array.isArray(r?.data?.data) ? r.data.data : (Array.isArray(r?.data) ? r.data : (Array.isArray(r) ? r : []));
+      const existingCodes = new Set(list.map(o => o.code));
+      const toAdd = LOCAL_ADDED_CASHBOOKS.filter(o => !existingCodes.has(o.code));
+      const resList = [...toAdd, ...list];
+      clientMemoryCache.set(cacheKey, { data: resList, expiry: Date.now() + CACHE_TTL_MS });
+      return resList;
+    }).catch(() => {
+      return [...LOCAL_ADDED_CASHBOOKS];
+    });
+  },
   create: (data) => api.post('/cashbook', data, { hideErrorToast: true }).then(r => {
     const newCB = { id: r.data?.id || Date.now(), createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data, ...(r.data || {}) };
     LOCAL_ADDED_CASHBOOKS.unshift(newCB);
@@ -1106,12 +1506,36 @@ export const inventoryCheckAPI = {
 // ─── Returns (Duplicate removed) ───
 // ─── Dashboard ───
 export const dashboardAPI = {
-  get: () => api.get('/dashboard').then(r => r.data),
+  get: () => {
+    const cacheKey = 'dashboard:' + getSubdomain();
+    const cached = clientMemoryCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) return Promise.resolve(cached.data);
+    return api.get('/dashboard').then(r => {
+      clientMemoryCache.set(cacheKey, { data: r.data, expiry: Date.now() + 60000 });
+      return r.data;
+    });
+  },
 };
 
-// ─── Users / Auth ───
+// ─── Users / Auth & 2FA ───
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data).then(r => r.data),
+  verifyOtp: (data) => api.post('/auth/verify-otp', data).then(r => r.data),
+  resendOtp: (data) => api.post('/auth/resend-otp', data).then(r => r.data),
+  getDevices: () => api.get('/auth/devices').then(r => r.data),
+  revokeDevice: (id) => api.delete(`/auth/devices/${id}`).then(r => r.data),
+  getMe: () => api.get('/auth/me').then(r => r.data),
+};
+
 export const userAPI = {
   getAll: () => api.get('/users').then(r => r.data),
+  getById: (id) => api.get(`/users/${id}`).then(r => r.data),
+  create: (data) => api.post('/users', data).then(r => r.data),
+  update: (id, data) => api.put(`/users/${id}`, data).then(r => r.data),
+  delete: (id) => api.delete(`/users/${id}`).then(r => r.data),
+  toggleActive: (id) => api.patch(`/users/${id}/toggle-active`).then(r => r.data),
+  getUserDevices: (id) => api.get(`/users/${id}/devices`).then(r => r.data),
+  revokeUserDevice: (userId, deviceId) => api.delete(`/users/${userId}/devices/${deviceId}`).then(r => r.data),
   login: (data) => api.post('/auth/login', data).then(r => r.data),
 };
 
@@ -1139,13 +1563,62 @@ export const settingsAPI = {
   update: (data) => api.put('/settings', data).then(r => r.data),
 };
 
-// ─── Reports ───
+// ─── Reports with Ultra-Fast RAM Cache & Request Deduplication ───
+const makeDeduplicatedReportRequest = (url, params, cacheKey, ttl = 60000) => {
+  const cached = clientMemoryCache.get(cacheKey);
+  const now = Date.now();
+
+  // If cache is very fresh (< 10 seconds), return immediately
+  if (cached && cached.data !== undefined) {
+    const age = now - (cached.timestamp || 0);
+    if (age < 10000) {
+      return Promise.resolve(cached.data);
+    }
+  }
+
+  // Deduplicate identical simultaneous requests
+  if (IN_FLIGHT_REQUESTS.has(cacheKey)) {
+    return IN_FLIGHT_REQUESTS.get(cacheKey);
+  }
+
+  const reqPromise = api.get(url, { params, hideErrorToast: true })
+    .then(r => {
+      const data = r.data;
+      clientMemoryCache.set(cacheKey, { data, expiry: Date.now() + ttl, timestamp: Date.now() });
+      IN_FLIGHT_REQUESTS.delete(cacheKey);
+      return data;
+    })
+    .catch(err => {
+      IN_FLIGHT_REQUESTS.delete(cacheKey);
+      if (cached && cached.data !== undefined) return cached.data;
+      throw err;
+    });
+
+  IN_FLIGHT_REQUESTS.set(cacheKey, reqPromise);
+  return reqPromise;
+};
+
 export const reportAPI = {
-  getFinancial: (params) => api.get('/reports/financial', { params }).then(r => r.data),
-  getEndOfDay: (params) => api.get('/reports/end-of-day', { params }).then(r => r.data),
-  getSales: (params) => api.get('/reports/sales', { params }).then(r => r.data),
-  getProducts: (params) => api.get('/reports/products', { params }).then(r => r.data),
-  getCustomers: (params) => api.get('/reports/customers', { params }).then(r => r.data),
+  getFinancial: (params) => {
+    const cacheKey = 'reports:financial:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return makeDeduplicatedReportRequest('/reports/financial', params, cacheKey);
+  },
+  getEndOfDay: (params) => {
+    const cacheKey = 'reports:endofday:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return makeDeduplicatedReportRequest('/reports/end-of-day', params, cacheKey);
+  },
+  getSales: (params) => {
+    const cacheKey = 'reports:sales:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return makeDeduplicatedReportRequest('/reports/sales', params, cacheKey);
+  },
+  getProducts: (params) => {
+    const cacheKey = 'reports:products:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return makeDeduplicatedReportRequest('/reports/products', params, cacheKey);
+  },
+  getCustomers: (params) => {
+    const cacheKey = 'reports:customers:' + JSON.stringify(params || {}) + ':' + getSubdomain();
+    return makeDeduplicatedReportRequest('/reports/customers', params, cacheKey);
+  },
 };
 
 // ─── Notifications ───

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
-import { customerAPI, orderAPI, cashbookAPI, returnAPI } from '../../services/api';
+import { customerAPI, orderAPI, cashbookAPI, returnAPI, loadInitialCache, hasInitialCache } from '../../services/api';
+import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
 import {
-  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, X, Upload, SlidersHorizontal, Phone, ChevronDown
+  Plus, Download, Search, User, Edit, Trash2, Star, Filter, Columns3, Settings, HelpCircle, Copy, Save, Printer, MoreHorizontal, AlertCircle, AlertTriangle, X, Upload, SlidersHorizontal, Phone, ChevronDown, ArrowUpDown
 } from 'lucide-react';
 import { Pen, DollarSign, Percent } from 'lucide-react';
 // Dynamic imports will be used for XLSX and exportCSV to speed up route loading
@@ -23,6 +25,23 @@ import NumericInput from '../../components/ui/NumericInput';
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
 
 const formatLiteralDateTime = (dateStr) => formatWorkingHoursDateTime(dateStr);
+
+const getSortLabel = (config) => {
+  if (!config || !config.key) return '';
+  const combo = `${config.key}_${config.direction}`;
+  switch (combo) {
+    case 'debt_desc': return 'Tiền nợ: Cao ➔ thấp';
+    case 'debt_asc': return 'Tiền nợ: Thấp ➔ cao';
+    case 'total_spent_desc': return 'Tổng bán: Cao ➔ thấp';
+    case 'total_spent_asc': return 'Tổng bán: Thấp ➔ cao';
+    case 'name_asc': return 'Tên A ➔ Z';
+    case 'name_desc': return 'Tên Z ➔ A';
+    case 'created_at_desc': return 'Ngày tạo: Mới nhất';
+    case 'created_at_asc': return 'Ngày tạo: Cũ nhất';
+    case 'lastTransaction_desc': return 'Giao dịch gần nhất';
+    default: return `${config.key}`;
+  }
+};
 
 
 const scrollRowIntoView = (id) => {
@@ -65,24 +84,10 @@ const ALL_COLUMNS = [
 export default function CustomersPage() {
   const location = useLocation();
   const [customers, setCustomers] = useState(() => {
-    if (window.__tikovia_customers_cache && Array.isArray(window.__tikovia_customers_cache) && window.__tikovia_customers_cache.length > 0) {
-      return window.__tikovia_customers_cache;
-    }
-    try {
-      const cached = sessionStorage.getItem('tikovia_customers_cache') || localStorage.getItem('tikovia_customers_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          window.__tikovia_customers_cache = parsed;
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return [];
+    const init = loadInitialCache('customers', []);
+    return Array.isArray(init) ? init : (init?.data || []);
   });
-  const [isLoading, setIsLoading] = useState(() => {
-    return !(window.__tikovia_customers_cache && window.__tikovia_customers_cache.length > 0);
-  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('customers'));
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchEmail, setSearchEmail] = useState('');
@@ -123,26 +128,7 @@ export default function CustomersPage() {
   const [customerLatestTxMap, setCustomerLatestTxMap] = useState({});
 
   useEffect(() => {
-    orderAPI.getAll({ limit: 10000 }).then(res => {
-      const rawOrders = Array.isArray(res) ? res : (res?.data || []);
-      const txMap = {};
-      rawOrders.forEach(o => {
-        const cId = o.customerId || o.customer_id || (o.customer && o.customer.id);
-        const cCode = o.customerCode || (o.customer && o.customer.code);
-        const oDate = o.created_at || o.createdAt || o.createdDate || o.date;
-        if (cId && oDate) {
-          if (!txMap[cId] || new Date(oDate) > new Date(txMap[cId])) {
-            txMap[cId] = oDate;
-          }
-        }
-        if (cCode && oDate) {
-          if (!txMap[cCode] || new Date(oDate) > new Date(txMap[cCode])) {
-            txMap[cCode] = oDate;
-          }
-        }
-      });
-      setCustomerLatestTxMap(txMap);
-    }).catch(() => {});
+    // Customer latest tx map is already managed on the backend directly via customer.lastTransaction
   }, []);
 
   // Customer debt modal states
@@ -156,72 +142,84 @@ export default function CustomersPage() {
   const [paymentModalCustomer, setPaymentModalCustomer] = useState(null);
 
   const handleOpenOrder = async (orderId, partnerName, defaultData = null) => {
-    if (!orderId) {
-      if (defaultData) setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      return;
-    }
-    const tid = toast.loading('Đang tải chi tiết hóa đơn...');
-    try {
-      const realId = typeof orderId === 'string' && orderId.includes('-')
-        ? Number(orderId.split('-')[0])
-        : orderId;
-      const detail = await orderAPI.getById(realId);
-      if (detail) {
-        setSelectedTx({
-          ...defaultData,
-          ...detail,
-          type: 'Bán hàng',
-          partnerName: partnerName
-        });
-      } else if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      } else {
-        toast.error('Không tìm thấy chi tiết hóa đơn');
+    const parsedId = typeof orderId === 'string' && orderId.includes('-')
+      ? orderId.split('-')[0]
+      : orderId;
+    const targetCode = defaultData?.code || defaultData?.order_code;
+    
+    const rawOrder = defaultData?.raw || orders.find(o => 
+      (parsedId && String(o.id) === String(parsedId)) || 
+      (targetCode && (o.order_code === targetCode || o.code === targetCode))
+    );
+
+    const baseData = {
+      ...(rawOrder || {}),
+      ...(defaultData || {}),
+      id: rawOrder?.id || parsedId || orderId,
+      code: targetCode || rawOrder?.order_code || rawOrder?.code,
+      type: 'Bán hàng',
+      partnerName: partnerName || rawOrder?.customer_name || 'Khách lẻ',
+      items: rawOrder?.items || defaultData?.items || []
+    };
+
+    setSelectedTx(baseData);
+
+    const realId = rawOrder?.id || (typeof parsedId === 'number' || (typeof parsedId === 'string' && /^\d+$/.test(parsedId)) ? Number(parsedId) : null);
+    if (realId) {
+      try {
+        const detail = await orderAPI.getById(realId);
+        if (detail) {
+          setSelectedTx(prev => ({
+            ...(prev || {}),
+            ...detail,
+            type: 'Bán hàng',
+            partnerName: partnerName || detail.customer_name || 'Khách lẻ'
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch full order API detail, used local data', err);
       }
-    } catch (err) {
-      console.error(err);
-      if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Bán hàng', partnerName });
-      } else {
-        toast.error('Không thể tải chi tiết hóa đơn');
-      }
-    } finally {
-      toast.dismiss(tid);
     }
   };
 
   const handleOpenReturn = async (returnId, partnerName, defaultData = null) => {
-    if (!returnId) {
-      if (defaultData) setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      return;
-    }
-    const tid = toast.loading('Đang tải chi tiết phiếu trả hàng...');
-    try {
-      const realId = typeof returnId === 'string' && returnId.includes('-')
-        ? Number(returnId.split('-')[0])
-        : returnId;
-      const detail = await returnAPI.getById(realId);
-      if (detail) {
-        setSelectedTx({
-          ...defaultData,
-          ...detail,
-          type: 'Trả hàng',
-          partnerName: partnerName
-        });
-      } else if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      } else {
-        toast.error('Không tìm thấy chi tiết phiếu trả hàng');
+    const parsedId = typeof returnId === 'string' && returnId.includes('-')
+      ? returnId.split('-')[0]
+      : returnId;
+    const targetCode = defaultData?.code;
+
+    const rawReturn = defaultData?.raw || returns.find(r => 
+      (parsedId && String(r.id) === String(parsedId)) || 
+      (targetCode && r.code === targetCode)
+    );
+
+    const baseData = {
+      ...(rawReturn || {}),
+      ...(defaultData || {}),
+      id: rawReturn?.id || parsedId || returnId,
+      code: targetCode || rawReturn?.code,
+      type: 'Trả hàng',
+      partnerName: partnerName || rawReturn?.customer_name || 'Khách lẻ',
+      items: rawReturn?.items || defaultData?.items || []
+    };
+
+    setSelectedTx(baseData);
+
+    const realId = rawReturn?.id || (typeof parsedId === 'number' || (typeof parsedId === 'string' && /^\d+$/.test(parsedId)) ? Number(parsedId) : null);
+    if (realId) {
+      try {
+        const detail = await returnAPI.getById(realId);
+        if (detail) {
+          setSelectedTx(prev => ({
+            ...(prev || {}),
+            ...detail,
+            type: 'Trả hàng',
+            partnerName: partnerName || detail.customer_name || 'Khách lẻ'
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch full return API detail, used local data', err);
       }
-    } catch (err) {
-      console.error(err);
-      if (defaultData) {
-        setSelectedTx({ ...defaultData, type: 'Trả hàng', partnerName });
-      } else {
-        toast.error('Không thể tải chi tiết phiếu trả hàng');
-      }
-    } finally {
-      toast.dismiss(tid);
     }
   };
 
@@ -383,6 +381,9 @@ export default function CustomersPage() {
 
   const [detailTab, setDetailTab] = useState('info');
   const [custNotes, setCustNotes] = useState({});
+
+  const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [isDeletingCustomer, setIsDeletingCustomer] = useState(false);
 
   const columnMenuRef = useRef(null);
   const searchPanelRef = useRef(null);
@@ -581,22 +582,24 @@ export default function CustomersPage() {
       // 3.2. Ngày tạo
       if (filterDate && filterDate.mode === 'all' && filterDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterDate.label);
-        if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
+        const custDate = c.created_at || c.createdAt || c.createdAtDate || c.updatedAt;
+        if (range && !inDateRange(custDate, range)) return false;
       } else if (filterDate && filterDate.mode === 'custom' && filterDate.start) {
         const range = buildCustomRange(filterDate.start, filterDate.end);
-        if (range && !inDateRange(c.created_at || c.createdAt, range)) return false;
+        const custDate = c.created_at || c.createdAt || c.createdAtDate || c.updatedAt;
+        if (range && !inDateRange(custDate, range)) return false;
       }
 
       // 3.4. Loại khách hàng (Tất cả, Cá nhân, Công ty)
       if (filterType !== 'Tất cả') {
-        const type = c.customerType || 'Cá nhân';
+        const type = c.customerType || c.type || (c.isCompany ? 'Công ty' : 'Cá nhân');
         if (filterType === 'Cá nhân' && type !== 'Cá nhân') return false;
         if (filterType === 'Công ty' && type !== 'Công ty') return false;
       }
 
       // 3.5. Giới tính (Tất cả, Nam, Nữ)
       if (filterGender !== 'Tất cả') {
-        const g = (c.gender || '').toLowerCase();
+        const g = (c.gender || c.sex || '').toLowerCase();
         if (filterGender === 'Nam' && g !== 'nam' && g !== 'male') return false;
         if (filterGender === 'Nữ' && g !== 'nữ' && g !== 'female') return false;
       }
@@ -604,10 +607,12 @@ export default function CustomersPage() {
       // 3.6. Sinh nhật (DateFilter)
       if (filterBirthdayDate && filterBirthdayDate.mode === 'all' && filterBirthdayDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filterBirthdayDate.label);
-        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+        const bday = c.birthday || c.birthDate || c.dateOfBirth;
+        if (range && !inDateRange(bday, range)) return false;
       } else if (filterBirthdayDate && filterBirthdayDate.mode === 'custom' && filterBirthdayDate.start) {
         const range = buildCustomRange(filterBirthdayDate.start, filterBirthdayDate.end);
-        if (range && !inDateRange(c.birthday || c.birthDate, range)) return false;
+        const bday = c.birthday || c.birthDate || c.dateOfBirth;
+        if (range && !inDateRange(bday, range)) return false;
       }
 
       // 3.7. Ngày giao dịch cuối (DateFilter - matches KiotViet: Order, Cashbook, Return, or Account Creation Date)
@@ -691,11 +696,19 @@ export default function CustomersPage() {
       let valB = b[sortConfig.key];
 
       if (sortConfig.key === 'debt') {
-        valA = Number(a.debt || a.totalDebt || 0);
-        valB = Number(b.debt || b.totalDebt || 0);
+        valA = Number(a.debt !== undefined ? a.debt : (a.totalDebt || 0));
+        valB = Number(b.debt !== undefined ? b.debt : (b.totalDebt || 0));
       } else if (sortConfig.key === 'total_spent') {
-        valA = Number(a.total_spent || a.totalSpent || 0);
-        valB = Number(b.total_spent || b.totalSpent || 0);
+        valA = Number(a.total_spent !== undefined ? a.total_spent : (a.totalSpent || 0));
+        valB = Number(b.total_spent !== undefined ? b.total_spent : (b.totalSpent || 0));
+      } else if (sortConfig.key === 'created_at' || sortConfig.key === 'createdAt') {
+        valA = new Date(a.created_at || a.createdAt || a.createdAtDate || 0).getTime();
+        valB = new Date(b.created_at || b.createdAt || b.createdAtDate || 0).getTime();
+      } else if (sortConfig.key === 'lastTransaction') {
+        const dateA = a.lastTransaction || a.last_transaction || a.lastOrderDate || a.created_at || a.createdAt || 0;
+        const dateB = b.lastTransaction || b.last_transaction || b.lastOrderDate || b.created_at || b.createdAt || 0;
+        valA = new Date(dateA).getTime();
+        valB = new Date(dateB).getTime();
       } else {
         valA = String(valA || '').toLowerCase();
         valB = String(valB || '').toLowerCase();
@@ -797,20 +810,33 @@ export default function CustomersPage() {
     printWindow.document.close();
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa khách hàng này?')) return;
-    const tid = toast.loading('Đang xóa khách hàng...');
-    try {
-      await customerAPI.delete(id);
-      setCustomers(prev => prev.filter(c => c.id !== id));
-      setExpandedId(null);
-      toast.success('Xóa khách hàng thành công', { id: tid });
-    } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa khách hàng', { id: tid });
+  const handleDelete = (idOrCust) => {
+    const cust = typeof idOrCust === 'object' && idOrCust !== null ? idOrCust : customers.find(c => c.id === idOrCust);
+    if (cust) {
+      setCustomerToDelete(cust);
     }
   };
 
-  const renderDetail = (c) => {
+  const handleConfirmDeleteCustomer = async () => {
+    if (!customerToDelete) return;
+    const cid = customerToDelete.id;
+    setIsDeletingCustomer(true);
+    const tid = toast.loading('Đang xóa khách hàng và làm sạch dữ liệu...');
+    try {
+      await customerAPI.delete(cid);
+      setCustomers(prev => prev.filter(c => c.id !== cid));
+      setCustomerToDelete(null);
+      toast.success('Đã xóa khách hàng và toàn bộ hóa đơn, giao dịch liên quan thành công!', { id: tid });
+      reload(false, true);
+      window.dispatchEvent(new CustomEvent('app:data-changed', { detail: { type: 'customer-deleted', customerId: cid } }));
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || 'Lỗi khi xóa khách hàng', { id: tid });
+    } finally {
+      setIsDeletingCustomer(false);
+    }
+  };
+
+  const renderDetailContent = (c, isMobile = false) => {
     const currentNote = custNotes[c.id] ?? c.note ?? '';
     const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
 
@@ -839,73 +865,124 @@ export default function CustomersPage() {
       return false;
     }).filter(r => r.status !== 'CANCELLED' && r.status !== 'cancelled');
 
-    // Build transactions for debt tab from real orders
-    const debtTransactions = [
-      ...custOrders.flatMap(o => {
-        const total = Number(o.total || 0);
-        const rawCode = o.order_code || o.code;
-        return [
-          {
-            id: `${o.id}-sale`,
-            code: rawCode,
-            type: 'Bán hàng',
-            date: o.created_at || o.createdAt,
-            total: total,
-            paid: 0,
-            debt: total,
-          }
-        ];
-      }),
-      ...custReturns.map(r => {
-        const total = Number(r.total || 0);
-        const paid = Number(r.paid || 0);
-        return {
-          id: r.id,
-          code: r.code,
-          type: 'Trả hàng',
-          date: r.created_at || r.createdAt,
-          total: paid > 0 ? paid : total,
+    // Build transactions for debt tab from real orders and cashbooks
+    const matchedCashbookCodes = new Set(
+      cashbooks.map(cb => String(cb.code || '').trim().toLowerCase()).filter(Boolean)
+    );
+
+    const custOrderTxs = custOrders.flatMap(o => {
+      const total = Number(o.total || 0);
+      const paid = Number(o.paid || o.paid_amount || 0);
+      const rawCode = o.order_code || o.code;
+      const txs = [
+        {
+          id: `${o.id}-sale`,
+          code: rawCode,
+          type: 'Bán hàng',
+          date: o.created_at || o.createdAt,
+          total: total,
           paid: paid,
-          debt: paid > 0 ? -paid : -total,
-        };
-      }),
-      ...cashbooks.filter(cb => {
-        if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
-        const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
-        if (cbCustId && String(cbCustId) === String(c.id)) return true;
-        const cbCustCode = cb.customer_code || cb.supplier_code;
-        if (cbCustCode && c.code && cbCustCode === c.code) return true;
-        if (cb.partnerName) {
-          const pName = cb.partnerName.trim().toLowerCase();
-          const cName = (c.name || '').trim().toLowerCase();
-          if (pName === cName) return true;
-          if (c.code && pName.includes(c.code.toLowerCase())) return true;
-          if (c.phone && c.phone.length >= 6 && pName.includes(c.phone.toLowerCase())) return true;
+          debt: total,
+          raw: o
         }
-        return false;
-      }).filter(cb => cb.status !== 'cancelled' && cb.status !== 'CANCELLED').map(cb => ({
-        id: cb.id,
-        code: cb.code,
-        type: 'Thanh toán',
-        cashbookType: cb.type,
-        status: cb.status,
-        note: cb.note,
-        date: cb.createdAt || cb.created_at || cb.date,
-        total: Number(cb.amount || 0),
-        paid: cb.amount,
-        debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
-      }))
+      ];
+
+      if (paid > 0) {
+        const cleanRawCode = String(rawCode || '').trim();
+        const expectedPayCode = cleanRawCode.startsWith('HD') ? `TT${cleanRawCode}` : `TT-${cleanRawCode}`;
+        const hasSeparateCB = cashbooks.some(cb => {
+          if (!cb) return false;
+          if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
+          if (cb.orderId && (cb.orderId === o.id || String(cb.orderId) === String(o.id))) return true;
+          if (cb.order_id && (cb.order_id === o.id || String(cb.order_id) === String(o.id))) return true;
+          if (cb.code && String(cb.code).trim().toLowerCase() === expectedPayCode.toLowerCase()) return true;
+          if (cb.code && cleanRawCode && String(cb.code).trim().toLowerCase().includes(cleanRawCode.toLowerCase())) return true;
+          return false;
+        });
+
+        if (!hasSeparateCB) {
+          txs.push({
+            id: `${o.id}-payment`,
+            code: expectedPayCode,
+            type: 'Thanh toán',
+            cashbookType: 'INCOME',
+            status: 'completed',
+            note: 'Thanh toán đơn hàng',
+            date: o.created_at || o.createdAt,
+            total: paid,
+            paid: paid,
+            debt: -paid,
+            raw: o
+          });
+        }
+      }
+      return txs;
+    });
+
+    const custReturnTxs = custReturns.map(r => {
+      const total = Number(r.total || 0);
+      const paid = Number(r.paid || 0);
+      return {
+        id: r.id,
+        code: r.code,
+        type: 'Trả hàng',
+        date: r.created_at || r.createdAt,
+        total: total,
+        paid: paid,
+        debt: -total,
+        raw: r
+      };
+    });
+
+    const custCashbookTxs = cashbooks.filter(cb => {
+      if (!cb) return false;
+      if (cb.code && ['TTM028592', 'TCM001916', 'TTM028591'].includes(String(cb.code).trim())) return false;
+      if (cb.status === 'cancelled' || cb.status === 'CANCELLED') return false;
+
+      const cbCustId = cb.customerId || cb.customer_id || cb.supplierId;
+      if (cbCustId && String(cbCustId) === String(c.id)) return true;
+
+      const cbCustCode = cb.customer_code || cb.supplier_code;
+      if (cbCustCode && c.code && cbCustCode === c.code) return true;
+
+      if (cb.orderId && custOrders.some(o => o.id === cb.orderId)) return true;
+      if (cb.returnId && custReturns.some(r => r.id === cb.returnId)) return true;
+
+      if (c.phone && c.phone.length >= 8) {
+        if (cb.partnerPhone && cb.partnerPhone === c.phone) return true;
+        if (cb.phone && cb.phone === c.phone) return true;
+      }
+
+      if (cb.partnerName) {
+        const pName = cb.partnerName.trim().toLowerCase();
+        const cName = (c.name || '').trim().toLowerCase();
+        if (pName === cName) return true;
+        if (c.code && pName.includes(c.code.toLowerCase())) return true;
+      }
+
+      return false;
+    }).map(cb => ({
+      id: cb.id,
+      code: cb.code,
+      type: 'Thanh toán',
+      cashbookType: cb.type,
+      status: cb.status,
+      note: cb.note,
+      date: cb.createdAt || cb.created_at || cb.date,
+      total: Number(cb.amount || 0),
+      paid: cb.amount,
+      debt: cb.type === 'EXPENSE' ? Number(cb.amount || 0) : -Number(cb.amount || 0),
+      raw: cb
+    }));
+
+    const debtTransactions = [
+      ...custOrderTxs,
+      ...custReturnTxs,
+      ...custCashbookTxs
     ].sort((a, b) => {
-      const getMinuteTime = (d) => {
-        if (!d) return 0;
-        const dateObj = new Date(d);
-        if (isNaN(dateObj.getTime())) return 0;
-        dateObj.setSeconds(0, 0);
-        return dateObj.getTime();
-      };
-
-      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-      if (timeDiff !== 0) return timeDiff;
+      const timeA = a.date ? new Date(a.date).getTime() : 0;
+      const timeB = b.date ? new Date(b.date).getTime() : 0;
+      if (timeB !== timeA) return timeB - timeA;
       const getPriority = (type) => {
         if (type === 'Thanh toán') return 1;
         if (type === 'Trả hàng') return 2;
@@ -915,31 +992,11 @@ export default function CustomersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
-    // Calculate running debt backwards from the current debt
-    const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
-    const sortedNewFirst = [...debtTransactions].sort((a, b) => {
-      const getMinuteTime = (d) => {
-        if (!d) return 0;
-        const dateObj = new Date(d);
-        if (isNaN(dateObj.getTime())) return 0;
-        dateObj.setSeconds(0, 0);
-        return dateObj.getTime();
-      };
-
-      const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-      if (timeDiff !== 0) return timeDiff;
-      const getPriority = (type) => {
-        if (type === 'Thanh toán') return 1;
-        if (type === 'Trả hàng') return 2;
-        if (type === 'Bán hàng') return 3;
-        return 4;
-      };
-      return getPriority(a.type) - getPriority(b.type);
-    });
+    const currentFinalDebt = Number(c.debt !== undefined ? c.debt : c.totalDebt || 0);
     let tempDebt = currentFinalDebt;
-    const transactionsWithDebt = sortedNewFirst.map(tx => {
-      const runningDebt = tempDebt;
-      tempDebt -= tx.debt;
+    const transactionsWithDebt = debtTransactions.map(tx => {
+      const runningDebt = Math.max(0, tempDebt);
+      tempDebt = Math.max(0, tempDebt - tx.debt);
       return { ...tx, runningDebt };
     });
 
@@ -950,574 +1007,525 @@ export default function CustomersPage() {
     const paginatedDebtTxs = transactionsWithDebt.slice((currentDebtPage - 1) * debtPageSize, currentDebtPage * debtPageSize);
 
     return (
-      <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
-        <td colSpan={visibleColumns.length + 3} className="p-0">
-          <div className="p-3 sm:p-4 bg-gray-50/10 max-w-full overflow-x-hidden">
-            {/* Top Tabs: Horizontal scrollable on mobile */}
-            <div className="flex gap-3 border-b border-gray-200 mb-4 px-1 overflow-x-auto whitespace-nowrap custom-scrollbar">
-              {[
-                { key: 'info', label: 'Thông tin' },
-                { key: 'history', label: 'Lịch sử mua hàng' },
-                { key: 'address', label: 'Địa chỉ nhận hàng' },
-                { key: 'debt', label: 'Nợ cần thu từ khách' },
-              ].map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setDetailTab(t.key)}
-                  className={`py-1.5 px-1 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                    detailTab === t.key ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'
-                  }`}
+      <div className="p-2 sm:p-4 bg-gray-50/30 max-w-full overflow-x-hidden font-sans text-left">
+        {/* Top Tabs: 4-column responsive grid on mobile, flexible tabs on desktop */}
+        <div className="grid grid-cols-4 sm:flex sm:gap-2 border-b-0 sm:border-b sm:border-gray-200 mb-3 bg-gray-100/70 sm:bg-transparent p-1 sm:p-0 rounded-xl sm:rounded-none">
+          {[
+            { key: 'info', shortLabel: 'Thông tin', label: 'Thông tin' },
+            { key: 'history', shortLabel: 'Lịch sử', label: 'Lịch sử mua hàng' },
+            { key: 'address', shortLabel: 'Địa chỉ', label: 'Địa chỉ nhận hàng' },
+            { key: 'debt', shortLabel: 'Công nợ', label: 'Nợ cần thu từ khách' },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setDetailTab(t.key)}
+              className={`py-2 px-1 sm:px-3 text-center text-[11px] sm:text-xs font-bold transition-all cursor-pointer rounded-lg sm:rounded-t-lg sm:rounded-b-none ${
+                detailTab === t.key 
+                  ? 'bg-white sm:bg-primary/5 text-primary shadow-xs sm:shadow-none sm:border-b-2 sm:border-primary' 
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-white/50 sm:hover:bg-transparent sm:border-b-2 sm:border-transparent'
+              }`}
+            >
+              <span className="sm:hidden">{t.shortLabel}</span>
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Tab: Thông tin */}
+        {detailTab === 'info' && (
+          <div className="flex flex-col gap-3 p-1">
+            {/* Header Info */}
+            <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100 text-xs flex flex-col gap-2.5 shadow-xs">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-sm font-extrabold text-gray-900 tracking-tight">{c.name}</span>
+                <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                  {code}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600 pt-1.5 border-t border-blue-100/60">
+                <div><span className="text-gray-500 font-medium">Điện thoại:</span> <span className="font-extrabold text-gray-900 ml-1">{c.phone || '---'}</span></div>
+                <div><span className="text-gray-500 font-medium">Email:</span> <span className="font-extrabold text-gray-900 ml-1">{c.email || '---'}</span></div>
+                <div className="sm:col-span-1 truncate"><span className="text-gray-500 font-medium">Địa chỉ:</span> <span className="font-extrabold text-gray-900 ml-1">{c.address || '---'}</span></div>
+              </div>
+            </div>
+
+            {/* Grid Info */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-white rounded-xl border border-gray-200 text-xs shadow-xs">
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span>
+                <span className="font-bold text-gray-800">Khách hàng chung</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span>
+                <span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Giới tính</span>
+                <span className="font-bold text-gray-800">{c.gender || '---'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-medium block mb-1">Ngày sinh</span>
+                <span className="font-bold text-gray-800">---</span>
+              </div>
+            </div>
+
+            {/* Bottom Section: Note & Summary Box */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch text-xs">
+              <div className="sm:col-span-2">
+                <textarea
+                  placeholder="Ghi chú..."
+                  className="w-full h-full min-h-[90px] border border-gray-200 rounded-xl p-3 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs resize-none bg-white font-medium"
+                  value={currentNote}
+                  onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
+                />
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-xs">
+                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-0.5">
+                  <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
+                  <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
+                    {fmt(c.debt || c.totalDebt || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Action Bar */}
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-3 mt-1">
+              {/* Left side actions */}
+              <div className="contents sm:flex sm:items-center sm:gap-2">
+                <button 
+                  onClick={() => handleDelete(c.id)}
+                  className="px-3 py-2 bg-white border border-red-300 hover:bg-red-50 text-red-600 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  {t.label}
+                  <Trash2 size={13} /> <span>Xóa</span>
                 </button>
+                <button 
+                  onClick={() => toast.info('Đã sao chép')}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Copy size={13} className="text-gray-500" /> <span>Sao chép</span>
+                </button>
+                <button 
+                  onClick={handleExport}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer col-span-2 sm:col-span-1"
+                >
+                  <Download size={13} className="text-gray-500" /> <span>Xuất file</span>
+                </button>
+              </div>
+
+              {/* Right side actions */}
+              <div className="contents sm:flex sm:items-center sm:gap-2">
+                <button 
+                  onClick={() => { setEditCustomer(c); setModalOpen(true); }}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Edit size={13} className="text-gray-500" /> <span>Sửa</span>
+                </button>
+                <button 
+                  onClick={() => handleSaveNote(c.id, currentNote)}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Save size={13} className="text-gray-500" /> <span>Lưu</span>
+                </button>
+                <button 
+                  onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                  className="px-3 py-2 bg-[#0070F4] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <DollarSign size={13} /> <span>Thanh toán</span>
+                </button>
+                <button 
+                  onClick={() => handlePrintCustomer(c)}
+                  className="px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Printer size={13} className="text-gray-500" /> <span>In</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Lịch sử mua hàng */}
+        {detailTab === 'history' && (() => {
+          const custOrders = orders.filter(o => {
+            const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
+            const cNameMatches = o.customer_name && o.customer_name === c.name;
+            const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
+            return cIdMatches || cNameMatches || cCodeMatches;
+          });
+
+          const custReturns = returns.filter(r => {
+            const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
+            const cNameMatches = r.customer_name && r.customer_name === c.name;
+            const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
+            return cIdMatches || cNameMatches || cCodeMatches;
+          });
+
+          const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+          const dVal = Number(c.debt || c.totalDebt || 0);
+
+          const combinedHistory = [
+            ...custOrders.map(o => ({
+              id: o.id,
+              code: o.order_code || o.code,
+              type: 'Bán hàng',
+              typeName: 'Bán hàng',
+              date: o.createdAt || o.created_at,
+              branch: o.branch || 'Chi nhánh trung tâm',
+              total: Number(o.total || 0),
+              paid: Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0)),
+              status: o.status,
+              raw: o
+            })),
+            ...custReturns.map(r => ({
+              id: r.id,
+              code: r.code,
+              type: 'Trả hàng',
+              typeName: 'Trả hàng',
+              date: r.createdAt || r.created_at,
+              branch: r.branch || 'Chi nhánh trung tâm',
+              total: -Number(r.total || 0),
+              paid: Number(r.paid || 0),
+              status: r.status,
+              raw: r
+            }))
+          ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+          return (
+            <div className="flex flex-col gap-3 p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-xs">
+                <div>
+                  <span className="text-gray-500 font-medium block">Số đơn hàng</span>
+                  <span className="font-extrabold text-gray-900 text-sm">{custOrders.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Số đơn trả hàng</span>
+                  <span className="font-extrabold text-gray-900 text-sm">{custReturns.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Tổng tiền mua</span>
+                  <span className="font-extrabold text-primary text-sm">{fmt(baseAmt)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block">Nợ hiện tại</span>
+                  <span className={`font-extrabold text-sm ${dVal > 0 ? 'text-red-600' : 'text-gray-800'}`}>{fmt(dVal)}</span>
+                </div>
+              </div>
+
+              {combinedHistory.length > 0 ? (
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                  {/* Mobile list view */}
+                  <div className="block sm:hidden divide-y divide-gray-100">
+                    {combinedHistory.map((item, idx) => (
+                      <div key={idx} className="p-3 flex flex-col gap-1.5 text-xs">
+                        <div className="flex items-center justify-between gap-2">
+                          <span 
+                            className="font-extrabold text-primary cursor-pointer hover:underline"
+                            onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
+                          >
+                            {item.code}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            {item.type}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px] text-gray-500">
+                          <span>{formatLiteralDateTime(item.date)}</span>
+                          <span className="font-bold text-gray-700">{item.branch}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs pt-1 border-t border-gray-50">
+                          <span className="text-gray-500 text-[11px]">Tổng tiền:</span>
+                          <span className={`font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-primary'}`}>
+                            {fmt(item.total)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-left font-bold text-gray-600">
+                          <th className="py-2.5 px-3">Mã chứng từ</th>
+                          <th className="py-2.5 px-3">Thời gian</th>
+                          <th className="py-2.5 px-3">Loại</th>
+                          <th className="py-2.5 px-3">Chi nhánh</th>
+                          <th className="py-2.5 px-3 text-right">Tổng tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {combinedHistory.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                            <td className="py-2 px-3 font-bold text-primary cursor-pointer hover:underline" onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}>
+                              {item.code}
+                            </td>
+                            <td className="py-2 px-3 text-gray-600">{formatLiteralDateTime(item.date)}</td>
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                                {item.type}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-gray-600">{item.branch}</td>
+                            <td className={`py-2 px-3 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                              {fmt(item.total)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-white border border-gray-200 rounded-xl text-gray-400 font-medium text-xs">
+                  <User size={32} className="mx-auto mb-2 text-gray-300" />
+                  Khách hàng chưa phát sinh hóa đơn giao dịch nào
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Tab: Địa chỉ nhận hàng */}
+        {detailTab === 'address' && (
+          <div className="flex flex-col gap-3 p-1 text-xs">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Danh sách địa chỉ giao hàng của khách
+              </h3>
+              <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-4 shadow-xs relative overflow-hidden flex flex-col gap-1.5">
+                <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
+                  Mặc định
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
+                  <span className="text-xs font-extrabold text-gray-800">{c.name}</span>
+                </div>
+                <div className="text-xs text-gray-500 font-medium flex flex-col gap-0.5 pl-7">
+                  <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
+                  <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Nợ cần thu từ khách */}
+        {detailTab === 'debt' && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs flex flex-col animate-fade-in text-xs max-h-[620px]">
+            <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+              <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
+              <select 
+                className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
+                onChange={(e) => {
+                  const tbody = e.target.closest('.border').querySelector('tbody');
+                  if (tbody) {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const val = e.target.value;
+                    rows.forEach(r => {
+                      if (r.querySelector('td[colspan]')) return;
+                      if (val === 'all') r.style.display = '';
+                      else {
+                         const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
+                         r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
+                      }
+                    });
+                  }
+                }}
+              >
+                <option value="all">Tất cả giao dịch</option>
+                <option value="Bán hàng">Bán hàng</option>
+                <option value="Trả hàng">Trả hàng</option>
+                <option value="Thanh toán">Thanh toán</option>
+              </select>
+            </div>
+
+            {/* Mobile View: Cards */}
+            <div className="block md:hidden divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
+              {transactionsWithDebt.map((tx, idx) => (
+                <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => {
+                      if (tx.type === 'Bán hàng') handleOpenOrder(tx.id, c.name, tx);
+                      else if (tx.type === 'Trả hàng') handleOpenReturn(tx.id, c.name, tx);
+                      else setSelectedTx({ ...tx, partnerName: c.name });
+                    }}>{tx.code}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {tx.type}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-gray-500">{formatLiteralDateTime(tx.date)}</span>
+                    <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                      {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
+                    <span className="text-gray-500">Dư nợ sau giao dịch:</span>
+                    <span className={`font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</span>
+                  </div>
+                </div>
               ))}
             </div>
 
-            {/* Tab: Thông tin */}
-            {detailTab === 'info' && (
-              <div className="flex flex-col gap-3.5 p-1">
-                {/* Header Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-blue-50/40 p-3 rounded-xl border border-blue-100 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-extrabold text-gray-900 tracking-tight">{c.name}</span>
-                    <span className="px-2.5 py-0.5 text-[11px] font-extrabold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
-                      {code}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-xs">
-                    <div><span className="text-gray-500 font-medium">Điện thoại:</span> <span className="font-extrabold text-gray-900">{c.phone || '---'}</span></div>
-                    <div><span className="text-gray-500 font-medium">Email:</span> <span className="font-extrabold text-gray-900">{c.email || '---'}</span></div>
-                    <div><span className="text-gray-500 font-medium">Địa chỉ:</span> <span className="font-extrabold text-gray-900">{c.address || '---'}</span></div>
-                  </div>
-                </div>
-
-                {/* Grid Info */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-gray-50/60 rounded-xl border border-gray-200 text-xs">
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Nhóm khách hàng</span>
-                    <span className="font-bold text-gray-800">Khách hàng chung</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Loại khách hàng</span>
-                    <span className="font-bold text-gray-800">{c.type === 'company' ? 'Công ty' : 'Cá nhân'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Giới tính</span>
-                    <span className="font-bold text-gray-800">{c.gender || '---'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-1">Ngày sinh</span>
-                    <span className="font-bold text-gray-800">---</span>
-                  </div>
-                </div>
-
-                {/* Bottom Section: Note & Summary Box */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 items-stretch text-xs">
-                  <div className="sm:col-span-2">
-                    <textarea
-                      placeholder="Ghi chú..."
-                      className="w-full h-full min-h-[90px] border border-gray-300 rounded-xl p-3 text-xs text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-sm resize-none"
-                      value={currentNote}
-                      onChange={(e) => setCustNotes(prev => ({ ...prev, [c.id]: e.target.value }))}
-                    />
-                  </div>
-                  <div className="bg-gray-50/80 border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-sm">
-                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-0.5">
-                      <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
-                      <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
-                        {fmt(c.debt || c.totalDebt || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Action Bar matching Image 2 */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-gray-200 pt-3 mt-1">
-                  {/* Left side actions */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleDelete(c.id)}
-                      className="px-3 py-1.5 bg-white border border-red-300 hover:bg-red-50 text-red-600 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Trash2 size={13} /> <span>Xóa</span>
-                    </button>
-                    <button 
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Copy size={13} className="text-gray-500" /> <span>Sao chép</span>
-                    </button>
-                    <button 
-                      onClick={handleExport}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" /> <span>Xuất file</span>
-                    </button>
-                  </div>
-
-                  {/* Right side actions */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => { setEditCustomer(c); setModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Edit size={13} className="text-gray-500" /> <span>Sửa</span>
-                    </button>
-                    <button 
-                      onClick={() => handleSaveNote(c.id, currentNote)}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Save size={13} className="text-gray-500" /> <span>Lưu</span>
-                    </button>
-                    <button 
-                      onClick={() => { setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={() => handlePrintCustomer(c)}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Printer size={13} className="text-gray-500" /> <span>In</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Lịch sử mua hàng */}
-            {detailTab === 'history' && (() => {
-              const custOrders = orders.filter(o => {
-                const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
-                const cNameMatches = o.customer_name && o.customer_name === c.name;
-                const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
-                return cIdMatches || cNameMatches || cCodeMatches;
-              });
-
-              const custReturns = returns.filter(r => {
-                const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
-                const cNameMatches = r.customer_name && r.customer_name === c.name;
-                const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
-                return cIdMatches || cNameMatches || cCodeMatches;
-              });
-
-              const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
-              const dVal = Number(c.debt || c.totalDebt || 0);
-
-              const combinedHistory = [
-                ...custOrders.map(o => ({
-                  id: o.id,
-                  code: o.order_code || o.code,
-                  type: 'Bán hàng',
-                  typeName: 'Bán hàng',
-                  date: o.createdAt || o.created_at,
-                  branch: o.branch || 'Chi nhánh trung tâm',
-                  total: Number(o.total || 0),
-                  paid: Number(o.paid !== undefined ? o.paid : (o.paid_amount || 0)),
-                  status: o.status,
-                  raw: o
-                })),
-                ...custReturns.map(r => ({
-                  id: r.id,
-                  code: r.code,
-                  type: 'Trả hàng',
-                  typeName: 'Trả hàng',
-                  date: r.createdAt || r.created_at,
-                  branch: r.branch || 'Chi nhánh trung tâm',
-                  total: -Number(r.total || 0),
-                  paid: -Number(r.paid || 0),
-                  status: r.status,
-                  raw: r
-                }))
-              ].sort((a, b) => {
-                const getMinuteTime = (d) => {
-                  if (!d) return 0;
-                  const dateObj = new Date(d);
-                  if (isNaN(dateObj.getTime())) return 0;
-                  dateObj.setSeconds(0, 0);
-                  return dateObj.getTime();
-                };
-                const timeDiff = getMinuteTime(b.date) - getMinuteTime(a.date);
-                if (timeDiff !== 0) return timeDiff;
-                const getPriority = (type) => {
-                  if (type === 'Thanh toán') return 1;
-                  if (type === 'Trả hàng') return 2;
-                  if (type === 'Bán hàng') return 3;
-                  return 4;
-                };
-                return getPriority(a.type) - getPriority(b.type);
-              });
-
-              return (
-                <div className="flex flex-col gap-3 p-1">
-                  {/* Micro metrics: 2 cols on mobile, 4 on desktop */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-gray-500 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng giao dịch</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-gray-800">{combinedHistory.length} giao dịch</span>
-                    </div>
-                    <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-blue-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Tổng tiền mua</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-primary">{fmt(baseAmt)}</span>
-                    </div>
-                    <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-emerald-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Khách đã trả</span>
-                      <span className="text-xs sm:text-sm font-extrabold text-emerald-600">{fmt(custOrders.reduce((s, o) => s + Number(o.paid || 0), 0))}</span>
-                    </div>
-                    <div className="bg-rose-50/40 border border-rose-100 rounded-xl p-2.5 shadow-sm flex flex-col justify-center">
-                      <span className="text-rose-600 font-bold text-[10px] uppercase tracking-wider mb-0.5">Còn nợ lại</span>
-                      <span className={`text-xs sm:text-sm font-extrabold ${dVal > 0 ? 'text-rose-600' : 'text-gray-400'}`}>{fmt(dVal)}</span>
-                    </div>
-                  </div>
-
-                  {combinedHistory.length > 0 ? (
-                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                      {/* Mobile View: Cards */}
-                      <div className="block md:hidden divide-y divide-gray-100 max-h-60 overflow-y-auto custom-scrollbar">
-                        {combinedHistory.map((item, i) => (
-                          <div key={i} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                            <div className="flex items-center justify-between gap-2">
-                              <span 
-                                className="font-extrabold text-primary hover:underline cursor-pointer"
-                                onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
-                              >
-                                {item.code}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                {item.typeName}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-[11px] text-gray-500">
-                              <span>{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</span>
-                              <span className={`font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
-                              <span className="text-gray-500">Đã trả: <strong className="text-emerald-600">{fmt(Math.abs(item.paid))}</strong></span>
-                              <span className="text-gray-400">{item.branch}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Desktop Table View */}
-                      <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar">
-                        <table className="w-full text-xs min-w-[700px] border-collapse">
-                          <thead>
-                            <tr className="bg-gray-50/80 text-gray-500 border-b border-gray-200 text-left font-bold uppercase tracking-wider sticky top-0 bg-white z-10">
-                              <th className="py-2.5 px-3.5">Mã hóa đơn</th>
-                              <th className="py-2.5 px-3.5">Thời gian</th>
-                              <th className="py-2.5 px-3.5">Chi nhánh</th>
-                              <th className="py-2.5 px-3.5">Loại</th>
-                              <th className="py-2.5 px-3.5 text-right">Tổng tiền</th>
-                              <th className="py-2.5 px-3.5 text-right">Khách đã trả</th>
-                              <th className="py-2.5 px-3.5 text-center">Trạng thái</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 font-medium">
-                            {combinedHistory.map((item, i) => (
-                              <tr key={i} className="hover:bg-blue-50/20 transition-colors">
-                                <td
-                                  className="py-2 px-3.5 text-primary font-bold hover:underline cursor-pointer"
-                                  onClick={() => item.type === 'Bán hàng' ? handleOpenOrder(item.id, c.name, item.raw) : handleOpenReturn(item.id, c.name, item.raw)}
-                                >
-                                  {item.code}
-                                </td>
-                                <td className="py-2 px-3.5 text-gray-500">{item.date ? new Date(item.date).toLocaleString('vi-VN') : ''}</td>
-                                <td className="py-2 px-3.5 text-gray-600">{item.branch}</td>
-                                <td className="py-2 px-3.5">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                                    {item.typeName}
-                                  </span>
-                                </td>
-                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.total < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                  {item.total < 0 ? '-' : ''}{fmt(Math.abs(item.total))}
-                                </td>
-                                <td className={`py-2 px-3.5 text-right font-extrabold ${item.paid < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                  {item.paid < 0 ? '-' : ''}{fmt(Math.abs(item.paid))}
-                                </td>
-                                <td className="py-2 px-3.5 text-center">
-                                  {item.status === 'CANCELLED' || item.status === 'cancelled' ? (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">
-                                      Đã hủy
-                                    </span>
-                                  ) : item.type === 'Trả hàng' ? (
-                                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                      Hoàn thành
-                                    </span>
-                                  ) : (() => {
-                                    const total = Number(item.total || 0);
-                                    const paid = Number(item.paid);
-                                    if (paid >= total && total > 0) {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
-                                          Hoàn thành
-                                        </span>
-                                      );
-                                    } else if (paid > 0 && paid < total) {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">
-                                          Một phần
-                                        </span>
-                                      );
-                                    } else {
-                                      return (
-                                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-                                          Chưa trả
-                                        </span>
-                                      );
-                                    }
-                                  })()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50/50 border border-gray-200 rounded-xl text-gray-400 font-medium text-xs">
-                      <User size={32} className="mx-auto mb-2 text-gray-300" />
-                      Khách hàng chưa phát sinh hóa đơn giao dịch nào
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Tab: Địa chỉ nhận hàng */}
-            {detailTab === 'address' && (
-              <div className="flex flex-col gap-3 p-1 text-xs">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs sm:text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                    Danh sách địa chỉ giao hàng của khách
-                  </h3>
-                  <button onClick={() => toast.success('Mở form thêm địa chỉ giao hàng')} className="text-xs text-primary font-extrabold hover:underline border-none bg-transparent cursor-pointer">+ Thêm địa chỉ mới</button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-blue-50/20 to-blue-50/5 border border-primary/20 rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col gap-1.5">
-                    <div className="absolute top-2 right-2 bg-primary/10 text-primary text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-primary/20">
-                      Mặc định
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">A</span>
-                      <span className="text-xs font-extrabold text-gray-800">{c.name}</span>
-                    </div>
-                    <div className="text-xs text-gray-500 font-medium flex flex-col gap-0.5 pl-7">
-                      <div><span className="font-bold text-gray-700">Điện thoại:</span> {c.phone || '---'}</div>
-                      <div><span className="font-bold text-gray-700">Địa chỉ:</span> {c.address || '---'}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tab: Nợ cần thu từ khách */}
-            {detailTab === 'debt' && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm flex flex-col animate-fade-in text-xs max-h-[620px]">
-                <div className="p-2.5 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
-                  <span className="font-extrabold text-gray-800 text-xs sm:text-sm">Nợ cần thu từ khách</span>
-                  <select 
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs outline-none bg-white font-bold text-gray-700"
-                    onChange={(e) => {
-                      const tbody = e.target.closest('.border').querySelector('tbody');
-                      if (tbody) {
-                        const rows = Array.from(tbody.querySelectorAll('tr'));
-                        const val = e.target.value;
-                        rows.forEach(r => {
-                          if (r.querySelector('td[colspan]')) return;
-                          if (val === 'all') r.style.display = '';
-                          else {
-                             const typeText = r.querySelector('td:nth-child(3) span')?.innerText || '';
-                             r.style.display = typeText.toLowerCase() === val.toLowerCase() ? '' : 'none';
-                          }
-                        });
-                      }
-                    }}
-                  >
-                    <option value="all">Tất cả giao dịch</option>
-                    <option value="Bán hàng">Bán hàng</option>
-                    <option value="Trả hàng">Trả hàng</option>
-                    <option value="Thanh toán">Thanh toán</option>
-                  </select>
-                </div>
-
-                {/* Mobile View: Cards */}
-                <div className="block md:hidden divide-y divide-gray-100 max-h-[450px] overflow-y-auto custom-scrollbar">
-                  {transactionsWithDebt.map((tx, idx) => (
-                    <div key={idx} className="p-3 flex flex-col gap-1 hover:bg-gray-50/50 text-xs">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-extrabold text-primary cursor-pointer hover:underline" onClick={() => {
-                          if (tx.type === 'Bán hàng') handleOpenOrder(tx.id, c.name, tx);
-                          else if (tx.type === 'Trả hàng') handleOpenReturn(tx.id, c.name, tx);
-                          else setSelectedTx({ ...tx, partnerName: c.name });
-                        }}>{tx.code}</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-xs mb-3">
+              <table className="w-full text-xs table-fixed min-w-full">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider">
+                    <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
+                    <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
+                    <th className="py-2.5 px-3 w-[16%]">Loại</th>
+                    <th className="py-2.5 px-3 w-[22%] text-right">Giá trị</th>
+                    <th className="py-2.5 px-3 w-[22%] text-right">Dư nợ khách hàng</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-medium text-xs">
+                  {paginatedDebtTxs.map((tx, idx) => (
+                    <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                      <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
+                        if (tx.type === 'Bán hàng') {
+                          handleOpenOrder(tx.id, c.name, tx);
+                        } else if (tx.type === 'Trả hàng') {
+                          handleOpenReturn(tx.id, c.name, tx);
+                        } else {
+                          setSelectedTx({ ...tx, partnerName: c.name });
+                        }
+                      }}>{tx.code}</td>
+                      <td className="py-2 px-3.5 text-gray-600">
+                        {formatLiteralDateTime(tx.date)}
+                      </td>
+                      <td className="py-2 px-3.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
                           {tx.type}
                         </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-gray-500">{formatLiteralDateTime(tx.date)}</span>
-                        <span className={`font-extrabold ${tx.debt > 0 ? 'text-red-600' : tx.debt < 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {tx.debt > 0 ? '+' : tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px] pt-0.5 border-t border-gray-50">
-                        <span className="text-gray-500">Dư nợ sau giao dịch:</span>
-                        <span className={`font-extrabold ${tx.runningDebt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</span>
-                      </div>
-                    </div>
+                      </td>
+                      <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-gray-900' : tx.debt < 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                        {tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
+                      </td>
+                      <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-gray-900' : tx.runningDebt < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
+                    </tr>
                   ))}
-                </div>
-
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto overflow-y-auto max-h-[460px] custom-scrollbar border border-gray-200 rounded-xl bg-white shadow-sm mb-3">
-                  <table className="w-full text-xs table-fixed min-w-full">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-700 border-b border-gray-200 text-left font-extrabold tracking-wider">
-                        <th className="py-2.5 px-3 w-[18%]">Mã phiếu</th>
-                        <th className="py-2.5 px-3 w-[22%]">Thời gian</th>
-                        <th className="py-2.5 px-3 w-[16%]">Loại</th>
-                        <th className="py-2.5 px-3 w-[22%] text-right">Giá trị</th>
-                        <th className="py-2.5 px-3 w-[22%] text-right">Dư nợ khách hàng</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 font-medium text-xs">
-                      {paginatedDebtTxs.map((tx, idx) => (
-                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                          <td className="py-2 px-3.5 font-bold text-primary cursor-pointer hover:underline" onClick={() => {
-                            if (tx.type === 'Bán hàng') {
-                              handleOpenOrder(tx.id, c.name, tx);
-                            } else if (tx.type === 'Trả hàng') {
-                              handleOpenReturn(tx.id, c.name, tx);
-                            } else {
-                              setSelectedTx({ ...tx, partnerName: c.name });
-                            }
-                          }}>{tx.code}</td>
-                          <td className="py-2 px-3.5 text-gray-600">
-                            {formatLiteralDateTime(tx.date)}
-                          </td>
-                          <td className="py-2 px-3.5">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${tx.type === 'Bán hàng' ? 'bg-blue-100 text-blue-700' : tx.type === 'Trả hàng' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.debt > 0 ? 'text-gray-900' : tx.debt < 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
-                            {tx.debt < 0 ? '-' : ''}{fmt(Math.abs(tx.debt))}
-                          </td>
-                          <td className={`py-2 px-3.5 text-right font-extrabold ${tx.runningDebt > 0 ? 'text-gray-900' : tx.runningDebt < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>{fmt(tx.runningDebt)}</td>
-                        </tr>
-                      ))}
-                      {paginatedDebtTxs.length === 0 && (
-                        <tr><td colSpan={5} className="p-6 text-center text-gray-400">Không có giao dịch nào</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Bottom Action & Pagination Bar matching KiotViet */}
-                <div className="p-3 border border-gray-200 bg-gray-50/70 rounded-xl flex flex-col md:flex-row justify-between items-center gap-3">
-                  {/* Left: Export buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" />
-                      <span>Xuất file công nợ</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Download size={13} className="text-gray-500" />
-                      <span>Xuất file</span>
-                    </button>
-                  </div>
-
-                  {/* Center: Pagination */}
-                  {totalDebtRows > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                      <button 
-                        disabled={currentDebtPage === 1}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: 1 }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang đầu"
-                      >
-                        &laquo;
-                      </button>
-                      <button 
-                        disabled={currentDebtPage === 1}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.max(1, currentDebtPage - 1) }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang trước"
-                      >
-                        &lsaquo;
-                      </button>
-                      <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
-                        {currentDebtPage} / {totalDebtPages}
-                      </span>
-                      <button 
-                        disabled={currentDebtPage === totalDebtPages}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang sau"
-                      >
-                        &rsaquo;
-                      </button>
-                      <button 
-                        disabled={currentDebtPage === totalDebtPages}
-                        onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: totalDebtPages }))}
-                        className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
-                        title="Trang cuối"
-                      >
-                        &raquo;
-                      </button>
-                      <span className="font-bold text-gray-600 ml-1.5">
-                        {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows} dòng
-                      </span>
-                    </div>
+                  {paginatedDebtTxs.length === 0 && (
+                    <tr><td colSpan={5} className="p-6 text-center text-gray-400">Không có giao dịch nào</td></tr>
                   )}
+                </tbody>
+              </table>
+            </div>
 
-                  {/* Right: Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
-                      className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <DollarSign size={13} />
-                      <span>Thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setAdjustModalCustomer(c); setAdjustModalOpen(true); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Pen size={13} className="text-gray-500" />
-                      <span>Điều chỉnh</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Percent size={13} className="text-gray-500" />
-                      <span>Chiết khấu thanh toán</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); toast.info('Tạo QR thanh toán'); }}
-                      className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>Tạo QR</span>
-                    </button>
-                  </div>
-                </div>
+            {/* Bottom Action & Pagination Bar */}
+            <div className="p-3 border border-gray-200 bg-gray-50/70 rounded-xl flex flex-col md:flex-row justify-between items-center gap-3">
+              {/* Left: Export buttons */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={13} className="text-gray-500" />
+                  <span>Xuất file công nợ</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setExportModalCustomer(c); setExportModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download size={13} className="text-gray-500" />
+                  <span>Xuất file</span>
+                </button>
               </div>
-            )}
+
+              {/* Center: Pagination */}
+              {totalDebtRows > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <button 
+                    disabled={currentDebtPage === 1}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: 1 }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang đầu"
+                  >
+                    &laquo;
+                  </button>
+                  <button 
+                    disabled={currentDebtPage === 1}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.max(1, currentDebtPage - 1) }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang trước"
+                  >
+                    &lsaquo;
+                  </button>
+                  <span className="px-2.5 py-1 border border-gray-300 rounded bg-white font-extrabold text-primary text-xs">
+                    {currentDebtPage} / {totalDebtPages}
+                  </span>
+                  <button 
+                    disabled={currentDebtPage === totalDebtPages}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: Math.min(totalDebtPages, currentDebtPage + 1) }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang sau"
+                  >
+                    &rsaquo;
+                  </button>
+                  <button 
+                    disabled={currentDebtPage === totalDebtPages}
+                    onClick={() => setDebtPageMap(prev => ({ ...prev, [c.id]: totalDebtPages }))}
+                    className="w-7 h-7 flex items-center justify-center border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-40 cursor-pointer disabled:cursor-default font-bold"
+                    title="Trang cuối"
+                  >
+                    &raquo;
+                  </button>
+                  <span className="font-bold text-gray-600 ml-1.5">
+                    {(currentDebtPage - 1) * debtPageSize + 1} - {Math.min(currentDebtPage * debtPageSize, totalDebtRows)} trong {totalDebtRows} dòng
+                  </span>
+                </div>
+              )}
+
+              {/* Right: Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setPaymentModalCustomer(c); setPaymentModalOpen(true); }}
+                  className="px-3.5 py-1.5 bg-[#0070F4] hover:bg-blue-700 text-white font-extrabold text-xs rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <DollarSign size={13} />
+                  <span>Thanh toán</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setAdjustModalCustomer(c); setAdjustModalOpen(true); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Pen size={13} className="text-gray-500" />
+                  <span>Điều chỉnh</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toast.info('Chiết khấu thanh toán'); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Percent size={13} className="text-gray-500" />
+                  <span>Chiết khấu thanh toán</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toast.info('Tạo QR thanh toán'); }}
+                  className="px-3 py-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Tạo QR</span>
+                </button>
+              </div>
+            </div>
           </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDetail = (c) => {
+    return (
+      <tr key={`detail-${c.id}`} className="bg-white shadow-xl border-x-2 border-b-2 border-primary/20 animate-fade-in">
+        <td colSpan={visibleColumns.length + 3} className="p-0">
+          {renderDetailContent(c, false)}
         </td>
       </tr>
     );
@@ -1549,7 +1557,7 @@ export default function CustomersPage() {
               <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Tìm khách hàng"
+                placeholder="Theo mã, tên khách hàng, SĐT"
                 className="w-full pl-8 pr-8 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 focus:bg-white transition-all shadow-sm font-medium"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -1670,10 +1678,87 @@ export default function CustomersPage() {
 
         {/* Left Filter Sidebar */}
         <div className={`fixed top-[104px] bottom-0 left-0 z-[9950] w-80 max-w-[85vw] bg-white shadow-2xl p-4 overflow-y-auto custom-scrollbar transform transition-all duration-300 ${sidebarOpen ? 'lg:static lg:z-auto lg:w-64 lg:p-4 lg:shadow-sm lg:border lg:border-gray-100 lg:rounded-2xl lg:overflow-y-auto lg:h-full lg:flex-none lg:translate-x-0 translate-x-0' : '-translate-x-full lg:hidden'} flex flex-col gap-3 font-sans`}>
-          <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+          <div className="flex items-center justify-between mb-2 border-b border-gray-100 pb-3">
             <span className="font-bold text-gray-800 text-base">Bộ lọc tìm kiếm</span>
             <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 border-none bg-transparent cursor-pointer flex items-center justify-center" title="Ẩn bộ lọc"><X size={20} /></button>
           </div>
+
+          {/* Sắp xếp theo */}
+          <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/30 p-3 rounded-xl border border-blue-100">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-sm font-extrabold text-gray-800 tracking-tight flex items-center gap-1.5">
+                <ArrowUpDown size={15} className="text-primary" />
+                Sắp xếp theo
+              </span>
+              {sortConfig.key && (
+                <button 
+                  type="button" 
+                  onClick={() => setSortConfig({ key: '', direction: 'asc' })}
+                  className="text-xs text-red-500 font-bold hover:underline bg-transparent border-none cursor-pointer p-0"
+                >
+                  Xóa sắp xếp
+                </button>
+              )}
+            </div>
+            <select
+              className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs font-semibold text-gray-800 outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 shadow-sm bg-white mb-2"
+              value={sortConfig.key ? `${sortConfig.key}_${sortConfig.direction}` : ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (!val) {
+                  setSortConfig({ key: '', direction: 'asc' });
+                } else {
+                  const lastUnderscore = val.lastIndexOf('_');
+                  const key = val.substring(0, lastUnderscore);
+                  const direction = val.substring(lastUnderscore + 1);
+                  setSortConfig({ key, direction });
+                }
+              }}
+            >
+              <option value="">Mặc định (Tự nhiên)</option>
+              <option value="debt_desc">🔻 Tiền nợ: Cao đến thấp (Nợ nhiều nhất)</option>
+              <option value="debt_asc">🔺 Tiền nợ: Thấp đến cao (Nợ ít nhất)</option>
+              <option value="total_spent_desc">💰 Tổng bán: Cao đến thấp (Mua nhiều nhất)</option>
+              <option value="total_spent_asc">📉 Tổng bán: Thấp đến cao (Mua ít nhất)</option>
+              <option value="name_asc">🔤 Tên khách hàng: A → Z</option>
+              <option value="name_desc">🔤 Tên khách hàng: Z → A</option>
+              <option value="created_at_desc">⏱️ Ngày tạo: Mới nhất</option>
+              <option value="created_at_asc">⏱️ Ngày tạo: Cũ nhất</option>
+              <option value="lastTransaction_desc">🛒 Giao dịch gần nhất</option>
+            </select>
+
+            {/* Quick action chips */}
+            <div className="flex flex-wrap gap-1">
+              {[
+                { label: 'Nợ cao ➔ thấp', key: 'debt', dir: 'desc' },
+                { label: 'Nợ thấp ➔ cao', key: 'debt', dir: 'asc' },
+                { label: 'Tổng bán cao', key: 'total_spent', dir: 'desc' },
+                { label: 'Tên A-Z', key: 'name', dir: 'asc' },
+                { label: 'Mới nhất', key: 'created_at', dir: 'desc' },
+              ].map(opt => {
+                const isActive = sortConfig.key === opt.key && sortConfig.direction === opt.dir;
+                return (
+                  <button
+                    key={`${opt.key}_${opt.dir}`}
+                    type="button"
+                    onClick={() => {
+                      if (isActive) setSortConfig({ key: '', direction: 'asc' });
+                      else setSortConfig({ key: opt.key, direction: opt.dir });
+                    }}
+                    className={`px-2 py-1 text-[11px] rounded-lg border font-bold transition-all cursor-pointer ${
+                      isActive 
+                        ? 'bg-primary text-white border-primary shadow-sm' 
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-primary/50 hover:bg-blue-50/50 hover:text-primary'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <hr className="border-gray-100" />
           
           {/* Nhóm khách hàng */}
           <div>
@@ -1865,15 +1950,53 @@ export default function CustomersPage() {
         {/* Main Table Content */}
         <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden w-full h-full min-w-0">
           <div className="overflow-x-auto overflow-y-auto flex-1 w-full custom-scrollbar relative">
-            {/* Mobile Card List View */}
+            {/* Mobile Summary Card (KiotViet mobile app style) */}
+            <div className="block md:hidden bg-gradient-to-r from-blue-50/80 to-indigo-50/40 p-3.5 border-b border-blue-100/60 font-sans">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block tracking-tight">
+                    Tổng nợ hiện tại
+                  </span>
+                  <span className="text-[11px] font-extrabold text-primary block mt-0.5">
+                    {filtered.length} khách hàng
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-black text-gray-900 tracking-tight">
+                    {fmt(sumDebt)}
+                  </span>
+                </div>
+              </div>
+
+              {sortConfig.key && (
+                <div className="mt-2 pt-2 border-t border-blue-100/80 flex items-center justify-between text-[11px]">
+                  <span className="text-gray-600 font-medium flex items-center gap-1">
+                    <ArrowUpDown size={12} className="text-primary" />
+                    Sắp xếp: <b className="text-primary">{getSortLabel(sortConfig)}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSortConfig({ key: '', direction: 'asc' })}
+                    className="text-red-500 hover:underline font-bold bg-transparent border-none p-0 cursor-pointer text-[10px]"
+                  >
+                    Xóa sắp xếp
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Card List View (No horizontal scroll needed) */}
             <div className="block md:hidden flex flex-col divide-y divide-gray-100 bg-white">
               {paginated.map((c) => {
                 const isExpanded = expandedId === c.id;
                 const code = c.code || `KH${String(c.id).padStart(6, '0')}`;
                 const debt = Number(c.debt !== undefined ? c.debt : (c.totalDebt || 0));
+                const totalSpent = Number(c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0));
+                const isActive = c.status !== 'INACTIVE' && c.status !== 'Ngừng hoạt động';
+
                 return (
                   <div key={c.id} className="p-3 flex flex-col gap-2 hover:bg-gray-50/50 transition-colors">
-                    {/* Top Row: Name + Code */}
+                    {/* Header: Checkbox + Code + Status + Date / Phone */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <input
@@ -1886,30 +2009,40 @@ export default function CustomersPage() {
                           onClick={() => setExpandedId(isExpanded ? null : c.id)}
                           className="text-xs font-extrabold text-primary hover:underline bg-transparent border-none p-0 cursor-pointer text-left"
                         >
-                          {c.name}
+                          {code}
                         </button>
                       </div>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
-                        {code}
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200'}`}>
+                          {isActive ? 'Hoàn thành' : 'Ngừng HĐ'}
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-medium">
+                          {c.created_at ? new Date(c.created_at).toLocaleDateString('vi-VN') : (c.phone || '')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Customer Name & Phone / Group */}
+                    <div className="flex items-center justify-between text-xs text-gray-700">
+                      <span className="font-bold text-gray-800 flex items-center gap-1">
+                        <User size={13} className="text-gray-400" />
+                        {c.name}
+                      </span>
+                      <span className="text-[11px] text-gray-500">
+                        {c.phone || c.group_name || ''}
                       </span>
                     </div>
 
-                    {/* Middle Row: Phone & Address */}
-                    <div className="flex items-center justify-between text-xs text-gray-600">
-                      <span className="font-medium flex items-center gap-1">
-                        <Phone size={12} className="text-gray-400" />
-                        {c.phone || '---'}
-                      </span>
-                      <span className="text-[11px] text-gray-500 truncate max-w-[180px]">
-                        {c.address || '---'}
-                      </span>
-                    </div>
-
-                    {/* Bottom Row: Total spent & Debt */}
+                    {/* Money & Detail Trigger */}
                     <div className="flex items-center justify-between pt-1 border-t border-gray-50 text-xs">
                       <div>
-                        <span className="text-gray-500 text-[11px]">Nợ hiện tại: </span>
-                        <span className={`font-extrabold text-xs ${debt > 0 ? 'text-red-600' : 'text-gray-700'}`}>{fmt(debt)}</span>
+                        <span className="text-gray-500 text-[11px]">Tổng bán: </span>
+                        <span className="font-extrabold text-primary text-xs">{fmt(totalSpent)}</span>
+                        {debt > 0 && (
+                          <span className="ml-2 text-[11px] font-bold text-rose-600">
+                            (Nợ: {fmt(debt)})
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => setExpandedId(isExpanded ? null : c.id)}
@@ -1919,36 +2052,38 @@ export default function CustomersPage() {
                         <ChevronDown size={13} className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                       </button>
                     </div>
+
                     {/* Mobile Full-Screen Detail Modal Sheet Overlay */}
-                    {isExpanded && (
-                      <div className="md:hidden fixed inset-0 z-[10000] bg-white flex flex-col font-sans animate-fade-in text-left">
+                    {isExpanded && createPortal(
+                      <div className="md:hidden fixed inset-0 z-[100000] bg-white flex flex-col font-sans animate-fade-in text-left">
                         {/* Sticky Top Header Bar */}
-                        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 shadow-sm">
-                          <div className="flex items-center gap-2">
+                        <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-30 shadow-xs">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
                             <button
                               onClick={() => setExpandedId(null)}
-                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center"
+                              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-600 border-none bg-transparent cursor-pointer flex items-center justify-center shrink-0"
                             >
                               <X size={20} />
                             </button>
-                            <div className="flex flex-col">
-                              <span className="font-extrabold text-gray-900 text-sm">Chi tiết khách hàng</span>
-                              <span className="text-xs font-bold text-primary">{code} - {c.name}</span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-extrabold text-gray-900 text-sm truncate">Chi tiết khách hàng</span>
+                              <span className="text-xs font-bold text-primary truncate">{code} - {c.name}</span>
                             </div>
                           </div>
                           <button
                             onClick={() => setExpandedId(null)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold border-none cursor-pointer"
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold border-none cursor-pointer shrink-0 ml-2"
                           >
                             Đóng
                           </button>
                         </div>
 
                         {/* Full Screen Scrollable Body */}
-                        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
-                          {renderDetail(c)}
+                        <div className="flex-1 overflow-y-auto p-3.5 custom-scrollbar bg-gray-50/50">
+                          {renderDetailContent(c, true)}
                         </div>
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                 );
@@ -2122,6 +2257,55 @@ export default function CustomersPage() {
     </div>
 
       <CustomerModal open={modalOpen} onClose={() => setModalOpen(false)} customer={editCustomer} onSaved={reload} />
+
+      {/* Cascade Delete Customer Confirmation Modal */}
+      {customerToDelete && (
+        <Modal
+          open={!!customerToDelete}
+          onClose={() => !isDeletingCustomer && setCustomerToDelete(null)}
+          title="Xác nhận xóa khách hàng"
+        >
+          <div className="flex flex-col gap-4 font-sans text-left">
+            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0 mt-0.5">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="font-extrabold text-sm text-red-900 m-0">
+                  Cảnh báo xóa sạch hóa đơn và giao dịch đi kèm
+                </h3>
+                <p className="text-xs text-red-700 leading-relaxed m-0">
+                  Bạn đang yêu cầu xóa khách hàng: <strong className="font-bold text-gray-900">{customerToDelete.name}</strong> ({customerToDelete.code || `KH${String(customerToDelete.id).padStart(6, '0')}`}).
+                </p>
+                <div className="text-xs text-red-800 bg-white/80 border border-red-100 rounded-lg p-2.5 mt-1 font-medium leading-relaxed">
+                  ⚠️ <strong>Để bảo đảm không sai sót hóa đơn:</strong> Toàn bộ <strong>hóa đơn bán hàng, phiếu trả hàng và công nợ</strong> liên quan của khách hàng này sẽ được <strong>xóa sạch đồng thời</strong> khỏi hệ thống.
+                </div>
+                <p className="text-[11px] font-semibold text-gray-500 m-0 mt-0.5">
+                  * Hành động này không thể hoàn tác sau khi thực hiện.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+              <Button
+                variant="secondary"
+                disabled={isDeletingCustomer}
+                onClick={() => setCustomerToDelete(null)}
+                className="text-xs font-semibold py-2 px-4"
+              >
+                Hủy bỏ
+              </Button>
+              <button
+                disabled={isDeletingCustomer}
+                onClick={handleConfirmDeleteCustomer}
+                className="py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md cursor-pointer transition-all disabled:opacity-50 flex items-center gap-1.5 border-none"
+              >
+                {isDeletingCustomer ? 'Đang xóa...' : 'Đồng ý xóa sạch'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <CustomerExportDebtModal 
         open={exportModalOpen} 

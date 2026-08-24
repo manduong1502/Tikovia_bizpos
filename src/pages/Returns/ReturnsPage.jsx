@@ -106,7 +106,8 @@ export default function ReturnsPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchProduct, setSearchProduct] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,6 +176,31 @@ export default function ReturnsPage() {
     window.addEventListener('app:data-changed', handleDataChanged);
     return () => window.removeEventListener('app:data-changed', handleDataChanged);
   }, [reload]);
+
+  useEffect(() => {
+    const passedDate = location.state?.dateRange || location.state?.orderDate || location.state?.dateFilter;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        setFilters(prev => ({
+          ...prev,
+          dateRange: { mode: 'all', label: passedDate, start: null, end: null }
+        }));
+      } else if (typeof passedDate === 'object') {
+        setFilters(prev => ({
+          ...prev,
+          dateRange: {
+            mode: passedDate.mode || (passedDate.start ? 'custom' : 'all'),
+            label: passedDate.label || 'Tháng này',
+            start: passedDate.start ? new Date(passedDate.start) : null,
+            end: passedDate.end ? new Date(passedDate.end) : null,
+          }
+        }));
+      }
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      }
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const codeFromState = location.state?.openReturnCode;

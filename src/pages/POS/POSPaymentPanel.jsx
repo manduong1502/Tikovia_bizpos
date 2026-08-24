@@ -90,8 +90,10 @@ export default function POSPaymentPanel({ forceShow = false }) {
       return;
     }
 
-    if (isDebt && !customer) {
-      toast.error('Vui lòng chọn khách hàng để ghi nợ');
+    if (!customer || (!customer.id && !customer.customer_id && !customer._id)) {
+      toast.error('⚠️ Vui lòng chọn Khách hàng trước khi thanh toán!');
+      const searchInput = document.querySelector('input[placeholder*="Tìm khách hàng"]');
+      if (searchInput) searchInput.focus();
       return;
     }
 
@@ -121,7 +123,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
       };
 
       const orderData = {
-        customerId: customer?.id ? Number(customer.id) : null,
+        customerId: Number(customer?.id || customer?.customer_id || customer?._id),
         items: cart.flatMap(i => {
           const weighings = (i.weighings && Array.isArray(i.weighings) && i.weighings.length > 0)
             ? i.weighings
@@ -254,7 +256,7 @@ export default function POSPaymentPanel({ forceShow = false }) {
 
                   return `
                   <tr>
-                    <td>${wIdx === 0 ? `${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}` : ''}</td>
+                    <td>${i.product.name} ${i.product.unit ? `(${i.product.unit})` : ''}</td>
                     <td style="text-align: center;">${qty}</td>
                     <td style="text-align: center;">${i.product.unit || 'cái'}</td>
                     <td style="text-align: right;">${new Intl.NumberFormat('vi-VN').format(pr)}</td>

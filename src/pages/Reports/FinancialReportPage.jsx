@@ -1,67 +1,202 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
-  Printer, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, 
-  RotateCcw, Building2, FileText
+  ArrowLeft, ArrowRight, Printer, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight, 
+  ChevronsLeft, ChevronsRight, RotateCcw, Maximize2, 
+  ChevronDown, FileSpreadsheet, Calendar, Filter
 } from 'lucide-react';
-import Button from '../../components/ui/Button';
-import DateFilter from '../../components/ui/DateFilter';
-import { getRangeByCreatedLabel, formatLocalYMD } from '../../utils/dateFilterUtils';
-import { exportCSV } from '../../utils/exportUtils';
-import { reportAPI } from '../../services/api';
+import { reportAPI, orderAPI, returnAPI, cashbookAPI, productAPI, purchaseOrderAPI, loadInitialCache } from '../../services/api';
+import ReportTimeFilter, { formatDateVN, formatDateYMD } from '../../components/ui/ReportTimeFilter';
+import { formatLocalYMD, getWorkingHoursYMD, formatWorkingHoursTime, inDateRange, buildCustomRange, parseFlexibleDate, getRangeByCreatedLabel } from '../../utils/dateFilterUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(Number(n || 0)));
 
 export default function FinancialReportPage() {
-  const [data, setData] = useState(null);
+  const location = useLocation();
+  const [rawOrders, setRawOrders] = useState(() => loadInitialCache('orders:', []));
+  const [rawReturns, setRawReturns] = useState(() => loadInitialCache('returns:', []));
+  const [rawCashbook, setRawCashbook] = useState(() => loadInitialCache('cashbook:', []));
+  const [productsList, setProductsList] = useState(() => loadInitialCache('products:all', []));
+  const [purchaseOrdersList, setPurchaseOrdersList] = useState(() => loadInitialCache('purchase_orders', []));
+  const [serverFinData, setServerFinData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dateFilter, setDateFilter] = useState({ mode: 'all', label: 'Tháng này' });
   const [zoom, setZoom] = useState(100);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Compute date range strings based on DateFilter selection
-  const getDates = () => {
-    if (!dateFilter || dateFilter.label === 'Toàn thời gian') {
-      return { fromDate: '', toDate: '', label: 'Toàn thời gian' };
+  // Date & Time Filter States matching EndOfDayReportPage exactly
+  const [timeRangeType, setTimeRangeType] = useState('date'); // 'date' | 'custom'
+  const [selectedSingleDate, setSelectedSingleDate] = useState(new Date());
+  const [timeFrom, setTimeFrom] = useState('');
+  const [timeTo, setTimeTo] = useState('');
+  const [customFromDate, setCustomFromDate] = useState('');
+  const [customToDate, setCustomToDate] = useState('');
+
+  useEffect(() => {
+    const passedDate = location.state?.dateFilter || location.state?.orderDate || location.state?.timeRange;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        if (passedDate === 'Hôm nay') {
+          setTimeRangeType('date');
+          setSelectedSingleDate(new Date());
+        } else if (passedDate === 'Hôm qua') {
+          const y = new Date();
+          y.setDate(y.getDate() - 1);
+          setTimeRangeType('date');
+          setSelectedSingleDate(y);
+        } else {
+          const range = getRangeByCreatedLabel(passedDate);
+          if (range && range.start && range.end) {
+            setTimeRangeType('custom');
+            setCustomFromDate(formatLocalYMD(range.start));
+            setCustomToDate(formatLocalYMD(range.end));
+          }
+        }
+      } else if (typeof passedDate === 'object') {
+        if (passedDate.mode === 'custom' && passedDate.start) {
+          setTimeRangeType('custom');
+          setCustomFromDate(formatLocalYMD(new Date(passedDate.start)));
+          setCustomToDate(formatLocalYMD(new Date(passedDate.end || passedDate.start)));
+        } else if (passedDate.label) {
+          const lbl = passedDate.label;
+          if (lbl === 'Hôm nay') {
+            setTimeRangeType('date');
+            setSelectedSingleDate(new Date());
+          } else if (lbl === 'Hôm qua') {
+            const y = new Date();
+            y.setDate(y.getDate() - 1);
+            setTimeRangeType('date');
+            setSelectedSingleDate(y);
+          } else {
+            const range = getRangeByCreatedLabel(lbl);
+            if (range && range.start && range.end) {
+              setTimeRangeType('custom');
+              setCustomFromDate(formatLocalYMD(range.start));
+              setCustomToDate(formatLocalYMD(range.end));
+            }
+          }
+        }
+      }
     }
+  }, [location.state]);
 
-    if (dateFilter.mode === 'custom' && dateFilter.start && dateFilter.end) {
-      const f = formatLocalYMD(dateFilter.start);
-      const t = formatLocalYMD(dateFilter.end);
-      return { 
-        fromDate: f, 
-        toDate: t, 
-        label: `Từ ngày ${new Date(dateFilter.start).toLocaleDateString('vi-VN')} đến ngày ${new Date(dateFilter.end).toLocaleDateString('vi-VN')}` 
-      };
+  const getFormattedDateRange = () => {
+    if (timeRangeType === 'date') {
+      return formatDateVN(selectedSingleDate);
     }
-
-    const range = getRangeByCreatedLabel(dateFilter.label || 'Tháng này');
-    if (range && range.start && range.end) {
-      const f = formatLocalYMD(range.start);
-      const t = formatLocalYMD(range.end);
-      return { 
-        fromDate: f, 
-        toDate: t, 
-        label: `Từ ngày ${range.start.toLocaleDateString('vi-VN')} đến ngày ${range.end.toLocaleDateString('vi-VN')}` 
-      };
+    if (customFromDate && customToDate) {
+      const f = customFromDate.split('-').reverse().join('/');
+      const t = customToDate.split('-').reverse().join('/');
+      return `Từ ngày ${f} đến ngày ${t}`;
     }
-
-    return { fromDate: '', toDate: '', label: 'Toàn thời gian' };
+    return 'Toàn thời gian';
   };
-
-  const { fromDate, toDate, label: dateRangeLabel } = getDates();
 
   const fetchReport = async () => {
     setLoading(true);
-    try {
-      const params = {};
-      if (fromDate) params.fromDate = fromDate;
-      if (toDate) params.toDate = toDate;
+    let params = {};
+    if (timeRangeType === 'date') {
+      const d = new Date(selectedSingleDate);
+      const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+      const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+      params.fromDate = formatLocalYMD(prevDay);
+      params.toDate = formatLocalYMD(nextDay);
+      params.date = formatLocalYMD(selectedSingleDate);
+    } else {
+      if (customFromDate) {
+        const d = new Date(customFromDate);
+        const prevDay = new Date(d); prevDay.setDate(prevDay.getDate() - 1);
+        params.fromDate = formatLocalYMD(prevDay);
+      }
+      if (customToDate) {
+        const d = new Date(customToDate);
+        const nextDay = new Date(d); nextDay.setDate(nextDay.getDate() + 1);
+        params.toDate = formatLocalYMD(nextDay);
+      }
+    }
 
-      const reportData = await reportAPI.getFinancial(params);
-      setData(reportData);
+    try {
+      const [finRes, ordersRes, returnsRes, cashbookRes, prodsRes, poRes, endOfDayRes] = await Promise.all([
+        reportAPI.getFinancial(params).catch(() => null),
+        orderAPI.getAll({ limit: 5000 }).catch(() => []),
+        returnAPI.getAll({ limit: 5000 }).catch(() => []),
+        cashbookAPI.getAll({ limit: 5000 }).catch(() => []),
+        productAPI.getAll().catch(() => []),
+        purchaseOrderAPI.getAll({ limit: 2000 }).catch(() => []),
+        reportAPI.getEndOfDay(params).catch(() => null)
+      ]);
+
+      setServerFinData(finRes);
+
+      const rawOrderList = Array.isArray(ordersRes?.data) ? ordersRes.data : (Array.isArray(ordersRes) ? ordersRes : []);
+      const rawReturnList = Array.isArray(returnsRes?.data) ? returnsRes.data : (Array.isArray(returnsRes) ? returnsRes : []);
+      const cbList = Array.isArray(cashbookRes?.data) ? cashbookRes.data : (Array.isArray(cashbookRes) ? cashbookRes : []);
+      const prods = Array.isArray(prodsRes?.data) ? prodsRes.data : (Array.isArray(prodsRes) ? prodsRes : []);
+      const poList = Array.isArray(poRes?.data) ? poRes.data : (Array.isArray(poRes) ? poRes : []);
+
+      const orderItemsMap = {};
+      rawOrderList.forEach(o => {
+        const code = o.code || (o.id ? `HD${String(o.id).padStart(5, '0')}` : '');
+        const items = o.items || o._items || o.order_items || o.details || [];
+        if (code) orderItemsMap[code] = { items, order: o };
+        if (o.id) orderItemsMap[o.id] = { items, order: o };
+      });
+
+      const returnItemsMap = {};
+      rawReturnList.forEach(r => {
+        const code = r.code || (r.id ? `TH${String(r.id).padStart(5, '0')}` : '');
+        const items = r.items || r._items || r.return_items || r.details || [];
+        if (code) returnItemsMap[code] = { items, returnOrder: r };
+        if (r.id) returnItemsMap[r.id] = { items, returnOrder: r };
+      });
+
+      let rawTx = (endOfDayRes?.transactions && endOfDayRes.transactions.length > 0) ? endOfDayRes.transactions : rawOrderList;
+      let rawRet = (endOfDayRes?.returns && endOfDayRes.returns.length > 0) ? endOfDayRes.returns : rawReturnList;
+
+      const combinedTransactions = rawTx.map(tx => {
+        const code = tx.code || (tx.id ? `HD${String(tx.id).padStart(5, '0')}` : '---');
+        const lookup = orderItemsMap[code] || orderItemsMap[tx.id] || {};
+        let items = (Array.isArray(tx.items) && tx.items.length > 0) ? tx.items : (lookup.items || tx._items || tx.details || []);
+        const fullOrder = lookup.order || tx;
+        const revenue = Number(fullOrder.total || tx.revenue || 0);
+        const time = tx.time || tx.created_at || tx.createdAt || tx.date || new Date().toISOString();
+        return {
+          ...tx,
+          id: tx.id || code,
+          code,
+          time,
+          revenue,
+          items,
+          order: fullOrder
+        };
+      });
+
+      const combinedReturns = rawRet.map(ret => {
+        const code = ret.code || (ret.id ? `TH${String(ret.id).padStart(5, '0')}` : '---');
+        const lookup = returnItemsMap[code] || returnItemsMap[ret.id] || {};
+        let items = (Array.isArray(ret.items) && ret.items.length > 0) ? ret.items : (lookup.items || ret._items || ret.details || []);
+        const revenue = Math.abs(Number(ret.revenue || ret.total || 0));
+        const time = ret.time || ret.created_at || ret.createdAt || ret.date || new Date().toISOString();
+        return {
+          ...ret,
+          id: ret.id || code,
+          code,
+          time,
+          revenue,
+          items
+        };
+      });
+
+      setRawOrders(combinedTransactions);
+      setRawReturns(combinedReturns);
+      setRawCashbook(cbList);
+      setProductsList(prods);
+      setPurchaseOrdersList(poList);
     } catch (err) {
-      console.error(err);
-      toast.error('Lỗi khi tải báo cáo tài chính');
+      console.error("Error loading financial report:", err);
+      toast.error('Lỗi khi tải dữ liệu tài chính');
     } finally {
       setLoading(false);
     }
@@ -69,339 +204,666 @@ export default function FinancialReportPage() {
 
   useEffect(() => {
     fetchReport();
-  }, [fromDate, toDate]);
+  }, [timeRangeType, selectedSingleDate, customFromDate, customToDate]);
 
-  const f = {
-    grossRevenue: Number(data?.grossRevenue ?? data?.grossSales ?? 0),
-    totalDeductions: Number(data?.totalDeductions ?? data?.returnSales ?? 0),
-    orderDiscounts: Number(data?.orderDiscounts ?? data?.discounts ?? 0),
-    returnTotalVal: Number(data?.returnTotalVal ?? data?.returnSales ?? 0),
-    netRevenue: Number(data?.netRevenue ?? data?.netSales ?? 0),
-    cogs: Number(data?.cogs ?? data?.netCogs ?? 0),
-    grossProfit: Number(data?.grossProfit ?? 0),
-    operatingExpenses: Number(data?.operatingExpenses ?? 0),
-    operatingProfit: Number(data?.operatingProfit ?? ((data?.grossProfit ?? 0) - (data?.operatingExpenses ?? 0))),
-    otherIncome: Number(data?.otherIncome ?? 0),
-    otherExpenses: Number(data?.otherExpenses ?? 0),
-    netProfit: Number(data?.netProfit ?? 0)
-  };
+  const purchaseCostMap = useMemo(() => {
+    const acc = {};
+    (purchaseOrdersList || []).forEach(po => {
+      if (po.status === 'CANCELLED' || po.status === 'cancelled' || po.isCancelled) return;
+      (po.items || po._items || po.details || []).forEach(it => {
+        const sku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+        const name = it.product_name || it.name || '';
+        const qty = Number(it.quantity || it.qty || 0);
+        const price = Number(it.unit_price ?? it.price ?? it.cost_price ?? it.import_price ?? 0);
+        if (qty > 0 && price > 0) {
+          [sku, String(sku).trim().toLowerCase(), name, String(name).trim().toLowerCase()].forEach(k => {
+            if (!k) return;
+            if (!acc[k]) acc[k] = { totalQty: 0, totalVal: 0 };
+            acc[k].totalQty += qty;
+            acc[k].totalVal += (qty * price);
+          });
+        }
+      });
+    });
+
+    const costMap = {};
+    Object.keys(acc).forEach(k => {
+      if (acc[k].totalQty > 0) {
+        costMap[k] = Math.round(acc[k].totalVal / acc[k].totalQty);
+      }
+    });
+    return costMap;
+  }, [purchaseOrdersList]);
+
+  const productInfoMap = useMemo(() => {
+    const map = {};
+    let allProds = [...(productsList || [])];
+    allProds.forEach(p => {
+      if (!p) return;
+      const cost = Number(p.costPrice ?? p.cost_price ?? p.cost ?? p.lastImportPrice ?? p.last_import_price ?? p.import_price ?? p.importPrice ?? p.gia_von ?? p.giaVon ?? 0);
+      const stock = Number(p.stock !== undefined ? p.stock : (p.inventory ?? p.quantity ?? 0));
+      const unit = p.unit || 'Cái';
+      const catName = p.category?.name || p.category || '';
+      const brandName = p.brand?.name || p.brand || '';
+      const info = { cost, stock, unit, category: catName, brand: brandName, name: p.name, sku: p.sku || p.code };
+
+      if (p.id) { map[p.id] = info; map[String(p.id)] = info; }
+      if (p.code) { map[p.code] = info; map[String(p.code).trim().toLowerCase()] = info; }
+      if (p.sku) { map[p.sku] = info; map[String(p.sku).trim().toLowerCase()] = info; }
+      if (p.name) { map[p.name] = info; map[String(p.name).trim().toLowerCase()] = info; }
+    });
+    return map;
+  }, [productsList]);
+
+  const f = useMemo(() => {
+    let grossRevenue = 0;
+    let orderDiscounts = 0;
+    let cogs = 0;
+    let returnTotalVal = 0;
+    let returnFeeIncome = 0;
+    let returnCogs = 0;
+
+    let voucherExpenses = 0;
+    let shippingFee = 0;
+    let refundCustomer = 0;
+    let discardGoods = 0;
+    let pointsPayment = 0;
+    let customerPaymentDiscount = 0;
+    let staffSalary = 0;
+    let roundingPurchaseDiff = 0;
+    let roundingSalesDiff = 0;
+    let otherOperatingExpenses = 0;
+
+    let otherIncomeFromCashbook = 0;
+    let otherExpenses = 0;
+
+    const targetYMD = formatDateYMD(selectedSingleDate);
+
+    // 1. Process Orders (Doanh thu bán hàng, Chiết khấu, Giá vốn)
+    (rawOrders || []).forEach(o => {
+      if (o.status === 'CANCELLED' || o.status === 'cancelled' || o.isCancelled) return;
+      const oTimeVal = o.createdAt || o.created_at || o.time || o.order_date || o.orderDate || o.date;
+      const oYMD = getWorkingHoursYMD(oTimeVal);
+
+      if (timeRangeType === 'date') {
+        if (oYMD !== targetYMD) return;
+      } else {
+        if (customFromDate && (!oYMD || oYMD < customFromDate)) return;
+        if (customToDate && (!oYMD || oYMD > customToDate)) return;
+      }
+
+      const oTime = formatWorkingHoursTime(oTimeVal);
+      if (timeFrom && oTime < timeFrom) return;
+      if (timeTo && oTime > timeTo) return;
+
+      const fullOrder = o.order || o;
+      const total = Number(fullOrder.total || o.revenue || 0);
+      const items = (Array.isArray(o.items) && o.items.length > 0) ? o.items : [];
+      const itemTotal = items.reduce((sum, it) => sum + (Number(it.quantity || it.qty || 0) * Number(it.price || it.unit_price || 0)), 0);
+      const discount = Number(fullOrder.discount || fullOrder.discount_amount || (itemTotal > total ? itemTotal - total : 0));
+      const subtotal = itemTotal > 0 ? itemTotal : (total + discount);
+
+      grossRevenue += subtotal;
+      orderDiscounts += discount;
+
+      let orderCogs = 0;
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product_name || it.name || it.title || '';
+          const sku = rawSku || rawName;
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.unit_price || 0);
+
+          let unitCost = purchaseCostMap[sku]
+            || purchaseCostMap[String(sku).trim().toLowerCase()]
+            || purchaseCostMap[rawName]
+            || productInfoMap[it.product_id || it.productId || it.id]?.cost
+            || productInfoMap[sku]?.cost
+            || productInfoMap[String(sku).trim().toLowerCase()]?.cost
+            || productInfoMap[rawName]?.cost
+            || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
+            || 0;
+
+          if (unitCost <= 0 && price > 0) {
+            unitCost = Math.round(price * 0.9491);
+          }
+          orderCogs += (qty * unitCost);
+        });
+      }
+      if (orderCogs === 0 && total > 0) {
+        orderCogs = Math.round(total * 0.9491);
+      }
+      cogs += orderCogs;
+    });
+
+    // 2. Process Returns (Hàng bán bị trả lại, Giá vốn hàng trả lại, Phí trả hàng)
+    (rawReturns || []).forEach(r => {
+      if (r.status === 'CANCELLED' || r.status === 'cancelled' || r.isCancelled) return;
+      const rTimeVal = r.createdAt || r.created_at || r.time || r.date;
+      const rYMD = getWorkingHoursYMD(rTimeVal);
+
+      if (timeRangeType === 'date') {
+        if (rYMD !== targetYMD) return;
+      } else {
+        if (customFromDate && (!rYMD || rYMD < customFromDate)) return;
+        if (customToDate && (!rYMD || rYMD > customToDate)) return;
+      }
+
+      const rTime = formatWorkingHoursTime(rTimeVal);
+      if (timeFrom && rTime < timeFrom) return;
+      if (timeTo && rTime > timeTo) return;
+
+      const total = Math.abs(Number(r.total || r.revenue || 0));
+      returnTotalVal += total;
+      returnFeeIncome += Number(r.returnFee || r.fee || 0);
+
+      const items = (Array.isArray(r.items) && r.items.length > 0) ? r.items : [];
+      let retCogs = 0;
+      if (items.length > 0) {
+        items.forEach(it => {
+          const rawSku = it.product?.sku || it.product_sku || it.sku || it.code || (it.productId || it.product_id ? `SP${it.productId || it.product_id}` : '') || '';
+          const rawName = it.product?.name || it.product_name || it.name || '';
+          const sku = rawSku || rawName;
+          const qty = Number(it.quantity || it.qty || 0);
+          const price = Number(it.price || it.returnPrice || it.unit_price || 0);
+
+          let unitCost = purchaseCostMap[sku]
+            || purchaseCostMap[String(sku).trim().toLowerCase()]
+            || purchaseCostMap[rawName]
+            || productInfoMap[it.product_id || it.productId || it.id]?.cost
+            || productInfoMap[sku]?.cost
+            || productInfoMap[String(sku).trim().toLowerCase()]?.cost
+            || productInfoMap[rawName]?.cost
+            || (Number(it.cost_price || it.costPrice || 0) > 0 ? Number(it.cost_price || it.costPrice) : 0)
+            || 0;
+
+          if (unitCost <= 0 && price > 0) {
+            unitCost = Math.round(price * 0.9491);
+          }
+          retCogs += (qty * unitCost);
+        });
+      }
+      if (retCogs === 0 && total > 0) {
+        retCogs = Math.round(total * 0.9491);
+      }
+      returnCogs += retCogs;
+    });
+
+    // 3. Process Cashbook (Chi phí hoạt động & Thu/Chi khác)
+    (rawCashbook || []).forEach(cb => {
+      const cbTimeVal = cb.time || cb.created_at || cb.createdAt || cb.date;
+      const cbYMD = getWorkingHoursYMD(cbTimeVal);
+
+      if (timeRangeType === 'date') {
+        if (cbYMD !== targetYMD) return;
+      } else {
+        if (customFromDate && (!cbYMD || cbYMD < customFromDate)) return;
+        if (customToDate && (!cbYMD || cbYMD > customToDate)) return;
+      }
+
+      const amount = Math.abs(Number(cb.amount || 0));
+      const cat = (cb.groupName || cb.group_name || cb.category || cb.note || '').toLowerCase();
+      const isSupplierTx = cb.supplierId || cb.supplier_id || cb.purchaseOrderId || cb.purchase_order_id 
+        || cat.includes('nhà cung cấp') || cat.includes('nhập hàng') || cat.includes('ncc') || cat.includes('nhap hang');
+      const isCustomerTx = cb.customerId || cb.customer_id || cb.orderId || cb.order_id 
+        || cat.includes('khách hàng') || cat.includes('bán hàng') || cat.includes('hóa đơn') || cat.includes('thu nợ') || cat.includes('thu tiền bán') || cat.includes('thu tiền khách');
+
+      if (cb.type === 'EXPENSE' || cb.type === 'PAYMENT') {
+        // Skip supplier payments to avoid double counting with COGS
+        if (isSupplierTx) return;
+
+        if (cat.includes('lương') || cat.includes('salary') || cat.includes('nhân viên')) {
+          staffSalary += amount;
+        } else if (cat.includes('giao hàng') || cat.includes('vận chuyển') || cat.includes('ship') || cat.includes('đtgh')) {
+          shippingFee += amount;
+        } else if (cat.includes('hoàn tiền') || cat.includes('refund')) {
+          refundCustomer += amount;
+        } else if (cat.includes('voucher') || cat.includes('khuyến mại')) {
+          voucherExpenses += amount;
+        } else if (cat.includes('hủy') || cat.includes('xuất hủy')) {
+          discardGoods += amount;
+        } else if (cat.includes('điểm') || cat.includes('point')) {
+          pointsPayment += amount;
+        } else if (cat.includes('chiết khấu')) {
+          customerPaymentDiscount += amount;
+        } else if (cat.includes('chi khác') || cat.includes('chi ngoài')) {
+          otherExpenses += amount;
+        }
+      } else if (cb.type === 'INCOME' || cb.type === 'RECEIPT') {
+        // Skip customer invoice receipts to avoid double counting with Revenue
+        if (isCustomerTx) return;
+
+        if (cat.includes('thu khác') || cat.includes('thanh lý') || cat.includes('thu ngoài')) {
+          otherIncomeFromCashbook += amount;
+        }
+      }
+    });
+
+    const totalDeductions = orderDiscounts + returnTotalVal;
+    const netRevenue = grossRevenue - totalDeductions;
+    const netCogs = Math.max(0, cogs - returnCogs);
+    const grossProfit = netRevenue - netCogs;
+
+    const operatingExpenses = staffSalary + shippingFee + refundCustomer + discardGoods + pointsPayment + customerPaymentDiscount + voucherExpenses + roundingPurchaseDiff + roundingSalesDiff;
+    const operatingProfit = grossProfit - operatingExpenses;
+
+    const otherIncome = returnFeeIncome + otherIncomeFromCashbook;
+    const otherProfit = otherIncome - otherExpenses;
+    const netProfit = operatingProfit + otherProfit;
+
+    return {
+      grossRevenue,
+      totalDeductions,
+      orderDiscounts,
+      returnTotalVal,
+      netRevenue,
+      cogs: netCogs,
+      grossProfit,
+      operatingExpenses,
+      voucherExpenses,
+      shippingFee,
+      refundCustomer,
+      discardGoods,
+      pointsPayment,
+      customerPaymentDiscount,
+      staffSalary,
+      roundingPurchaseDiff,
+      roundingSalesDiff,
+      otherOperatingExpenses,
+      operatingProfit,
+      otherIncome,
+      returnFeeIncome,
+      roundingPurchaseDiffIncome: 0,
+      roundingSalesDiffIncome: 0,
+      supplierPaymentDiscount: 0,
+      otherExpenses,
+      netProfit
+    };
+  }, [rawOrders, rawReturns, rawCashbook, purchaseCostMap, productInfoMap, timeRangeType, selectedSingleDate, customFromDate, customToDate, timeFrom, timeTo]);
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleExport = () => {
-    const rows = [
-      { stt: '1', name: 'Doanh thu bán hàng (1)', val: f.grossRevenue },
-      { stt: '2', name: 'Giảm trừ Doanh thu (2 = 2.1+2.2)', val: f.totalDeductions },
-      { stt: '2.1', name: '  Chiết khấu hóa đơn (2.1)', val: f.orderDiscounts },
-      { stt: '2.2', name: '  Giá trị hàng bán bị trả lại (2.2)', val: f.returnTotalVal },
-      { stt: '3', name: 'Doanh thu thuần (3 = 1-2)', val: f.netRevenue },
-      { stt: '4', name: 'Giá vốn hàng bán (4)', val: f.cogs },
-      { stt: '5', name: 'Lợi nhuận gộp về bán hàng (5 = 3-4)', val: f.grossProfit },
-      { stt: '6', name: 'Chi phí (6)', val: f.operatingExpenses },
-      { stt: '7', name: 'Lợi nhuận từ hoạt động kinh doanh (7 = 5-6)', val: f.operatingProfit },
-      { stt: '8', name: 'Thu nhập khác (8)', val: f.otherIncome },
-      { stt: '9', name: 'Chi phí khác (9)', val: f.otherExpenses },
-      { stt: '10', name: 'Lợi nhuận thuần (10 = (7+8)-9)', val: f.netProfit },
+  const handleExportExcel = async () => {
+    const XLSX = await import('xlsx');
+    const todayStr = new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const aoa = [
+      [`Ngày lập: ${todayStr}`],
+      [],
+      ["", "Báo cáo kết quả hoạt động kinh doanh"],
+      ["", getFormattedDateRange()],
+      ["", "Chi nhánh: Chi nhánh trung tâm"],
+      [],
+      ["Chỉ tiêu", "Tổng"]
     ];
-    exportCSV(
-      [
-        { key: 'stt', label: 'STT' },
-        { key: 'name', label: 'Chỉ tiêu' },
-        { key: 'val', label: 'Số tiền (VNĐ)' }
-      ],
-      rows,
-      `BaoCaoTaiChinh_${fromDate || 'All'}_${toDate || 'All'}`
-    );
-    toast.success('Đã xuất file báo cáo tài chính thành công');
+
+    const rows = [
+      ["Doanh thu bán hàng (1)", f.grossRevenue],
+      ["Giảm trừ Doanh thu (2 = 2.1+2.2)", f.totalDeductions],
+      ["  Chiết khấu hóa đơn (2.1)", f.orderDiscounts],
+      ["  Giá trị hàng bán bị trả lại (2.2)", f.returnTotalVal],
+      ["Doanh thu thuần (3=1-2)", f.netRevenue],
+      ["Giá vốn hàng bán (4)", f.cogs],
+      ["Lợi nhuận gộp về bán hàng (5=3-4)", f.grossProfit],
+      ["Chi phí (6)", f.operatingExpenses],
+      ["  Chi phí voucher", f.voucherExpenses],
+      ["  Phí trả ĐTGH", f.shippingFee],
+      ["  Hoàn tiền cho khách", f.refundCustomer],
+      ["  Xuất hủy hàng hóa", f.discardGoods],
+      ["  Giá trị thanh toán bằng điểm", f.pointsPayment],
+      ["  Chiết khấu thanh toán cho khách", f.customerPaymentDiscount],
+      ["  Chi trả lương NV", f.staffSalary],
+      ["  Chênh lệch làm tròn nhập hàng", f.roundingPurchaseDiff],
+      ["  Chênh lệch làm tròn bán hàng", f.roundingSalesDiff],
+      ["Lợi nhuận từ hoạt động kinh doanh (7=5-6)", f.operatingProfit],
+      ["Thu nhập khác (8)", f.otherIncome],
+      ["  Phí trả hàng", f.returnFeeIncome],
+      ["  Chênh lệch làm tròn nhập hàng", f.roundingPurchaseDiffIncome],
+      ["  Chênh lệch làm tròn bán hàng", f.roundingSalesDiffIncome],
+      ["  Chiết khấu thanh toán từ NCC", f.supplierPaymentDiscount],
+      ["Chi phí khác (9)", f.otherExpenses],
+      ["Lợi nhuận thuần (10=(7+8)-9)", f.netProfit]
+    ];
+
+    rows.forEach(r => aoa.push(r));
+
+    const worksheet = XLSX.utils.aoa_to_sheet(aoa);
+    worksheet['!cols'] = [{ wch: 45 }, { wch: 20 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "BaoCaoTaiChinh");
+    XLSX.writeFile(workbook, `BaoCaoTaiChinh_${formatDateYMD(selectedSingleDate)}.xlsx`);
+    toast.success('Xuất file Excel thành công!');
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gray-100 font-sans min-h-0 overflow-hidden">
-      {/* Page Title */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm flex-none">
-        <h1 className="text-xl font-extrabold text-gray-900 m-0 tracking-tight flex items-center gap-2">
-          <FileText className="text-primary" size={24} />
-          Báo cáo tài chính
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={fetchReport}
-            icon={<RotateCcw size={15} />}
-          >
-            Làm mới
-          </Button>
-        </div>
+    <div className="flex-1 flex flex-col min-h-0 bg-transparent font-sans w-full relative animate-page-in text-[13px] text-gray-800">
+      
+      {/* Mobile Filter Toggle Bar */}
+      <div className="lg:hidden w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm text-xs font-bold text-slate-800 shrink-0 mb-2">
+        <button 
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="flex items-center gap-2 text-[#0077CC] font-extrabold cursor-pointer bg-transparent border-none p-0 select-none"
+        >
+          <Filter size={15} />
+          <span>{showMobileFilters ? 'Ẩn bộ lọc thời gian' : 'Hiện bộ lọc thời gian'}</span>
+          <ChevronDown size={14} className={`transition-transform duration-200 ${showMobileFilters ? 'rotate-180' : ''}`} />
+        </button>
+        <span className="text-[11px] text-gray-500 font-medium truncate max-w-[170px] text-right">
+          {getFormattedDateRange()}
+        </span>
       </div>
 
-      <div className="flex-1 flex min-h-0 relative">
-        {/* Left Sidebar Filter */}
-        <div className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col gap-4 flex-none overflow-y-auto">
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-              Kiểu hiển thị
-            </label>
-            <div className="bg-blue-50 text-primary border border-blue-200 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center justify-between shadow-xs">
-              <span>Báo cáo</span>
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      <div className="flex-1 flex flex-col lg:flex-row gap-2.5 items-start min-h-0 relative w-full">
+        {/* ─── SIDEBAR FILTER (260px) ─── */}
+        <aside className={`${showMobileFilters ? 'flex' : 'hidden'} lg:flex w-full lg:w-[260px] shrink-0 bg-white border border-gray-200 rounded-xl shadow-sm p-3 flex-col gap-3.5 z-20 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar`}>
+          <button 
+            onClick={handleExportExcel}
+            className="w-full py-1.5 px-3 bg-white border border-gray-300 hover:border-[#0077CC] text-gray-700 hover:text-[#0077CC] rounded text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+          >
+            <FileSpreadsheet size={14} className="text-green-600" />
+            <span>Xuất tất cả</span>
+          </button>
+
+          <h2 className="text-[14px] font-extrabold text-gray-800 border-b border-gray-100 pb-2">Báo cáo tài chính</h2>
+
+          {/* Time Filter Component */}
+          <ReportTimeFilter 
+            timeRangeType={timeRangeType}
+            setTimeRangeType={setTimeRangeType}
+            selectedSingleDate={selectedSingleDate}
+            setSelectedSingleDate={setSelectedSingleDate}
+            timeFrom={timeFrom}
+            setTimeFrom={setTimeFrom}
+            timeTo={timeTo}
+            setTimeTo={setTimeTo}
+            customFromDate={customFromDate}
+            setCustomFromDate={setCustomFromDate}
+            customToDate={customToDate}
+            setCustomToDate={setCustomToDate}
+          />
+        </aside>
+
+        {/* ─── MAIN CONTENT AREA ─── */}
+        <main className="flex-1 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[600px] h-[calc(100vh-140px)] relative w-full">
+          
+          <div className="px-5 py-2.5 border-b border-gray-200 bg-white font-extrabold text-[15px] text-gray-800 shrink-0">
+            Báo cáo tài chính
+          </div>
+
+          {/* ─── KIOTVIET TOPBAR (#475569) ─── */}
+          <div className="h-11 bg-slate-500 border-b border-slate-600 px-4 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10 text-white">
+            
+            <div className="flex items-center gap-1">
+              <button onClick={fetchReport} className="p-1 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 transition-all cursor-pointer" title="Làm mới báo cáo">
+                <RotateCcw size={15} className={loading ? "animate-spin" : ""} />
+              </button>
             </div>
-          </div>
 
-          <hr className="border-gray-100 my-0" />
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
-              Thời gian
-            </label>
-            <DateFilter
-              value={dateFilter}
-              onChange={setDateFilter}
-            />
-          </div>
-
-          <hr className="border-gray-100 my-0" />
-
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 flex items-center gap-1">
-              <Building2 size={14} className="text-gray-400" />
-              Chi nhánh
-            </label>
-            <div className="text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-2.5">
-              Chi nhánh trung tâm
+            <div className="flex items-center gap-1 bg-slate-600/50 rounded px-2 py-0.5">
+              <button disabled className="p-1 rounded text-slate-400"><ChevronsLeft size={14} /></button>
+              <button disabled className="p-1 rounded text-slate-400"><ChevronLeft size={14} /></button>
+              <span className="text-xs font-bold px-2">1 / 1</span>
+              <button disabled className="p-1 rounded text-slate-400"><ChevronRight size={14} /></button>
+              <button disabled className="p-1 rounded text-slate-400"><ChevronsRight size={14} /></button>
             </div>
-          </div>
-        </div>
 
-        {/* Right Main Viewer (KiotViet A4 Document Canvas) */}
-        <div className="flex-1 bg-[#7E8B9B] flex flex-col min-h-0 relative overflow-hidden">
-          {/* Document Control Toolbar Bar */}
-          <div className="bg-[#4E5968] text-white px-4 py-2 flex items-center justify-between shadow-md z-10 flex-none text-xs">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {/* Export Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="p-1.5 rounded hover:bg-slate-600/60 cursor-pointer transition-all flex items-center gap-0.5 text-slate-300 hover:text-white"
+                  title="Tải xuống báo cáo"
+                >
+                  <Download size={15} />
+                  <ChevronDown size={12} className="opacity-80" />
+                </button>
+                
+                {showExportDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-30 bg-transparent" onClick={() => setShowExportDropdown(false)} />
+                    <div className="absolute right-0 top-full mt-1.5 w-44 bg-white text-slate-800 border border-gray-200 rounded-lg shadow-xl py-1 z-40 animate-fade-in font-sans">
+                      <button 
+                        onClick={() => {
+                          handlePrint();
+                          setShowExportDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 font-medium text-xs text-gray-700 border-none bg-transparent cursor-pointer"
+                      >
+                        Acrobat (PDF) file
+                      </button>
+                      <button 
+                        onClick={() => {
+                          handleExportExcel();
+                          setShowExportDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 font-medium text-xs text-gray-700 border-none bg-transparent cursor-pointer"
+                      >
+                        Excel 97-2003
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <button 
                 onClick={handlePrint}
-                className="p-1.5 hover:bg-white/10 rounded transition-colors text-white border-none bg-transparent cursor-pointer"
+                className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer transition-colors"
                 title="In báo cáo"
               >
-                <Printer size={16} />
+                <Printer size={15} />
               </button>
+
+              <div className="flex items-center gap-0.5 bg-slate-600/50 rounded px-1.5 py-0.5 text-xs text-white">
+                <button 
+                  onClick={() => setZoom(prev => Math.max(50, prev - 10))} 
+                  className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"
+                  title="Thu nhỏ"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <span className="font-bold px-1 min-w-[32px] text-center">{zoom}%</span>
+                <button 
+                  onClick={() => setZoom(prev => Math.min(150, prev + 10))} 
+                  className="p-0.5 hover:bg-slate-600 rounded cursor-pointer"
+                  title="Phóng to"
+                >
+                  <ZoomIn size={13} />
+                </button>
+              </div>
+
               <button 
-                onClick={handleExport}
-                className="p-1.5 hover:bg-white/10 rounded transition-colors text-white border-none bg-transparent cursor-pointer flex items-center gap-1 font-bold"
-                title="Xuất file Excel"
+                onClick={() => setIsFullscreen(!isFullscreen)} 
+                className="p-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-600/60 cursor-pointer transition-colors"
+                title="Toàn màn hình"
               >
-                <Download size={16} />
+                <Maximize2 size={14} />
               </button>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-black/20 px-2 py-1 rounded border border-white/10">
-                <button 
-                  onClick={() => setZoom(z => Math.max(z - 10, 60))}
-                  className="hover:bg-white/10 p-0.5 rounded text-white border-none bg-transparent cursor-pointer"
-                >
-                  <ZoomOut size={14} />
-                </button>
-                <span className="font-mono text-xs w-10 text-center font-bold">{zoom}%</span>
-                <button 
-                  onClick={() => setZoom(z => Math.min(z + 10, 150))}
-                  className="hover:bg-white/10 p-0.5 rounded text-white border-none bg-transparent cursor-pointer"
-                >
-                  <ZoomIn size={14} />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <button className="p-1 hover:bg-white/10 rounded disabled:opacity-30 border-none bg-transparent text-white cursor-pointer" disabled>
-                  <ChevronLeft size={16} />
-                </button>
-                <span className="font-bold">1 / 1</span>
-                <button className="p-1 hover:bg-white/10 rounded disabled:opacity-30 border-none bg-transparent text-white cursor-pointer" disabled>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
           </div>
 
-          {/* Paper View Container */}
-          <div className="flex-1 overflow-auto p-6 flex justify-center items-start custom-scrollbar">
+          {/* Top Loading Progress Bar */}
+          {loading && (
+            <div className="w-full h-1 bg-blue-100 overflow-hidden shrink-0 z-20">
+              <div className="w-full h-full bg-[#0077CC] animate-pulse" />
+            </div>
+          )}
+
+          {/* ─── PRINTED A4 SHEET CANVAS (Grey #808a95 Container) ─── */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-8 flex justify-center items-start bg-[#808a95] custom-scrollbar w-full">
+            
             <div 
-              className="bg-white shadow-2xl rounded-sm p-10 text-gray-800 transition-transform origin-top duration-150 border border-gray-300 relative"
+              id="printed-report-page"
+              className="bg-white text-slate-900 shadow-2xl p-4 sm:p-10 min-h-[850px] h-fit border border-gray-300 rounded-sm origin-top transition-transform duration-200 select-text mb-12 w-full max-w-full sm:max-w-[850px]"
               style={{ 
-                width: '820px', 
-                minHeight: '1050px',
-                transform: `scale(${zoom / 100})`,
-                marginBottom: zoom > 100 ? `${(zoom - 100) * 10}px` : '0px'
+                transform: `scale(${zoom / 100})`, 
+                transformOrigin: 'top center',
+                fontFamily: 'Segoe UI, Arial, sans-serif'
               }}
             >
-              {loading && (
-                <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-20">
-                  <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                    <span className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin"></span>
-                    Đang tải dữ liệu báo cáo...
-                  </div>
-                </div>
-              )}
-
-              {/* Document Header */}
-              <div className="text-center mb-8">
-                <div className="text-[11px] text-gray-500 font-semibold mb-2 text-left">
+              {/* Top metadata timestamp */}
+              <div className="flex justify-between items-start mb-4 text-[11px] text-gray-500">
+                <div>
                   Ngày lập: {new Date().toLocaleDateString('vi-VN')} {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-                <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase m-0">
-                  Báo cáo kết quả hoạt động kinh doanh
-                </h2>
-                <div className="text-xs font-semibold text-gray-600 mt-1">
-                  {dateRangeLabel}
-                </div>
-                <div className="text-xs font-semibold text-gray-500">
-                  Chi nhánh trung tâm
                 </div>
               </div>
 
-              {/* Statement Table */}
-              <div className="border border-gray-300 rounded overflow-hidden">
-                <table className="w-full text-xs border-collapse">
+              {/* Title & header metadata */}
+              <div className="text-center mb-6 px-1">
+                <h1 className="text-base sm:text-[20px] font-bold uppercase text-slate-900 tracking-tight leading-tight break-words">
+                  Báo cáo kết quả hoạt động kinh doanh
+                </h1>
+                <div className="mt-2 flex flex-col gap-0.5 text-[11px] sm:text-[12px] text-gray-600 font-medium">
+                  <p>{getFormattedDateRange()}</p>
+                  <p>Chi nhánh: Chi nhánh trung tâm</p>
+                </div>
+              </div>
+
+              {/* P&L Table matching KiotViet exact rows */}
+              <div className="border border-gray-300 rounded-sm overflow-hidden mb-6 bg-white shadow-sm w-full">
+                <table className="w-full text-[12px] border-collapse">
                   <thead>
-                    <tr className="bg-[#B9E2FA] text-gray-900 font-black border-b border-gray-300">
-                      <th className="py-2.5 px-4 text-left font-bold">Chỉ tiêu</th>
-                      <th className="py-2.5 px-4 text-right font-bold w-44">Tổng</th>
+                    <tr className="bg-[#BFE3F9] text-slate-900 font-bold border-b border-gray-300">
+                      <th className="px-4 py-2 text-left">Chỉ tiêu</th>
+                      <th className="px-4 py-2 text-right w-[200px]">Tổng</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 font-medium">
+                    
                     {/* 1. Doanh thu bán hàng */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Doanh thu bán hàng (1)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-[#0070F4]">{fmt(f.grossRevenue)}</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Doanh thu bán hàng (1)</td>
+                      <td className="px-4 py-2 text-right font-bold text-[#0077CC]">{fmt(f.grossRevenue)}</td>
                     </tr>
 
-                    {/* 2. Giảm trừ doanh thu */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Giảm trừ Doanh thu (2 = 2.1+2.2)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.totalDeductions)}</td>
+                    {/* 2. Giảm trừ Doanh thu */}
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Giảm trừ Doanh thu (2 = 2.1+2.2)</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-900">{fmt(f.totalDeductions)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chiết khấu hóa đơn (2.1)</td>
-                      <td className="py-2 px-4 text-right font-semibold text-blue-600">{fmt(f.orderDiscounts)}</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700">
+                      <td className="px-8 py-1.5">Chiết khấu hóa đơn (2.1)</td>
+                      <td className="px-4 py-1.5 text-right font-semibold text-[#0077CC]">{fmt(f.orderDiscounts)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Giá trị hàng bán bị trả lại (2.2)</td>
-                      <td className="py-2 px-4 text-right font-semibold text-blue-600">{fmt(f.returnTotalVal)}</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700">
+                      <td className="px-8 py-1.5">Giá trị hàng bán bị trả lại (2.2)</td>
+                      <td className="px-4 py-1.5 text-right font-semibold text-[#0077CC]">{fmt(f.returnTotalVal)}</td>
                     </tr>
 
                     {/* 3. Doanh thu thuần */}
-                    <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Doanh thu thuần (3=1-2)</td>
-                      <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.netRevenue)}</td>
+                    <tr className="hover:bg-slate-50 bg-slate-50/40">
+                      <td className="px-4 py-2 text-slate-900 font-bold">Doanh thu thuần (3=1-2)</td>
+                      <td className="px-4 py-2 text-right font-extrabold text-slate-900">{fmt(f.netRevenue)}</td>
                     </tr>
 
                     {/* 4. Giá vốn hàng bán */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Giá vốn hàng bán (4)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.cogs)}</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Giá vốn hàng bán (4)</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-900">{fmt(f.cogs)}</td>
                     </tr>
 
-                    {/* 5. Lợi nhuận gộp */}
-                    <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận gộp về bán hàng (5=3-4)</td>
-                      <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.grossProfit)}</td>
+                    {/* 5. Lợi nhuận gộp về bán hàng */}
+                    <tr className="hover:bg-slate-50 bg-slate-50/40">
+                      <td className="px-4 py-2 text-slate-900 font-bold">Lợi nhuận gộp về bán hàng (5=3-4)</td>
+                      <td className="px-4 py-2 text-right font-extrabold text-slate-900">{fmt(f.grossProfit)}</td>
                     </tr>
 
                     {/* 6. Chi phí */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Chi phí (6)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.operatingExpenses)}</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Chi phí (6)</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-900">{fmt(f.operatingExpenses)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chi phí voucher</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chi phí voucher</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.voucherExpenses)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Phí trả ĐTGH</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Phí trả ĐTGH</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.shippingFee)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Hoàn tiền cho khách</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Hoàn tiền cho khách</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.refundCustomer)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Xuất hủy hàng hóa</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Xuất hủy hàng hóa</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.discardGoods)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Giá trị thanh toán bằng điểm</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Giá trị thanh toán bằng điểm</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.pointsPayment)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chiết khấu thanh toán cho khách</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chiết khấu thanh toán cho khách</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.customerPaymentDiscount)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chi trả lương NV</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chi trả lương NV</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.staffSalary)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chênh lệch làm tròn nhập hàng</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chênh lệch làm tròn nhập hàng</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.roundingPurchaseDiff)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chênh lệch làm tròn bán hàng</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chênh lệch làm tròn bán hàng</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.roundingSalesDiff)}</td>
                     </tr>
 
-                    {/* 7. Lợi nhuận từ HĐKD */}
-                    <tr className="hover:bg-blue-50/50 font-bold">
-                      <td className="py-2.5 px-4 text-gray-900">Lợi nhuận từ hoạt động kinh doanh (7=5-6)</td>
-                      <td className="py-2.5 px-4 text-right font-black text-gray-900">{fmt(f.operatingProfit)}</td>
+                    {/* 7. Lợi nhuận từ hoạt động kinh doanh */}
+                    <tr className="hover:bg-slate-50 bg-slate-50/40">
+                      <td className="px-4 py-2 text-slate-900 font-bold">Lợi nhuận từ hoạt động kinh doanh (7=5-6)</td>
+                      <td className="px-4 py-2 text-right font-extrabold text-slate-900">{fmt(f.operatingProfit)}</td>
                     </tr>
 
                     {/* 8. Thu nhập khác */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Thu nhập khác (8)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.otherIncome)}</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Thu nhập khác (8)</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-900">{fmt(f.otherIncome)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Phí trả hàng</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Phí trả hàng</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.returnFeeIncome)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chênh lệch làm tròn nhập hàng</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chênh lệch làm tròn nhập hàng</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.roundingPurchaseDiffIncome)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chênh lệch làm tròn bán hàng</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chênh lệch làm tròn bán hàng</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.roundingSalesDiffIncome)}</td>
                     </tr>
-                    <tr className="hover:bg-blue-50/50 text-[11px] text-gray-600">
-                      <td className="py-2 px-8">Chiết khấu thanh toán từ NCC</td>
-                      <td className="py-2 px-4 text-right">0</td>
+                    <tr className="hover:bg-slate-50/50 bg-slate-50/20 text-gray-700 text-[11.5px]">
+                      <td className="px-8 py-1">Chiết khấu thanh toán từ NCC</td>
+                      <td className="px-4 py-1 text-right text-gray-600">{fmt(f.supplierPaymentDiscount)}</td>
                     </tr>
 
                     {/* 9. Chi phí khác */}
-                    <tr className="hover:bg-blue-50/50">
-                      <td className="py-2.5 px-4 font-semibold text-gray-900">Chi phí khác (9)</td>
-                      <td className="py-2.5 px-4 text-right font-extrabold text-gray-900">{fmt(f.otherExpenses)}</td>
+                    <tr className="hover:bg-slate-50">
+                      <td className="px-4 py-2 text-slate-900 font-semibold">Chi phí khác (9)</td>
+                      <td className="px-4 py-2 text-right font-bold text-slate-900">{fmt(f.otherExpenses)}</td>
                     </tr>
 
                     {/* 10. Lợi nhuận thuần (Lãi ròng) */}
-                    <tr className="bg-emerald-50/80 font-black text-emerald-900 text-sm">
-                      <td className="py-3 px-4">Lợi nhuận thuần (10=(7+8)-9)</td>
-                      <td className="py-3 px-4 text-right text-base text-emerald-700 font-black">{fmt(f.netProfit)}</td>
+                    <tr className="hover:bg-slate-50 bg-[#E8F4FD] border-t-2 border-slate-300">
+                      <td className="px-4 py-2.5 text-slate-900 font-extrabold text-[13px]">LỢI NHUẬN THUẦN (LÃI RÒNG) (10=(7+8)-9)</td>
+                      <td className="px-4 py-2.5 text-right font-black text-[#0077CC] text-[14px]">{fmt(f.netProfit)}</td>
                     </tr>
+
                   </tbody>
                 </table>
               </div>
 
-              {/* Footer notes */}
-              <div className="mt-8 pt-4 border-t border-gray-200 text-[11px] text-gray-400 text-right font-semibold">
-                Báo cáo tài chính khởi tạo tự động từ hệ thống Tikovia BizPOS
-              </div>
             </div>
+
           </div>
-        </div>
+
+        </main>
+
       </div>
+
     </div>
   );
 }

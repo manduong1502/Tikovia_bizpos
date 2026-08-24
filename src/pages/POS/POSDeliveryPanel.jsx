@@ -37,6 +37,10 @@ export default function POSDeliveryPanel() {
       toast.error('Chưa có sản phẩm trong đơn hàng');
       return;
     }
+    if (!customer || (!customer.id && !customer.customer_id && !customer._id)) {
+      toast.error('⚠️ Vui lòng chọn Khách hàng cho đơn giao hàng!');
+      return;
+    }
     if (!receiverName.trim()) {
       toast.error('Vui lòng nhập tên người nhận');
       return;
@@ -72,7 +76,7 @@ export default function POSDeliveryPanel() {
     
     try {
       const orderData = {
-        customerId: customer?.id || null,
+        customerId: Number(customer?.id || customer?.customer_id || customer?._id),
         items: cart.flatMap(i => {
           const weighings = i.weighings || [{ quantity: i.quantity, price: i.price, discount: i.discount }];
           return weighings.map(w => ({

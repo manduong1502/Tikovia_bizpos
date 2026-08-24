@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
-import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI } from '../../services/api';
+import { supplierAPI, productAPI, purchaseOrderAPI, purchaseReturnAPI, cashbookAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import Button from '../../components/ui/Button';
 import DateFilter from '../../components/ui/DateFilter';
 import toast from 'react-hot-toast';
@@ -62,24 +62,10 @@ const ALL_COLUMNS = [
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState(() => {
-    if (window.__tikovia_suppliers_cache && Array.isArray(window.__tikovia_suppliers_cache) && window.__tikovia_suppliers_cache.length > 0) {
-      return window.__tikovia_suppliers_cache;
-    }
-    try {
-      const cached = sessionStorage.getItem('tikovia_suppliers_cache') || localStorage.getItem('tikovia_suppliers_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          window.__tikovia_suppliers_cache = parsed;
-          return parsed;
-        }
-      }
-    } catch (e) {}
-    return [];
+    const init = loadInitialCache('suppliers', []);
+    return Array.isArray(init) ? init : (init?.data || []);
   });
-  const [isLoading, setIsLoading] = useState(() => {
-    return !(window.__tikovia_suppliers_cache && window.__tikovia_suppliers_cache.length > 0);
-  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('suppliers'));
   const [products, setProducts] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [purchaseReturns, setPurchaseReturns] = useState([]);

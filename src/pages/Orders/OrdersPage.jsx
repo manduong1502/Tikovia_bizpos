@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { orderAPI } from '../../services/api';
+import { orderAPI, loadInitialCache, hasInitialCache } from '../../services/api';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import { useSocket } from '../../context/SocketContext';
@@ -78,14 +78,17 @@ const ALL_COLUMNS = [
 export default function OrdersPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [orders, setOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [orders, setOrders] = useState(() => {
+    const init = loadInitialCache('orders', []);
+    return Array.isArray(init) ? init : (init?.data || []);
+  });
+  const [isLoading, setIsLoading] = useState(() => !hasInitialCache('orders'));
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCode, setSearchCode] = useState('');
   const [searchCustomer, setSearchCustomer] = useState('');
   const [searchProduct, setSearchProduct] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   const { registerOrderUpdateCallback, unregisterOrderUpdateCallback } = useSocket() || {};
 
@@ -391,6 +394,32 @@ export default function OrdersPage() {
   }, [search, searchCode, searchCustomer, searchProduct]);
 
   useEffect(() => {
+    const passedDate = location.state?.orderDate || location.state?.dateFilter;
+    if (passedDate) {
+      if (typeof passedDate === 'string') {
+        setFilters(prev => ({
+          ...prev,
+          orderDate: { mode: 'all', label: passedDate, start: null, end: null }
+        }));
+      } else if (typeof passedDate === 'object') {
+        setFilters(prev => ({
+          ...prev,
+          orderDate: {
+            mode: passedDate.mode || (passedDate.start ? 'custom' : 'all'),
+            label: passedDate.label || 'Tháng này',
+            start: passedDate.start ? new Date(passedDate.start) : null,
+            end: passedDate.end ? new Date(passedDate.end) : null,
+          }
+        }));
+      }
+      // On mobile screen, close filter sidebar drawer so the orders list is visible immediately
+      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      }
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     const codeFromState = location.state?.openOrderCode;
     const orderIdFromState = location.state?.openOrderId;
     const params = new URLSearchParams(location.search);
@@ -513,18 +542,22 @@ export default function OrdersPage() {
 
       if (filters.orderDate && filters.orderDate.mode === 'all' && filters.orderDate.label !== 'Toàn thời gian') {
         const range = getRangeByCreatedLabel(filters.orderDate.label);
-        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+        const orderDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+        if (range && !inDateRange(orderDateVal, range)) return false;
       } else if (filters.orderDate && filters.orderDate.mode === 'custom' && filters.orderDate.start) {
         const range = buildCustomRange(filters.orderDate.start, filters.orderDate.end);
-        if (range && !inDateRange(o.created_at || o.createdAt, range)) return false;
+        const orderDateVal = o.created_at || o.createdAt || o.order_date || o.orderDate || o.date;
+        if (range && !inDateRange(orderDateVal, range)) return false;
       }
 
       if (filters.deliveryDate && filters.deliveryDate.mode === 'all' && filters.deliveryDate.label !== 'Toàn thời gian') {
         const range = getRangeByExpectedLabel(filters.deliveryDate.label);
-        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+        const delivDateVal = o.delivery_date || o.deliveryDate || o.expected_delivery_date || o.expectedDeliveryDate;
+        if (range && !inDateRange(delivDateVal, range)) return false;
       } else if (filters.deliveryDate && filters.deliveryDate.mode === 'custom' && filters.deliveryDate.start) {
         const range = buildCustomRange(filters.deliveryDate.start, filters.deliveryDate.end);
-        if (range && !inDateRange(o.delivery_date || o.deliveryDate || o.expected_delivery_date, range)) return false;
+        const delivDateVal = o.delivery_date || o.deliveryDate || o.expected_delivery_date || o.expectedDeliveryDate;
+        if (range && !inDateRange(delivDateVal, range)) return false;
       }
 
       return true;
@@ -861,6 +894,7 @@ export default function OrdersPage() {
                         {/* Full Screen Scrollable Body */}
                         <div className="flex-1 overflow-y-auto p-3 custom-scrollbar bg-gray-50/50">
                           <OrderDetail
+                            asDiv={true}
                             order={{
                               id: o.id,
                               order_code: o.order_code || o.code,
@@ -999,7 +1033,7 @@ export default function OrdersPage() {
                       )}
                       {visibleColumns.includes('customer_code') && (
                         <td className="py-2.5 px-3 font-medium text-gray-700">
-                          {o.customer_code || `KH${String(o.id).padStart(6, '0')}`}
+                          {o.customer_name && o.customer_name !== 'Khách lẻ' && o.customer_name !== 'khách lẻ' ? (o.customer_code || (o.customerId ? `KH${String(o.customerId).padStart(6, '0')}` : '---')) : '---'}
                         </td>
                       )}
                       {visibleColumns.includes('customer_name') && (

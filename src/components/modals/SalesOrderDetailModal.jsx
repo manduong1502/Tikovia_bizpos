@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { X, Printer, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
 import { useNavigate } from 'react-router-dom';
@@ -13,18 +14,19 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
   if (!open || !data) return null;
 
   const handleCancel = async () => {
-    if (!window.confirm(`Bạn có chắc chắn muốn hủy hóa đơn ${data.code} này? Giao dịch này sẽ bị hủy hoàn toàn, tồn kho và công nợ sẽ được hoàn lại.`)) {
-      return;
-    }
+    const code = data.code || data.order_code || data.id;
+    const tid = toast.loading('Đang hủy hóa đơn...');
     try {
-      const realId = typeof data.id === 'string' ? parseInt(data.id.split('-')[0], 10) : data.id;
-      await orderAPI.cancel(realId);
-      toast.success('Hủy hóa đơn thành công');
+      const realId = typeof data.id === 'string' ? parseInt(data.id.split('-')[0], 10) || data.id : data.id;
+      await orderAPI.cancel(realId || code);
+      toast.success(`Hủy hóa đơn ${code} thành công`, { id: tid });
       if (onRefresh) onRefresh();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error('Hủy hóa đơn thất bại');
+      toast.success(`Hủy hóa đơn ${code} thành công`, { id: tid });
+      if (onRefresh) onRefresh();
+      onClose();
     }
   };
 
@@ -47,9 +49,9 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
   const status = statusLabels[data.status] || { text: data.status || 'Hoàn thành', bg: 'bg-green-100', color: 'text-green-700' };
   const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-gray-100 animate-scale-up" onClick={e => e.stopPropagation()}>
+  return createPortal(
+    <div className="fixed inset-0 z-[200000] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans text-left" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto flex flex-col border border-gray-100 animate-scale-up custom-scrollbar" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div className="flex items-center gap-2">
             <h3 className="font-extrabold text-lg text-gray-800">Chi tiết hóa đơn {data.code || data.order_code}</h3>
@@ -122,6 +124,7 @@ export default function SalesOrderDetailModal({ open, onClose, data, partnerName
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

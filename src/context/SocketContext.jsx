@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { notificationAPI } from '../services/api';
+import { notificationAPI, notifyDataChanged } from '../services/api';
 import { useAppStore } from '../stores/appStore';
 
 const SocketContext = createContext(null);
@@ -149,12 +149,19 @@ export const SocketProvider = ({ children }) => {
     const socketUrl = getSocketUrl();
     const newSocket = io(socketUrl, {
       query: { token },
-      transports: ['websocket'],
-      reconnectionAttempts: 5,
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 15000,
+      timeout: 10000,
     });
 
     newSocket.on('connect', () => {
       console.log('🔌 Đã kết nối WebSockets thành công!');
+    });
+
+    newSocket.on('connect_error', () => {
+      // Gracefully suppress noisy websocket errors
     });
 
     newSocket.on('notification', (newNotif) => {
@@ -192,6 +199,7 @@ export const SocketProvider = ({ children }) => {
     });
 
     newSocket.on('order_updated', (data) => {
+      notifyDataChanged('order');
       orderUpdateCallbacks.current.forEach(cb => {
         try {
           cb(data);
