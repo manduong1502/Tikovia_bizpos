@@ -145,9 +145,13 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
           )}
         </div>
         
-        <button className="hidden sm:flex bg-transparent border-none cursor-pointer text-gray-500 items-center justify-center p-2 rounded-xl transition-all hover:bg-gray-50 hover:text-primary" title="Cài đặt">
+        <Link 
+          to="/settings" 
+          className="hidden sm:flex bg-transparent border-none cursor-pointer text-gray-500 items-center justify-center p-2 rounded-xl transition-all hover:bg-gray-50 hover:text-primary no-underline" 
+          title="Cài đặt hệ thống"
+        >
           <Settings size={20} />
-        </button>
+        </Link>
         
         {/* User Profile Dropdown */}
         <div ref={dropdownRef} className="relative">
@@ -161,17 +165,27 @@ export default function Header({ mobileMenuOpen, setMobileMenuOpen }) {
             <div className="hidden sm:flex flex-col items-start pr-1">
               <span className="text-[13px] text-gray-800 font-bold leading-tight">{user?.fullName || 'Admin'}</span>
               <span className="text-[11px] text-gray-400 font-medium">
-                {user?.role === 'ADMIN' ? 'Quản lý' : (user?.role || 'Nhân viên')}
+                {user?.role === 'ADMIN' ? 'Quản trị viên' : (user?.role || 'Nhân viên')}
               </span>
             </div>
           </div>
 
           {showDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-1 z-[110] animate-fadeIn">
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-xl py-1 z-[110] animate-fadeIn">
               <div className="px-4 py-2 border-b border-gray-50">
                 <p className="text-xs text-gray-400 font-medium">Tài khoản</p>
                 <p className="text-[13px] font-bold text-gray-800">{user?.fullName || 'Admin'}</p>
+                <span className="inline-block mt-0.5 px-2 py-0.5 bg-blue-50 text-primary text-[10px] font-bold rounded">
+                  {user?.role === 'ADMIN' ? 'Quản trị viên' : (user?.role || 'Nhân viên')}
+                </span>
               </div>
+              <Link
+                to="/settings"
+                onClick={() => setShowDropdown(false)}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors flex items-center gap-2 border-none bg-transparent cursor-pointer font-semibold no-underline"
+              >
+                <Settings size={16} className="text-gray-400" /> Thiết lập cửa hàng
+              </Link>
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2 border-none bg-transparent cursor-pointer font-semibold"

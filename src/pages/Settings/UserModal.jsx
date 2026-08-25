@@ -69,20 +69,27 @@ export default function UserModal({ open, onClose, onSaved, user }) {
       toast.error('Vui lòng nhập họ tên nhân viên');
       return;
     }
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      toast.error('Vui lòng nhập email hợp lệ (Gmail để nhận mã OTP bảo mật 2FA)');
+    if (formData.email && formData.email.trim() && (!formData.email.includes('@') || !formData.email.includes('.'))) {
+      toast.error('Vui lòng nhập địa chỉ email hợp lệ');
       return;
     }
 
     setLoading(true);
     try {
+      const payload = {
+        ...formData,
+        username: formData.username.trim(),
+        fullName: formData.fullName.trim(),
+        email: formData.email?.trim() || null,
+        phone: formData.phone?.trim() || null,
+      };
+
       if (isEditing) {
-        const payload = { ...formData };
         if (!payload.password) delete payload.password;
         await userAPI.update(user.id, payload);
         toast.success('Cập nhật tài khoản thành công');
       } else {
-        await userAPI.create(formData);
+        await userAPI.create(payload);
         toast.success('Thêm tài khoản nhân viên mới thành công');
       }
       onSaved?.();
@@ -166,17 +173,16 @@ export default function UserModal({ open, onClose, onSaved, user }) {
         <div>
           <label className="text-xs font-bold text-gray-700 mb-1.5 flex items-center gap-1.5">
             <Mail size={14} className="text-primary" />
-            Gmail nhận mã xác thực OTP (2FA) <span className="text-red-500">*</span>
+            Gmail nhận mã xác thực OTP (2FA) <span className="text-xs font-normal text-gray-400">(Khuyên dùng)</span>
           </label>
           <Input
             type="email"
             value={formData.email}
             onChange={e => setFormData({ ...formData, email: e.target.value })}
             placeholder="vd: nhanvien@gmail.com"
-            required
           />
           <p className="text-[11px] text-gray-500 mt-1">
-            * Khi đăng nhập trên thiết bị lạ, hệ thống sẽ gửi mã OTP 6 số vào Gmail này.
+            * Khi đăng nhập trên thiết bị lạ, hệ thống sẽ gửi mã OTP 6 số vào Gmail này để bảo vệ tài khoản.
           </p>
         </div>
 

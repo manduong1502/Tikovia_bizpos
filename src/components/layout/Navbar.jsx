@@ -205,6 +205,14 @@ export default function Navbar({ mobileMenuOpen, setMobileMenuOpen }) {
                   </div>
                 )}
               </div>
+
+              <Link 
+                to="/settings" 
+                className={`flex items-center px-3 py-2.5 rounded-xl text-[14px] font-medium no-underline transition-colors ${page === '/settings' ? 'bg-[#1E3A8A]/10 text-[#1E3A8A] font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Cài đặt & Thiết lập
+              </Link>
             </div>
           </div>
         </div>
