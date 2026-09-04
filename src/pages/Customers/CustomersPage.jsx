@@ -411,8 +411,52 @@ export default function CustomersPage() {
     return () => clearTimeout(handler);
   }, [searchEmail, searchAddress, searchNote, searchOrderCode]);
 
+  const getSelectedTxRange = useCallback(() => {
+    if (!filterLastTransactionDate) return null;
+    if (filterLastTransactionDate.mode === 'all') {
+      if (filterLastTransactionDate.label && filterLastTransactionDate.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filterLastTransactionDate.label);
+        if (range && (range.start || range.end)) {
+          return { startDate: range.start, endDate: range.end, label: filterLastTransactionDate.label };
+        }
+      }
+      return null;
+    }
+    if (filterLastTransactionDate.mode === 'custom' && (filterLastTransactionDate.start || filterLastTransactionDate.end)) {
+      const range = buildCustomRange(filterLastTransactionDate.start, filterLastTransactionDate.end);
+      if (range && (range.start || range.end)) {
+        return { startDate: range.start, endDate: range.end, label: 'Tùy chỉnh' };
+      }
+    }
+    return null;
+  }, [filterLastTransactionDate]);
+
+  const getSelectedCreatedRange = useCallback(() => {
+    if (!filterDate) return null;
+    if (filterDate.mode === 'all') {
+      if (filterDate.label && filterDate.label !== 'Toàn thời gian') {
+        const range = getRangeByCreatedLabel(filterDate.label);
+        if (range && (range.start || range.end)) {
+          return { createdStartDate: range.start, createdEndDate: range.end, label: filterDate.label };
+        }
+      }
+      return null;
+    }
+    if (filterDate.mode === 'custom' && (filterDate.start || filterDate.end)) {
+      const range = buildCustomRange(filterDate.start, filterDate.end);
+      if (range && (range.start || range.end)) {
+        return { createdStartDate: range.start, createdEndDate: range.end, label: 'Tùy chỉnh' };
+      }
+    }
+    return null;
+  }, [filterDate]);
+
   const reload = useCallback(async (showSpinner = false, forceRefresh = false) => {
-    if (showSpinner || (!window.__tikovia_customers_cache && customers.length === 0)) {
+    const txRange = getSelectedTxRange();
+    const createdRange = getSelectedCreatedRange();
+    const hasDateFilter = Boolean(txRange || createdRange);
+
+    if (showSpinner || (!window.__tikovia_customers_cache && customers.length === 0) || hasDateFilter) {
       setIsLoading(true);
     }
 
@@ -424,22 +468,33 @@ export default function CustomersPage() {
       if (debouncedNote.trim()) params.note = debouncedNote.trim();
       if (debouncedOrderCode.trim()) params.orderCode = debouncedOrderCode.trim();
 
+      if (txRange) {
+        if (txRange.startDate) params.startDate = txRange.startDate;
+        if (txRange.endDate) params.endDate = txRange.endDate;
+      }
+
+      if (createdRange) {
+        if (createdRange.createdStartDate) params.createdStartDate = createdRange.createdStartDate;
+        if (createdRange.createdEndDate) params.createdEndDate = createdRange.createdEndDate;
+      }
+
       const res = await customerAPI.getAll(params);
       const rawList = Array.isArray(res) ? res : (res?.data || []);
-      if (rawList.length > 0) {
+      
+      if (!hasDateFilter && rawList.length > 0) {
         window.__tikovia_customers_cache = rawList;
         try {
           localStorage.setItem('tikovia_customers_cache', JSON.stringify(rawList));
           sessionStorage.setItem('tikovia_customers_cache', JSON.stringify(rawList));
         } catch (e) {}
-        setCustomers(rawList);
       }
+      setCustomers(rawList);
     } catch (err) {
       console.warn('Silent customers reload error:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode]);
+  }, [debouncedSearch, debouncedEmail, debouncedAddress, debouncedNote, debouncedOrderCode, getSelectedTxRange, getSelectedCreatedRange]);
 
   const fetchCustomerTxHistory = useCallback(async () => {
     if (!expandedId) return;
@@ -615,15 +670,8 @@ export default function CustomersPage() {
         if (range && !inDateRange(bday, range)) return false;
       }
 
-      // 3.7. Ngày giao dịch cuối (DateFilter - matches KiotViet: Order, Cashbook, Return, or Account Creation Date)
-      const lastTx = c.lastTransaction || c.last_transaction || c.lastOrderDate || c.last_order_date || c.latestOrderDate || c.latest_order_date || customerLatestTxMap[c.id] || customerLatestTxMap[c.code] || (Array.isArray(c.orders) && c.orders.length > 0 ? (c.orders[0].created_at || c.orders[0].createdAt) : null) || c.created_at || c.createdAt || c.updatedAt || c.updated_at || '2026-08-04';
-      if (filterLastTransactionDate && filterLastTransactionDate.mode === 'all' && filterLastTransactionDate.label !== 'Toàn thời gian') {
-        const range = getRangeByCreatedLabel(filterLastTransactionDate.label);
-        if (range && !inDateRange(lastTx, range)) return false;
-      } else if (filterLastTransactionDate && filterLastTransactionDate.mode === 'custom' && filterLastTransactionDate.start) {
-        const range = buildCustomRange(filterLastTransactionDate.start, filterLastTransactionDate.end);
-        if (range && !inDateRange(lastTx, range)) return false;
-      }
+      // 3.7. Thời gian giao dịch (đã được lọc và tính toán periodSpent chính xác từ API Backend)
+      // Không so sánh c.lastTransaction ở client để tránh loại bỏ sai khách có giao dịch trong kỳ nhưng có thêm giao dịch mới hơn sau này
 
       // 3.8. Tổng bán
       const spent = Number(c.totalSpent || c.total_spent || 0);
@@ -754,8 +802,17 @@ export default function CustomersPage() {
     }
     try {
       const { exportCSV } = await import('../../utils/exportCSV');
-      exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng bán'],
-        dataToExport.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || c.totalDebt || 0, c.total_spent || c.totalSpent || 0])
+      exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Ghi chú', 'Nợ hiện tại', 'Tổng bán'],
+        dataToExport.map(c => [
+          c.code || `KH${String(c.id).padStart(6, '0')}`,
+          c.name || '',
+          c.phone || '',
+          c.email || '',
+          c.address || '',
+          c.note || '',
+          c.debt !== undefined ? c.debt : (c.totalDebt || 0),
+          c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0)
+        ])
       );
     } catch (err) {
       toast.error('Không thể tải thư viện xuất CSV');
@@ -992,11 +1049,11 @@ export default function CustomersPage() {
       return getPriority(a.type) - getPriority(b.type);
     });
 
-    const currentFinalDebt = Number(c.debt !== undefined ? c.debt : c.totalDebt || 0);
+    const currentFinalDebt = Number(c.lifetimeDebt !== undefined ? c.lifetimeDebt : (c.debt !== undefined ? c.debt : c.totalDebt || 0));
     let tempDebt = currentFinalDebt;
     const transactionsWithDebt = debtTransactions.map(tx => {
-      const runningDebt = Math.max(0, tempDebt);
-      tempDebt = Math.max(0, tempDebt - tx.debt);
+      const runningDebt = tempDebt;
+      tempDebt = tempDebt - tx.debt;
       return { ...tx, runningDebt };
     });
 
@@ -1080,13 +1137,29 @@ export default function CustomersPage() {
                 />
               </div>
               <div className="bg-white border border-gray-200 rounded-xl p-3.5 flex flex-col justify-center gap-2 text-xs shadow-xs">
-                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
-                <div className="flex justify-between items-center"><span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span><span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-medium">Tổng bán</span>
+                  <div className="text-right">
+                    <span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span>
+                    {c.lifetimeSpent !== undefined && c.lifetimeSpent !== (c.total_spent || c.totalSpent || 0) && (
+                      <span className="text-[10px] text-gray-400 block font-normal">(Trọn đời: {fmt(c.lifetimeSpent)})</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 font-medium">Tổng bán trừ trả hàng</span>
+                  <span className="font-extrabold text-gray-900">{fmt(c.total_spent || c.totalSpent || 0)}</span>
+                </div>
                 <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-0.5">
-                  <span className="font-extrabold text-gray-900">Nợ hiện tại</span>
-                  <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
-                    {fmt(c.debt || c.totalDebt || 0)}
-                  </span>
+                  <span className="font-extrabold text-gray-900">Nợ cần thu</span>
+                  <div className="text-right">
+                    <span className={`font-black text-sm ${(c.debt || c.totalDebt || 0) > 0 ? 'text-red-600' : (c.debt || c.totalDebt || 0) < 0 ? 'text-emerald-600' : 'text-gray-700'}`}>
+                      {fmt(c.debt || c.totalDebt || 0)}
+                    </span>
+                    {c.lifetimeDebt !== undefined && c.lifetimeDebt !== (c.debt || c.totalDebt || 0) && (
+                      <span className="text-[10px] text-gray-400 block font-normal">(Hiện tại: {fmt(c.lifetimeDebt)})</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1856,11 +1929,11 @@ export default function CustomersPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Ngày giao dịch cuối */}
+          {/* Thời gian giao dịch */}
           <div>
-            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Ngày giao dịch cuối</span>
+            <span className="text-sm font-extrabold text-gray-800 mb-1.5 block tracking-tight">Thời gian giao dịch</span>
             <DateFilter
-              label="Ngày giao dịch cuối"
+              label="Thời gian giao dịch"
               type="created"
               value={filterLastTransactionDate}
               onChange={setFilterLastTransactionDate}
@@ -2474,7 +2547,7 @@ export default function CustomersPage() {
             return getPriority(a.type) - getPriority(b.type);
           });
 
-          const currentFinalDebt = Number(c.debt || c.totalDebt || 0);
+          const currentFinalDebt = Number(c.lifetimeDebt !== undefined ? c.lifetimeDebt : (c.debt !== undefined ? c.debt : c.totalDebt || 0));
           let tempDebt = currentFinalDebt;
           const allTxsWithDebt = sortedNewFirst.map(tx => {
             const runningDebt = tempDebt;

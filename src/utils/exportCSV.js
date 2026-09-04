@@ -227,8 +227,17 @@ export function exportOrders(orders) {
 }
 
 export function exportCustomers(customers) {
-  exportCSV('khach_hang', ['Mã KH', 'Tên', 'Điện thoại', 'Email', 'Địa chỉ', 'Nợ hiện tại', 'Tổng bán'],
-    customers.map(c => [c.code || `KH${String(c.id).padStart(6, '0')}`, c.name, c.phone || '', c.email || '', c.address || '', c.debt || 0, c.total_spent || 0])
+  exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Ghi chú', 'Nợ hiện tại', 'Tổng bán'],
+    customers.map(c => [
+      c.code || `KH${String(c.id).padStart(6, '0')}`,
+      c.name || '',
+      c.phone || '',
+      c.email || '',
+      c.address || '',
+      c.note || '',
+      c.debt !== undefined ? c.debt : (c.totalDebt || 0),
+      c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0)
+    ])
   );
 }
 
