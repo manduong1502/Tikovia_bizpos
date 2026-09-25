@@ -55,6 +55,9 @@ const ALL_COLUMNS = [
 
 const normalizeReturn = (o) => {
   const total = Number(o.total || 0);
+  const discount = Number(o.discount || 0);
+  const mustPay = Math.max(0, total - discount);
+  const paid = o.paid !== undefined && o.paid !== null ? Number(o.paid) : (o.status === 'COMPLETED' ? mustPay : 0);
   return {
     ...o,
     id: o.id,
@@ -64,8 +67,9 @@ const normalizeReturn = (o) => {
     customer_code: o.customer?.code || o.customer_code || (o.customer?.id ? `KH${String(o.customer.id).padStart(6, '0')}` : '---'),
     customer_name: o.customer?.name || o.customer_name || 'Khách lẻ',
     total,
-    must_pay_customer: total,
-    paid_customer: o.status === 'COMPLETED' ? total : 0,
+    discount,
+    must_pay_customer: mustPay,
+    paid_customer: paid,
     status: o.status || 'COMPLETED',
     items: Array.isArray(o.items) && o.items.length > 0 ? o.items.map(it => ({
       ...it,

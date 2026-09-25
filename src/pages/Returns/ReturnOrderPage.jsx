@@ -570,7 +570,7 @@ export default function ReturnOrderPage() {
         orderId: order ? Number(order.id) : null,
         customerId: customer?.id ? Number(customer.id) : null,
         items: validItems.map(it => ({
-          productId: it.id,
+          productId: Number(it.productId || it.id),
           quantity: Number(it.return_quantity),
           price: Number(it.return_price)
         })),
