@@ -150,8 +150,20 @@ export default function ReturnOrderPage() {
 
   useEffect(() => {
     const restoreCloneData = async () => {
-      if (location.state?.cloneFrom) {
-        const pr = location.state.cloneFrom;
+      const searchParams = new URLSearchParams(location.search);
+      const cloneReturnId = searchParams.get('cloneReturnId');
+      let pr = location.state?.cloneFrom;
+      if (!pr && cloneReturnId) {
+        try {
+          const raw = sessionStorage.getItem(`clone_return_${cloneReturnId}`);
+          if (raw) {
+            pr = JSON.parse(raw);
+            sessionStorage.removeItem(`clone_return_${cloneReturnId}`);
+          }
+        } catch (e) {}
+      }
+
+      if (pr) {
         setLoading(true);
 
         // 1. Khôi phục khách hàng
@@ -236,7 +248,7 @@ export default function ReturnOrderPage() {
     };
 
     restoreCloneData();
-  }, [location.state]);
+  }, [location.state, location.search]);
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return [];
