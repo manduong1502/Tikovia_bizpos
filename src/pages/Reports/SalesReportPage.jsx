@@ -1688,6 +1688,7 @@ export default function SalesReportPage() {
           open={!!selectedOrderForModal}
           onClose={() => setSelectedOrderForModal(null)}
           data={selectedOrderForModal}
+          partnerName={selectedOrderForModal.customerName || selectedOrderForModal.customer_name}
         />
       )}
     </div>

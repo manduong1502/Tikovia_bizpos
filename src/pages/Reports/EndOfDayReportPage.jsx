@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { reportAPI, employeeAPI, orderAPI, returnAPI, productAPI, cashbookAPI, loadInitialCache } from '../../services/api';
 import PortalPopover from '../../components/ui/PortalPopover';
 import SalesOrderDetailModal from '../../components/modals/SalesOrderDetailModal';
+import SalesReturnDetailModal from '../../components/modals/SalesReturnDetailModal';
 import toast from 'react-hot-toast';
 import { 
   Download, Printer, RotateCcw, ZoomIn, ZoomOut, Maximize2, 
@@ -75,6 +76,7 @@ export default function EndOfDayReportPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
+  const [selectedReturnForModal, setSelectedReturnForModal] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination State inside Document Toolbar (Default 1000 to display all invoices of the day)
@@ -610,23 +612,16 @@ export default function EndOfDayReportPage() {
 
   const handleInvoiceClick = async (tx) => {
     try {
-      if (tx.id) {
-        const fullOrder = await orderAPI.getById(tx.id);
-        setSelectedOrderForModal(fullOrder);
-      } else {
-        setSelectedOrderForModal({
-          code: tx.code,
-          createdAt: tx.time,
-          total: tx.revenue,
-          paid: getTxPaid(tx),
-          status: 'COMPLETED',
-          customerName: tx.customerName,
-          customerPhone: tx.customerPhone,
-          items: []
-        });
+      const orderIdOrCode = tx.id || tx.code;
+      if (orderIdOrCode) {
+        const fullOrder = await orderAPI.getById(orderIdOrCode);
+        if (fullOrder) {
+          setSelectedOrderForModal(fullOrder);
+          return;
+        }
       }
-    } catch (e) {
       setSelectedOrderForModal({
+        id: tx.id,
         code: tx.code,
         createdAt: tx.time,
         total: tx.revenue,
@@ -634,7 +629,57 @@ export default function EndOfDayReportPage() {
         status: 'COMPLETED',
         customerName: tx.customerName,
         customerPhone: tx.customerPhone,
-        items: []
+        items: tx.items || []
+      });
+    } catch (e) {
+      setSelectedOrderForModal({
+        id: tx.id,
+        code: tx.code,
+        createdAt: tx.time,
+        total: tx.revenue,
+        paid: getTxPaid(tx),
+        status: 'COMPLETED',
+        customerName: tx.customerName,
+        customerPhone: tx.customerPhone,
+        items: tx.items || []
+      });
+    }
+  };
+
+  const handleReturnClick = async (ret) => {
+    try {
+      const retIdOrCode = ret.id || ret.code;
+      if (retIdOrCode) {
+        const fullReturn = await returnAPI.getById(retIdOrCode);
+        if (fullReturn) {
+          setSelectedReturnForModal(fullReturn);
+          return;
+        }
+      }
+      setSelectedReturnForModal({
+        id: ret.id,
+        code: ret.code,
+        createdAt: ret.time || ret.date || ret.createdAt,
+        total: ret.revenue || ret.total,
+        discount: ret.discount,
+        paid: getRetPaid(ret),
+        status: 'COMPLETED',
+        customerName: ret.customerName || ret.customer_name,
+        customerPhone: ret.customerPhone || ret.customer_phone,
+        items: ret.items || []
+      });
+    } catch (e) {
+      setSelectedReturnForModal({
+        id: ret.id,
+        code: ret.code,
+        createdAt: ret.time || ret.date || ret.createdAt,
+        total: ret.revenue || ret.total,
+        discount: ret.discount,
+        paid: getRetPaid(ret),
+        status: 'COMPLETED',
+        customerName: ret.customerName || ret.customer_name,
+        customerPhone: ret.customerPhone || ret.customer_phone,
+        items: ret.items || []
       });
     }
   };
@@ -1706,8 +1751,16 @@ export default function EndOfDayReportPage() {
                               {/* Expanded Interactive Return Child Rows */}
                               {expandedOrders.returns && filteredReturns.map(ret => (
                                 <tr key={ret.id || ret.code} className="hover:bg-red-50/50 transition-colors border-b border-gray-150">
-                                  <td className="px-6 py-1.5 text-[#0077CC] font-bold">
-                                    {ret.code}
+                                  <td className="px-6 py-1.5 font-bold">
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleReturnClick(ret);
+                                      }}
+                                      className="text-[#0077CC] hover:underline font-bold text-left bg-transparent border-none p-0 cursor-pointer"
+                                    >
+                                      {ret.code}
+                                    </button>
                                   </td>
                                   <td className="px-2 py-1.5 text-gray-600">
                                     {formatWorkingHoursTime(ret.time || ret.createdAt || ret.date)}
@@ -1838,7 +1891,12 @@ export default function EndOfDayReportPage() {
                   {expandedOrders.returns && filteredReturns.map(ret => (
                     <div key={ret.id || ret.code} className="bg-red-50/40 border border-red-200 rounded-lg p-3 shadow-xs text-xs">
                       <div className="flex items-center justify-between font-bold border-b border-red-100 pb-1.5 mb-2">
-                        <span className="text-red-700 font-bold">{ret.code}</span>
+                        <button 
+                          onClick={() => handleReturnClick(ret)}
+                          className="text-red-700 hover:underline font-bold text-left bg-transparent border-none p-0 cursor-pointer"
+                        >
+                          {ret.code}
+                        </button>
                         <span className="text-gray-500 text-[11px]">
                           {formatWorkingHoursTime(ret.time || ret.createdAt || ret.date)}
                         </span>
@@ -2166,7 +2224,18 @@ export default function EndOfDayReportPage() {
           open={!!selectedOrderForModal}
           onClose={() => setSelectedOrderForModal(null)}
           data={selectedOrderForModal}
-          partnerName={selectedOrderForModal.customerName}
+          partnerName={selectedOrderForModal.customerName || selectedOrderForModal.customer_name}
+          onRefresh={fetchData}
+        />
+      )}
+
+      {/* ─── SALES RETURN DETAIL MODAL ─── */}
+      {selectedReturnForModal && (
+        <SalesReturnDetailModal 
+          open={!!selectedReturnForModal}
+          onClose={() => setSelectedReturnForModal(null)}
+          data={selectedReturnForModal}
+          partnerName={selectedReturnForModal.customerName || selectedReturnForModal.customer_name}
           onRefresh={fetchData}
         />
       )}

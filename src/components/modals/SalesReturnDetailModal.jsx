@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, ExternalLink } from 'lucide-react';
 import Button from '../ui/Button';
@@ -5,21 +6,57 @@ import { useNavigate } from 'react-router-dom';
 import { returnAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatWorkingHoursDateTime } from '../../utils/dateFilterUtils';
+import { printHTML } from '../../utils/exportUtils';
 
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
 
 export default function SalesReturnDetailModal({ open, onClose, data, partnerName, onRefresh }) {
   const navigate = useNavigate();
+  const [returnDetail, setReturnDetail] = useState(data);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setReturnDetail(data);
+
+    const hasItems = Array.isArray(data.items) && data.items.length > 0;
+    const lookupId = data.id || data.code;
+    if (!hasItems && lookupId) {
+      let isMounted = true;
+      setLoadingDetail(true);
+      returnAPI.getById(lookupId)
+        .then(full => {
+          if (isMounted && full) {
+            setReturnDetail(prev => ({
+              ...prev,
+              ...full,
+              items: full.items || full.return_items || prev?.items || []
+            }));
+          }
+        })
+        .catch(err => {
+          console.warn('Could not fetch return items:', err);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingDetail(false);
+        });
+
+      return () => { isMounted = false; };
+    }
+  }, [data]);
 
   if (!open || !data) return null;
 
+  const currentReturn = returnDetail || data;
+
   const handleCancel = async () => {
-    if (!window.confirm(`Bạn có chắc chắn muốn hủy phiếu trả hàng ${data.code} này? Giao dịch này sẽ bị hủy hoàn toàn, tồn kho và công nợ sẽ được hoàn lại.`)) {
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy phiếu trả hàng ${currentReturn.code} này? Giao dịch này sẽ bị hủy hoàn toàn, tồn kho và công nợ sẽ được hoàn lại.`)) {
       return;
     }
     try {
-      const realId = typeof data.id === 'string' ? parseInt(data.id.split('-')[0], 10) : data.id;
-      await returnAPI.cancel(realId);
+      const realId = typeof currentReturn.id === 'string' ? parseInt(currentReturn.id.split('-')[0], 10) : currentReturn.id;
+      await returnAPI.cancel(realId || currentReturn.code);
       toast.success('Hủy phiếu trả hàng thành công');
       if (onRefresh) onRefresh();
       onClose();
@@ -32,26 +69,171 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
   const handleOpenTicket = () => {
     navigate('/returns', {
       state: {
-        openReturnCode: data.code
+        openReturnCode: currentReturn.code
       }
     });
     onClose();
   };
 
-  const items = data.items || [];
+  const handlePrint = async () => {
+    let retToPrint = currentReturn;
+    const lookupId = retToPrint.id || retToPrint.code;
+    if ((!retToPrint.items || retToPrint.items.length === 0) && lookupId) {
+      setIsPrinting(true);
+      const tid = toast.loading('Đang chuẩn bị phiếu in...');
+      try {
+        const full = await returnAPI.getById(lookupId);
+        if (full) {
+          retToPrint = { ...retToPrint, ...full, items: full.items || full.return_items || [] };
+          setReturnDetail(retToPrint);
+        }
+        toast.dismiss(tid);
+      } catch (e) {
+        toast.dismiss(tid);
+      } finally {
+        setIsPrinting(false);
+      }
+    }
+
+    const f = n => new Intl.NumberFormat('vi-VN').format(Number(n || 0));
+    const printCode = retToPrint.code || (retToPrint.id ? `TH${retToPrint.id}` : 'PHIẾU TRẢ');
+    const rawDate = retToPrint.date || retToPrint.createdAt || retToPrint.created_at;
+    const printDateStr = rawDate ? formatWorkingHoursDateTime(rawDate) : new Date().toLocaleString('vi-VN');
+    const printCustName = partnerName || retToPrint.customerName || retToPrint.customer_name || retToPrint.customer?.name || 'Khách lẻ';
+    const itemsToPrint = retToPrint.items || retToPrint.return_items || [];
+
+    const discountValue = Number(retToPrint.discount || 0);
+    const paidValue = Number(retToPrint.paid || 0);
+    const refundTotal = Number(retToPrint.total || 0) - discountValue;
+
+    const returnHTML = `
+      <style>
+        .inv-wrap { width: 70mm; margin: 0 auto; font-family: Arial, sans-serif; color: #000; line-height: 1.4; padding: 10px 2mm 0 2mm; box-sizing: border-box; }
+        .inv-logo-container { text-align: center; margin-bottom: 2px; }
+        .inv-logo-img { width: 90px; max-height: 40px; object-fit: contain; margin: 0 auto; display: block; }
+        .inv-company { text-align: center; font-size: 14px; font-weight: bold; margin: 8px 0 4px; text-transform: uppercase; }
+        .inv-info { text-align: center; font-size: 12px; margin: 2px 0; }
+        .inv-title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0 2px; color: #b91c1c; }
+        .inv-code-date { text-align: center; font-size: 11px; margin-bottom: 10px; color: #333; }
+        .inv-customer-info { font-size: 12px; margin-bottom: 8px; line-height: 1.5; }
+        .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px; }
+        .inv-table th, .inv-table td { border: 1px solid #000 !important; padding: 4px 2px; }
+        .inv-table th { font-weight: bold; text-align: center; }
+        .inv-summary { width: 100%; font-size: 12px; margin-bottom: 15px; border-collapse: collapse; }
+        .inv-summary td { padding: 3px 0; border: none !important; }
+        .inv-summary .label { text-align: right; padding-right: 15px; }
+        .inv-summary .value { text-align: right; width: 90px; }
+        .inv-footer { font-size: 12px; line-height: 1.5; font-weight: bold; margin-bottom: 15px; }
+        @media print {
+          @page { margin: 0; }
+          body { margin: 0; padding: 0; }
+          .inv-wrap { padding: 5mm 4mm 0 4mm; width: 70mm; margin: 0 auto; }
+        }
+      </style>
+      <div class="inv-wrap">
+        <div class="inv-logo-container">
+          <img src="${window.location.origin}/logovuong.png" class="inv-logo-img" alt="TIKOVIA" onerror="this.style.display='none'" />
+        </div>
+        <div class="inv-company">CÔNG TY TNHH THƯƠNG MẠI VÀ DỊCH VỤ TIKOVIA</div>
+        <div class="inv-info" style="margin-top: 10px;">ĐC: 82 Trần Tử Bình, Hòa Châu, Hòa Vang, ĐN</div>
+        <div class="inv-info">Điện Thoại: 0796.637.194</div>
+
+        <div class="inv-title">PHIẾU TRẢ HÀNG</div>
+        <div class="inv-code-date">${printCode} - ${printDateStr}</div>
+
+        <div class="inv-customer-info">
+          <div>Khách hàng: <strong>${printCustName}</strong></div>
+        </div>
+
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th style="text-align: left;">Mặt hàng</th>
+              <th style="width: 25px;">SL</th>
+              <th style="width: 28px;">ĐVT</th>
+              <th style="text-align: right;">Giá trả</th>
+              <th style="text-align: right;">Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsToPrint.map((it) => {
+              const name = it.product?.name || it.product_name || it.name || '---';
+              const unit = it.unit || it.product?.unit || 'cái';
+              const qty = Number(it.quantity || 0);
+              const price = Number(it.unit_price || it.price || 0);
+              const itemTotal = Number(it.total || qty * price);
+              return `
+              <tr>
+                <td>${name}</td>
+                <td style="text-align: center;">${f(qty)}</td>
+                <td style="text-align: center;">${unit}</td>
+                <td style="text-align: right;">${f(price)}</td>
+                <td style="text-align: right;">${f(itemTotal)}</td>
+              </tr>
+              `;
+            }).join('')}
+            ${itemsToPrint.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding:10px;">Không có mặt hàng nào</td></tr>' : ''}
+          </tbody>
+        </table>
+
+        <table class="inv-summary">
+          <tr>
+            <td class="label">Tổng tiền hàng trả:</td>
+            <td class="value">${f(Math.abs(retToPrint.total || 0))}</td>
+          </tr>
+          ${discountValue > 0 ? `
+          <tr>
+            <td class="label">Phí trả hàng:</td>
+            <td class="value">-${f(discountValue)}</td>
+          </tr>` : ''}
+          <tr>
+            <td class="label" style="font-weight: bold;">Cần trả khách:</td>
+            <td class="value" style="font-weight: bold;">${f(refundTotal)}</td>
+          </tr>
+          <tr>
+            <td class="label" style="font-weight: bold;">Đã trả khách:</td>
+            <td class="value" style="font-weight: bold; color: #15803d;">${f(paidValue)}</td>
+          </tr>
+        </table>
+
+        <div class="inv-footer" style="text-align: right; font-size: 12px; margin-top: 10px;">
+          ${retToPrint.note || retToPrint.reason ? `<div>Ghi chú: ${retToPrint.note || retToPrint.reason}</div>` : ''}
+        </div>
+      </div>
+    `;
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      try {
+        const printWin = window.open('', '_blank');
+        if (printWin) {
+          printWin.document.open();
+          printWin.document.write(`<!DOCTYPE html><html><head><title>Phiếu trả hàng ${printCode}</title></head><body>${returnHTML}<script>window.onload = function() { window.print(); };</script></body></html>`);
+          printWin.document.close();
+          return;
+        }
+      } catch (err) {
+        console.warn('Popup blocked, using printHTML fallback', err);
+      }
+    }
+
+    printHTML(returnHTML, `Phiếu trả hàng ${printCode}`);
+  };
+
+  const items = currentReturn.items || [];
   const statusLabels = {
     'COMPLETED': { text: 'Hoàn thành', bg: 'bg-green-100', color: 'text-green-700' },
     'PENDING': { text: 'Phiếu tạm', bg: 'bg-yellow-100', color: 'text-yellow-700' },
     'CANCELLED': { text: 'Đã hủy', bg: 'bg-red-100', color: 'text-red-700' },
   };
 
-  const status = statusLabels[data.status] || { text: data.status || 'Hoàn thành', bg: 'bg-green-100', color: 'text-green-700' };
+  const status = statusLabels[currentReturn.status] || { text: currentReturn.status || 'Hoàn thành', bg: 'bg-green-100', color: 'text-green-700' };
   const totalQty = items.reduce((s, it) => s + (it.quantity || 0), 0);
 
   // Phí trả hàng (discount) và Tiền trả khách (paid)
-  const discountVal = Number(data.discount || 0);
-  const paidVal = Number(data.paid || 0);
-  const refundAmount = Number(data.total || 0) - discountVal;
+  const discountVal = Number(currentReturn.discount || 0);
+  const paidVal = Number(currentReturn.paid || 0);
+  const refundAmount = Number(currentReturn.total || 0) - discountVal;
 
   return createPortal(
     <div className="fixed inset-0 z-[200000] flex items-center justify-center bg-black/40 p-2 sm:p-4 animate-fade-in font-sans text-left" onClick={onClose}>
@@ -178,29 +360,42 @@ export default function SalesReturnDetailModal({ open, onClose, data, partnerNam
           </div>
         </div>
 
-        <div className="flex flex-wrap justify-between items-center gap-2 px-4 sm:px-6 py-3 border-t border-gray-100 bg-gray-50/50 mt-auto">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-2.5 sm:gap-3 px-4 py-3 sm:px-6 sm:py-3.5 border-t border-gray-100 bg-gray-50/70 mt-auto shrink-0">
           <div>
-            {data.status !== 'CANCELLED' && data.status !== 'cancelled' && (
+            {currentReturn.status !== 'CANCELLED' && currentReturn.status !== 'cancelled' && (
               <button 
                 onClick={handleCancel}
-                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-md border-none"
+                className="w-full sm:w-auto px-3.5 py-2 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs border-none"
               >
                 Hủy phiếu
               </button>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" className="flex items-center gap-1 font-bold shadow-sm text-xs py-1.5 px-3" onClick={onClose}>
-              <Printer size={14} /> In phiếu
+          <div className="grid grid-cols-3 sm:flex gap-2 sm:gap-2.5">
+            <Button 
+              variant="secondary" 
+              className="flex items-center justify-center gap-1 font-bold shadow-xs text-xs sm:text-sm py-2 px-3 sm:px-4 cursor-pointer" 
+              onClick={handlePrint}
+              disabled={isPrinting}
+            >
+              <Printer size={15} className="text-gray-600 shrink-0" /> 
+              <span className="whitespace-nowrap">In phiếu</span>
             </Button>
             <Button
               variant="primary"
               onClick={handleOpenTicket}
-              className="shadow-md bg-gradient-to-r from-primary to-blue-600 border-none px-4 flex items-center gap-1 text-xs py-1.5"
+              className="shadow-sm bg-gradient-to-r from-primary to-blue-600 border-none px-3 sm:px-5 flex items-center justify-center gap-1 text-xs sm:text-sm py-2 cursor-pointer"
             >
-              <ExternalLink size={14} /> Mở phiếu
+              <ExternalLink size={15} className="shrink-0" /> 
+              <span className="whitespace-nowrap">Mở phiếu</span>
             </Button>
-            <Button variant="secondary" onClick={onClose} className="border border-gray-200 text-xs py-1.5 px-3">Đóng</Button>
+            <Button 
+              variant="secondary" 
+              onClick={onClose} 
+              className="border border-gray-200 text-xs sm:text-sm py-2 px-3 sm:px-4 cursor-pointer"
+            >
+              Đóng
+            </Button>
           </div>
         </div>
       </div>
