@@ -8,47 +8,127 @@ import toast from 'react-hot-toast';
  * @param {any[][]} rows - Row data arrays
  */
 export function applyExcelStyles(worksheet, autoCols = []) {
+  if (!worksheet || !worksheet['!ref']) return;
   const range = XLSX.utils.decode_range(worksheet['!ref']);
   const timeCols = [];
+  const sttCols = [];
+  const centerCols = [];
   
-  // Find which columns have "Thời gian", "Ngày tạo" or similar in row 0
+  // Find column types from header row (row 0)
   for (let C = range.s.c; C <= range.e.c; ++C) {
-    const headerCell = worksheet[XLSX.utils.encode_cell({c:C, r:0})];
-    if (headerCell && (headerCell.v === 'Thời gian' || headerCell.v === 'Ngày tạo' || headerCell.v === 'Ngày cập nhật')) {
-      timeCols.push(C);
+    const headerCell = worksheet[XLSX.utils.encode_cell({ c: C, r: 0 })];
+    if (headerCell && headerCell.v) {
+      const hStr = String(headerCell.v).trim().toLowerCase();
+      if (hStr === 'stt') {
+        sttCols.push(C);
+      } else if (hStr.includes('thời gian') || hStr.includes('ngày tạo') || hStr.includes('ngày cập nhật') || hStr.includes('ngày')) {
+        timeCols.push(C);
+      } else if (hStr.includes('mã') || hStr.includes('điện thoại') || hStr.includes('sđt') || hStr.includes('trạng thái') || hStr.includes('đvt')) {
+        centerCols.push(C);
+      }
     }
   }
 
-  for (let R = range.s.r; R <= range.e.r; ++R) {
+  // Detect summary row (e.g. contains "Tổng cộng")
+  let summaryRowIndex = -1;
+  for (let R = range.e.r; R >= range.s.r + 1; --R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
-      const cellAddress = {c:C, r:R};
+      const cell = worksheet[XLSX.utils.encode_cell({ c: C, r: R })];
+      if (cell && cell.v && String(cell.v).toLowerCase().includes('tổng cộng')) {
+        summaryRowIndex = R;
+        break;
+      }
+    }
+    if (summaryRowIndex !== -1) break;
+  }
+
+  const rowHeights = [];
+  for (let R = range.s.r; R <= range.e.r; ++R) {
+    const isHeader = R === 0;
+    const isSummary = R === summaryRowIndex;
+
+    if (isHeader) rowHeights.push({ hpt: 26 });
+    else if (isSummary) rowHeights.push({ hpt: 24 });
+    else rowHeights.push({ hpt: 20 });
+
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const cellAddress = { c: C, r: R };
       const cellRef = XLSX.utils.encode_cell(cellAddress);
-      if (!worksheet[cellRef]) continue;
-      
-      const isHeader = R === 0 || (worksheet[cellRef].v && String(worksheet[cellRef].v).includes('Công nợ chi tiết'));
-      
+      if (!worksheet[cellRef]) {
+        if (isSummary || isHeader) {
+          worksheet[cellRef] = { v: '', t: 's' };
+        } else {
+          continue;
+        }
+      }
+
+      const cell = worksheet[cellRef];
+      let val = cell.v;
       const alignment = { vertical: 'center' };
-      if (timeCols.includes(C) && R > 0) {
+
+      if (isHeader) {
+        alignment.horizontal = 'center';
+      } else if (isSummary) {
+        if (typeof val === 'number') {
+          alignment.horizontal = 'right';
+        } else if (String(val).toLowerCase().includes('tổng cộng')) {
+          alignment.horizontal = 'center';
+        } else {
+          alignment.horizontal = 'center';
+        }
+      } else {
+        if (sttCols.includes(C)) {
+          alignment.horizontal = 'center';
+        } else if (timeCols.includes(C)) {
+          alignment.horizontal = 'center';
+        } else if (centerCols.includes(C)) {
+          alignment.horizontal = 'center';
+        } else if (typeof val === 'number') {
+          alignment.horizontal = 'right';
+        } else {
+          alignment.horizontal = 'left';
+        }
+      }
+
+      // Convert pure numeric string to number (avoid converting phone numbers like "0977...")
+      if (R > 0 && !isHeader && !centerCols.includes(C) && !sttCols.includes(C)) {
+        if (typeof val === 'string' && /^-?\d+(\.\d+)?$/.test(val.trim()) && val.trim().length < 15) {
+          if (!val.startsWith('0') || val === '0') {
+            cell.v = Number(val.trim());
+            cell.t = 'n';
+            val = cell.v;
+          }
+        }
+      }
+
+      // Number formatting with comma separators (e.g. 1,000,000)
+      if (typeof val === 'number' && !sttCols.includes(C)) {
+        cell.z = '#,##0';
         alignment.horizontal = 'right';
       }
-      
-      worksheet[cellRef].s = {
-        ...(worksheet[cellRef].s || {}),
+
+      cell.s = {
         font: {
-          bold: isHeader || (worksheet[cellRef].s?.font?.bold),
+          bold: isHeader || isSummary,
           name: 'Arial',
-          sz: 11
+          sz: isHeader ? 11 : (isSummary ? 11 : 10),
+          color: { rgb: isHeader ? "000000" : (isSummary ? "000000" : "1F2937") }
         },
+        fill: isHeader 
+          ? { fgColor: { rgb: "E2E8F0" } }
+          : (isSummary ? { fgColor: { rgb: "F1F5F9" } } : undefined),
         alignment,
         border: {
           top: { style: "thin", color: { auto: 1 } },
-          bottom: { style: "thin", color: { auto: 1 } },
+          bottom: { style: isSummary ? "double" : "thin", color: { auto: 1 } },
           left: { style: "thin", color: { auto: 1 } },
           right: { style: "thin", color: { auto: 1 } }
         }
       };
     }
   }
+
+  worksheet['!rows'] = rowHeights;
 
   if (autoCols.length > 0) {
     worksheet['!cols'] = autoCols;
@@ -197,10 +277,23 @@ export function applyDebtExcelStyles(worksheet, autoCols = [], headerRowIndex, m
 }
 
 export function exportCSV(filename, headers, rows) {
+  // Calculate dynamic column widths based on content
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = h.length;
+    rows.forEach(r => {
+      const val = r[colIdx];
+      if (val !== undefined && val !== null) {
+        const strVal = typeof val === 'number' ? val.toLocaleString('vi-VN') : String(val);
+        if (strVal.length > maxLen) maxLen = strVal.length;
+      }
+    });
+    return { wch: Math.min(60, Math.max(10, maxLen + 3)) };
+  });
+
   // Create a worksheet from the data array (prepend headers)
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   
-  applyExcelStyles(worksheet, headers.map(h => ({ wch: Math.max(10, h.length + 2) })));
+  applyExcelStyles(worksheet, colWidths);
 
   // Create a new workbook and append the worksheet
   const workbook = XLSX.utils.book_new();
@@ -227,18 +320,75 @@ export function exportOrders(orders) {
 }
 
 export function exportCustomers(customers) {
-  exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Ghi chú', 'Nợ hiện tại', 'Tổng bán'],
-    customers.map(c => [
-      c.code || `KH${String(c.id).padStart(6, '0')}`,
+  const headers = [
+    'STT',
+    'Mã KH',
+    'Tên khách hàng',
+    'Điện thoại',
+    'Email',
+    'Địa chỉ',
+    'Ngày tạo',
+    'Ghi chú',
+    'Nợ hiện tại',
+    'Tổng bán'
+  ];
+
+  let totalDebtSum = 0;
+  let totalSpentSum = 0;
+
+  const rows = customers.map((c, idx) => {
+    const debt = Number(c.debt !== undefined && c.debt !== null ? c.debt : (c.totalDebt || 0));
+    const spent = Number(c.total_spent !== undefined && c.total_spent !== null ? c.total_spent : (c.totalSpent || 0));
+    totalDebtSum += debt;
+    totalSpentSum += spent;
+
+    let createdDateStr = '';
+    const rawDate = c.createdAt || c.created_at;
+    if (rawDate) {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        const pad = (n) => String(n).padStart(2, '0');
+        const day = pad(d.getDate());
+        const month = pad(d.getMonth() + 1);
+        const year = d.getFullYear();
+        const hours = pad(d.getHours());
+        const mins = pad(d.getMinutes());
+        createdDateStr = (hours === '00' && mins === '00')
+          ? `${day}/${month}/${year}`
+          : `${day}/${month}/${year} ${hours}:${mins}`;
+      }
+    }
+
+    return [
+      idx + 1,
+      c.code || (c.id ? `KH${String(c.id).padStart(6, '0')}` : ''),
       c.name || '',
       c.phone || '',
       c.email || '',
       c.address || '',
+      createdDateStr,
       c.note || '',
-      c.debt !== undefined ? c.debt : (c.totalDebt || 0),
-      c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0)
-    ])
-  );
+      debt,
+      spent
+    ];
+  });
+
+  // Hàng tổng cộng (Summary row at bottom)
+  const summaryRow = [
+    '',
+    'Tổng cộng',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    totalDebtSum,
+    totalSpentSum
+  ];
+  rows.push(summaryRow);
+
+  exportCSV('khach_hang', headers, rows);
 }
 
 export function exportSingleInvoiceExcel(order) {

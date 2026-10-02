@@ -801,21 +801,11 @@ export default function CustomersPage() {
       return;
     }
     try {
-      const { exportCSV } = await import('../../utils/exportCSV');
-      exportCSV('khach_hang', ['Mã KH', 'Tên khách hàng', 'Điện thoại', 'Email', 'Địa chỉ', 'Ghi chú', 'Nợ hiện tại', 'Tổng bán'],
-        dataToExport.map(c => [
-          c.code || `KH${String(c.id).padStart(6, '0')}`,
-          c.name || '',
-          c.phone || '',
-          c.email || '',
-          c.address || '',
-          c.note || '',
-          c.debt !== undefined ? c.debt : (c.totalDebt || 0),
-          c.total_spent !== undefined ? c.total_spent : (c.totalSpent || 0)
-        ])
-      );
+      const { exportCustomers } = await import('../../utils/exportCSV');
+      exportCustomers(dataToExport);
     } catch (err) {
-      toast.error('Không thể tải thư viện xuất CSV');
+      console.error(err);
+      toast.error('Không thể tải thư viện xuất file');
     }
   };
 
