@@ -1211,20 +1211,6 @@ export default function CustomersPage() {
 
         {/* Tab: Lịch sử mua hàng */}
         {detailTab === 'history' && (() => {
-          const custOrders = orders.filter(o => {
-            const cIdMatches = String(o.customerId || o.customer_id) === String(c.id);
-            const cNameMatches = o.customer_name && o.customer_name === c.name;
-            const cCodeMatches = c.code && (o.customer_code === c.code || o.customer_name?.includes(c.code));
-            return cIdMatches || cNameMatches || cCodeMatches;
-          });
-
-          const custReturns = returns.filter(r => {
-            const cIdMatches = String(r.customerId || r.customer_id) === String(c.id);
-            const cNameMatches = r.customer_name && r.customer_name === c.name;
-            const cCodeMatches = c.code && (r.customer_code === c.code || r.customer_name?.includes(c.code));
-            return cIdMatches || cNameMatches || cCodeMatches;
-          });
-
           const baseAmt = custOrders.reduce((s, o) => s + Number(o.total || 0), 0);
           const dVal = Number(c.debt || c.totalDebt || 0);
 
@@ -2764,7 +2750,7 @@ export default function CustomersPage() {
         open={paymentModalOpen} 
         onClose={() => { setPaymentModalOpen(false); setPaymentModalCustomer(null); }}
         customer={paymentModalCustomer}
-        orders={orders.filter(o => (o.customerId || o.customer_id || o.customer?.id) === paymentModalCustomer?.id)}
+        orders={orders.filter(o => (o.customerId || o.customer_id || o.customer?.id) === paymentModalCustomer?.id && o.status !== 'CANCELLED' && o.status !== 'cancelled')}
         onSaved={reload}
       />
 
